@@ -1,0 +1,78 @@
+{
+  "agent": "evidence-scout",
+  "attach_mode_allowed": false,
+  "attach_mode_requested": false,
+  "command": [
+    "/home/l4nd0/.opencode/bin/opencode",
+    "run",
+    "--pure",
+    "--agent",
+    "evidence-scout",
+    "--model",
+    "deepseek/deepseek-chat",
+    "--dir",
+    "/home/l4nd0/tenn",
+    "<prompt>"
+  ],
+  "decision_limit": "evidence_only",
+  "ended_at": "2026-06-23T14:51:07.303680+00:00",
+  "exit_code": 0,
+  "model": "deepseek/deepseek-chat",
+  "permission_enforcement": {
+    "config_sha256": "5442743626bc8e14c56d1891bc351910f5b03cabb047aedf7db24f2a35ffe08a",
+    "method": "OPENCODE_CONFIG_CONTENT",
+    "profile": "readonly",
+    "verification": {
+      "issues": [],
+      "method": "opencode_config_content_debug_config",
+      "ok": true,
+      "reason": null,
+      "summary": {
+        "agent_bash_default": "deny",
+        "agent_edit": "deny",
+        "agent_external_directory": "deny",
+        "global_bash_default": "deny",
+        "global_edit": "deny",
+        "global_external_directory": "deny"
+      }
+    },
+    "verified": true
+  },
+  "raw_output_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/raw_output.txt",
+  "remote_permission_verified": false,
+  "result_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/WORKER_RESULT.md",
+  "result_validation": {
+    "fields": {
+      "confidence": "HIGH for SEG wrapper issue (clear signal from error code, fixture\nnotes confirm layout diversity purpose); MEDIUM for DXS mixed-scale issue\n(error codes clear but root cause in the extracted payload itself is\nunverified because payload was not accepted into the scorecard); MEDIUM for\nANZ revenue ratio risk (gate triggers are clear but whether the gate is\ncorrect for bank sector is unresolved \u2014 the fixture itself is not\nhand-verified).",
+      "decision_limit": "evidence_only",
+      "evidence_paths": ">-\n- `reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/failure_rows.json`\n(lines 3314-3360 for fail_closed_payloads, lines 2627-3172 for SEG/DXS\nnot_evaluated rows)\n- `reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard.json`\n(lines 81-99 for DXS 0/10, lines 216-233 for SEG 0/8 with 7 not_evaluated)\n- `reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/replay_results.json`\n(DXS payload absent, SEG payload absent from accepted list)\n- `financial-engine_v2/backend/tests/eval_fixtures/ANZ_H_2025-03-31.json`\n(Claude API-verified, $11.15B revenue, bank sector)\n- `financial-engine_v2/backend/tests/eval_fixtures/DXS_H_2025-12-31.json`\n(hand-verified, REIT stapled entity, capex ambiguity, np_attributable\nconsolidated vs parent ambiguity)\n- `financial-engine_v2/backend/tests/eval_fixtures/SEG_H_2025-12-31.json`\n(hand-verified, scale=thousands, Appendix 4D + IFRS format, full P&L +\ncash flow verified, SEG specific note on shares_outstanding 1000x scaling\nrisk)",
+      "findings": ">-\n**ANZ_H_2025-03-31:** fail_closed with 9 non-null metrics. Error:\n`validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high`.\nScale=millions, currency=AUD. Extraction produced a full payload (9/9\nnon-null) but revenue magnitude (~$11.15B) triggered the revenue-ratio gate.\nScorecard shows all 10 metrics as ambiguous_quarantined\n(CANDIDATE_REVIEW_REQUIRED) because no fixture-level scorecard could be\ngenerated without an accepted payload. Fixture is Claude API-verified (not\nhand-verified). Revenue field `operating income` from the income statement\n\u2014 revenue includes net interest income (bank accounting). The ratio trigger\nsuggests the scale/magnitude gate flagged operating_cf ($47.5B) vs revenue\n($11.15B) as anomalous. Classification: **scorecard/gold-review issue** \u2014\nrevenue expectation and ratio gate parameters may need adjustment for bank\nfinancials where revenue/CF ratios differ from industrial companies. Narrow\nfix is unsafe without confirming whether the gate ratio tolerances handle\nbanking sector norms.\n**DXS_H_2025-12-31:** fail_closed with 9 non-null metrics. Error:\n`validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high`.\nScale=millions, currency=AUD. The extractor produced 9 non-null metrics but\nthe scorecard has 9 `not_evaluated_no_actual_payload` entries (no actual\npayload in scorecard at all). Fixture is hand-verified (high confidence).\nDXS is a REIT stapled entity \u2014 the fixture notes identify multiple capex\nlines (PP&E vs investment property capex) and potential entity-scope\nambiguity (consolidated stapled vs parent entity). The\n`payload_scale_differs_from_metric_source_scale` error indicates extracted\nmetric-level scales may not match the payload-level scale (e.g., some\nmetrics from tables vs document-level). The `mixed_metric_source_scales`\nconfirms heterogeneous scale sources. Classification: **mixed entity\nscope / candidate-review issue** \u2014 the stapled entity structure means\nrevenue and NPAT figures differ between consolidated and parent views.\nDXS fixture expects the consolidated figure. The mixed scales suggest the\nLLM picked up values from both scales. Unsafe for narrow fix without\nunderstanding whether entity-scope resolution or scale-validation logic\nneeds changing. The fixture notes also flag `np_attributable` ambiguity\n(consolidated vs parent entity). Requires source-inspection of the actual\nextracted payload to see what values were captured.\n**SEG_H_2025-12-31:** fail_closed with only 2 non-null metrics. Error:\n`validation_gate:wrapper_missing_disclosure_evidence`. Scale=thousands,\ncurrency=AUD. The wrapper (Appendix 4D detection) failed to identify the\ndisclosure wrapper, so most metrics (revenue, np_attributable, cash_flow items,\nshares_outstanding, net_debt) were not extracted (scorecard shows 7\nnot_evaluated_no_actual_payload). Fixture is hand-verified (high confidence).\nSEG uses an Appendix 4D + IFRS interim financial report format \u2014 it is the\nonly fixture in the set that has a full Appendix 4D + income statement + cash\nflow + balance sheet format for a non-mining operating company. The wrapper\nfailure means the multipass pipeline couldn't find the Appendix 4D summary\npage to bootstrap context. Classification: **source-wrapper/evidence\nissue** \u2014 the wrapper detection logic doesn't recognize SEG's document\nlayout. The fixture notes confirm this is exactly the diversity SEG was\nmeant to test. The 2 non-null metrics extracted suggest some table-level\nextraction still fired (capex investing_cf maybe?) despite wrapper\nfailure. Smallest source-inspection target: inspect the actual parsed\ndocument structure for SEG's PDF to understand why Appendix 4D wrapper\ndetection failed. This is likely a document-structure/classifier fix, not\na prompt or extraction change.",
+      "model": "deepseek/deepseek-chat",
+      "recommended_next_action": ">-\n1. For SEG: inspect the parsed document structure (Docling output or raw\ntext) of the SEG PDF at\n`data/asx/docs/SEG/financial_performance/2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf`\nto identify why Appendix 4D wrapper detection fails. This is the cheapest,\nmost isolated fix target.\n2. For ANZ: review the revenue-ratio gate parameters in\n`multipass_extraction.py` to confirm whether the\n`metric_revenue_ratio_high` threshold accommodates banking sector ratios\n(high operating CF relative to revenue). Cross-reference with a hand-verified\nbank fixture if possible.\n3. For DXS: extract the actual multipass payload\n(if stored/available from the replay run) to inspect which metrics had\nmismatched scales. Without the payload, root cause is speculative. Start\nwith replay results to see if scale_validation=pass but\nmetric_source_scales show mixed table vs document origins.\n4. After any fix, run a targeted regression on all 15 fixtures (not just\nthe changed one) to confirm no regression on working fixtures.",
+      "risks": ">-\n1. ANZ narrow fix: adjusting the revenue-ratio gate without confirming the\ngate is wrong for banking sector could silently accept wrong values in\nfuture bank extractions. The fixture is Claude API-verified only, so the\ngold values themselves are lower-confidence.\n2. DXS narrow fix: entity-scope resolution for stapled REITs could affect\nother REIT fixtures. If the fix adjusts scale-validation logic without\nunderstanding the mixed source scales, it may break correctly-extracted\nnon-REIT payloads.\n3. SEG narrow fix: wrapper detection changes could have wide impact on\nall Appendix 4D documents. The fix must be scoped to the document\nclassifier or wrapper-detection heuristic, not the extraction prompts.\n4. All three fixtures are HEAD-drift-sensitive\u2014the scorecard shows\nsource_pdf_exists=false, meaning the PDFs exist at configured paths but\nwere not opened during the replay run (candidate-review mode). Any\nvalidation change must be replayed to confirm the fix.",
+      "stop_condition_hit": "false\n```",
+      "summary": ">-\nThree fail-closed payloads identified from the 15-fixture replay: ANZ (revenue\nratio risk), DXS (mixed source scales + revenue ratio risk), SEG (wrapper\ndisclosure missing). ANZ and DXS produced 9 non-null metrics each and were\ngated by scale/magnitude validation. SEG produced only 2 non-null metrics and\nwas blocked at the wrapper stage. DXS and SEG had zero actual payload rows in\nthe scorecard (9 and 7 respectively marked not_evaluated_no_actual_payload\ndespite extractor producing 9 and 2 metrics). ANZ's 10 metrics were all\nquarantined (candidate_review_required) despite a successful extraction\npayload \u2014 the revenue ratio gate caught it post-extraction. SEG's root cause\nis wrapper failure (no Appendix 4D wrapper identified) preventing most metric\nextraction. DXS appears to be an entity-scope issue (REIT stapled structure)\nwhere the extracted payload scale differs from metric source scales.",
+      "task_tier": "small",
+      "worker_id": "failclosed-fixtures"
+    },
+    "issues": [
+      {
+        "field": "stop_condition_hit",
+        "message": "must be exactly one of: DATA_MISSING, no, yes"
+      }
+    ],
+    "ok": false
+  },
+  "runtime": "opencode",
+  "schema_version": 1,
+  "session_id": "019ef3a6-0234-7b13-bc22-b26d4f8b0770",
+  "started_at": "2026-06-23T14:50:30.556370+00:00",
+  "status": "result_invalid",
+  "task_file": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures-task.md",
+  "task_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/WORKER_TASK.md",
+  "task_tier": "small",
+  "timed_out": false,
+  "workdir": "/home/l4nd0/tenn",
+  "worker_dir": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures",
+  "worker_id": "failclosed-fixtures"
+}

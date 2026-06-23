@@ -1,0 +1,4840 @@
+{
+  "accepted_payload_count": 12,
+  "actual_payloads_by_document_id": {
+    "AZJ_H_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_19:SD\\PHQWV IRU SURSHUW\\ SODQW DQG HTXLSPHQW",
+        "cash_end": "cashflow_statement:page_19:unknown",
+        "ebit": "income_statement:page_15:Operating profit",
+        "financing_cf": "cashflow_statement:page_19:unknown",
+        "investing_cf": "cashflow_statement:page_19:unknown",
+        "np_attributable": "income_statement:page_15:Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "cashflow_statement:page_19:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_15:Total revenue and other income"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "document",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -377000000.0,
+        "cash_end": 43000000.0,
+        "ebit": 522000000.0,
+        "financing_cf": -422000000.0,
+        "investing_cf": -374000000.0,
+        "net_debt": null,
+        "np_attributable": 235000000.0,
+        "operating_cf": 775000000.0,
+        "revenue": 2104000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_19:SD\\PHQWV IRU SURSHUW\\ SODQW DQG HTXLSPHQW",
+        "cash_end": "cashflow_statement:page_19:unknown",
+        "ebit": "income_statement:page_15:Operating profit",
+        "financing_cf": "cashflow_statement:page_19:unknown",
+        "investing_cf": "cashflow_statement:page_19:unknown",
+        "np_attributable": "income_statement:page_15:Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "cashflow_statement:page_19:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_15:Total revenue and other income"
+      },
+      "row_refs": {
+        "capex": "SD\\PHQWV IRU SURSHUW\\ SODQW DQG HTXLSPHQW",
+        "cash_end": "unknown",
+        "ebit": "Operating profit",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "np_attributable": "Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "Total revenue and other income"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "AZJ_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "BHP_A_2021-06-30": {
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_46:Purchases of property, p lant and e quipment",
+        "cash_end": "cashflow_statement:page_46:Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "income_statement:page_68:Profit from operations",
+        "financing_cf": "cashflow_statement:page_46:Net financing cash flows from Continuing operations",
+        "investing_cf": "cashflow_statement:page_46:Net investing cash flows from Continuing operations",
+        "np_attributable": "income_statement:page_23:Profit after ta xation attri butable to B HP sharehol ders",
+        "operating_cf": "cashflow_statement:page_46:Net operating cash flows from Continuing operations",
+        "revenue": "income_statement:page_68:Revenue",
+        "shares_outstanding": "prose_note:page_53:had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "table",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -6606000000.0,
+        "cash_end": 15246000000.0,
+        "ebit": 25906000000.0,
+        "financing_cf": -17922000000.0,
+        "investing_cf": -7845000000.0,
+        "net_debt": null,
+        "np_attributable": 11304000000.0,
+        "operating_cf": 27234000000.0,
+        "revenue": 60817000000.0,
+        "shares_outstanding": 5057000000.0,
+        "total_debt": null
+      },
+      "period_end": "2021-06-30",
+      "period_start": "2020-07-01",
+      "period_type": "A",
+      "provenance": {
+        "capex": "cashflow_statement:page_46:Purchases of property, p lant and e quipment",
+        "cash_end": "cashflow_statement:page_46:Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "income_statement:page_68:Profit from operations",
+        "financing_cf": "cashflow_statement:page_46:Net financing cash flows from Continuing operations",
+        "investing_cf": "cashflow_statement:page_46:Net investing cash flows from Continuing operations",
+        "np_attributable": "income_statement:page_23:Profit after ta xation attri butable to B HP sharehol ders",
+        "operating_cf": "cashflow_statement:page_46:Net operating cash flows from Continuing operations",
+        "revenue": "income_statement:page_68:Revenue",
+        "shares_outstanding": "prose_note:page_53:had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "row_refs": {
+        "capex": "Purchases of property, p lant and e quipment",
+        "cash_end": "Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "Profit from operations",
+        "financing_cf": "Net financing cash flows from Continuing operations",
+        "investing_cf": "Net investing cash flows from Continuing operations",
+        "np_attributable": "Profit after ta xation attri butable to B HP sharehol ders",
+        "operating_cf": "Net operating cash flows from Continuing operations",
+        "revenue": "Revenue",
+        "shares_outstanding": "had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_title": "BHP_A_2021-06-30",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      }
+    },
+    "CSL_H_2025-12-31": {
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_11:Operating profit (EBIT)",
+        "financing_cf": "cashflow_statement:page_14:unknown",
+        "investing_cf": "cashflow_statement:page_14:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "income_statement:page_11:Net profit for the period",
+        "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+        "revenue": "appendix_wrapper:page_2:change Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "wrapper",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -296000000.0,
+        "cash_end": 1145000000.0,
+        "ebit": 577000000.0,
+        "financing_cf": -1643000000.0,
+        "investing_cf": -652000000.0,
+        "net_debt": 9276000000.0,
+        "np_attributable": 286000000.0,
+        "operating_cf": 1302000000.0,
+        "revenue": 8332000000.0,
+        "shares_outstanding": 482130812.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_11:Operating profit (EBIT)",
+        "financing_cf": "cashflow_statement:page_14:unknown",
+        "investing_cf": "cashflow_statement:page_14:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "income_statement:page_11:Net profit for the period",
+        "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+        "revenue": "appendix_wrapper:page_2:change Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Operating profit (EBIT)",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "net_debt": "total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "Net profit for the period",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "change Revenue from ordinary activities",
+        "shares_outstanding": "Closing balance as at 31 December 2025"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "CSL_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "EQR_Q_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_13:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_13:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_13:4.2 Net cash from / (used in) operating"
+      },
+      "metric_scale_sources": {
+        "cash_end": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table"
+      },
+      "metric_source_scales": {
+        "cash_end": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands"
+      },
+      "metrics": {
+        "capex": null,
+        "cash_end": 21978000.0,
+        "ebit": null,
+        "financing_cf": 12012000.0,
+        "investing_cf": -2656000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": 1154000.0,
+        "revenue": null,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-10-01",
+      "period_type": "Q",
+      "provenance": {
+        "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_13:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_13:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_13:4.2 Net cash from / (used in) operating"
+      },
+      "row_refs": {
+        "cash_end": "Cash and cash equivalents at end of period",
+        "financing_cf": "4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "4.2 Net cash from / (used in) operating"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "EQR_Q_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      }
+    },
+    "FMG_H_2025-12-31": {
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_18:Payments for property, plant and equipment - Fortescue, Payments for property, plant and equipment - joint operations",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_21:Operating profit",
+        "financing_cf": "cashflow_statement:page_18:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_18:Net cash outflow from investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Revenue from ordinary activities",
+        "operating_cf": "cashflow_statement:page_18:Net cash inflow from operating activities",
+        "revenue": "appendix_wrapper:page_1:A commentary on the results for the period is contained within the half year presentation and the financial statements t"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "wrapper",
+        "operating_cf": "table",
+        "revenue": "wrapper"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -1475000000.0,
+        "cash_end": 4743000000.0,
+        "ebit": 2908000000.0,
+        "financing_cf": -1160000000.0,
+        "investing_cf": -1659000000.0,
+        "net_debt": null,
+        "np_attributable": 8439000000.0,
+        "operating_cf": 3203000000.0,
+        "revenue": 8439000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_18:Payments for property, plant and equipment - Fortescue, Payments for property, plant and equipment - joint operations",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_21:Operating profit",
+        "financing_cf": "cashflow_statement:page_18:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_18:Net cash outflow from investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Revenue from ordinary activities",
+        "operating_cf": "cashflow_statement:page_18:Net cash inflow from operating activities",
+        "revenue": "appendix_wrapper:page_1:A commentary on the results for the period is contained within the half year presentation and the financial statements t"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment - Fortescue, Payments for property, plant and equipment - joint operations",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Operating profit",
+        "financing_cf": "Net cash outflow from financing activities",
+        "investing_cf": "Net cash outflow from investing activities",
+        "np_attributable": "Revenue from ordinary activities",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "A commentary on the results for the period is contained within the half year presentation and the financial statements t"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "FMG_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "GRE_Q_2024-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_11:Payments for exploration & evaluation classified as investing (624) activities) (item 2.1(d))",
+        "cash_end": "cashflow_statement:page_11:unknown",
+        "financing_cf": "cashflow_statement:page_11:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_11:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_11:4.2 Net cash from / (used in) operating"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table"
+      },
+      "metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands"
+      },
+      "metrics": {
+        "capex": -624000.0,
+        "cash_end": 702000.0,
+        "ebit": null,
+        "financing_cf": 869000.0,
+        "investing_cf": -624000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -450000.0,
+        "revenue": null,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2024-12-31",
+      "period_start": "2024-10-01",
+      "period_type": "Q",
+      "provenance": {
+        "capex": "cashflow_statement:page_11:Payments for exploration & evaluation classified as investing (624) activities) (item 2.1(d))",
+        "cash_end": "cashflow_statement:page_11:unknown",
+        "financing_cf": "cashflow_statement:page_11:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_11:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_11:4.2 Net cash from / (used in) operating"
+      },
+      "row_refs": {
+        "capex": "Payments for exploration & evaluation classified as investing (624) activities) (item 2.1(d))",
+        "cash_end": "unknown",
+        "financing_cf": "4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "4.2 Net cash from / (used in) operating"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "GRE_Q_2024-12-31",
+        "period_end": "2024-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      }
+    },
+    "MIN_H_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_17:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half- year",
+        "ebit": "income_statement:page_14:PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "cashflow_statement:page_17:Net cash from financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash used in investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Profit for the half-year from ordinary activities after tax attributable to the owners of Mineral Resources Limited1,2 u",
+        "operating_cf": "cashflow_statement:page_17:Net cash from operating activities",
+        "revenue": "appendix_wrapper:page_1:at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET Revenues from ",
+        "shares_outstanding": "share_capital:page_32:Balance at 30 June 2025"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "wrapper",
+        "operating_cf": "table",
+        "revenue": "wrapper",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -333000000.0,
+        "cash_end": 638000000.0,
+        "ebit": 1031000000.0,
+        "financing_cf": -126000000.0,
+        "investing_cf": -527000000.0,
+        "net_debt": null,
+        "np_attributable": 495000000.0,
+        "operating_cf": 880000000.0,
+        "revenue": 3052000000.0,
+        "shares_outstanding": 196518604.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_17:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half- year",
+        "ebit": "income_statement:page_14:PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "cashflow_statement:page_17:Net cash from financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash used in investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Profit for the half-year from ordinary activities after tax attributable to the owners of Mineral Resources Limited1,2 u",
+        "operating_cf": "cashflow_statement:page_17:Net cash from operating activities",
+        "revenue": "appendix_wrapper:page_1:at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET Revenues from ",
+        "shares_outstanding": "share_capital:page_32:Balance at 30 June 2025"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the half- year",
+        "ebit": "PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "Net cash from financing activities",
+        "investing_cf": "Net cash used in investing activities",
+        "np_attributable": "Profit for the half-year from ordinary activities after tax attributable to the owners of Mineral Resources Limited1,2 u",
+        "operating_cf": "Net cash from operating activities",
+        "revenue": "at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET Revenues from ",
+        "shares_outstanding": "Balance at 30 June 2025"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "MIN_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "QBE_H_2025-06-30": {
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_21:Payments for purchase of property, plant and equipment",
+        "cash_end": "cashflow_statement:page_21:Cash and cash equivalents at 30 June",
+        "ebit": "income_statement:page_14:Profit before income tax",
+        "financing_cf": "cashflow_statement:page_21:Net cash flows from financing activities",
+        "investing_cf": "cashflow_statement:page_21:Net cash flows from investing activities",
+        "net_debt": "derived:balance_sheet:total_debt(2664000000)-cash_end(2124000000)",
+        "np_attributable": "income_statement:page_14:Net profit after income tax",
+        "operating_cf": "cashflow_statement:page_21:Net cash flows from operating activities",
+        "revenue": "appendix_wrapper:page_2:Revenue from ordinary activities1 Up",
+        "shares_outstanding": "share_capital:page_32:Issued ordinary shares, fully paid at 30 June"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "document",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "wrapper",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -9000000.0,
+        "cash_end": 2124000000.0,
+        "ebit": 1334000000.0,
+        "financing_cf": -668000000.0,
+        "investing_cf": -562000000.0,
+        "net_debt": 540000000.0,
+        "np_attributable": 1022000000.0,
+        "operating_cf": 1756000000.0,
+        "revenue": 10875000000.0,
+        "shares_outstanding": 1510000000.0,
+        "total_debt": null
+      },
+      "period_end": "2025-06-30",
+      "period_start": "2024-12-31",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_21:Payments for purchase of property, plant and equipment",
+        "cash_end": "cashflow_statement:page_21:Cash and cash equivalents at 30 June",
+        "ebit": "income_statement:page_14:Profit before income tax",
+        "financing_cf": "cashflow_statement:page_21:Net cash flows from financing activities",
+        "investing_cf": "cashflow_statement:page_21:Net cash flows from investing activities",
+        "net_debt": "derived:balance_sheet:total_debt(2664000000)-cash_end(2124000000)",
+        "np_attributable": "income_statement:page_14:Net profit after income tax",
+        "operating_cf": "cashflow_statement:page_21:Net cash flows from operating activities",
+        "revenue": "appendix_wrapper:page_2:Revenue from ordinary activities1 Up",
+        "shares_outstanding": "share_capital:page_32:Issued ordinary shares, fully paid at 30 June"
+      },
+      "row_refs": {
+        "capex": "Payments for purchase of property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at 30 June",
+        "ebit": "Profit before income tax",
+        "financing_cf": "Net cash flows from financing activities",
+        "investing_cf": "Net cash flows from investing activities",
+        "net_debt": "total_debt(2664000000)-cash_end(2124000000)",
+        "np_attributable": "Net profit after income tax",
+        "operating_cf": "Net cash flows from operating activities",
+        "revenue": "Revenue from ordinary activities1 Up",
+        "shares_outstanding": "Issued ordinary shares, fully paid at 30 June"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "QBE_H_2025-06-30",
+        "period_end": "2025-06-30",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "RMS_H_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_15:\u2022 Payments for prop erty, plant, and eq uipmen t, at both e xisting an d new site s, of $25",
+        "cash_end": "source_table:page_23:Cash and cash equivalents at the end of the half-year",
+        "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+        "financing_cf": "cashflow_statement:page_15:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_15:Net cash used in investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+        "operating_cf": "cashflow_statement:page_15:Cash flows from / (used in) operating activities",
+        "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "document",
+        "ebit": "wrapper",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "wrapper",
+        "operating_cf": "table",
+        "revenue": "wrapper",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "np_attributable": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "metrics": {
+        "capex": -25200000.0,
+        "cash_end": 658721000.0,
+        "ebit": 31284000.0,
+        "financing_cf": -84747000.0,
+        "investing_cf": -211390000.0,
+        "net_debt": null,
+        "np_attributable": -11716000.0,
+        "operating_cf": 171200000.0,
+        "revenue": 485630000.0,
+        "shares_outstanding": 1924937480.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_15:\u2022 Payments for prop erty, plant, and eq uipmen t, at both e xisting an d new site s, of $25",
+        "cash_end": "source_table:page_23:Cash and cash equivalents at the end of the half-year",
+        "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+        "financing_cf": "cashflow_statement:page_15:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_15:Net cash used in investing activities",
+        "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+        "operating_cf": "cashflow_statement:page_15:Cash flows from / (used in) operating activities",
+        "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+      },
+      "row_refs": {
+        "capex": "\u2022 Payments for prop erty, plant, and eq uipmen t, at both e xisting an d new site s, of $25",
+        "cash_end": "Cash and cash equivalents at the end of the half-year",
+        "ebit": "Earnings before Interest and Tax (EBIT)",
+        "financing_cf": "Net cash used in financing activities",
+        "investing_cf": "Net cash used in investing activities",
+        "np_attributable": "Net (loss) / profit after tax attributable to members",
+        "operating_cf": "Cash flows from / (used in) operating activities",
+        "revenue": "31 December Revenue from ordinary activities",
+        "shares_outstanding": "At 31 December 2025"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "RMS_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      }
+    },
+    "TCL_H_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_20:Payments for intangible assets",
+        "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the half-year",
+        "ebit": "income_statement:page_17:Profit/(loss) before income tax",
+        "financing_cf": "cashflow_statement:page_20:unknown",
+        "investing_cf": "cashflow_statement:page_20:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "income_statement:page_17:Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "cashflow_statement:page_20:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_17:Revenue B4",
+        "shares_outstanding": "share_capital:page_13:Securities on issue"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "document",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "document",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -152000000.0,
+        "cash_end": 1229000000.0,
+        "ebit": 352000000.0,
+        "financing_cf": -1098000000.0,
+        "investing_cf": -248000000.0,
+        "net_debt": 19227000000.0,
+        "np_attributable": 298000000.0,
+        "operating_cf": 853000000.0,
+        "revenue": 1983000000.0,
+        "shares_outstanding": 3115000000.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_20:Payments for intangible assets",
+        "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the half-year",
+        "ebit": "income_statement:page_17:Profit/(loss) before income tax",
+        "financing_cf": "cashflow_statement:page_20:unknown",
+        "investing_cf": "cashflow_statement:page_20:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "income_statement:page_17:Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "cashflow_statement:page_20:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_17:Revenue B4",
+        "shares_outstanding": "share_capital:page_13:Securities on issue"
+      },
+      "row_refs": {
+        "capex": "Payments for intangible assets",
+        "cash_end": "Cash and cash equivalents at the end of the half-year",
+        "ebit": "Profit/(loss) before income tax",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "net_debt": "total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "Revenue B4",
+        "shares_outstanding": "Securities on issue"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "TCL_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "TLS_H_2025-12-31": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_18:Payments for intangible assets",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_22:Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "cashflow_statement:page_18:unknown",
+        "investing_cf": "cashflow_statement:page_18:unknown",
+        "net_debt": "net_debt_note:page_45:Net debt",
+        "np_attributable": "appendix_wrapper:page_2:Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "cashflow_statement:page_18:Net cash provided by operating activities",
+        "revenue": "income_statement:page_22:Revenue (excluding finance income)"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "net_debt": "table",
+        "np_attributable": "wrapper",
+        "operating_cf": "table",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "net_debt": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -1914000000.0,
+        "cash_end": 1436000000.0,
+        "ebit": 2016000000.0,
+        "financing_cf": -1457000000.0,
+        "investing_cf": -1735000000.0,
+        "net_debt": 16800000000.0,
+        "np_attributable": 1124000000.0,
+        "operating_cf": 3637000000.0,
+        "revenue": 11641000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_18:Payments for intangible assets",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_22:Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "cashflow_statement:page_18:unknown",
+        "investing_cf": "cashflow_statement:page_18:unknown",
+        "net_debt": "net_debt_note:page_45:Net debt",
+        "np_attributable": "appendix_wrapper:page_2:Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "cashflow_statement:page_18:Net cash provided by operating activities",
+        "revenue": "income_statement:page_22:Revenue (excluding finance income)"
+      },
+      "row_refs": {
+        "capex": "Payments for intangible assets",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "net_debt": "Net debt",
+        "np_attributable": "Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "Net cash provided by operating activities",
+        "revenue": "Revenue (excluding finance income)"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "TLS_H_2025-12-31",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "WOW_H_2026-01-04": {
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_12:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_12:unknown",
+        "ebit": "income_statement:page_8:Earnings before interest and tax",
+        "financing_cf": "cashflow_statement:page_12:unknown",
+        "investing_cf": "cashflow_statement:page_12:unknown",
+        "np_attributable": "income_statement:page_8:Profit for the period",
+        "operating_cf": "cashflow_statement:page_12:Net cash provided by operating activities",
+        "revenue": "income_statement:page_8:Revenue 2",
+        "shares_outstanding": "share_capital:page_20:Balance at end of period1"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -1218000000.0,
+        "cash_end": 1289000000.0,
+        "ebit": 962000000.0,
+        "financing_cf": -1096000000.0,
+        "investing_cf": -1186000000.0,
+        "net_debt": null,
+        "np_attributable": 381000000.0,
+        "operating_cf": 2301000000.0,
+        "revenue": 37135000000.0,
+        "shares_outstanding": 1221600000.0,
+        "total_debt": null
+      },
+      "period_end": "2026-01-04",
+      "period_start": "2025-07-05",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_12:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_12:unknown",
+        "ebit": "income_statement:page_8:Earnings before interest and tax",
+        "financing_cf": "cashflow_statement:page_12:unknown",
+        "investing_cf": "cashflow_statement:page_12:unknown",
+        "np_attributable": "income_statement:page_8:Profit for the period",
+        "operating_cf": "cashflow_statement:page_12:Net cash provided by operating activities",
+        "revenue": "income_statement:page_8:Revenue 2",
+        "shares_outstanding": "share_capital:page_20:Balance at end of period1"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "unknown",
+        "ebit": "Earnings before interest and tax",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "np_attributable": "Profit for the period",
+        "operating_cf": "Net cash provided by operating activities",
+        "revenue": "Revenue 2",
+        "shares_outstanding": "Balance at end of period1"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "WOW_H_2026-01-04",
+        "period_end": "2026-01-04",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    }
+  },
+  "artifact_type": "approved_15_no_write_replay_results_v1",
+  "case_count": 15,
+  "data_root": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm",
+  "elapsed_s": 1829.298,
+  "fail_closed_payload_count": 3,
+  "failed_payload_count": 0,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.003,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782235725, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782235725, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "payload_generation": [
+    {
+      "case_id": "ANZ_H_2025-03-31",
+      "document_id": "anz_20250331_h",
+      "elapsed_s": 118.385,
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+      "non_null_metric_count": 9,
+      "result_status": "failed",
+      "status": "fail_closed",
+      "ticker": "ANZ"
+    },
+    {
+      "case_id": "AZJ_H_2025-12-31",
+      "document_id": "azj_20251231_h",
+      "elapsed_s": 109.334,
+      "error": null,
+      "non_null_metric_count": 8,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "AZJ"
+    },
+    {
+      "case_id": "BHP_A_2021-06-30",
+      "document_id": "bhp_fy2021_preliminary_final",
+      "elapsed_s": 122.673,
+      "error": null,
+      "non_null_metric_count": 9,
+      "result_status": "ok_low_confidence",
+      "status": "accepted",
+      "ticker": "BHP"
+    },
+    {
+      "case_id": "CSL_H_2025-12-31",
+      "document_id": "csl_20251231_h",
+      "elapsed_s": 121.592,
+      "error": null,
+      "non_null_metric_count": 10,
+      "result_status": "ok_low_confidence",
+      "status": "accepted",
+      "ticker": "CSL"
+    },
+    {
+      "case_id": "DXS_H_2025-12-31",
+      "document_id": "dxs_20251231_h",
+      "elapsed_s": 147.972,
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+      "non_null_metric_count": 9,
+      "result_status": "failed",
+      "status": "fail_closed",
+      "ticker": "DXS"
+    },
+    {
+      "case_id": "EQR_Q_2025-12-31",
+      "document_id": "eqr_q4_fy2026_appendix5b",
+      "elapsed_s": 106.748,
+      "error": null,
+      "non_null_metric_count": 4,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "EQR"
+    },
+    {
+      "case_id": "FMG_H_2025-12-31",
+      "document_id": "fmg_20251231_h",
+      "elapsed_s": 162.302,
+      "error": null,
+      "non_null_metric_count": 8,
+      "result_status": "ok_low_confidence",
+      "status": "accepted",
+      "ticker": "FMG"
+    },
+    {
+      "case_id": "GRE_Q_2024-12-31",
+      "document_id": "gre_q4_fy2025_appendix5b",
+      "elapsed_s": 50.71,
+      "error": null,
+      "non_null_metric_count": 5,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "GRE"
+    },
+    {
+      "case_id": "MIN_H_2025-12-31",
+      "document_id": "min_2025h1_appendix4d",
+      "elapsed_s": 136.374,
+      "error": null,
+      "non_null_metric_count": 9,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "MIN"
+    },
+    {
+      "case_id": "QBE_H_2025-06-30",
+      "document_id": "qbe_20250630_h",
+      "elapsed_s": 128.364,
+      "error": null,
+      "non_null_metric_count": 10,
+      "result_status": "ok_low_confidence",
+      "status": "accepted",
+      "ticker": "QBE"
+    },
+    {
+      "case_id": "RMS_H_2025-12-31",
+      "document_id": "rms_2025h1_appendix4d",
+      "elapsed_s": 152.032,
+      "error": null,
+      "non_null_metric_count": 9,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "RMS"
+    },
+    {
+      "case_id": "SEG_H_2025-12-31",
+      "document_id": "seg_h_fy2026_appendix4d",
+      "elapsed_s": 74.223,
+      "error": "validation_gate:wrapper_missing_disclosure_evidence",
+      "non_null_metric_count": 2,
+      "result_status": "failed",
+      "status": "fail_closed",
+      "ticker": "SEG"
+    },
+    {
+      "case_id": "TCL_H_2025-12-31",
+      "document_id": "tcl_20251231_h",
+      "elapsed_s": 127.043,
+      "error": null,
+      "non_null_metric_count": 10,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "TCL"
+    },
+    {
+      "case_id": "TLS_H_2025-12-31",
+      "document_id": "tls_20251231_h",
+      "elapsed_s": 149.043,
+      "error": null,
+      "non_null_metric_count": 9,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "TLS"
+    },
+    {
+      "case_id": "WOW_H_2026-01-04",
+      "document_id": "wow_20260104_h",
+      "elapsed_s": 116.444,
+      "error": null,
+      "non_null_metric_count": 9,
+      "result_status": "ok",
+      "status": "accepted",
+      "ticker": "WOW"
+    }
+  ],
+  "results": [
+    {
+      "case_id": "ANZ_H_2025-03-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "anz_20250331_h",
+      "elapsed_s": 118.385,
+      "expected_period_end": "2025-03-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 52,
+            "table_count": 62
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+            "extraction_status": "failed"
+          },
+          "error_code": "validation_failed",
+          "message": "Validation failed: validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+          "stage": "validation",
+          "status": "failed"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -40877000000.0,
+          "cash_end": 195788000000.0,
+          "ebit": 5365000000.0,
+          "financing_cf": 2824000000.0,
+          "investing_cf": -10262000000.0,
+          "np_attributable": 3663000000.0,
+          "operating_cf": 47507000000.0,
+          "revenue": 8137000000.0,
+          "shares_outstanding": 27028000000.0
+        },
+        "period_end": "2025-03-31",
+        "period_start": "2024-10-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_16:Investment securities assets:Purchases",
+          "cash_end": "cashflow_statement:page_16:unknown",
+          "ebit": "income_statement:page_5:Profit before credit impairment and income tax",
+          "financing_cf": "cashflow_statement:page_16:unknown",
+          "investing_cf": "cashflow_statement:page_16:unknown",
+          "np_attributable": "income_statement:page_5:Profit attributable to shareholders of the Company",
+          "operating_cf": "cashflow_statement:page_16:Net cash provided by/(used in) operating activities1",
+          "revenue": "income_statement:page_5:Net interest income",
+          "shares_outstanding": "share_capital:page_45:Ordinary share capital"
+        },
+        "row_refs": {
+          "capex": "Investment securities assets:Purchases",
+          "cash_end": "unknown",
+          "ebit": "Profit before credit impairment and income tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Profit attributable to shareholders of the Company",
+          "operating_cf": "Net cash provided by/(used in) operating activities1",
+          "revenue": "Net interest income",
+          "shares_outstanding": "Ordinary share capital"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "ANZ_H_2025-03-31",
+          "period_end": "2025-03-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "Banking Group Limited (ANZBGL) today released its Consolidated Financial Report for the Half Year ended 31 March 2025. It has been approved for distribution by ANZBGL\u2019s Board of Directors. Yours fa",
+              "evidence": "for the Half Year ended 31 March 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "their report for Australia and New Zealand Banking Group Limited (the Company) for the half year ended 31 March 2025, together with the Condensed Consolidated Financial Statements of the Group. Di",
+              "evidence": "for the half year ended 31 March 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-03-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        "status": "failed",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 52,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ANZ/financial_performance/2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf",
+      "ticker": "ANZ"
+    },
+    {
+      "case_id": "AZJ_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "azj_20251231_h",
+      "elapsed_s": 109.334,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 41,
+            "table_count": 26
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "document",
+          "cash_end": "document",
+          "ebit": "document",
+          "financing_cf": "document",
+          "investing_cf": "document",
+          "np_attributable": "document",
+          "operating_cf": "document",
+          "revenue": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions"
+        },
+        "non_null_metric_count": 8,
+        "non_null_metrics": {
+          "capex": -377000000.0,
+          "cash_end": 43000000.0,
+          "ebit": 522000000.0,
+          "financing_cf": -422000000.0,
+          "investing_cf": -374000000.0,
+          "np_attributable": 235000000.0,
+          "operating_cf": 775000000.0,
+          "revenue": 2104000000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_19:SD\\PHQWV IRU SURSHUW\\ SODQW DQG HTXLSPHQW",
+          "cash_end": "cashflow_statement:page_19:unknown",
+          "ebit": "income_statement:page_15:Operating profit",
+          "financing_cf": "cashflow_statement:page_19:unknown",
+          "investing_cf": "cashflow_statement:page_19:unknown",
+          "np_attributable": "income_statement:page_15:Profit for the six months attributable to owners of Aurizon Holdings Limited",
+          "operating_cf": "cashflow_statement:page_19:Net cash inflow from operating activities",
+          "revenue": "income_statement:page_15:Total revenue and other income"
+        },
+        "row_refs": {
+          "capex": "SD\\PHQWV IRU SURSHUW\\ SODQW DQG HTXLSPHQW",
+          "cash_end": "unknown",
+          "ebit": "Operating profit",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Profit for the six months attributable to owners of Aurizon Holdings Limited",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "Total revenue and other income"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "AZJ_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "sonal use only Aurizon Holdings Limited \ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd Interim Financial Report for the six months ended 31 December 2025 For personal use only For personal use only Aurizon Holdings Limited Directors'",
+              "evidence": "for the six months ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 41,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf",
+      "ticker": "AZJ"
+    },
+    {
+      "case_id": "BHP_A_2021-06-30",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "bhp_fy2021_preliminary_final",
+      "elapsed_s": 122.673,
+      "expected_period_end": "2021-06-30",
+      "expected_period_type": "A",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 82,
+            "table_count": 84
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok_low_confidence"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.905,
+        "currency": "USD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "document",
+          "cash_end": "document",
+          "ebit": "table",
+          "financing_cf": "document",
+          "investing_cf": "document",
+          "np_attributable": "document",
+          "operating_cf": "document",
+          "revenue": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -6606000000.0,
+          "cash_end": 15246000000.0,
+          "ebit": 25906000000.0,
+          "financing_cf": -17922000000.0,
+          "investing_cf": -7845000000.0,
+          "np_attributable": 11304000000.0,
+          "operating_cf": 27234000000.0,
+          "revenue": 60817000000.0,
+          "shares_outstanding": 5057000000.0
+        },
+        "period_end": "2021-06-30",
+        "period_start": "2020-07-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_46:Purchases of property, p lant and e quipment",
+          "cash_end": "cashflow_statement:page_46:Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+          "ebit": "income_statement:page_68:Profit from operations",
+          "financing_cf": "cashflow_statement:page_46:Net financing cash flows from Continuing operations",
+          "investing_cf": "cashflow_statement:page_46:Net investing cash flows from Continuing operations",
+          "np_attributable": "income_statement:page_23:Profit after ta xation attri butable to B HP sharehol ders",
+          "operating_cf": "cashflow_statement:page_46:Net operating cash flows from Continuing operations",
+          "revenue": "income_statement:page_68:Revenue",
+          "shares_outstanding": "prose_note:page_53:had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+        },
+        "row_refs": {
+          "capex": "Purchases of property, p lant and e quipment",
+          "cash_end": "Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+          "ebit": "Profit from operations",
+          "financing_cf": "Net financing cash flows from Continuing operations",
+          "investing_cf": "Net investing cash flows from Continuing operations",
+          "np_attributable": "Profit after ta xation attri butable to B HP sharehol ders",
+          "operating_cf": "Net operating cash flows from Continuing operations",
+          "revenue": "Revenue",
+          "shares_outstanding": "had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "USD",
+          "document_title": "BHP_A_2021-06-30",
+          "period_end": "2021-06-30",
+          "period_type": "A",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "year_ended_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "year_ended_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "imited (ABN 49 004 028 077) and BHP Group Plc (Registration No. 3196209) Report for the year ended 30 June 2021 This statement includes the consolidated results of BHP for the year ended 30 J",
+              "evidence": "for the year ended 30 June 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "year ended 30 June 2021 This statement includes the consolidated results of BHP for the year ended 30 June 2021 compared with the year ended 30 June 2020. This page and the following 81 pages",
+              "evidence": "for the year ended 30 June 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "e consolidated results of BHP for the year ended 30 June 2021 compared with the year ended 30 June 2020. This page and the following 81 pages comprise the year end information given t",
+              "evidence": "year ended 30 June 2020",
+              "is_comparative_context": "false",
+              "period_end": "2020-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "1 BHP RESULTS AND STRATEGIC UPDATE GROWING VALUE AND POSITIONING FOR THE FUTURE FINANCIAL YEAR ENDED 30 JUNE 2021 BHP delivered a strong set of results for the 2021 financial year, with a safe",
+              "evidence": "FINANCIAL YEAR ENDED 30 JUNE 2021",
+              "is_comparative_context": "true",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok_low_confidence",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 82,
+          "parser_id": "pymupdf",
+          "warnings": [
+            "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+          ]
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "ticker": "BHP"
+    },
+    {
+      "case_id": "CSL_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "csl_20251231_h",
+      "elapsed_s": 121.592,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 29,
+            "table_count": 39
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok_low_confidence"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.933,
+        "currency": "USD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "wrapper",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 10,
+        "non_null_metrics": {
+          "capex": -296000000.0,
+          "cash_end": 1145000000.0,
+          "ebit": 577000000.0,
+          "financing_cf": -1643000000.0,
+          "investing_cf": -652000000.0,
+          "net_debt": 9276000000.0,
+          "np_attributable": 286000000.0,
+          "operating_cf": 1302000000.0,
+          "revenue": 8332000000.0,
+          "shares_outstanding": 482130812.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+          "ebit": "income_statement:page_11:Operating profit (EBIT)",
+          "financing_cf": "cashflow_statement:page_14:unknown",
+          "investing_cf": "cashflow_statement:page_14:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+          "np_attributable": "income_statement:page_11:Net profit for the period",
+          "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+          "revenue": "appendix_wrapper:page_2:change Revenue from ordinary activities",
+          "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at the end of the period",
+          "ebit": "Operating profit (EBIT)",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(10421000000)-cash_end(1145000000)",
+          "np_attributable": "Net profit for the period",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "change Revenue from ordinary activities",
+          "shares_outstanding": "Closing balance as at 31 December 2025"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "USD",
+          "document_subtype": "appendix4d",
+          "document_title": "CSL_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "ambiguous"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "s and disposals. 3 Excludes the impact of foreign exchange movements during the year ended 31 December 2025. For personal use only Explanation of results For further explanation of the re",
+              "evidence": "year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "se ASX Announcement 11 February, 2026 Melbourne, Australia Results Announcement for the Half year ended 31 December 2025 CSL Limited (ASX:CSL; USOTC:CSLLY) In accordance with ASX Listing Rule 4.2A, pl",
+              "evidence": "for the Half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "rdance with ASX Listing Rule 4.2A, please find attached the following documents for the half year ended 31 December 2025: \u2022 Appendix 4D; \u2022 Directors\u2019 Report; and \u2022 Financial Report. These documents sh",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "urne VIC 3000 For personal use only CSL Limited ABN: 99 051 588 348 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for A",
+              "evidence": "Half Year Ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "48 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for Announcement to the Market December 2025 December 2024 Percentage",
+              "evidence": "Half Year Ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok_low_confidence",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 29,
+          "parser_id": "pymupdf",
+          "warnings": [
+            "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+          ]
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+      "ticker": "CSL"
+    },
+    {
+      "case_id": "DXS_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "dxs_20251231_h",
+      "elapsed_s": 147.972,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 67,
+            "table_count": 95
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+            "extraction_status": "failed"
+          },
+          "error_code": "validation_failed",
+          "message": "Validation failed: validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+          "stage": "validation",
+          "status": "failed"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.852,
+        "currency": "AUD",
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "thousands",
+          "operating_cf": "millions",
+          "revenue": "thousands",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -27173000000.0,
+          "cash_end": 37113000000.0,
+          "financing_cf": 46702000000.0,
+          "investing_cf": -25000000000.0,
+          "net_debt": -32521600000.0,
+          "np_attributable": -3747000.0,
+          "operating_cf": -15704000000.0,
+          "revenue": 243661000.0,
+          "shares_outstanding": 1075565246.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_20:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the period",
+          "financing_cf": "cashflow_statement:page_20:Net cash inflow/(outflow) from financing activities",
+          "investing_cf": "cashflow_statement:page_20:Net cash (outflow)/inflow from investing activities",
+          "net_debt": "derived:balance_sheet:total_debt(4591400000)-cash_end(37113000000)",
+          "np_attributable": "income_statement:page_51:(Loss)/profit for the period",
+          "operating_cf": "cashflow_statement:page_20:Net cash (outflow)/inflow from operating activities",
+          "revenue": "income_statement:page_51:Total income",
+          "shares_outstanding": "share_capital:page_61:Closing balance"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at the end of the period",
+          "financing_cf": "Net cash inflow/(outflow) from financing activities",
+          "investing_cf": "Net cash (outflow)/inflow from investing activities",
+          "net_debt": "total_debt(4591400000)-cash_end(37113000000)",
+          "np_attributable": "(Loss)/profit for the period",
+          "operating_cf": "Net cash (outflow)/inflow from operating activities",
+          "revenue": "Total income",
+          "shares_outstanding": "Closing balance"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "DXS_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "sults for announcement to the market Dexus ARSN 648 526 470 Financial reporting for the half year ended 31 December 2025 Dexus Property Trust1 31 Dec 2025 31 Dec 2024 % $m $m Change Revenue from ordin",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        "status": "failed",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 67,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXS/financial_performance/2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf",
+      "ticker": "DXS"
+    },
+    {
+      "case_id": "EQR_Q_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "eqr_q4_fy2026_appendix5b",
+      "elapsed_s": 106.748,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "Q",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 17,
+            "table_count": 22
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 0.8,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "cash_end": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "operating_cf": "table"
+        },
+        "metric_source_scales": {
+          "cash_end": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "operating_cf": "thousands"
+        },
+        "non_null_metric_count": 4,
+        "non_null_metrics": {
+          "cash_end": 21978000.0,
+          "financing_cf": 12012000.0,
+          "investing_cf": -2656000.0,
+          "operating_cf": 1154000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-10-01",
+        "period_type": "Q",
+        "provenance": {
+          "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at end of period",
+          "financing_cf": "cashflow_statement:page_13:4.4 Net cash from / (used in) financing activities",
+          "investing_cf": "cashflow_statement:page_13:4.3 Net cash from / (used in) investing activities",
+          "operating_cf": "cashflow_statement:page_13:4.2 Net cash from / (used in) operating"
+        },
+        "row_refs": {
+          "cash_end": "Cash and cash equivalents at end of period",
+          "financing_cf": "4.4 Net cash from / (used in) financing activities",
+          "investing_cf": "4.3 Net cash from / (used in) investing activities",
+          "operating_cf": "4.2 Net cash from / (used in) operating"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "EQR_Q_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "Q",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "quarterly_source_phrase",
+            "quarterly_activity_report_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "quarterly_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "resourcing the new economy for a better tomorrow Quarterly Activities Report - Quarter ended 31 December 2025 Page 1 EQ Resources Limited Quarterly Activities Report Quarter Ended 31 Decemb",
+              "evidence": "Quarter ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "reason": "quarter_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ended 31 December 2025 Page 1 EQ Resources Limited Quarterly Activities Report Quarter Ended 31 December 2025 HIGHLIGHTS TUNGSTEN MARKET \uf0b7 Fastmarkets Ammonium Paratungstate (\u201cAPT\u201d) CIF Rot",
+              "evidence": "Quarter Ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "reason": "quarter_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "resourcing the new economy for a better tomorrow Quarterly Activities Report - Quarter ended 31 December 2025 Page 2 EQR GROUP Q2 FY2026 - PRODUCTION SUMMARY Operations Mt Carbine Saloro EQ",
+              "evidence": "Quarter ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "reason": "quarter_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "resourcing the new economy for a better tomorrow Quarterly Activities Report - Quarter ended 31 December 2025 Page 3 HEALTH, SAFETY & ENVIRONMENT Above: 12-Month Lost Time Injury Rolling Fr",
+              "evidence": "Quarter ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "reason": "quarter_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-12-31",
+          "period_type": "Q",
+          "reason": "quarter_ended_explicit_date"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 17,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "ticker": "EQR"
+    },
+    {
+      "case_id": "FMG_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "fmg_20251231_h",
+      "elapsed_s": 162.302,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 39,
+            "table_count": 47
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok_low_confidence"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "USD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "wrapper",
+          "operating_cf": "table",
+          "revenue": "wrapper"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions"
+        },
+        "non_null_metric_count": 8,
+        "non_null_metrics": {
+          "capex": -1475000000.0,
+          "cash_end": 4743000000.0,
+          "ebit": 2908000000.0,
+          "financing_cf": -1160000000.0,
+          "investing_cf": -1659000000.0,
+          "np_attributable": 8439000000.0,
+          "operating_cf": 3203000000.0,
+          "revenue": 8439000000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_18:Payments for property, plant and equipment - Fortescue, Payments for property, plant and equipment - joint operations",
+          "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+          "ebit": "income_statement:page_21:Operating profit",
+          "financing_cf": "cashflow_statement:page_18:Net cash outflow from financing activities",
+          "investing_cf": "cashflow_statement:page_18:Net cash outflow from investing activities",
+          "np_attributable": "appendix_wrapper:page_1:Revenue from ordinary activities",
+          "operating_cf": "cashflow_statement:page_18:Net cash inflow from operating activities",
+          "revenue": "appendix_wrapper:page_1:A commentary on the results for the period is contained within the half year presentation and the financial statements t"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment - Fortescue, Payments for property, plant and equipment - joint operations",
+          "cash_end": "Cash and cash equivalents at the end of the period",
+          "ebit": "Operating profit",
+          "financing_cf": "Net cash outflow from financing activities",
+          "investing_cf": "Net cash outflow from investing activities",
+          "np_attributable": "Revenue from ordinary activities",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "A commentary on the results for the period is contained within the half year presentation and the financial statements t"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "USD",
+          "document_subtype": "appendix4d",
+          "document_title": "FMG_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "sitively and negatively, are disclosed on pages 106 to 117 of the Annual Report for the year ended 30 June 2025 and remain relevant to the current half year. Fortescue is committed to managin",
+              "evidence": "for the year ended 30 June 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "APPENDIX 4D Fortescue Ltd ABN: 57 002 594 872 FOR THE HALF YEAR ENDED 31 DECEMBER 2025 This information should be read in conjunction with Fortescue\u2019s Financial Repor",
+              "evidence": "FOR THE HALF YEAR ENDED 31 DECEMBER 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "his information should be read in conjunction with Fortescue\u2019s Financial Report for the half year ended 31 December 2025. Results for announcement to the market Dividend Reinvestment Plan The Company",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "S$6.11). Previous corresponding period The previous corresponding period is the half year ended 31 December 2024. Commentary on results for the period A commentary on the results for the perio",
+              "evidence": "half year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "dends Amount per security Franked amount per security Interim dividend declared for the half year ended 31 December 2025 A$0.62 A$0.62 Interim dividend declared for the previous corresponding period A",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ividend 30 March 2026 For personal use only FORTESCUE LTD | FINANCIAL REPORT FOR THE HALF YEAR ENDED 31 DECEMBER 2025 2 HALF YEAR REPORT For the half year ended 31 December 2025 For personal use on",
+              "evidence": "FOR THE HALF YEAR ENDED 31 DECEMBER 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "FINANCIAL REPORT FOR THE HALF YEAR ENDED 31 DECEMBER 2025 2 HALF YEAR REPORT For the half year ended 31 December 2025 For personal use only FORTESCUE LTD | FINANCIAL REPORT FOR THE HALF YEAR END",
+              "evidence": "For the half year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "nded 31 December 2025 For personal use only FORTESCUE LTD | FINANCIAL REPORT FOR THE HALF YEAR ENDED 31 DECEMBER 2025 3 OUR purpose At Fortescue, our purpose is clear: to accelerate decarbonisation",
+              "evidence": "FOR THE HALF YEAR ENDED 31 DECEMBER 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "finition statement 38 For personal use only FORTESCUE LTD | FINANCIAL REPORT FOR THE HALF YEAR ENDED 31 DECEMBER 2025 4 FINANCIAL RESULTS FOR HALF YEAR ENDED 31 DECEMBER 2025 DIRECTORS\u2019 REPORT GOVE",
+              "evidence": "FOR THE HALF YEAR ENDED 31 DECEMBER 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "NANCIAL REPORT FOR THE HALF YEAR ENDED 31 DECEMBER 2025 4 FINANCIAL RESULTS FOR HALF YEAR ENDED 31 DECEMBER 2025 DIRECTORS\u2019 REPORT GOVERNANCE Your Directors present this report on Fortescue Lt",
+              "evidence": "HALF YEAR ENDED 31 DECEMBER 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "IRECTORS\u2019 REPORT GOVERNANCE Your Directors present this report on Fortescue Ltd for the half year ended 31 December 2025. The Directors of the Company in office during the half year and until the date",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok_low_confidence",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 39,
+          "parser_id": "pymupdf",
+          "warnings": [
+            "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+          ]
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FMG/financial_performance/2026-02-25_fy26-half-year-financial-report-and-appendix-4d_910e9da0-debb-4aa4-b524-cad5a69d9aa3.pdf",
+      "ticker": "FMG"
+    },
+    {
+      "case_id": "GRE_Q_2024-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "gre_q4_fy2025_appendix5b",
+      "elapsed_s": 50.71,
+      "expected_period_end": "2024-12-31",
+      "expected_period_type": "Q",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 15,
+            "table_count": 21
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 1,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "operating_cf": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "operating_cf": "thousands"
+        },
+        "non_null_metric_count": 5,
+        "non_null_metrics": {
+          "capex": -624000.0,
+          "cash_end": 702000.0,
+          "financing_cf": 869000.0,
+          "investing_cf": -624000.0,
+          "operating_cf": -450000.0
+        },
+        "period_end": "2024-12-31",
+        "period_start": "2024-10-01",
+        "period_type": "Q",
+        "provenance": {
+          "capex": "cashflow_statement:page_11:Payments for exploration & evaluation classified as investing (624) activities) (item 2.1(d))",
+          "cash_end": "cashflow_statement:page_11:unknown",
+          "financing_cf": "cashflow_statement:page_11:4.4 Net cash from / (used in) financing activities",
+          "investing_cf": "cashflow_statement:page_11:4.3 Net cash from / (used in) investing activities",
+          "operating_cf": "cashflow_statement:page_11:4.2 Net cash from / (used in) operating"
+        },
+        "row_refs": {
+          "capex": "Payments for exploration & evaluation classified as investing (624) activities) (item 2.1(d))",
+          "cash_end": "unknown",
+          "financing_cf": "4.4 Net cash from / (used in) financing activities",
+          "investing_cf": "4.3 Net cash from / (used in) investing activities",
+          "operating_cf": "4.2 Net cash from / (used in) operating"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "GRE_Q_2024-12-31",
+          "period_end": "2024-12-31",
+          "period_type": "Q",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "quarterly_source_phrase",
+            "quarterly_activity_report_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "quarterly_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [],
+          "period_end": null,
+          "period_type": null,
+          "reason": "not_detected"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 15,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "ticker": "GRE"
+    },
+    {
+      "case_id": "MIN_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "min_2025h1_appendix4d",
+      "elapsed_s": 136.374,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 51,
+            "table_count": 73
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "wrapper",
+          "operating_cf": "table",
+          "revenue": "wrapper",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -333000000.0,
+          "cash_end": 638000000.0,
+          "ebit": 1031000000.0,
+          "financing_cf": -126000000.0,
+          "investing_cf": -527000000.0,
+          "np_attributable": 495000000.0,
+          "operating_cf": 880000000.0,
+          "revenue": 3052000000.0,
+          "shares_outstanding": 196518604.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_17:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half- year",
+          "ebit": "income_statement:page_14:PROFIT/(LOSS) FROM OPERATIONS",
+          "financing_cf": "cashflow_statement:page_17:Net cash from financing activities",
+          "investing_cf": "cashflow_statement:page_17:Net cash used in investing activities",
+          "np_attributable": "appendix_wrapper:page_1:Profit for the half-year from ordinary activities after tax attributable to the owners of Mineral Resources Limited1,2 u",
+          "operating_cf": "cashflow_statement:page_17:Net cash from operating activities",
+          "revenue": "appendix_wrapper:page_1:at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET Revenues from ",
+          "shares_outstanding": "share_capital:page_32:Balance at 30 June 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at the end of the half- year",
+          "ebit": "PROFIT/(LOSS) FROM OPERATIONS",
+          "financing_cf": "Net cash from financing activities",
+          "investing_cf": "Net cash used in investing activities",
+          "np_attributable": "Profit for the half-year from ordinary activities after tax attributable to the owners of Mineral Resources Limited1,2 u",
+          "operating_cf": "Net cash from operating activities",
+          "revenue": "at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET Revenues from ",
+          "shares_outstanding": "Balance at 30 June 2025"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "MIN_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "Pty Ltd is accounted for as a joint venture and commenced operations during the year ended 30 June 2025. PMW Industries is a Traditional Owner Banjima business, with over a decade\u2019s e",
+              "evidence": "year ended 30 June 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "Name of entity: Mineral Resources Limited ABN: 33 118 549 910 Reporting period: Half-year ended 31 December 2025 Previous period: Half-year ended 31 December 2024 The consolidated entity (the",
+              "evidence": "Half-year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "118 549 910 Reporting period: Half-year ended 31 December 2025 Previous period: Half-year ended 31 December 2024 The consolidated entity (the Group) consisting of Mineral Resources Limited (th",
+              "evidence": "Half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ited (the Company) and the entities it controlled at the end of, or during, the half-year ended 31 December 2025. 2. RESULTS FOR ANNOUNCEMENT TO THE MARKET $M Revenues from ordinary activities",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ial year final dividend \u2013 no dividend declared - N/A - 1 Comparisons are to the half-year ended 31 December 2024 2 The loss from ordinary activities after tax for the half-year ended 31 Decemb",
+              "evidence": "half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "half-year ended 31 December 2024 2 The loss from ordinary activities after tax for the half-year ended 31 December 2024, attributable to the owners of Mineral Resources Limited, amounted to $809M. 3",
+              "evidence": "for the half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "These entities did not make a material contribution to the results of the Group for the half-year ended 31 December 2025. Resource Development Group Limited (RDG) entered voluntary administration (Adm",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 51,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "ticker": "MIN"
+    },
+    {
+      "case_id": "QBE_H_2025-06-30",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "qbe_20250630_h",
+      "elapsed_s": 128.364,
+      "expected_period_end": "2025-06-30",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 38,
+            "table_count": 47
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok_low_confidence"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.933,
+        "currency": "USD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "document",
+          "cash_end": "document",
+          "ebit": "document",
+          "financing_cf": "document",
+          "investing_cf": "document",
+          "np_attributable": "document",
+          "operating_cf": "document",
+          "revenue": "wrapper",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 10,
+        "non_null_metrics": {
+          "capex": -9000000.0,
+          "cash_end": 2124000000.0,
+          "ebit": 1334000000.0,
+          "financing_cf": -668000000.0,
+          "investing_cf": -562000000.0,
+          "net_debt": 540000000.0,
+          "np_attributable": 1022000000.0,
+          "operating_cf": 1756000000.0,
+          "revenue": 10875000000.0,
+          "shares_outstanding": 1510000000.0
+        },
+        "period_end": "2025-06-30",
+        "period_start": "2024-12-31",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_21:Payments for purchase of property, plant and equipment",
+          "cash_end": "cashflow_statement:page_21:Cash and cash equivalents at 30 June",
+          "ebit": "income_statement:page_14:Profit before income tax",
+          "financing_cf": "cashflow_statement:page_21:Net cash flows from financing activities",
+          "investing_cf": "cashflow_statement:page_21:Net cash flows from investing activities",
+          "net_debt": "derived:balance_sheet:total_debt(2664000000)-cash_end(2124000000)",
+          "np_attributable": "income_statement:page_14:Net profit after income tax",
+          "operating_cf": "cashflow_statement:page_21:Net cash flows from operating activities",
+          "revenue": "appendix_wrapper:page_2:Revenue from ordinary activities1 Up",
+          "shares_outstanding": "share_capital:page_32:Issued ordinary shares, fully paid at 30 June"
+        },
+        "row_refs": {
+          "capex": "Payments for purchase of property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at 30 June",
+          "ebit": "Profit before income tax",
+          "financing_cf": "Net cash flows from financing activities",
+          "investing_cf": "Net cash flows from investing activities",
+          "net_debt": "total_debt(2664000000)-cash_end(2124000000)",
+          "np_attributable": "Net profit after income tax",
+          "operating_cf": "Net cash flows from operating activities",
+          "revenue": "Revenue from ordinary activities1 Up",
+          "shares_outstanding": "Issued ordinary shares, fully paid at 30 June"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "USD",
+          "document_subtype": "appendix4d",
+          "document_title": "QBE_H_2025-06-30",
+          "period_end": "2025-06-30",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "et SYDNEY NSW 2000 Dear Sir / Madam, Report on results and financial statements for the half year ended 30 June 2025 The Directors of QBE Insurance Group Limited announce the financial results for",
+              "evidence": "for the half year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "025 The Directors of QBE Insurance Group Limited announce the financial results for the half year ended 30 June 2025. The following documents are attached: 1. Appendix 4D \u2013 half year report; and 2",
+              "evidence": "for the half year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "he period was $1,745 million (2024 $1,817 million). Net profit after income tax for the half year ended 30 June 2025 was $1,022 million, compared with $802 million for the prior period. The Group",
+              "evidence": "for the half year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "Half Year Report for QBE Insurance Group Limited (and its controlled entities) for the half year ended 30 June 2025. It should be read in conjunction with the 2024 Annual Report. This report incl",
+              "evidence": "for the half year ended 30 June 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-06-30",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        "status": "ok_low_confidence",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 38,
+          "parser_id": "pymupdf",
+          "warnings": [
+            "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+          ]
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "ticker": "QBE"
+    },
+    {
+      "case_id": "RMS_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "rms_2025h1_appendix4d",
+      "elapsed_s": 152.032,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 39,
+            "table_count": 100
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "document",
+          "ebit": "wrapper",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "wrapper",
+          "operating_cf": "table",
+          "revenue": "wrapper",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -25200000.0,
+          "cash_end": 658721000.0,
+          "ebit": 31284000.0,
+          "financing_cf": -84747000.0,
+          "investing_cf": -211390000.0,
+          "np_attributable": -11716000.0,
+          "operating_cf": 171200000.0,
+          "revenue": 485630000.0,
+          "shares_outstanding": 1924937480.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_15:\u2022 Payments for prop erty, plant, and eq uipmen t, at both e xisting an d new site s, of $25",
+          "cash_end": "source_table:page_23:Cash and cash equivalents at the end of the half-year",
+          "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+          "financing_cf": "cashflow_statement:page_15:Net cash used in financing activities",
+          "investing_cf": "cashflow_statement:page_15:Net cash used in investing activities",
+          "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+          "operating_cf": "cashflow_statement:page_15:Cash flows from / (used in) operating activities",
+          "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+          "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+        },
+        "row_refs": {
+          "capex": "\u2022 Payments for prop erty, plant, and eq uipmen t, at both e xisting an d new site s, of $25",
+          "cash_end": "Cash and cash equivalents at the end of the half-year",
+          "ebit": "Earnings before Interest and Tax (EBIT)",
+          "financing_cf": "Net cash used in financing activities",
+          "investing_cf": "Net cash used in investing activities",
+          "np_attributable": "Net (loss) / profit after tax attributable to members",
+          "operating_cf": "Cash flows from / (used in) operating activities",
+          "revenue": "31 December Revenue from ordinary activities",
+          "shares_outstanding": "At 31 December 2025"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "RMS_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "DECEMBER 2025 RESULTS FOR ANNOUNCEMENT TO THE MARKET Current reporting period: Half-year ended 31 December 2025 Previous corresponding reporting period: Half-year ended 31 December 2024 Key I",
+              "evidence": "Half-year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "riod: Half-year ended 31 December 2025 Previous corresponding reporting period: Half-year ended 31 December 2024 Key Information % change 31 December 2025 $\u2019000 31 December 2024 $\u2019000 Revenue",
+              "evidence": "Half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "porting period dividend has not been brought to account in the financial report for the half-year ended 31 December 2025 and will be recognised in subsequent financial reports. The dividend will be el",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "review by Deloitte Touche Tohmatsu. For personal use only 2026 Half-Year Report For the six months ended 31 December 2025 It is recommended that the 2026 half-year report is read in conjunction with th",
+              "evidence": "For the six months ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "her with any public announcements made by Ramelius Resources Limited during the half-year ended 31 December 2025 in accordance with the continuous disclosure obligations arising under the Corp",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "a permit already in place). Ramelius produced 100,623 ounces of gold during the half-year ended 31 December 2025 at an All-in Sustaining Cost (AISC) of A$1,901 per ounce. Guidance for the 202",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 39,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "ticker": "RMS"
+    },
+    {
+      "case_id": "SEG_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "seg_h_fy2026_appendix4d",
+      "elapsed_s": 74.223,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 26,
+            "table_count": 56
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": "validation_gate:wrapper_missing_disclosure_evidence",
+            "extraction_status": "failed"
+          },
+          "error_code": "validation_failed",
+          "message": "Validation failed: validation_gate:wrapper_missing_disclosure_evidence",
+          "stage": "validation",
+          "status": "failed"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 0.9,
+        "currency": "AUD",
+        "error": "validation_gate:wrapper_missing_disclosure_evidence",
+        "metric_scale_sources": {
+          "np_attributable": "wrapper",
+          "revenue": "wrapper"
+        },
+        "metric_source_scales": {
+          "np_attributable": "thousands",
+          "revenue": "thousands"
+        },
+        "non_null_metric_count": 2,
+        "non_null_metrics": {
+          "np_attributable": 5011000.0,
+          "revenue": 73671000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "np_attributable": "appendix_wrapper:page_3:9,715",
+          "revenue": "appendix_wrapper:page_3:31 December 2.1 Revenues from ordinary activities (Continuing Operations)"
+        },
+        "row_refs": {
+          "np_attributable": "9,715",
+          "revenue": "31 December 2.1 Revenues from ordinary activities (Continuing Operations)"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "SEG_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "025. Amount per security Franked amount per security Cents Cents Final dividend for the year ended 30 June 2025 paid on 25 September 2025 1.0 1.0 The Directors have declared the following int",
+              "evidence": "for the year ended 30 June 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "RTAINMENT GROUP LIMITED ABN 20 009 221 630 APPENDIX 4D Interim Financial Report for the half year ended 31 December 2025 For personal use only Sports Entertainment Group Limited Appendix 4D and Interi",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "failed",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 26,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SEG/financial_performance/2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf",
+      "ticker": "SEG"
+    },
+    {
+      "case_id": "TCL_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "tcl_20251231_h",
+      "elapsed_s": 127.043,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 52,
+            "table_count": 64
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.933,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "document",
+          "cash_end": "document",
+          "ebit": "document",
+          "financing_cf": "document",
+          "investing_cf": "document",
+          "np_attributable": "document",
+          "operating_cf": "document",
+          "revenue": "document",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 10,
+        "non_null_metrics": {
+          "capex": -152000000.0,
+          "cash_end": 1229000000.0,
+          "ebit": 352000000.0,
+          "financing_cf": -1098000000.0,
+          "investing_cf": -248000000.0,
+          "net_debt": 19227000000.0,
+          "np_attributable": 298000000.0,
+          "operating_cf": 853000000.0,
+          "revenue": 1983000000.0,
+          "shares_outstanding": 3115000000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_20:Payments for intangible assets",
+          "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the half-year",
+          "ebit": "income_statement:page_17:Profit/(loss) before income tax",
+          "financing_cf": "cashflow_statement:page_20:unknown",
+          "investing_cf": "cashflow_statement:page_20:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(20456000000)-cash_end(1229000000)",
+          "np_attributable": "income_statement:page_17:Profit/(loss) attributable to ordinary security holders of the stapled group",
+          "operating_cf": "cashflow_statement:page_20:Net cash inflow from operating activities",
+          "revenue": "income_statement:page_17:Revenue B4",
+          "shares_outstanding": "share_capital:page_13:Securities on issue"
+        },
+        "row_refs": {
+          "capex": "Payments for intangible assets",
+          "cash_end": "Cash and cash equivalents at the end of the half-year",
+          "ebit": "Profit/(loss) before income tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(20456000000)-cash_end(1229000000)",
+          "np_attributable": "Profit/(loss) attributable to ordinary security holders of the stapled group",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "Revenue B4",
+          "shares_outstanding": "Securities on issue"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "TCL_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "Listing Rules, please see attached Transurban\u2019s Appendix 4D and Interim Report for the half year ended 31 December 2025. The following documents will be provided separately: \u2022 Transurban 1H26 results",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "e Board of Transurban Group. For personal use only Transurban Group Appendix 4D Half-year ended 31 December 2025 (Previous corresponding period being the half-year ended 31 December 2024) The",
+              "evidence": "Half-year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ix 4D Half-year ended 31 December 2025 (Previous corresponding period being the half-year ended 31 December 2024) The Transurban Group (the Group) comprises the following entities: Transurban",
+              "evidence": "half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ash6 increase of 2.4% to $1,085 The accompanying ASX Release and Interim Report for the half-year ended 31 December 2025 provide further details on the results and the definitions of proportional resu",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "definitions of proportional results and Free Cash. Distributions and dividends Half-year ended 31 December 2025 Amount per security (cents) Franked amount for dividend component (%) Record da",
+              "evidence": "Half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "PwC\u2019s unqualified review report can be found in the accompanying Interim Report for the half-year ended 31 December 2025. Other information Disclosure requirements of ASX Listing Rule 4.2A not contain",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 52,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TCL/financial_performance/2026-02-19_transurban-appendix-4d-and-1h26-interim-report_bdcd91dd-98de-46ab-a14d-9468462b8de6.pdf",
+      "ticker": "TCL"
+    },
+    {
+      "case_id": "TLS_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "tls_20251231_h",
+      "elapsed_s": 149.043,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 55,
+            "table_count": 68
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 5,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "net_debt": "table",
+          "np_attributable": "wrapper",
+          "operating_cf": "table",
+          "revenue": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "net_debt": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -1914000000.0,
+          "cash_end": 1436000000.0,
+          "ebit": 2016000000.0,
+          "financing_cf": -1457000000.0,
+          "investing_cf": -1735000000.0,
+          "net_debt": 16800000000.0,
+          "np_attributable": 1124000000.0,
+          "operating_cf": 3637000000.0,
+          "revenue": 11641000000.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_18:Payments for intangible assets",
+          "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+          "ebit": "income_statement:page_22:Earnings before interest and income tax expense (EBIT)",
+          "financing_cf": "cashflow_statement:page_18:unknown",
+          "investing_cf": "cashflow_statement:page_18:unknown",
+          "net_debt": "net_debt_note:page_45:Net debt",
+          "np_attributable": "appendix_wrapper:page_2:Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+          "operating_cf": "cashflow_statement:page_18:Net cash provided by operating activities",
+          "revenue": "income_statement:page_22:Revenue (excluding finance income)"
+        },
+        "row_refs": {
+          "capex": "Payments for intangible assets",
+          "cash_end": "Cash and cash equivalents at the end of the period",
+          "ebit": "Earnings before interest and income tax expense (EBIT)",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "Net debt",
+          "np_attributable": "Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+          "operating_cf": "Net cash provided by operating activities",
+          "revenue": "Revenue (excluding finance income)"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "TLS_H_2025-12-31",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "ambiguous"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "e 4.2A and should be read in conjunction with Telstra\u2019s Annual Financial Report for the financial year ended 30 June 2025 and any public disclosures made by Telstra in accordance with the continuous di",
+              "evidence": "for the financial year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "Limited (ACN 650 620 303) \u2013 ASX: TLS Telstra Group Limited - Financial results for the half-year ended 31 December 2025 In accordance with the Listing Rules, attached are the following materials for",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "of up to $1 billion to shareholders via an on-market share buy-back. During the half-year ended 31 December 2025, we bought back 130,091,714 shares for the total consideration of $637 million.",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "apital management program in the second half of the financial year 2025 and the half-year ended 31 December 2025 and the acquisition of software assets purchased throughout the period. Telstra",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "e acquisition of software assets purchased throughout the period. Telstra Group Half-year ended 31 Dec 2025 2024 Movement $m $m $m % Revenue (excluding finance income) from ordinary activ",
+              "evidence": "Half-year ended 31 Dec 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 55,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "ticker": "TLS"
+    },
+    {
+      "case_id": "WOW_H_2026-01-04",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "wow_20260104_h",
+      "elapsed_s": 116.444,
+      "expected_period_end": "2026-01-04",
+      "expected_period_type": "H",
+      "expected_status": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 24,
+            "table_count": 42
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -1218000000.0,
+          "cash_end": 1289000000.0,
+          "ebit": 962000000.0,
+          "financing_cf": -1096000000.0,
+          "investing_cf": -1186000000.0,
+          "np_attributable": 381000000.0,
+          "operating_cf": 2301000000.0,
+          "revenue": 37135000000.0,
+          "shares_outstanding": 1221600000.0
+        },
+        "period_end": "2026-01-04",
+        "period_start": "2025-07-05",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_12:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_12:unknown",
+          "ebit": "income_statement:page_8:Earnings before interest and tax",
+          "financing_cf": "cashflow_statement:page_12:unknown",
+          "investing_cf": "cashflow_statement:page_12:unknown",
+          "np_attributable": "income_statement:page_8:Profit for the period",
+          "operating_cf": "cashflow_statement:page_12:Net cash provided by operating activities",
+          "revenue": "income_statement:page_8:Revenue 2",
+          "shares_outstanding": "share_capital:page_20:Balance at end of period1"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Earnings before interest and tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Profit for the period",
+          "operating_cf": "Net cash provided by operating activities",
+          "revenue": "Revenue 2",
+          "shares_outstanding": "Balance at end of period1"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "WOW_H_2026-01-04",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [],
+          "period_end": null,
+          "period_type": null,
+          "reason": "not_detected"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 24,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_fixture_issue97_after_fix",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WOW/financial_performance/2026-02-25_appendix-4d-and-half-year-financial-report_b84a6cde-1fa0-4d11-a86a-0ad1c1fea6b7.pdf",
+      "ticker": "WOW"
+    }
+  ],
+  "safe_env": {
+    "ANTHROPIC_API_KEY": "",
+    "AUTO_CREATE_TABLES": "false",
+    "CELERY_BROKER_URL": "memory://tenn-no-write",
+    "CELERY_RESULT_BACKEND": "cache+memory://",
+    "DATABASE_URL": "sqlite:///:memory:",
+    "DATA_ROOT": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm",
+    "ENABLE_EMBEDDINGS": "false",
+    "ENABLE_EMBEDDING_CACHE": "false",
+    "ENABLE_IMPORTANCE_CLASSIFICATION": "false",
+    "ENABLE_MARKETINDEX_FALLBACK": "false",
+    "ENABLE_QDRANT": "false",
+    "ENABLE_SESSION_MEMORY": "false",
+    "EXTRACTION_LLAMACPP_URL": "http://127.0.0.1:8001",
+    "EXTRACTION_PARALLEL": "0",
+    "EXTRACTION_SKIP_NARRATIVE": "1",
+    "EXTRACT_MODEL": "model:qwen2.5-14b-instruct",
+    "HOME": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/home",
+    "IMPORTANCE_MATERIALIZE_OUTPUT": "false",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_API_KEY": "<redacted>",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "MODEL_ROUTING_CONFIG": "/home/l4nd0/tenn/financial-engine_v2/backend/app/config/model_routing.yaml",
+    "OLLAMA_URL": "http://127.0.0.1:11434",
+    "OPENAI_API_KEY": "",
+    "OPENBB_SIDECAR_ENABLE_STAGING_WRITES": "false",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "REDIS_URL": "memory://tenn-no-write",
+    "ROUTER_FEEDBACK_ENABLED": "false",
+    "TASK_MODE": "sync",
+    "TENN_EXTRACTION_ACTIVE_FILE": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/runtime/extraction_active.json",
+    "TMPDIR": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/tmp",
+    "XDG_CACHE_HOME": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/xdg/cache",
+    "XDG_CONFIG_HOME": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/xdg/config",
+    "XDG_STATE_HOME": "/tmp/tenn-extraction-no-write-replay-approved15-afterfix-8ii97fsm/xdg/state"
+  },
+  "status": "PARTIAL"
+}

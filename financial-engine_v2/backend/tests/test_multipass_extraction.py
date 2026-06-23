@@ -3737,6 +3737,374 @@ def test_cash_end_overlay_does_not_replace_without_exact_cash_equivalents_row():
     assert payload["row_refs"]["cash_end"] == "Cash and gold at 31 December 2025"
 
 
+def test_cash_end_overlay_recovers_net_of_overdrafts_year_end_row():
+    """BHP-style cash equivalents net of overdrafts is exact cash_end evidence."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_cash_end_source_payload
+
+    table = DoclingTable(
+        page_number=46,
+        caption="Consolidated cash flow statement",
+        headers=["", "2021", "2020"],
+        rows=[
+            [
+                "Cash and cash equivalents, net of overdrafts, at the end of the financial year",
+                "15,246",
+                "13,426",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "A",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"cash_end": 1_467_000_000},
+        "cash_end": 1_467_000_000,
+        "row_refs": {
+            "cash_end": "Net increase/(decrease) in cash and cash equivalents from Continuing operations",
+        },
+        "provenance": {},
+    }
+
+    _apply_preferred_cash_end_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "A",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["cash_end"] == 15_246_000_000
+    assert (
+        payload["row_refs"]["cash_end"]
+        == "Cash and cash equivalents, net of overdrafts, at the end of the financial year"
+    )
+
+
+def test_cashflow_capex_recovers_small_millions_ppe_row():
+    """QBE-style insurer PP&E capex can be a small single-digit US$M row."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated statement of cash flows",
+        headers=["", "30 June 2025 US$M", "30 June 2024 US$M"],
+        rows=[
+            ["Investing activities", "", ""],
+            ["Payments for purchase of intangible assets", "(36)", "(45)"],
+            ["Payments for purchase of property, plant and equipment", "(9)", "(11)"],
+            ["Net cash flows from investing activities", "(562)", "(615)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(562)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {"investing_cf": "Net cash flows from investing activities"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -9_000_000
+    assert (
+        result["row_refs"]["capex"]
+        == "Payments for purchase of property, plant and equipment"
+    )
+
+
+def test_cashflow_capex_recovers_grouped_multiline_ppe_row():
+    """Grouped cashflow rows can put current-period values under a multiline label."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated statement of cash flows",
+        headers=["", "30 June 2025 US$M", "30 June 2024 US$M"],
+        rows=[
+            [
+                "Investing activities\n"
+                "Net payments for purchase of growth assets\n"
+                "Net payments for purchase of interest-bearing financial assets\n"
+                "Net payments for foreign exchange transactions\n"
+                "Payments for purchase of intangible assets\n"
+                "Payments for purchase of property, plant and equipment\n"
+                "Payments for investment in associates",
+                "",
+                "(245)\n(225)\n(77)\n(45)\n(11)\n(12)",
+            ],
+            ["", "(202)", ""],
+            ["", "(272)", ""],
+            ["", "(40)", ""],
+            ["", "(36)", ""],
+            ["", "(9)", ""],
+            ["", "(3)", ""],
+            ["Net cash flows from investing activities", "(562)", "(615)"],
+        ],
+    )
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value={
+            "operating_cf": None,
+            "investing_cf": "(562)",
+            "financing_cf": None,
+            "cash_end": None,
+            "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"investing_cf": "Net cash flows from investing activities"},
+        },
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -9_000_000
+    assert (
+        result["row_refs"]["capex"]
+        == "Payments for purchase of property, plant and equipment"
+    )
+
+
+def test_cashflow_capex_prefers_ppe_over_mine_development_row():
+    """Mine-development spend is weak evidence for PPE-only capex."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=15,
+        caption="Directors report cash used in investing activities",
+        headers=["", "", "", "", "", "", "", ""],
+        rows=[
+            [
+                "",
+                "Payments for the",
+                "development of open pit",
+                "and underground",
+                "mines of $83",
+                ".6 million",
+                "",
+                "",
+            ],
+            [
+                "",
+                "Payments for prop",
+                "erty, plant, and eq",
+                "uipmen",
+                "t, at both existing and new sites, of $25",
+                ".2 million",
+                "",
+                "",
+            ],
+        ],
+    )
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value={
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": None,
+            "capex": -83_600_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "capex": "Payments for the development of open pit and underground mines"
+            },
+        },
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "thousands",
+            1_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -25_200_000
+    assert "propertyplantandequipment" in "".join(
+        ch
+        for ch in result["row_refs"]["capex"].lower()
+        if ch.isalnum()
+    )
+
+
+def test_appendix5b_cashflow_prefers_current_quarter_section_totals():
+    """Appendix 5B investing_cf must use item 2.6 current quarter, not sub-items/YTD."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=14,
+        caption="Merged cashflow statement (Appendix 5B)",
+        headers=["", "", "Current quarter $A'000", "Year to date $A'000"],
+        rows=[
+            ["2.", "Cash flows from investing activities", "", ""],
+            ["2.1", "Payments to acquire or for:", "", ""],
+            ["", "(c) property, plant and equipment", "(2,331)", "(3,961)"],
+            ["", "(d) exploration & evaluation (if capitalised)", "(23)", "(24)"],
+            ["2.5", "Other - ERC Increase & Security Deposits", "(255)", "(255)"],
+            [
+                "2.6",
+                "Net cash from / (used in) investing activities",
+                "(2,656)",
+                "(5,590)",
+            ],
+            ["3.10", "Net cash from / (used in) financing activities", "12,011", "42,240"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(255)",
+        "financing_cf": "42,240",
+        "cash_end": None,
+        "capex": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "investing_cf": "Other - ERC Increase & Security Deposits",
+            "financing_cf": "Net cash from / (used in) financing activities",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "Q",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "thousands",
+            1_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["investing_cf"] == -2_656_000
+    assert result["financing_cf"] == 12_011_000
+    assert (
+        result["row_refs"]["investing_cf"]
+        == "Net cash from / (used in) investing activities"
+    )
+
+
+def test_appendix5b_multiline_summary_recovers_current_quarter_items():
+    """Appendix 5B section 4 summary rows can pack labels and values into cells."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=15,
+        caption="Mining exploration entity quarterly cash flow report",
+        headers=[
+            "Consolidated statement of cash flows",
+            "Current quarter $A'000",
+            "Year to date $A'000",
+        ],
+        rows=[
+            [
+                "1.9",
+                "Net cash from / (used in) operating activities",
+                "(2,467)",
+                "(7,128)",
+            ],
+            [
+                "4.1 Cash and cash equivalents at beginning of period\n"
+                "4.2 Net cash from / (used in) operating activities (item 1.9 above)\n"
+                "4.3 Net cash from / (used in) investing activities (item 2.6 above)\n"
+                "4.4 Net cash from / (used in) financing activities (item 3.10 above)\n"
+                "4.5 Effect of movement in exchange rates on cash held",
+                "11,474\n1,154\n(2,656)\n12,012\n(5)",
+                "1,874\n(16,503)\n(5,590)\n42,241\n(43)",
+            ],
+        ],
+    )
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value={
+            "operating_cf": None,
+            "investing_cf": "(255)",
+            "financing_cf": None,
+            "cash_end": None,
+            "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"investing_cf": "Other - ERC Increase & Security Deposits"},
+        },
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "Q",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "thousands",
+            1_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["operating_cf"] == 1_154_000
+    assert result["investing_cf"] == -2_656_000
+    assert result["financing_cf"] == 12_012_000
+
+
 def test_appendix_wrapper_recovers_rms_ebit_and_npat_from_exact_table_rows():
     """RMS Appendix 4D source rows can provide exact EBIT and attributable NPAT."""
     from app.services.docling_extract import DoclingTable
@@ -3810,6 +4178,211 @@ def test_appendix_wrapper_recovers_rms_ebit_and_npat_from_exact_table_rows():
         payload["row_refs"]["np_attributable"]
         == "Net (loss) / profit after tax attributable to members"
     )
+
+
+def test_income_statement_recovers_operations_and_owner_attributable_rows():
+    """Formal income statements can prove EBIT and parent-attributable NPAT."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=14,
+        caption="Consolidated statement of profit or loss",
+        headers=["", "Note", "31 Dec 2025 $M", "31 Dec 2024 $M"],
+        rows=[
+            ["REVENUE", "4", "3,052", "2,290"],
+            ["PROFIT/(LOSS) FROM OPERATIONS", "", "1,031", "(972)"],
+            ["PROFIT/(LOSS) FOR THE HALF-YEAR IS ATTRIBUTABLE TO:", "", "", ""],
+            ["Non-controlling interests", "", "78", "2"],
+            ["Equity holders of the parent", "", "495", "(809)"],
+        ],
+    )
+    raw_response = {
+        "revenue": "3,052",
+        "ebit": None,
+        "np_attributable": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {"revenue": "REVENUE"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["ebit"] == 1_031_000_000
+    assert result["np_attributable"] == 495_000_000
+    assert result["row_refs"]["ebit"] == "PROFIT/(LOSS) FROM OPERATIONS"
+    assert result["row_refs"]["np_attributable"] == "Equity holders of the parent"
+
+
+def test_appendix_wrapper_does_not_overwrite_formal_statement_metrics():
+    """Appendix 4D summary rows supplement but must not replace formal statements."""
+    from app.services.multipass_extraction import _apply_appendix_wrapper_source_payload
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 3_052_000_000,
+            "ebit": 1_031_000_000,
+            "np_attributable": 495_000_000,
+        },
+        "revenue": 3_052_000_000,
+        "ebit": 1_031_000_000,
+        "np_attributable": 495_000_000,
+        "row_refs": {
+            "revenue": "REVENUE",
+            "ebit": "PROFIT/(LOSS) FROM OPERATIONS",
+            "np_attributable": "Equity holders of the parent",
+        },
+        "provenance": {
+            "np_attributable": "income_statement:page_14:Equity holders of the parent"
+        },
+    }
+    wrapper_source = {
+        "is_wrapper": True,
+        "document_subtype": "appendix4d",
+        "document_title": "MIN_H_2025-12-31",
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "scale": "millions",
+        "currency": "AUD",
+        "metrics": {"np_attributable": 2_000_000},
+        "row_refs": {"np_attributable": "previous period footnote"},
+        "provenance": {"np_attributable": "appendix_wrapper:page_2:previous period footnote"},
+        "wrapper_disclosures": [],
+    }
+
+    _apply_appendix_wrapper_source_payload(payload, wrapper_source)
+
+    assert payload["metrics"]["np_attributable"] == 495_000_000
+    assert payload["np_attributable"] == 495_000_000
+    assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
+
+
+def test_appendix_wrapper_recovers_min_owner_attributable_row():
+    """MIN-style Appendix 4D labels include half-year wording before ordinary activities."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _build_appendix_wrapper_source_payload
+
+    table = DoclingTable(
+        page_number=1,
+        caption="For personal use only",
+        headers=["", "", "", "", "", "", "", "", "", "", "", "$M", "", ""],
+        rows=[
+            [
+                "Profit for the half-year from ordinary activities after tax attributable to the owners\n"
+                "of Mineral Resources Limited1,2",
+                "",
+                "",
+                "up",
+                "",
+                "",
+                "161%",
+                "",
+                "",
+                "to",
+                "",
+                "495",
+                "",
+                "",
+            ],
+        ],
+    )
+
+    payload = _build_appendix_wrapper_source_payload(
+        title="FY26 Half-Year Financial Report and Appendix 4D",
+        sections=[
+            {"page": 1, "text": "Appendix 4D"},
+            {"page": 1, "text": "For the half-year ended 31 December 2025"},
+        ],
+        tables=[table],
+        period_evidence={"period_type": "H"},
+        period_end_evidence={
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "hits": [
+                {
+                    "source": "source_text",
+                    "period_end": "2025-12-31",
+                    "reason": "current_period_range",
+                }
+            ],
+        },
+        scale="millions",
+        currency="AUD",
+    )
+
+    assert payload["metrics"]["np_attributable"] == 495_000_000
+
+
+def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
+    """Formal income rows can fill missing EBIT and replace weak wrapper NPAT."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=14,
+        caption="MINERAL RESOURCES LIMITED - CONSOLIDATED INCOME STATEMENT",
+        headers=["", "", "", "Note", "", "", "31 Dec 2025 $M", "", "", "31 Dec 2024"],
+        rows=[
+            ["", "REVENUE", "", "", "4", "", "", "3,052", "", "2,290", ""],
+            ["PROFIT/(LOSS) FROM OPERATIONS", "", "", "", "", "", "1,031", "", "", "(972)", ""],
+            ["", "PROFIT/(LOSS) FOR THE HALF-YEAR IS ATTRIBUTABLE TO:", "", "", "", "", "", "", "", "", ""],
+            ["", "Non-controlling interests", "", "", "", "", "", "78", "", "2", ""],
+            ["Equity holders of the parent", "", "", "", "", "", "495", "", "", "(809)", ""],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 3_052_000_000,
+            "ebit": None,
+            "np_attributable": 2_000_000,
+        },
+        "ebit": None,
+        "np_attributable": 2_000_000,
+        "row_refs": {"np_attributable": "previous period footnote"},
+        "provenance": {"np_attributable": "appendix_wrapper:page_2:previous period footnote"},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["ebit"] == 1_031_000_000
+    assert payload["metrics"]["np_attributable"] == 495_000_000
+    assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
 def test_appendix_wrapper_does_not_treat_ebitda_as_ebit():
@@ -4279,6 +4852,257 @@ def test_pass3a_shares_scaling_from_body_text():
     )
 
 
+def test_pass3a_shares_prefers_number_of_shares_column_over_amount_column():
+    """QBE share tables expose count and adjacent US$M amount columns."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    table = DoclingTable(
+        page_number=32,
+        caption="4.3.1 Share capital",
+        rows=[
+            ["", "NUMBER OF SHARES MILLIONS", "US$M", "NUMBER OF SHARES MILLIONS", "US$M"],
+            ["Issued ordinary shares, fully paid at 1 January", "1,505", "7,824", "1,494", "8,495"],
+            ["Shares issued under the Employee Share and Option Plan", "5", "55", "3", "34"],
+            ["Issued ordinary shares, fully paid at 30 June", "1,510", "8,338", "1,502", "8,409"],
+        ],
+        headers=["", "30 June 2025", "30 June 2025", "30 June 2024", "30 June 2024"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "shares_outstanding": 8409,
+        "pass3_confidence": 0.9,
+        "row_refs": {"shares_outstanding": "Issued ordinary shares, fully paid at 30 June"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["shares_outstanding"] == 1_510_000_000
+    assert (
+        results[0]["row_refs"]["shares_outstanding"]
+        == "Issued ordinary shares, fully paid at 30 June"
+    )
+
+
+def test_shares_source_overlay_handles_parser_shape_without_header_units():
+    """QBE parser shape can lose the NUMBER OF SHARES MILLIONS header."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="For personal use only",
+        headers=[
+            "Issued ordinary shares, fully paid at 1 January\n"
+            "Shares issued under the Employee Share and Option Plan\n"
+            "Shares issued under the Dividend Reinvestment Plan\n"
+            "Foreign exchange",
+            "1,505",
+            "7,824",
+            "1,494 8,495\n3 34\n5 58\n- (178)",
+        ],
+        rows=[
+            ["", "5", "55", ""],
+            ["", "-", "-", ""],
+            ["", "-", "459", ""],
+            ["Issued ordinary shares, fully paid at 30 June", "1,510", "8,338", "1,502 8,409"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": 8_409_000_000},
+        "shares_outstanding": 8_409_000_000,
+        "row_refs": {"shares_outstanding": "Issued ordinary shares, fully paid at 30 June"},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["shares_outstanding"] == 1_510_000_000
+    assert payload["shares_outstanding"] == 1_510_000_000
+
+
+def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance():
+    """RMS share count is in the Number of shares note, not equity $000 balance rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    equity_balance = DoclingTable(
+        page_number=22,
+        caption="For personal use only",
+        headers=["Balance at 31 December 2025", "2,890,512", "7,489"],
+        rows=[["Balance at 31 December 2025", "2,890,512", "7,489"]],
+    )
+    share_note = DoclingTable(
+        page_number=31,
+        caption="For personal use only",
+        headers=["", "", "", "Notes", "", "", "", "Number of", "", "$'000", "", ""],
+        rows=[
+            ["", "", "", "", "", "", "", "shares", "", "", "", ""],
+            ["", "Ordinary shares", "", "", "", "", "", "", "", "", "", ""],
+            ["", "At 31 December 2025", "", "", "", "", "", "1,924,937,480", "", "", "2,890,512", ""],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {"shares_outstanding": 2_890_512},
+        "shares_outstanding": 2_890_512,
+        "row_refs": {"shares_outstanding": "Balance at 31 December 2025"},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [equity_balance, share_note],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["shares_outstanding"] == 1_924_937_480
+    assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+
+
+def test_shares_source_overlay_ignores_at_date_without_share_count_evidence():
+    """At-date prose rows are not share counts without share/security evidence."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=56,
+        caption="Significant events - Samarco dam failure",
+        headers=["", "2021", "2020"],
+        rows=[
+            [
+                "billion before tax and after discounting at 30 June 2021",
+                "2.6",
+                "1.8",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "A",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "A",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["shares_outstanding"] is None
+    assert "shares_outstanding" not in payload["row_refs"]
+
+
+def test_shares_source_overlay_ignores_weighted_average_shares():
+    """Weighted-average EPS rows are not period-end shares outstanding."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=23,
+        caption="Earnings per share",
+        headers=["", "2021", "2020"],
+        rows=[
+            ["Weighted average number of shares (Million)", "5,057", "5,057"],
+        ],
+    )
+    payload = {
+        "period_type": "A",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "A",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["shares_outstanding"] is None
+    assert "shares_outstanding" not in payload["row_refs"]
+
+
+def test_shares_prose_recovers_dual_listed_ordinary_shares_on_issue():
+    """BHP-style dual-listed company prose can prove period-end shares."""
+    from app.services.multipass_extraction import _extract_shares_from_prose
+
+    value, provenance = _extract_shares_from_prose(
+        [
+            {
+                "page": 53,
+                "text": (
+                    "At 30 June 2021, BHP Group Limited had 2,945 million ordinary "
+                    "shares on issue and held by the public and BHP"
+                ),
+            },
+            {
+                "page": 53,
+                "text": (
+                    "Group Plc had 2,112 million ordinary shares on issue and held "
+                    "by the public. No shares in BHP Group Limited were"
+                ),
+            },
+        ]
+    )
+
+    assert value == 5_057_000_000
+    assert provenance.startswith("prose_note:page_53:")
+
+
 def test_pass3a_shares_scaling_doc_level_fallback():
     """When table headers AND body text lack scale indicators, but the document-level
     scale is 'thousands', the fallback must apply the document multiplier.
@@ -4365,6 +5189,49 @@ def test_pass3a_shares_outstanding_rejects_equity_dollar_table():
         "shares_outstanding": 1694,
         "pass3_confidence": 0.8,
         "row_refs": {"shares_outstanding": "Balance at 31 December 2025"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["shares_outstanding"] is None
+
+
+def test_pass3a_shares_outstanding_rejects_weighted_average_row():
+    """Weighted-average share rows are EPS denominators, not period-end shares."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=23,
+        caption="Earnings per share",
+        rows=[
+            ["Weighted average number of shares (Million)", "5,057", "5,057"],
+        ],
+        headers=["", "2021", "2020"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "shares_outstanding": 5_057_000_000,
+        "pass3_confidence": 0.8,
+        "row_refs": {
+            "shares_outstanding": "Weighted average number of shares (Million)"
+        },
     }
 
     with patch(
@@ -6156,13 +7023,12 @@ class TestSharesOutstandingMarkers:
             "shares_outstanding must not be nulled for plain 'Ordinary shares' row label"
         )
 
-    def test_absolute_count_bypasses_evidence_check(self) -> None:
-        """LLM-returned value >= 1M bypasses the weak-evidence null guard.
+    def test_absolute_count_requires_share_count_evidence(self) -> None:
+        """Large LLM values still need share-count evidence.
 
-        The extraction prompt instructs the LLM to return absolute counts, so a value
-        this large cannot be an unscaled row number from a dollar-denominated column.
-        A table with no recognisable marker labels but a large absolute value must
-        still produce a non-null shares_outstanding.
+        BHP-style prose/tax tables can contain billion-dollar amounts that are
+        numerically plausible as share counts. They must not become
+        shares_outstanding without share/security/unit evidence.
         """
         from unittest.mock import patch
 
@@ -6194,7 +7060,7 @@ class TestSharesOutstandingMarkers:
             "currency": "AUD",
             "scale": "millions",
         }
-        # LLM returns an absolute count (5_057_000_000 >> 1M threshold)
+        # LLM returns an absolute-sized value, but the source row has no share marker.
         mock_raw = {
             "shares_outstanding": 5_057_000_000,
             "period_col": "Dec 2025",
@@ -6207,10 +7073,7 @@ class TestSharesOutstandingMarkers:
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
         assert len(results) == 1
-        shares = results[0].get("shares_outstanding")
-        assert shares is not None, (
-            "Large absolute LLM-returned share count must bypass the weak-evidence null guard"
-        )
+        assert results[0].get("shares_outstanding") is None
 
 
 # ---------------------------------------------------------------------------

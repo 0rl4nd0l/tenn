@@ -1,0 +1,9 @@
+{
+  "accepted_payload_count": 12,
+  "artifact_type": "approved_15_no_write_replay_validation_v1",
+  "elapsed_s": 1829.298,
+  "fail_closed_payload_count": 3,
+  "failed_payload_count": 0,
+  "side_effect_pass": true,
+  "status": "PARTIAL"
+}

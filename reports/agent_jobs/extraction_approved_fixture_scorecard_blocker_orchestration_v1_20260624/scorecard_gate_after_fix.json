@@ -1,0 +1,138 @@
+{
+  "actual_payload_document_count": 12,
+  "actual_payload_supplied": true,
+  "allowed_noncanonical_abstention_count": 0,
+  "allowed_result_classes": [
+    "present_correct",
+    "unsupported_correctly_abstained"
+  ],
+  "artifact_type": "pre_persistence_scorecard_gate_v1",
+  "blockers": [
+    {
+      "code": "ambiguous_quarantined",
+      "count": 73,
+      "policy": "result class blocks pre-persistence promotion"
+    },
+    {
+      "code": "not_evaluated_no_actual_payload",
+      "count": 16,
+      "policy": "result class blocks pre-persistence promotion"
+    }
+  ],
+  "blocking_examples": [
+    {
+      "canonical_field": "revenue",
+      "document_id": "anz_20250331_h",
+      "metric_name": "revenue",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "ebit",
+      "document_id": "anz_20250331_h",
+      "metric_name": "ebit",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "np_attributable",
+      "document_id": "anz_20250331_h",
+      "metric_name": "np_attributable",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "operating_cf",
+      "document_id": "anz_20250331_h",
+      "metric_name": "operating_cf",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "investing_cf",
+      "document_id": "anz_20250331_h",
+      "metric_name": "investing_cf",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "financing_cf",
+      "document_id": "anz_20250331_h",
+      "metric_name": "financing_cf",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "capex",
+      "document_id": "anz_20250331_h",
+      "metric_name": "capex",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "cash_end",
+      "document_id": "anz_20250331_h",
+      "metric_name": "cash_end",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "shares_outstanding",
+      "document_id": "anz_20250331_h",
+      "metric_name": "shares_outstanding",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "canonical_field": "net_debt",
+      "document_id": "anz_20250331_h",
+      "metric_name": "net_debt",
+      "reason": "Expectation requires review or has ambiguous label evidence",
+      "result_class": "ambiguous_quarantined"
+    }
+  ],
+  "blocking_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "not_evaluated_no_actual_payload": 16
+  },
+  "blocking_result_classes": [
+    "missing_expected_metric",
+    "present_wrong_value",
+    "wrong_unit_currency_scale",
+    "wrong_period",
+    "missing_evidence",
+    "ambiguous_quarantined",
+    "not_evaluated_no_actual_payload"
+  ],
+  "broad_backfill_authorized": false,
+  "canonical_write_allowed": false,
+  "decision": "blocked",
+  "gate_status": "fail",
+  "gate_version": "pre_persistence_scorecard_gate_v1",
+  "input_artifact_type": "confirmed_metric_payload_scorecard_v1",
+  "metric_result_count": 146,
+  "operator_approval_required_for_canary": true,
+  "passed": false,
+  "policy_assertions": {
+    "mutates_canonical_truth": false,
+    "mutates_db_qdrant_news_memory": false,
+    "mutates_gold_labels": false,
+    "runs_extraction": false,
+    "source_openability_is_correctness": false
+  },
+  "profile": "confirmed_metric_coverage",
+  "result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_evidence": 0,
+    "missing_expected_metric": 0,
+    "not_evaluated_no_actual_payload": 16,
+    "present_correct": 57,
+    "present_wrong_value": 0,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "scorecard_scope": "report_local_actual_payloads_only",
+  "scored_metric_expectations": 73,
+  "total_metric_expectations": 146
+}

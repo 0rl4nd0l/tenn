@@ -1,0 +1,101 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/README.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/STATE.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/guard_preflight.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/registry_active_jobs.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/pr405_status.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/issue97.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/failure_rows.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/source_inspection.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/BOARD.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/BOARD_DECISION.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/worker_summary.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/validation.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/diff-check.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/replay_results_after_fix.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/scorecard_after_fix.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/scorecard_gate_after_fix.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/failure_classes_after_fix.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/logs/replay_after_fix.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/logs/focused_validation.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/logs/focused_regression_rerun.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/logs/full_multipass_validation.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/logs/ruff_validation.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/raw_replay_after_fix/input_manifest.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/raw_replay_after_fix/replay_results.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/raw_replay_after_fix/side_effect_audit.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/raw_replay_after_fix/validation.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/raw_replay_after_fix/logs/replay.log",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures-task.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/WORKER_TASK.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/WORKER_RESULT.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/WORKER_META.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/raw_output.txt",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures-task.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/WORKER_TASK.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/WORKER_RESULT.md",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/WORKER_META.json",
+        "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/failclosed-fixtures/raw_output.txt"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md",
+        "docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Owner requested review-board orchestration to fix missing metrics, wrong values, fail-closed payload blockers, and other #97 scorecard blockers after PR #405 produced a clean current 15-fixture scorecard.",
+      "recommended_model": "high reasoning plus evidence-only workers",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "task_scope": "safe_extension",
+      "task_tier": "critical",
+      "timeout_seconds": 21600,
+      "why_this_model": "The work is Financial Truth critical: source-bound extraction fixes must distinguish parser defects from candidate-review or gold/policy blockers.",
+      "worker_decision_limit": "Evidence-only workers may inspect current report artifacts and source evidence. Codex and the review board keep final Financial Truth decisions and all edits.",
+      "worker_model_allowed": true
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "artifact_type": "worker_summary_v1",
+  "board_decision": {
+    "actual_model": "Codex GPT-5",
+    "broad_progress": "Proceeding targets all 8 hard scored failures through class-level deterministic extraction helpers.",
+    "class_based_approach": "Yes. Prefer formal income-statement row recovery, Appendix 5B section-total selection, exact cash-end labels, tiny PP&E capex, and share-count column selection over ticker-specific patches.",
+    "decision": "proceed",
+    "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+    "duplicate_work_decision": "continue_current_pr405_branch",
+    "escalation_needed": false,
+    "final_decision_authority": "Codex high-reasoning chair under owner request",
+    "functionality_proof_required": true,
+    "functionality_proof_status": "required_after_implementation",
+    "ledger_sources_checked": [
+      "tenn_git_guard_preflight",
+      "agent_job_registry_read_only",
+      "task_card",
+      "PR_405",
+      "issue_97",
+      "current_scorecard_artifacts"
+    ],
+    "matching_candidates": [],
+    "minority_objection": "The skeptic objected that DXS and ANZ may require sector/entity policy work, not parser changes. Chair accepts the objection and excludes those cases from this patch unless exact source-bound evidence proves a narrow fix.",
+    "overfitting": "Mitigated by class-level helpers and negative tests; no ticker-specific branches are authorized.",
+    "production_readiness_value": "Highest near-term value is reducing missing_expected_metric and present_wrong_value rows while preserving quarantine boundaries.",
+    "recommended_model": "high reasoning plus evidence-only workers",
+    "remaining_blocker": "candidate_review_required/ambiguous rows and fail-closed DXS/ANZ/SEG may remain after hard scored fixes.",
+    "report_loop": "Not a report-only loop; proceed to implementation and validation.",
+    "root_problem": "Current #97 scorecard mixes source-fixable extraction errors with review-policy and fail-closed blockers; only source-fixable extraction errors should be changed here.",
+    "task_tier": "critical",
+    "why_lower_tier_insufficient": "Financial Truth source-bound extraction correctness requires source-row judgment, validation-denominator checks, and strict mutation boundaries.",
+    "why_this_model": "The work touches financial metric extraction gates and must distinguish parser defects from policy/gold blockers.",
+    "worker_decision_limit": "evidence_only",
+    "worker_model_allowed": true
+  },
+  "created_at_utc": "2026-06-23T18:02:16.829467+00:00",
+  "workers": [
+    {
+      "name": "scored-failures",
+      "path": "workers/scored-failures/WORKER_RESULT.md",
+      "status": "used_as_non_authoritative_evidence",
+      "validation_note": "worker bridge metadata did not satisfy exact stop_condition_hit=no, so Codex/board retained final decision authority"
+    },
+    {
+      "name": "failclosed-fixtures",
+      "path": "workers/failclosed-fixtures/WORKER_RESULT.md",
+      "status": "used_as_non_authoritative_evidence",
+      "validation_note": "worker bridge metadata did not satisfy exact stop_condition_hit=no; fail-closed fixes were not broadened without source proof"
+    }
+  ]
+}
