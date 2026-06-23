@@ -11,10 +11,11 @@ Read these in order when relevant:
 1. `AGENTS.md` for repo constitution, safety boundaries, and current source of
    truth hierarchy.
 2. The active task card under `docs/agent_tasks/`, when one exists.
-3. Relevant repo-backed skills under `.agents/skills/`.
-4. `docs/entrypoints.md` only for runtime entrypoint work.
-5. Current reports under `reports/agent_jobs/` for evidence and closeout.
-6. Relevant GitHub issues or PRs using read-only commands first.
+3. `docs/README.md` for the current documentation source map.
+4. Relevant repo-backed skills under `.agents/skills/`.
+5. `docs/entrypoints.md` only for runtime entrypoint work.
+6. Current reports under `reports/agent_jobs/` for evidence and closeout.
+7. Relevant GitHub issues or PRs using read-only commands first.
 
 If a generic skill expects `CONTEXT.md`, treat that as absent unless the file
 exists in the current checkout. Do not create `CONTEXT.md`, `CONTEXT-MAP.md`, or

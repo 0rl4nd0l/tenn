@@ -1,5 +1,10 @@
 # Current State
 
+Archive/reference status: this is a Claude historical snapshot, not the current
+repo-state authority. It contains dated March/April runtime, branch, host path,
+and validation claims. Start with `AGENTS.md` and `docs/README.md`, then re-run
+repo/runtime preflight before treating any statement below as current.
+
 ## Source Trace
 - `docs/current_system.md` (Confirmed)
 - `financial-engine_v2/README.md` (Confirmed)

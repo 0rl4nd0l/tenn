@@ -3,14 +3,16 @@
 This document covers **Full-Stack Cockpit Mode**: Docker Compose infrastructure
 plus the Next.js Cockpit UI.
 
-This does not replace **Agent-Local Backend Mode** from `docs/entrypoints.md`.
-For focused agent/runtime validation, `scripts/start_system.sh` and
-`financial-engine_v2/scripts/run_local_backend.sh` remain the canonical local
-backend path.
+Documentation status: full-stack Docker/user-launcher runbook. This file does
+not override **Agent-Local Backend Mode** from `docs/entrypoints.md`, which
+remains the runtime entrypoint context for agent tasks. During the 2026-06-23
+docs audit, `README.md` and `docs/entrypoints.md` identified
+`financial-engine_v2/scripts/run_local_backend.sh` as the canonical agent
+backend bootstrap path.
 
-In Full-Stack Cockpit Mode, the backend runs only in Docker for this mode. Do
-not use this document to infer that ordinary agent-local backend checks must
-start Docker.
+This repo's **full system mode** is Docker Compose. In Full-Stack Cockpit Mode,
+the backend runs only in Docker for this mode. Do not use this document to infer
+that ordinary agent-local backend checks must start Docker.
 
 ### CLI usage
 
