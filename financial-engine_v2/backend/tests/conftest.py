@@ -1,14 +1,14 @@
-"""
-conftest.py — ensure the backend package is importable from the tests directory.
+"""Install the repo dev/test import contract for backend tests."""
 
-The backend `app` package lives one level up from this tests/ directory.
-Without this, `from app.services.extraction import ...` fails unless tests
-are run with PYTHONPATH=backend or `pip install -e .` is used.
-"""
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
-# Add backend/ to sys.path so `import app` resolves correctly.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-# Add financial-engine_v2/ so shared/* modules resolve consistently as well.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+_SCRIPTS_ROOT = Path(__file__).resolve().parents[3] / "scripts"
+if str(_SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_ROOT))
+
+from python_import_contract import install_import_roots
+
+install_import_roots()

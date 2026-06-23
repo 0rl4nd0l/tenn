@@ -1,6 +1,16 @@
-## Startup (Full Stack)
+## Startup (Full-Stack Cockpit Mode)
 
-This repo’s **full system mode** is Docker Compose. The backend must run **only in Docker**.
+This document covers **Full-Stack Cockpit Mode**: Docker Compose infrastructure
+plus the Next.js Cockpit UI.
+
+This does not replace **Agent-Local Backend Mode** from `docs/entrypoints.md`.
+For focused agent/runtime validation, `scripts/start_system.sh` and
+`financial-engine_v2/scripts/run_local_backend.sh` remain the canonical local
+backend path.
+
+In Full-Stack Cockpit Mode, the backend runs only in Docker for this mode. Do
+not use this document to infer that ordinary agent-local backend checks must
+start Docker.
 
 ### CLI usage
 
@@ -26,6 +36,11 @@ Recommended user entrypoint:
 - `cockpit start new`
 - Served on `http://127.0.0.1:8081`
 - Starts the full stack, then launches the browser UI
+
+Runtime contract:
+- Mode name: `full_stack_cockpit`
+- Machine-readable contract: `agent_contract.json`
+- Contract validator: `python3 scripts/runtime_entrypoint_contract.py --check`
 
 ### Configuration
 

@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 
+import python_import_contract as import_contract
 import run_pytest_with_fallback as runner
 
 
@@ -48,6 +49,9 @@ class TestRunPytestWithFallback(unittest.TestCase):
             chosen = runner.choose_base_python(str(link))
 
         self.assertEqual(str(link), str(chosen))
+
+    def test_default_pythonpath_comes_from_import_contract(self) -> None:
+        self.assertEqual(import_contract.import_roots(), runner.DEFAULT_PYTHONPATH)
 
     def test_merged_pythonpath_prepends_without_duplicates(self) -> None:
         path = runner.merged_pythonpath(
