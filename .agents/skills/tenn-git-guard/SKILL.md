@@ -15,6 +15,52 @@ duplicate-work checks that used to be split across auxiliary skill entrypoints.
 For explicit cleanup/hygiene audits, use the two-shot reference policy in
 `docs/dev_flow/SKILLS_SURFACE.md`.
 
+## Portable Runner First
+
+Use the repo-agnostic skill runner before relying on repo-local Tenn scripts.
+From the installed host skill surface:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
+  preflight \
+  --repo-root . \
+  --topic "<topic-or-path>" \
+  --json
+```
+
+From a repo-backed Tenn control-plane checkout:
+
+```bash
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
+  preflight \
+  --repo-root . \
+  --topic "<topic-or-path>" \
+  --json
+```
+
+The runner lives in the skill surface and inspects the target repo through
+`--repo-root`. Runtime/product repos do not need to contain
+`scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
+`scripts/agent_job_contract.py` for guard preflight to run.
+
+The runner resolves control-plane support in this order:
+
+1. `TENN_CONTROL_PLANE_ROOT`
+2. `git config --global tenn.controlPlaneRoot`
+3. known Tenn control-plane worktrees under `/home/l4nd0`
+
+The runner resolves registry state in this order:
+
+1. `TENN_AGENT_REGISTRY_ROOT`
+2. `git config --global tenn.agentRegistryRoot`
+3. target repo git common dir plus `tenn-agent-registry`
+4. target repo `.tenn/agent_jobs` fallback
+
+If control-plane support is unavailable, record `DATA_MISSING` for that
+source and continue with the runner's fallback git/artifact evidence. Missing
+repo-local Tenn scripts alone is not a blocker and should not be described as
+runtime repo corruption.
+
 ## Preflight
 
 Collect current evidence before relying on repo state:
@@ -26,6 +72,20 @@ git rev-parse HEAD
 git remote -v
 git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
+
+If the installed host skill path is unavailable inside a control-plane checkout,
+use:
+
+```bash
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
+
+Use repo-local scripts only when the portable runner is unavailable or when a
+specific task card explicitly requires validating the target repo's local copy:
+
+```bash
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
 python3 scripts/agent_task_ledger.py resolve-path
 python3 scripts/agent_task_ledger.py validate
@@ -38,14 +98,12 @@ workflow starts coding, inspect the branch-independent Agent Task Ledger and the
 durable committed summary when present:
 
 ```bash
-python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
-python3 scripts/agent_task_ledger.py resolve-path
-python3 scripts/agent_task_ledger.py validate
-python3 scripts/agent_task_ledger.py search --text "<topic-or-path>"
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
 ```
 
-When `scripts/agent_task_ledger.py` is unavailable on an older base, fall back
-to the manual checks below and record `DATA_MISSING` for runtime support.
+When both the portable runner and repo-local `scripts/agent_task_ledger.py` are
+unavailable, fall back to the manual checks below and record `DATA_MISSING` for
+control-plane support.
 
 Do not resolve the live ledger through literal `.git/tenn-agent-registry/task-ledger.jsonl`.
 In linked worktrees, `.git` is a file pointing at a private worktree gitdir,
@@ -137,6 +195,9 @@ Guard output must include `duplicate_work_classification`, evidence sources
 checked, matching candidates, owner decision needed, and final decision:
 `pass`, `warning`, `block`, or `data_missing`.
 Include `session_id` and `thread_id` when available.
+For handoffs, also include `guard_runner_path`, `control_plane_root`,
+`registry_root`, `guard_support_status`, `ledger_status`, and
+`registry_status`.
 
 ## Branch Superiority And Stale Work
 

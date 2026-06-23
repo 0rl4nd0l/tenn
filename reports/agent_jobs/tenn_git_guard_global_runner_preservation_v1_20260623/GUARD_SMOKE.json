@@ -1,0 +1,185 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "control-plane/tenn-git-guard-global-runner-preservation-v1-20260623",
+  "comparison_base_checked": [
+    "upstream=origin/migration/clean-runtime-baseline-reconstruct-v1"
+  ],
+  "control_plane_root": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+  "control_plane_roots_checked": [
+    "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623"
+  ],
+  "data_missing_sources": [],
+  "dirty_status": [
+    "M  .agents/skills/tenn-git-guard/SKILL.md",
+    "A  .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
+    "A  .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
+    "A  docs/agent_tasks/tenn_git_guard_global_runner_preservation_v1_20260623.md",
+    "M  docs/dev_flow/SKILLS_SURFACE.md"
+  ],
+  "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+  "fallback_sources_checked": {
+    "dirty_status_rows": [
+      "M  .agents/skills/tenn-git-guard/SKILL.md",
+      "A  .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
+      "A  .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
+      "A  docs/agent_tasks/tenn_git_guard_global_runner_preservation_v1_20260623.md",
+      "M  docs/dev_flow/SKILLS_SURFACE.md"
+    ],
+    "local_and_remote_branches": [
+      "  control-plane/runtime-functionality-proof-closeout-v2-20260622",
+      "  control-plane/runtime-functionality-proof-v1-20260622",
+      "+ control-plane/runtime-proof-closeout-self-consistency-v1-20260623",
+      "+ control-plane/runtime-proof-explicit-exemptions-v1-20260622",
+      "  control-plane/task-ledger-status-refresh-v1-20260623",
+      "* control-plane/tenn-git-guard-global-runner-preservation-v1-20260623",
+      "+ dev-flow/cockpit-bff-proxy-deepening-v1-20260623-pr",
+      "  dev-flow/import-runtime-entrypoint-remediation-v1-20260623",
+      "+ dev-flow/runtime-entrypoint-contract-followup-v1-20260623",
+      "+ docs/current-state-consolidation-v1-20260623",
+      "+ migration/clean-runtime-baseline-reconstruct-v1",
+      "+ repo-hygiene/task-ledger-current-state-refresh-v1-20260623",
+      "+ safe/extraction-metric-improvement-sprint-v1-20260622",
+      "+ safe/extraction-post-pr384-validation-refresh-v1-20260623",
+      "  remotes/origin/dev-flow/import-runtime-entrypoint-remediation-v1-20260623",
+      "  remotes/origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "  remotes/origin/repo-hygiene/task-ledger-current-state-refresh-v1-20260623"
+    ],
+    "reports": {
+      "count": 2206,
+      "exists": true,
+      "path": "reports/agent_jobs"
+    },
+    "task_cards": {
+      "count": 418,
+      "exists": true,
+      "path": "docs/agent_tasks"
+    },
+    "topic": "tenn git guard global runner preservation",
+    "worktrees": [
+      "worktree /home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621",
+      "HEAD 0e17af41024ccf5d20adb63063012098bc51416c",
+      "branch refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
+      "",
+      "worktree /home/l4nd0/tenn-cockpit-bff-proxy-deepening-v1-20260623-pr",
+      "HEAD f7e30fd620133b0a31891436b9632e8acaac70ee",
+      "branch refs/heads/dev-flow/cockpit-bff-proxy-deepening-v1-20260623-pr",
+      "",
+      "worktree /home/l4nd0/tenn-control-plane-runtime-functionality-proof-v1-20260622",
+      "HEAD a8ae24106f6051e5a55a7174aaf5be263768c725",
+      "branch refs/heads/control-plane/runtime-proof-explicit-exemptions-v1-20260622",
+      "",
+      "worktree /home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+      "HEAD 6df3b29783dffe625f74dfbb4870667a4c57b750",
+      "branch refs/heads/control-plane/tenn-git-guard-global-runner-preservation-v1-20260623",
+      "",
+      "worktree /home/l4nd0/tenn-docs-current-state-consolidation-v1-20260623",
+      "HEAD 53dfd3fffceb328ede4606b4cdf3fdbe4c4c8a71",
+      "branch refs/heads/docs/current-state-consolidation-v1-20260623",
+      "",
+      "worktree /home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622",
+      "HEAD 87af5a87da1efd34a608533895cc7be45c80267b",
+      "branch refs/heads/safe/extraction-metric-improvement-sprint-v1-20260622",
+      "",
+      "worktree /home/l4nd0/tenn-extraction-post-pr384-validation-refresh-v1-20260623",
+      "HEAD 277164a07b525200e2005aea1c0ad50e3a1f6090",
+      "branch refs/heads/safe/extraction-post-pr384-validation-refresh-v1-20260623",
+      "",
+      "worktree /home/l4nd0/tenn-runtime-entrypoint-contract-followup-v1-20260623",
+      "HEAD ba779e6396cf9d6179e2bf1772f5f92082a269b0",
+      "branch refs/heads/dev-flow/runtime-entrypoint-contract-followup-v1-20260623",
+      "",
+      "worktree /home/l4nd0/tenn-runtime-proof-closeout-self-consistency-v1-20260623",
+      "HEAD e95cb3625a0bbbb113ecdb315e2c6c3e4478c294",
+      "branch refs/heads/control-plane/runtime-proof-closeout-self-consistency-v1-20260623",
+      "",
+      "worktree /home/l4nd0/tenn-task-ledger-current-state-refresh-v1-20260623",
+      "HEAD c48b99e39d96f9019276e773dda5f6e692ab975e",
+      "branch refs/heads/repo-hygiene/task-ledger-current-state-refresh-v1-20260623"
+    ]
+  },
+  "final_decision": "pass",
+  "git_root": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+  "guard_runner_path": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
+  "guard_support_status": "PASS",
+  "head": "6df3b29783dffe625f74dfbb4870667a4c57b750",
+  "ledger": {
+    "resolve_path": {
+      "command": [
+        "/usr/bin/python3",
+        "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623/scripts/agent_task_ledger.py",
+        "resolve-path"
+      ],
+      "cwd": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry/task-ledger.jsonl"
+    },
+    "search": {
+      "data_missing": [],
+      "duplicate_work_classification": "UNKNOWN_ASK",
+      "issues": [],
+      "matches": [],
+      "ok": true,
+      "sources_checked": [
+        {
+          "entry_count": 2,
+          "exists": true,
+          "kind": "live",
+          "path": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry/task-ledger.jsonl"
+        },
+        {
+          "entry_count": 5,
+          "exists": true,
+          "kind": "committed",
+          "path": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623/docs/agent_registry/task_ledger/LEDGER.jsonl"
+        }
+      ]
+    },
+    "validate": {
+      "data_missing": [],
+      "entry_count": 7,
+      "issues": [],
+      "ok": true,
+      "sources_checked": [
+        {
+          "entry_count": 2,
+          "exists": true,
+          "kind": "live",
+          "path": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry/task-ledger.jsonl"
+        },
+        {
+          "entry_count": 5,
+          "exists": true,
+          "kind": "committed",
+          "path": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623/docs/agent_registry/task_ledger/LEDGER.jsonl"
+        }
+      ]
+    }
+  },
+  "ledger_status": "PASS",
+  "merge_base": "6df3b29783dffe625f74dfbb4870667a4c57b750",
+  "registry": {
+    "active_jobs": [],
+    "git_common_dir": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git",
+    "lock_acquired": false,
+    "ok": true,
+    "read_only": true,
+    "registry_root": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "repo_root": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+    "warnings": []
+  },
+  "registry_checked": [
+    "git_common_dir=/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry"
+  ],
+  "registry_root": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry",
+  "registry_source": "git_common_dir",
+  "registry_status": "PASS",
+  "remotes": [
+    "origin\thttps://github.com/0rl4nd0l/tenn.git (fetch)",
+    "origin\thttps://github.com/0rl4nd0l/tenn.git (push)"
+  ],
+  "repo_root": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+  "schema_version": "tenn_git_guard_preflight_v1",
+  "upstream": null
+}

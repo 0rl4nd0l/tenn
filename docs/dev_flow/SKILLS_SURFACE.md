@@ -82,6 +82,12 @@ current preflight contract. It is not a user-facing cleanup command. It owns
 branch, worktree, dirty-state, registry, task-ledger, duplicate-work, task-card,
 and allowed-file preflight.
 
+The guard must use the portable skill runner before requiring repo-local Tenn
+scripts. Runtime/product repos are valid guard targets even when they do not
+contain `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
+`scripts/agent_job_contract.py`; missing ledger rows should be reported as
+`DATA_MISSING`, not as missing runtime repo files.
+
 ## Runtime Proof Gate
 
 Use this mode when daemon, runtime, extraction, ingestion, automation,
