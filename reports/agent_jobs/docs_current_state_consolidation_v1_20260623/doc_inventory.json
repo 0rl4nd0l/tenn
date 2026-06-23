@@ -223,7 +223,7 @@
     "last_modified_date": "2026-06-16",
     "last_modified_commit": "bbb37b5b",
     "current_stale_unknown_archive": "current/runtime-only with validation wording softened",
-    "evidence_cited": "Changed current passing gate wording to last documented; tests not rerun",
+    "evidence_cited": "Changed live-current gate wording to last documented; tests not rerun",
     "duplicates_conflicts": "Startup docs conflict without full-stack vs agent-runtime scope",
     "recommended_action": "keep; use only for runtime tasks"
   },
