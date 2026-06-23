@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+import tempfile
 import unittest
 
 import runtime_entrypoint_contract as contract
@@ -32,6 +34,46 @@ class TestRuntimeEntrypointContract(unittest.TestCase):
         result = contract.check_docs()
 
         self.assertTrue(result["ok"], result["issues"])
+
+    def test_runtime_docs_require_contract_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            entrypoints = root / "entrypoints.md"
+            startup = root / "startup.md"
+            entrypoints.write_text(
+                "Agent-Local Backend Mode\nFull-Stack Cockpit Mode\nBatch Mode\n",
+                encoding="utf-8",
+            )
+            startup.write_text(
+                "Full-Stack Cockpit Mode\nAgent-Local Backend Mode\nonly in Docker for this mode\n",
+                encoding="utf-8",
+            )
+
+            result = contract.check_docs(entrypoints_doc=entrypoints, startup_doc=startup)
+
+        self.assertFalse(result["ok"])
+        self.assertIn("docs_status_agent_local_backend", result["issues"])
+        self.assertIn("docs_command_full_stack_cockpit", result["issues"])
+
+    def test_startup_docs_reject_stale_cockpit_install_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            startup = Path(tmp_dir) / "startup.md"
+            startup.write_text(
+                contract.STARTUP_DOC.read_text(encoding="utf-8").replace(
+                    contract.STARTUP_INSTALL_COMMAND,
+                    "ln -sf /home/l4nd0/tenn/scripts/cockpit ~/.local/bin/cockpit",
+                ),
+                encoding="utf-8",
+            )
+
+            result = contract.check_docs(
+                entrypoints_doc=contract.ENTRYPOINTS_DOC,
+                startup_doc=startup,
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertIn("startup_install_command", result["issues"])
+        self.assertIn("startup_no_stale_home_tenn_symlink", result["issues"])
 
     def test_full_contract_validates(self) -> None:
         result = contract.validate_contract()

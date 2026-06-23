@@ -11,10 +11,13 @@ timeout_seconds: 7200
 output_dir: reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623
 mutation_mode: safe_extension
 production_data_access: false
+closeout_scope: control_plane_only
 github_mutation_allowed: false
 allowed_files:
   - docs/agent_tasks/repo_dev_import_runtime_entrypoint_remediation_v1_20260623.md
-  - reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/**
+  - reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/STATE.md
+  - reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/VALIDATION.md
+  - reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/PR_REVIEW.md
   - pyproject.toml
   - pytest.ini
   - financial-engine_v2/backend/tests/conftest.py

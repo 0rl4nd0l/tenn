@@ -20,7 +20,7 @@ Install (one-time, optional):
 
 ```bash
 mkdir -p ~/.local/bin
-ln -sf /home/l4nd0/tenn/scripts/cockpit ~/.local/bin/cockpit
+ln -sf "$(pwd)/scripts/cockpit" ~/.local/bin/cockpit
 ```
 
 Commands:
@@ -41,8 +41,16 @@ Recommended user entrypoint:
 
 Runtime contract:
 - Mode name: `full_stack_cockpit`
+- Machine status: `canonical_for_operator_full_stack`
+- Entrypoint: `scripts/cockpit`
+- Command: `cockpit start new`
 - Machine-readable contract: `agent_contract.json`
 - Contract validator: `python3 scripts/runtime_entrypoint_contract.py --check`
+- Healthcheck URL: `http://127.0.0.1:8000/api/health`
+- UI URL: `http://127.0.0.1:8081`
+- Host runtime dependency: Full-Stack Cockpit Mode may start host llama.cpp
+  runtimes through `scripts/cockpit` when configuration permits. This is an
+  operator full-stack side effect, not proof that runtime functionality changed.
 
 ### Configuration
 

@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 AGENT_CONTRACT_PATH = REPO_ROOT / "agent_contract.json"
 ENTRYPOINTS_DOC = REPO_ROOT / "docs" / "entrypoints.md"
 STARTUP_DOC = REPO_ROOT / "docs" / "startup.md"
+STARTUP_INSTALL_COMMAND = 'ln -sf "$(pwd)/scripts/cockpit" ~/.local/bin/cockpit'
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,7 @@ def runtime_modes() -> dict[str, RuntimeMode]:
             validation="cockpit doctor",
             notes=(
                 "Uses Docker Compose for backend, worker, Redis, Postgres, and Qdrant.",
+                "May start host llama.cpp runtimes through scripts/cockpit when configuration permits.",
                 "Launches the Next.js Cockpit UI after the full stack is started.",
             ),
         ),
@@ -139,6 +141,10 @@ def _read_text(path: str | Path) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
+def _normalized_doc_text(text: str) -> str:
+    return " ".join(text.replace("`", "").split())
+
+
 def check_docs(
     *,
     entrypoints_doc: str | Path = ENTRYPOINTS_DOC,
@@ -146,14 +152,31 @@ def check_docs(
 ) -> dict[str, object]:
     entrypoints_text = _read_text(entrypoints_doc)
     startup_text = _read_text(startup_doc)
-    checks = {
+    startup_normalized = _normalized_doc_text(startup_text)
+    checks: dict[str, bool] = {
         "entrypoints_agent_local_heading": "Agent-Local Backend Mode" in entrypoints_text,
         "entrypoints_full_stack_reference": "Full-Stack Cockpit Mode" in entrypoints_text,
         "entrypoints_batch_mode": "Batch Mode" in entrypoints_text,
         "startup_full_stack_heading": "Full-Stack Cockpit Mode" in startup_text,
         "startup_agent_local_reference": "Agent-Local Backend Mode" in startup_text,
         "startup_docker_scope": "only in Docker for this mode" in startup_text,
+        "startup_install_command": STARTUP_INSTALL_COMMAND in startup_text,
+        "startup_no_stale_home_tenn_symlink": "/home/l4nd0/tenn/scripts/cockpit" not in startup_text,
+        "startup_full_stack_llama_side_effect": (
+            "host llama.cpp runtimes through scripts/cockpit" in startup_normalized
+        ),
     }
+    combined_docs = f"{entrypoints_text}\n{startup_text}"
+    for mode_name, mode in runtime_modes().items():
+        checks[f"docs_mode_{mode_name}"] = mode.mode in combined_docs
+        checks[f"docs_status_{mode_name}"] = mode.status in combined_docs
+        checks[f"docs_entrypoint_{mode_name}"] = mode.entrypoint in combined_docs
+        checks[f"docs_command_{mode_name}"] = mode.command in combined_docs
+        if mode.healthcheck_url is not None:
+            checks[f"docs_healthcheck_{mode_name}"] = mode.healthcheck_url in combined_docs
+        if mode.ui_url is not None:
+            checks[f"docs_ui_{mode_name}"] = mode.ui_url in combined_docs
+
     issues = [name for name, ok in checks.items() if not ok]
     return {"ok": not issues, "issues": issues, "checks": checks}
 

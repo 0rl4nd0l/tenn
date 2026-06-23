@@ -18,6 +18,11 @@ startup path for agent runtime tasks and focused backend validation. Use
 `scripts/start_system.sh` when a task needs the agent-local backend to be
 started or checked deterministically.
 
+Machine mode: `agent_local_backend`
+Machine status: `canonical_for_agent_runtime_tasks`
+Command:
+`LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh`
+
 This mode starts the backend API only. It does not make Docker Compose or the
 Cockpit browser UI the default agent runtime.
 
@@ -27,14 +32,25 @@ Cockpit browser UI the default agent runtime.
 the Docker Compose infrastructure and launches the Next.js Cockpit UI at
 `http://127.0.0.1:8081`. Use `docs/startup.md` for this mode.
 
+Machine mode: `full_stack_cockpit`
+Machine status: `canonical_for_operator_full_stack`
+Entrypoint: `scripts/cockpit`
+Command: `cockpit start new`
+
 This mode is supported for UI/full-system tasks, but it should not be used for
 ordinary repo-hygiene, docs, task-card, hook, skill, registry, or report-only
-work.
+work. It may start host llama.cpp runtimes through `scripts/cockpit` when
+configuration permits.
 
 #### Batch Mode
 
 `python run.py` is supported for batch workflow execution. It is not a system
 bootstrap contract and does not define “the system is running.”
+
+Machine mode: `batch_orchestrator`
+Machine status: `supported_not_system_bootstrap`
+Entrypoint: `run.py`
+Command: `python run.py`
 
 ### Runtime Boot Sequence
 
