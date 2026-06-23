@@ -1,0 +1,84 @@
+{
+  "artifact_type": "extraction_approved_15_fixture_replay_scorecard_validation_v1",
+  "status": "PASS_WITH_RISK",
+  "risk_status": "DONE_WITH_RISK",
+  "runtime_functionality_result": "PARTIAL",
+  "commands": [
+    {
+      "command": "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn --topic \"merge safe/extraction-approved-15-fixture-replay-scorecard-v1-20260623 if safe\" --json",
+      "result": "PASS_WITH_EXPECTED_BLOCK",
+      "details": "Guard support, registry, and ledger passed; final_decision=block because the task-owned extraction diff was still uncommitted."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "result": "PASS",
+      "details": "active_jobs=[]; lock_acquired=false"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/run_pytest_with_fallback.py --base-python /usr/bin/python3 --overlay-package 'pytest>=8.3.3,<10' --overlay-package 'pytest-asyncio>=0.24.0,<2' --overlay-package 'respx>=0.23.1,<0.24' --overlay-package 'python-dateutil==2.9.0.post0' --overlay-package 'pydantic==2.9.2' --overlay-package 'pydantic-settings==2.6.1' --overlay-package 'pymupdf==1.24.10' -- financial-engine_v2/backend/tests/test_multipass_extraction.py::test_statement_page_text_recovers_uppercase_m_scale_when_table_unit_row_dropped financial-engine_v2/backend/tests/test_multipass_extraction.py::test_statement_page_text_ignores_non_statement_m_summary_rows financial-engine_v2/backend/tests/test_multipass_extraction.py::test_statement_page_text_abstains_on_mixed_statement_page_scales -q",
+      "result": "PASS",
+      "details": "3 passed"
+    },
+    {
+      "command": "python3 scripts/run_pytest_with_fallback.py --base-python /usr/bin/python3 --overlay-package 'pytest>=8.3.3,<10' --overlay-package 'pytest-asyncio>=0.24.0,<2' --overlay-package 'respx>=0.23.1,<0.24' --overlay-package 'python-dateutil==2.9.0.post0' --overlay-package 'pydantic==2.9.2' --overlay-package 'pydantic-settings==2.6.1' --overlay-package 'pymupdf==1.24.10' --overlay-package 'SQLAlchemy==2.0.36' --overlay-package 'beautifulsoup4==4.12.3' --overlay-package 'qdrant-client==1.12.1' -- financial-engine_v2/backend/tests/test_multipass_extraction.py -q",
+      "result": "PASS",
+      "details": "219 passed"
+    },
+    {
+      "command": "uv run --with ruff==0.15.6 ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "result": "PASS",
+      "details": "All checks passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md --repo-root .",
+      "result": "PASS",
+      "details": "Report artifacts exist and runtime functionality proof is recorded as PARTIAL."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md --repo-root .",
+      "result": "PASS",
+      "details": "No disallowed files."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "code_review": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": [
+      "Keep the remaining scorecard gate blockers separate from this source-scale recovery fix; do not claim count-24/count-32 or promotion readiness from this branch."
+    ]
+  },
+  "scorecard": {
+    "fixture_count": 15,
+    "accepted_payload_count": 11,
+    "fail_closed_payload_count": 4,
+    "gate_status": "fail",
+    "decision": "blocked",
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_expected_metric": 4,
+      "not_evaluated_no_actual_payload": 16,
+      "present_wrong_value": 4
+    }
+  },
+  "forbidden_mutation": {
+    "production_data": false,
+    "db": false,
+    "qdrant": false,
+    "redis": false,
+    "source_pdf": false,
+    "gold_label": false,
+    "prompt": false,
+    "model_gpu": false,
+    "service": false,
+    "backfill": false,
+    "count24_or_count32_claim": false
+  }
+}

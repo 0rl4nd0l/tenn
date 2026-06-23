@@ -232,6 +232,16 @@ _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?=\s|$|\)|,|;|:)",
     _re.IGNORECASE,
 )
+_STATEMENT_PAGE_SCALE_CAPTION_RE = _re.compile(
+    r"\b(?:"
+    r"consolidated\s+)?"
+    r"(?:statement\s+of\s+(?:comprehensive\s+)?income|"
+    r"statement\s+of\s+cash\s+flows?|"
+    r"statement\s+of\s+financial\s+position|"
+    r"balance\s+sheet)"
+    r"\b",
+    _re.IGNORECASE,
+)
 _SCALE_UNIT_ROW_CONTEXT_RE = _re.compile(
     r"^(?:notes?|note|period|current|prior|comparative|fy\d{2,4}|h[12]|"
     r"q[1-4]|\d{4}|20\d{2}|19\d{2}|as at|for the year|year ended|"
@@ -481,6 +491,58 @@ def _detect_scale_from_source_text(text: Any) -> str:
     """Detect only explicit document-level scale markers from source text."""
     if _SOURCE_TEXT_THOUSANDS_SCALE_RE.search(str(text or "")):
         return "thousands"
+    return "unknown"
+
+
+def _detect_scale_from_statement_page_text(
+    sections: list[dict] | None, tables: Any
+) -> str:
+    """
+    Recover explicit statement-page scale when a parser drops the unit row.
+
+    PyMuPDF table extraction can omit standalone "$M" / "$'000" column-unit rows
+    from formal statement tables while preserving them in the page text. Limit this
+    fallback to pages whose extracted table captions identify canonical statements,
+    and abstain if those statement pages disagree on scale.
+    """
+    statement_pages: set[int] = set()
+    for table in tables or []:
+        surfaces: list[str] = []
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        if getattr(table, "headers", None):
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if not _STATEMENT_PAGE_SCALE_CAPTION_RE.search(" ".join(surfaces)):
+            continue
+        try:
+            page = int(getattr(table, "page_number", 0))
+        except (TypeError, ValueError):
+            continue
+        if page > 0:
+            statement_pages.add(page)
+
+    if not statement_pages:
+        return "unknown"
+
+    page_text: dict[int, list[str]] = {page: [] for page in statement_pages}
+    for section in sections or []:
+        try:
+            page = int(section.get("page"))
+        except (TypeError, ValueError):
+            continue
+        if page in page_text:
+            text = str(section.get("text") or "").strip()
+            if text:
+                page_text[page].append(text)
+
+    detected_scales = {
+        scale
+        for page in sorted(statement_pages)
+        if (scale := _detect_scale_marker_in_text(" ".join(page_text.get(page, []))))
+        != "unknown"
+    }
+    if len(detected_scales) == 1:
+        return next(iter(detected_scales))
     return "unknown"
 
 
@@ -5802,9 +5864,14 @@ def run_multipass_extraction(
             )
         pass1["scale"] = detected
     else:
-        source_text_scale = _detect_scale_from_source_text(
-            early_period_text or first_page_text
+        statement_page_scale = _detect_scale_from_statement_page_text(
+            structured_doc.sections, structured_tables
         )
+        source_text_scale = statement_page_scale
+        if source_text_scale == "unknown":
+            source_text_scale = _detect_scale_from_source_text(
+                early_period_text or first_page_text
+            )
         if source_text_scale != "unknown":
             if pass1.get("scale", "unknown") not in (
                 source_text_scale,
