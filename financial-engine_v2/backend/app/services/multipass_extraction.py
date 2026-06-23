@@ -494,6 +494,18 @@ def _detect_scale_from_source_text(text: Any) -> str:
     return "unknown"
 
 
+def _detect_scale_from_statement_page_fragments(fragments: list[str]) -> str:
+    detected_scales = {
+        scale
+        for fragment in fragments
+        if (scale := _detect_scale_marker_in_text(fragment)) != "unknown"
+        and _scale_marker_cell_is_unit_context(fragment)
+    }
+    if len(detected_scales) == 1:
+        return next(iter(detected_scales))
+    return "unknown"
+
+
 def _detect_scale_from_statement_page_text(
     sections: list[dict] | None, tables: Any
 ) -> str:
@@ -535,12 +547,11 @@ def _detect_scale_from_statement_page_text(
             if text:
                 page_text[page].append(text)
 
-    detected_scales = {
-        scale
-        for page in sorted(statement_pages)
-        if (scale := _detect_scale_marker_in_text(" ".join(page_text.get(page, []))))
-        != "unknown"
-    }
+    detected_scales = set()
+    for page in sorted(statement_pages):
+        scale = _detect_scale_from_statement_page_fragments(page_text.get(page, []))
+        if scale != "unknown":
+            detected_scales.add(scale)
     if len(detected_scales) == 1:
         return next(iter(detected_scales))
     return "unknown"

@@ -13,8 +13,8 @@
 
 - Fixture manifest: 15 fixtures, 15 resolved.
 - No-write replay: PARTIAL.
-- Accepted payloads: 11.
-- Fail-closed payloads: 4.
+- Accepted payloads: 12.
+- Fail-closed payloads: 3.
 - Failed payloads: 0.
 - #97 scorecard gate: fail / blocked.
 - Blocking result classes: ambiguous_quarantined=73,
@@ -30,19 +30,18 @@
 | intended output | Report-local approved 15-fixture replay artifacts, #97 scorecard artifacts, and a bounded TCL source-scale recovery check. |
 | live output location | `reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/`; no production DB/API/store output targeted. |
 | pre-run max timestamp or count | DATA_MISSING; no live production output baseline was captured because this was a no-write replay/report-local safe extension. |
-| post-run max timestamp or count | 15 fixture manifest rows, 15 replay cases, 146 metric expectation rows, 11 accepted payloads, 4 fail-closed payloads. |
+| post-run max timestamp or count | 15 fixture manifest rows, 15 replay cases, 146 metric expectation rows, 12 accepted payloads, 3 fail-closed payloads. |
 | rows/files inserted or updated after run start | Report-local artifacts only; production rows/files inserted or updated: 0. |
 | readiness/gate status | Scorecard gate remains blocked; pre-persistence promotion is not ready. |
-| exact command/query used | `python3 scripts/run_pytest_with_fallback.py --base-python /usr/bin/python3 --overlay-package 'pytest>=8.3.3,<10' --overlay-package 'pytest-asyncio>=0.24.0,<2' --overlay-package 'respx>=0.23.1,<0.24' --overlay-package 'python-dateutil==2.9.0.post0' --overlay-package 'pydantic==2.9.2' --overlay-package 'pydantic-settings==2.6.1' --overlay-package 'pymupdf==1.24.10' --overlay-package 'SQLAlchemy==2.0.36' --overlay-package 'beautifulsoup4==4.12.3' --overlay-package 'qdrant-client==1.12.1' -- financial-engine_v2/backend/tests/test_multipass_extraction.py -q` |
+| exact command/query used | `UV_CACHE_DIR=/tmp/tenn-uv-cache-approved15-afterfix2-20260623 REPORT_DIR=reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623 uv run --python 3.10 ... python - <<'PY'` using `scripts/extraction_no_write_replay.py` `_run_cases` over the 15-row fixture manifest; see `validation.json` for the full command family and artifact names. |
 | result: WORKING / PARTIAL / BROKEN / DATA_MISSING | PARTIAL |
 | remaining blocker | The approved 15-fixture scorecard gate still fails with ambiguous, missing, not-evaluated, and wrong-value classes; no production functionality or promotion readiness is proven. |
 
 result: PARTIAL
 
-## Merge Gate Notes
+## Closeout Notes
 
-- Owner approved GitHub mutation for this merge gate on 2026-06-23 with
-  `merge if safe`.
-- Merge is only safe after task-card validation, report-artifact validation,
-  diff allowlist, focused/full extractor tests, lint, GitHub checks, and live
-  PR mergeability all pass.
+- PR #401 landed first on `migration/clean-runtime-baseline-reconstruct-v1`.
+- The source-proven TCL scale fallback was later published through PR #404.
+- Final local report artifacts reflect the after-fix full replay and remain
+  blocked for count-24/count-32 purposes.

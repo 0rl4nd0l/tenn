@@ -1,5 +1,5 @@
 {
-  "actual_payload_document_count": 22,
+  "actual_payload_document_count": 24,
   "actual_payload_supplied": true,
   "artifact_type": "confirmed_metric_payload_scorecard_v1",
   "fixture_summaries": [
@@ -4243,10 +4243,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "revenue",
@@ -4277,10 +4277,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "np_attributable",
@@ -4311,10 +4311,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "operating_cf",
@@ -4345,10 +4345,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "investing_cf",
@@ -4379,10 +4379,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "financing_cf",
@@ -4413,10 +4413,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "capex",
@@ -4447,10 +4447,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "cash_end",
@@ -4481,10 +4481,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "net_debt",
@@ -4515,10 +4515,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "shares_outstanding",
@@ -4549,10 +4549,10 @@
     },
     {
       "actual_context": {
-        "currency": null,
-        "period_end": null,
-        "period_type": null,
-        "scale": null
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
       },
       "actual_value": null,
       "canonical_field": "ebit",

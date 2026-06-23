@@ -7,8 +7,8 @@ the #97 extracted-payload scorecard, and one narrow extraction scale fallback.
 
 - Fixture sources resolved: 15/15.
 - Replay status: PARTIAL.
-- Accepted payload count: 11.
-- Fail-closed payload count: 4.
+- Accepted payload count: 12.
+- Fail-closed payload count: 3.
 - Scorecard gate: fail / blocked.
 - Current scorecard blockers: ambiguous_quarantined=73,
   not_evaluated_no_actual_payload=16, missing_expected_metric=4,
@@ -25,5 +25,6 @@ the #97 extracted-payload scorecard, and one narrow extraction scale fallback.
   promotion readiness.
 - `logs/tcl_after_fix_replay.log` records a bounded TCL rerun changing that
   case from `validation_gate:scale_validation:suspect_underscaled` to
-  `status=ok`; the full 15-fixture scorecard artifacts remain blocked and must
-  not be represented as passing.
+  `status=ok`; the after-fix full 15-fixture replay improved payload coverage
+  to 12/15 accepted, but the scorecard artifacts remain blocked and must not be
+  represented as passing.

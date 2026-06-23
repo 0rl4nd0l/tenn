@@ -710,6 +710,5 @@
       ],
       "result_class": "present_wrong_value"
     }
-  ],
-  "top_source_proven_fix_candidate": null
+  ]
 }

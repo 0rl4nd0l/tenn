@@ -1501,10 +1501,12 @@ def test_statement_page_text_recovers_uppercase_m_scale_when_table_unit_row_drop
         ],
     )
     sections = [
-        {
-            "page": 17,
-            "text": "Half-year ended 31 December 2025 31 December 2024 Note $M $M Revenue B4 1,983 1,833",
-        }
+        {"page": 17, "text": "Half-year ended"},
+        {"page": 17, "text": "31 December 2025 31 December 2024"},
+        {"page": 17, "text": "Note"},
+        {"page": 17, "text": "$M"},
+        {"page": 17, "text": "$M"},
+        {"page": 17, "text": "Revenue B4 1,983 1,833"},
     ]
 
     assert _detect_scale_from_statement_page_text(sections, [table]) == "millions"
@@ -1536,6 +1538,27 @@ def test_statement_page_text_ignores_non_statement_m_summary_rows():
     assert _detect_scale_from_statement_page_text(sections, [table]) == "unknown"
 
 
+def test_statement_page_text_ignores_statement_page_million_prose():
+    """Statement-page prose mentions are not the same as formal unit rows."""
+    from app.services.multipass_extraction import (
+        _detect_scale_from_statement_page_text,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=17,
+        caption="Consolidated statement of comprehensive income",
+        headers=["Revenue", "1,983", "1,833"],
+        rows=[["Revenue", "1,983", "1,833"]],
+    )
+    sections = [
+        {"page": 17, "text": "Consolidated statement of comprehensive income"},
+        {"page": 17, "text": "Revenue increased by $93 million during the half-year"},
+    ]
+
+    assert _detect_scale_from_statement_page_text(sections, [table]) == "unknown"
+
+
 def test_statement_page_text_abstains_on_mixed_statement_page_scales():
     """Mixed group/entity statement units are not safe document-scale evidence."""
     from app.services.multipass_extraction import (
@@ -1558,8 +1581,10 @@ def test_statement_page_text_abstains_on_mixed_statement_page_scales():
         ),
     ]
     sections = [
-        {"page": 20, "text": "31 Dec 2025 31 Dec 2024 Note $m $m Net cash inflow 168.5"},
-        {"page": 51, "text": "31 Dec 2025 31 Dec 2024 Note $'000 $'000 Total income 243,661"},
+        {"page": 20, "text": "$m"},
+        {"page": 20, "text": "$m"},
+        {"page": 51, "text": "$'000"},
+        {"page": 51, "text": "$'000"},
     ]
 
     assert _detect_scale_from_statement_page_text(sections, tables) == "unknown"
