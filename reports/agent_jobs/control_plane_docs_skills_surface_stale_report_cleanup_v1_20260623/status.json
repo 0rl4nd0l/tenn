@@ -1,0 +1,107 @@
+{
+  "schema_version": "agent_job_status_v1",
+  "job_id": "control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623",
+  "status": "rebased_pr_ready",
+  "lane": "Reporting",
+  "supporting_lanes": [
+    "Evaluation",
+    "Repo Hygiene"
+  ],
+  "owner": "Codex",
+  "task_card": "docs/agent_tasks/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623.md",
+  "worktree": "/home/l4nd0/tenn-control-plane-docs-skills-surface-stale-report-cleanup-v1-20260623",
+  "branch": "control-plane/docs-skills-surface-stale-report-cleanup-v1-20260623",
+  "head_at_start": "1a0f1a03741d692089a0125ecb2f10691b8da597",
+  "original_local_commit": "a65d80c41e13d8ef22267714b26cb476cd66eb18",
+  "rebased_intermediate_commit": "21c402198c8d766b2dab8f72c858532bac5cc9c4",
+  "rebased_onto": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+  "local_commit_subject": "docs(control-plane): refresh skills surface and PR report states",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "merge_base": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+  "origin_ahead_behind_at_closeout": {
+    "ahead": 1,
+    "behind": 0,
+    "note": "Branch was refreshed onto current origin/migration/clean-runtime-baseline-reconstruct-v1 before PR preparation."
+  },
+  "requested_cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "requested_cwd_state": "INVALID_GIT_SNAPSHOT",
+  "registry": {
+    "list_active_before_claim": "PASS_NO_ACTIVE_JOBS",
+    "check_overlap": "PASS",
+    "claim": "PASS",
+    "claim_refreshed_after_task_card_allowlist_tightening": true,
+    "claim_for_pr_refresh": "PASS_THEN_RELEASED",
+    "release": "PASS",
+    "list_active_after_release": "PASS_NO_ACTIVE_JOBS",
+    "registry_root": "/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/tenn-agent-registry"
+  },
+  "scope": {
+    "production_data_access": false,
+    "mutation_mode": "safe_extension",
+    "runtime_or_product_code_changed": false,
+    "extraction_or_parser_code_changed": false,
+    "db_qdrant_news_memory_changed": false,
+    "ci_workflow_changed": false
+  },
+  "live_pr_state": {
+    "378": {
+      "state": "MERGED",
+      "merged_at": "2026-06-18T10:06:35Z",
+      "merge_commit": "f44803bba049ea1d2cfe9341b0f9af4379736bdf"
+    },
+    "380": {
+      "state": "MERGED",
+      "merged_at": "2026-06-22T00:04:48Z",
+      "merge_commit": "4d62fec4e855b313ae89136e947510c627b9bcde"
+    },
+    "373": {
+      "state": "MERGED",
+      "merged_at": "2026-06-18T05:50:15Z",
+      "merge_commit": "98e632996aae3bff82627a02b75e64cddd927420"
+    },
+    "367": {
+      "state": "CLOSED",
+      "merged_at": null,
+      "merge_commit": null,
+      "superseded_by": [
+        375,
+        377
+      ]
+    }
+  },
+  "changed_files": [
+    "docs/agent_tasks/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623.md",
+    "docs/dev_flow/SKILLS_SURFACE.md",
+    "docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md",
+    "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+    "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+    "reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/README.md",
+    "reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/status.json",
+    "reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/stale_reference_matrix.json",
+    "reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/skills_surface_freshness_audit.json",
+    "reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/changed_docs_summary.md"
+  ],
+  "data_missing": [
+    "Host picker/autocomplete visibility was not probed.",
+    "Old historical report bundles were not rewritten because they were outside this task-card edit scope."
+  ],
+  "validation": {
+    "status": "PASS",
+    "markdownlint": "UNAVAILABLE_LOCAL_BINARY",
+    "markdown_hygiene": "PASS",
+    "json_validation": "PASS",
+    "task_card_validate": "PASS",
+    "registry_list_active": "PASS",
+    "registry_list_active_after_release": "PASS_NO_ACTIVE_JOBS",
+    "registry_check_overlap": "PASS",
+    "gh_pr_view": "PASS",
+    "stale_phrase_grep_editable_docs": "PASS_NO_MATCHES",
+    "stale_phrase_grep_historical_reports": "MATCHES_REMAIN_OUT_OF_SCOPE",
+    "check_report_artifacts": "PASS",
+    "check_diff": "PASS",
+    "git_diff_check": "PASS",
+    "git_diff_cached_check": "PASS"
+  },
+  "final_git_status_short": "CLEAN_AFTER_REBASE_BEFORE_PUSH",
+  "next_narrow_cleanup_candidate": "Repair and verify Git hook installation path behavior across Tenn worktrees."
+}

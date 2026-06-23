@@ -1,14 +1,35 @@
 # Tenn Skill Surface
 
-last_verified_commit: 1a0f1a03741d692089a0125ecb2f10691b8da597
-last_verified_pr: 395
+last_verified_at: 2026-06-23T10:17:43Z
+last_verified_commit: bb4df393f046829cd5d81ba91cde0d5a70352260
+last_verified_pr: 399
+maintenance: hand_maintained
 verification_scope: repo-visible skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
+freshness_evidence:
+- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `bb4df393f046829cd5d81ba91cde0d5a70352260`
+- `git log --oneline -- docs/dev_flow/SKILLS_SURFACE.md | head -1` -> `65c878d3 docs(control-plane): refresh skills surface and PR report states`
+- `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `10`
+data_missing:
+- Host picker/autocomplete visibility was not probed.
+stale_if_files:
+- `.agents/skills/**/SKILL.md`
+- `docs/dev_flow/SKILLS_SURFACE.md`
+- `docs/dev_flow/templates/*`
 source_of_truth_files:
 - AGENTS.md
 - docs/README.md
 - docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/SKILL_RECOMMENDATIONS.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/BACKEND_GUARDRAILS.md
+
+## Refresh Procedure
+
+To refresh this file, work from current
+`origin/migration/clean-runtime-baseline-reconstruct-v1`, run the visible skill
+count command above, inspect `.agents/skills/*/SKILL.md` additions/removals, and
+update `last_verified_at`, `last_verified_commit`, `last_verified_pr`,
+`freshness_evidence`, and `data_missing`. Do not infer host picker visibility
+from repo files; record it as `DATA_MISSING` unless it is probed directly.
 
 ## Purpose
 
