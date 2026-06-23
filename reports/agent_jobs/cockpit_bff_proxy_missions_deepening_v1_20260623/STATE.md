@@ -5,6 +5,7 @@ Status: ready for PR review.
 ## Summary
 
 - Created a clean worktree from `origin/migration/clean-runtime-baseline-reconstruct-v1` at `83c68790cda682eaed58ef4f8eb57ffe5d8039a7`.
+- Refreshed the branch by merging the latest base `1a0f1a03741d692089a0125ecb2f10691b8da597` before PR creation.
 - Tenn guard preflight passed with no active overlapping work.
 - Migrated the marketplace missions BFF route cluster onto `proxyBackendRequest`.
 - Added focused mission create/detail/update/delete route coverage in `cockpit-ui/lib/marketplace-routes.test.ts`.
@@ -16,7 +17,7 @@ Changed only the task card, closeout artifacts, three marketplace missions route
 ## Runtime Functionality Proof
 
 - Intended output: marketplace missions BFF route handlers continue to forward backend requests while using the shared Cockpit proxy helper.
-- Live output location: `/home/l4nd0/tenn-cockpit-bff-proxy-missions-v1-20260623`.
+- Live output location: `/home/l4nd0/tenn-cockpit-bff-proxy-missions-v1-20260623` on refreshed base `1a0f1a03741d692089a0125ecb2f10691b8da597`.
 - Pre-run max timestamp or count: baseline `pnpm --dir cockpit-ui exec vitest run lib/marketplace-routes.test.ts` passed with 6 tests before code edits.
 - Post-run max timestamp or count: final `pnpm --dir cockpit-ui exec vitest run lib/marketplace-routes.test.ts` passed with 8 tests after code edits.
 - Rows/files inserted or updated after run start: 0 production rows/files; repo mutation limited to the task-card allowlist.

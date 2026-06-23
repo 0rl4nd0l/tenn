@@ -19,6 +19,11 @@
       "result": []
     },
     {
+      "command": "git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "status": "PASS",
+      "result": "Base refreshed to 1a0f1a03741d692089a0125ecb2f10691b8da597 without conflicts."
+    },
+    {
       "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_bff_proxy_missions_deepening_v1_20260623.md",
       "status": "PASS"
     },

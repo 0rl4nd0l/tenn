@@ -2,7 +2,7 @@
   "job_id": "cockpit_bff_proxy_missions_deepening_v1_20260623",
   "status": "ready_for_pr",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-  "base_sha": "83c68790cda682eaed58ef4f8eb57ffe5d8039a7",
+  "base_sha": "1a0f1a03741d692089a0125ecb2f10691b8da597",
   "branch": "dev-flow/cockpit-bff-proxy-missions-v1-20260623",
   "docs_impact": "DOCS_NOT_REQUIRED",
   "code_review": "PASS",
