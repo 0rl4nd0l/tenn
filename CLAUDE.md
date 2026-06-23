@@ -22,6 +22,7 @@ Before non-trivial work, read and follow:
 
 - `AGENTS.md`
 - the active task card, when present
+- `docs/README.md` for the current documentation source map
 - relevant repo-backed skills under `.agents/skills`
 
 Use `docs/architecture/SYSTEM_CONTRACT.md` when touching product architecture,

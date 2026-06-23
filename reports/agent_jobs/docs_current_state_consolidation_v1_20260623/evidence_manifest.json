@@ -1,0 +1,102 @@
+{
+  "job_id": "docs_current_state_consolidation_v1_20260623",
+  "generated_at_utc": "2026-06-23T06:03:01Z",
+  "worktree": "/home/l4nd0/tenn-docs-current-state-consolidation-v1-20260623",
+  "branch": "docs/current-state-consolidation-v1-20260623",
+  "head": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6",
+  "upstream": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "task_card": "docs/agent_tasks/docs_current_state_consolidation_v1_20260623.md",
+  "report_dir": "reports/agent_jobs/docs_current_state_consolidation_v1_20260623",
+  "commands": [
+    {
+      "command": "git fetch origin migration/clean-runtime-baseline-reconstruct-v1",
+      "result": "origin migration head refreshed to e402bf38"
+    },
+    {
+      "command": "git worktree add -b docs/current-state-consolidation-v1-20260623 ... origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "result": "isolated worktree created at e402bf38"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/docs_current_state_consolidation_v1_20260623.md",
+      "result": "ok true, no issues"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "result": "initially no active jobs; after claim one matching active job"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/docs_current_state_consolidation_v1_20260623.md --repo-root .",
+      "result": "ok true, no overlap issues"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/docs_current_state_consolidation_v1_20260623.md --repo-root .",
+      "result": "ok true; active record created for this job"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release docs_current_state_consolidation_v1_20260623 --repo-root .",
+      "result": "ok true; active record removed at closeout"
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py --repo-root . validate",
+      "result": "ok true; live ledger DATA_MISSING; committed ledger exists with zero entries"
+    },
+    {
+      "command": "gh pr list/view/checks from scouts",
+      "result": "Audit-time PR #387 collision on control-plane status/task-ledger surfaces; avoided those files"
+    },
+    {
+      "command": "publish preflight gh pr view 387 and git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "result": "PR #387 merged before publish preflight; target branch advanced to f195e90d464f49916f6626242ca26d74580dc0a1"
+    },
+    {
+      "command": "git ls-files counts",
+      "result": "1697 markdown files; 411 tracked task cards before this task; 355 report README files; 10 repo skill files"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed during mid-edit check"
+    },
+    {
+      "command": "sed -n 250,305p financial-engine_v2/scripts/run_local_backend.sh",
+      "result": "checked launcher default DATA_ROOT=/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+    },
+    {
+      "command": "sed -n 1,35p scripts/verify_nvme_runtime_endpoints.sh",
+      "result": "checked verifier expected /mnt/tenn-nvme2/tenn data/reports/models paths"
+    },
+    {
+      "command": "sed -n 1,80p financial-engine_v2/backend/app/config/model_routing.yaml",
+      "result": "checked routing config uses Qwen3-30B-A3B-Instruct-2507-Q3_K_M and nomic-embed-text"
+    },
+    {
+      "command": "systemctl --user is-active/show llama-cpp-router.service",
+      "result": "active/running; ExecStart /home/l4nd0/tenn-runtime/scripts/run_llama_server.sh; WorkingDirectory /home/l4nd0/tenn-runtime"
+    },
+    {
+      "command": "ss -ltnp filtered for 8000/8001/8081/6333/6379/11434/5432",
+      "result": "observed listeners on 8001, 6379, 11434; no 8000/8081/6333/5432 listeners"
+    },
+    {
+      "command": "docker ps filtered for fe_/qdrant/postgres/redis/tenn",
+      "result": "no matching running containers reported"
+    },
+    {
+      "command": "final reviewer / diff guard subagent",
+      "result": "reported stale closeout artifacts, untracked canonical docs, and overly strong runtime wording; parent remediated docs/report wording and will stage untracked files before commit"
+    }
+  ],
+  "data_missing": [
+    "runtime/topology live probes not run by design",
+    "live task ledger file missing at resolved shared registry path",
+    "host picker visibility for repo skills not probed",
+    "backend and Cockpit endpoint functionality not probed",
+    "Qdrant/Postgres store functionality not probed",
+    "cockpit_api.py /mnt/nvme default path inconsistency requires separate code/runtime task"
+  ],
+  "do_not_overclaim": [
+    "Docs navigation was consolidated; runtime functionality was not proven.",
+    "Reports and merged PRs are evidence, not live-output proof.",
+    "Memory and narrative docs do not define canonical financial truth.",
+    "Architecture docs are policy/invariants, not proof that current runtime conforms."
+  ]
+}

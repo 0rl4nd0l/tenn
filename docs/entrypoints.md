@@ -81,7 +81,7 @@ Validated command sequence:
 9. `python scripts/validate_financial_metrics_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.gates.json`
 10. `python scripts/validate_financial_coverage_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.coverage_gates.json`
 
-Current passing gate set:
+Last documented passing gate set; not rerun during the 2026-06-23 docs audit:
 - Ruff on `autodev`, `financial-engine_v2/backend`, and `scripts`
 - Pytest on `autodev/tests`, `financial-engine_v2/backend/tests`, and `scripts`
 - Canonical dataset eval + baseline regression gate

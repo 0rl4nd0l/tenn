@@ -1,5 +1,12 @@
 ## Startup (Full Stack)
 
+Documentation status: full-stack Docker/user-launcher runbook. This file does
+not override `docs/entrypoints.md`, which remains the runtime entrypoint context
+for agent tasks. During the 2026-06-23 docs audit, `README.md` and
+`docs/entrypoints.md` identified `financial-engine_v2/scripts/run_local_backend.sh`
+as the canonical agent backend bootstrap path; the Docker-only statement below
+applies to this full-stack mode unless fresh runtime evidence says otherwise.
+
 This repo’s **full system mode** is Docker Compose. The backend must run **only in Docker**.
 
 ### CLI usage

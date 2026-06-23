@@ -2,6 +2,11 @@
 
 Current backend model-routing layer for `financial-engine_v2`.
 
+Freshness note: checked against
+`financial-engine_v2/backend/app/config/model_routing.yaml` during the
+2026-06-23 docs audit. This proves checked-in routing configuration, not that
+any runtime endpoint is currently healthy.
+
 ## Source of truth
 
 - Routing config: `financial-engine_v2/backend/app/config/model_routing.yaml`
@@ -25,10 +30,10 @@ The backend uses five logical roles:
 
 The checked-in local routing config currently sets:
 
-- `router_model: qwen3-30b-a3b-instruct` (llmfit score 94.0, MoE 30B/3B-active)
-- `coding_model: qwen3-30b-a3b-instruct`
-- `reasoning_model: qwen3-30b-a3b-instruct`
-- `deep_reasoning_model: qwen3-30b-a3b-instruct`
+- `router_model: Qwen3-30B-A3B-Instruct-2507-Q3_K_M`
+- `coding_model: Qwen3-30B-A3B-Instruct-2507-Q3_K_M`
+- `reasoning_model: Qwen3-30B-A3B-Instruct-2507-Q3_K_M`
+- `deep_reasoning_model: Qwen3-30B-A3B-Instruct-2507-Q3_K_M`
 - `embedding_model: nomic-embed-text`
 
 Current checked-in base URLs:
@@ -36,15 +41,18 @@ Current checked-in base URLs:
 - `router/coding/reasoning/deep_reasoning`: `http://127.0.0.1:8001` (single llama-server in router mode)
 - `embedding`: `http://127.0.0.1:11434`
 
-The server runs in router mode (`--models-dir /mnt/nvme/tenn/models --models-max 1`).
+The server runs in router mode. The 2026-06-23 docs audit found checked
+launcher/verifier evidence for
+`--models-dir /mnt/tenn-nvme2/tenn/models --models-max 1`; reverify host
+service state before treating it as live.
 Extraction requests the `qwen2.5-14b-instruct` model by name; the server loads it on
-demand, evicting the chat model. During the swap window (~78s cold load), HybridRouter
+demand, evicting the chat model. During a model swap window, HybridRouter
 can fall back to the Anthropic API if `ANTHROPIC_API_KEY` is set and policy allows it.
 
-Operational storage note (2026-04-07):
+Operational storage note:
 
-- runtime data has been migrated to `/mnt/nvme/tenn/runtime-data`
-- llama.cpp GGUF router assets remain on `/mnt/nvme/tenn/models`
+- 2026-06-23 checked launcher/verifier evidence points runtime data at `/mnt/tenn-nvme2/tenn/financial-engine_v2/data`
+- 2026-06-23 checked launcher/verifier evidence points llama.cpp GGUF router assets at `/mnt/tenn-nvme2/tenn/models`
 - the separate root Ollama store at `/usr/share/ollama/.ollama/models` is no longer the primary Tenn serving path
 - that Ollama store was pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
 

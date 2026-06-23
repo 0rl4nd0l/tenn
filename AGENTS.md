@@ -14,6 +14,8 @@ instead of expanding this file.
   `git status --short --untracked-files=all`.
 - Runtime paths are environment-specific. Do not assume `/workspace`,
   `/home/l4nd0`, NVMe, venv, Docker, or service availability without checking.
+- Use `docs/README.md` as the documentation source map before browsing the
+  wider docs tree or historical report archives.
 - Use `docs/entrypoints.md` for runtime entrypoint context only when the task
   needs runtime work. Most repo-hygiene tasks should not start services.
 
