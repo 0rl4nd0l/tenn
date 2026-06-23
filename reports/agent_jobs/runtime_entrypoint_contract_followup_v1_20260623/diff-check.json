@@ -1,0 +1,119 @@
+{
+  "changed_files": [
+    {
+      "path": "agent_contract.json",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/repo_dev_import_runtime_entrypoint_remediation_v1_20260623.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/runtime_entrypoint_contract_followup_v1_20260623.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/entrypoints.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/startup.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/PR_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/PR_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/runtime_entrypoint_contract.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_runtime_entrypoint_contract.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/runtime_entrypoint_contract_followup_v1_20260623.md",
+        "docs/agent_tasks/repo_dev_import_runtime_entrypoint_remediation_v1_20260623.md",
+        "scripts/runtime_entrypoint_contract.py",
+        "scripts/test_runtime_entrypoint_contract.py",
+        "agent_contract.json",
+        "docs/entrypoints.md",
+        "docs/startup.md",
+        "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/STATE.md",
+        "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/repo_dev_import_runtime_entrypoint_remediation_v1_20260623/PR_REVIEW.md",
+        "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/STATE.md",
+        "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/PR_REVIEW.md",
+        "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "docs_changed": [
+        "docs/entrypoints.md",
+        "docs/startup.md"
+      ],
+      "docs_checked": [
+        "docs/entrypoints.md",
+        "docs/startup.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "job_id": "runtime_entrypoint_contract_followup_v1_20260623",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/runtime_entrypoint_contract_followup_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Post-merge Scout B review found runtime contract validation and startup doc gaps after PR #389.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Reporting"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 3600,
+      "title": "Runtime entrypoint contract follow-up",
+      "why_this_model": "Focused control-plane contract/docs repair after subagent review.",
+      "worker_decision_limit": "not_applicable",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

@@ -32,6 +32,7 @@
       "validation": "cockpit doctor",
       "notes": [
         "Uses Docker Compose for backend, worker, Redis, Postgres, and Qdrant.",
+        "May start host llama.cpp runtimes through scripts/cockpit when configuration permits.",
         "Launches the Next.js Cockpit UI after the full stack is started."
       ]
     },
