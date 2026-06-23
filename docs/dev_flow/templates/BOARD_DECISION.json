@@ -1,4 +1,5 @@
 {
+  "schema_version": "tenn_review_board_decision_v1",
   "decision": "ask_owner",
   "evidence_grade": "UNKNOWN",
   "allowed_evidence_grades": [
@@ -19,6 +20,15 @@
   ],
   "reason": "",
   "selected_milestone": "",
+  "task_tier": "small",
+  "recommended_model": "",
+  "actual_model": "",
+  "why_this_model": "",
+  "worker_model_allowed": "",
+  "worker_decision_limit": "",
+  "escalation_needed": "",
+  "final_decision_authority": "",
+  "lower_tier_decision_insufficient": "",
   "minority_objection": "none_found",
   "minority_objection_checks": "",
   "ledger_sources_checked": [],

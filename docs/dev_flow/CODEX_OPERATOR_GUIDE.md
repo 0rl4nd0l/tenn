@@ -77,6 +77,7 @@ Use Runtime Functionality Proof before any DONE claim for runtime/product/data b
 Use tenn-review-board.
 Read .agents/skills/tenn-review-board/SKILL.md fully.
 Produce BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md in a report bundle.
+Validate the decision with python3 scripts/check_board_decision.py <report-dir>/BOARD_DECISION.json.
 Do not use host/global review as a substitute.
 ```
 
