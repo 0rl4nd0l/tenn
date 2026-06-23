@@ -25,7 +25,11 @@ path. Resolve `<registry_root>` in this order:
 5. repo-local fallback with a warning when git metadata is unavailable
 
 The committed snapshot is a periodic summary for future agents and is not
-expected to be complete immediately.
+expected to be complete immediately. As of
+`task_ledger_current_state_refresh_v1_20260623`, the snapshot is exported from
+the live ledger with `scripts/agent_task_ledger.py export-summary --write`.
+Older hand-curated entries that are not present in the resolved live ledger are
+historical repo evidence, not live-ledger state.
 
 When the live ledger is unavailable, keep that source marked `DATA_MISSING`.
 Do not invent live entries. A committed snapshot may still record verified
@@ -54,7 +58,10 @@ why live append was skipped.
 
 If `export-summary` fails because the resolved live ledger is missing, preserve
 the failure output in the task report and either stop or write a committed
-status-refresh snapshot from independently verified repo/GitHub evidence.
+status-refresh snapshot from independently verified repo/GitHub evidence. If an
+approved task creates the live ledger after it was missing, the next export is
+expected to reflect only entries present in that live ledger unless a separate
+backfill task explicitly appends older verified work.
 
 ## Required Preflight
 

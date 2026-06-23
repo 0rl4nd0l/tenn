@@ -1,0 +1,71 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_registry/task_ledger/LEDGER.jsonl",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_registry/task_ledger/LEDGER.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_registry/task_ledger/README.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/task_ledger_current_state_refresh_v1_20260623.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/task_ledger_current_state_refresh_v1_20260623.md",
+        "docs/agent_registry/task_ledger/LEDGER.jsonl",
+        "docs/agent_registry/task_ledger/LEDGER.md",
+        "docs/agent_registry/task_ledger/README.md",
+        "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+        "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/ledger/LEDGER_ENTRY.json",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/STATE.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/DECISIONS.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/NEXT_GOAL.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/CODE_REVIEW.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/PR_REVIEW.md",
+        "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "job_id": "task_ledger_current_state_refresh_v1_20260623",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_lane": "Repo Hygiene",
+      "requested_mutation_mode": "safe_extension after audit-only preflight",
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Memory"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
