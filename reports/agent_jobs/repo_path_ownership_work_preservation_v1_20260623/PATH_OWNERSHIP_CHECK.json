@@ -1,11 +1,11 @@
 {
-  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base": "origin/control-plane/repo-path-ownership-work-preservation-v1-20260623",
   "branch": "control-plane/repo-path-ownership-work-preservation-v1-20260623",
   "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "canonical_branch_ref": "refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
-  "canonical_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+  "canonical_head": "bb4df393f046829cd5d81ba91cde0d5a70352260",
   "comparison_base_checked": [
-    "upstream=origin/migration/clean-runtime-baseline-reconstruct-v1"
+    "upstream=origin/control-plane/repo-path-ownership-work-preservation-v1-20260623"
   ],
   "control_plane_root": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
   "control_plane_roots_checked": [
@@ -13,25 +13,14 @@
   ],
   "data_missing_sources": [],
   "dirty_status": [
-    "M  .agents/skills/tenn-fix/SKILL.md",
-    "MM .agents/skills/tenn-git-guard/SKILL.md",
-    "MM .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
-    "MM .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
-    "M  AGENTS.md",
-    "A  docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md",
-    "M  docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-    "M  docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
-    "M  docs/dev_flow/CONTROL_PLANE_STATUS.md",
-    "AM docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
-    "M  docs/dev_flow/SKILLS_SURFACE.md",
-    "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DECISIONS.md",
-    "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DUPLICATE_WORK_AUDIT.md",
-    "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
-    "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
-    "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
-    "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
-    "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
-    "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
+    " M docs/dev_flow/CONTROL_PLANE_STATUS.md",
+    " M docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
+    " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
   ],
   "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
   "duplicate_work_matches": [],
@@ -48,25 +37,14 @@
   ],
   "fallback_sources_checked": {
     "dirty_status_rows": [
-      "M  .agents/skills/tenn-fix/SKILL.md",
-      "MM .agents/skills/tenn-git-guard/SKILL.md",
-      "MM .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
-      "MM .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
-      "M  AGENTS.md",
-      "A  docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md",
-      "M  docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-      "M  docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
-      "M  docs/dev_flow/CONTROL_PLANE_STATUS.md",
-      "AM docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
-      "M  docs/dev_flow/SKILLS_SURFACE.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DECISIONS.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DUPLICATE_WORK_AUDIT.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
+      " M docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      " M docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
     ],
     "local_and_remote_branches": [
       "  CLAUDEMAESTRO1",
@@ -727,6 +705,7 @@
       "  remotes/origin/control-plane/opencode-worker-bridge-safety-fix-v1-20260618",
       "  remotes/origin/control-plane/opencode-worker-bridge-v1-20260617",
       "  remotes/origin/control-plane/orlando-control-plane-audit-v1-20260622",
+      "  remotes/origin/control-plane/repo-path-ownership-work-preservation-v1-20260623",
       "  remotes/origin/control-plane/runtime-functionality-proof-closeout-v2-20260622",
       "  remotes/origin/control-plane/runtime-functionality-proof-v1-20260622",
       "  remotes/origin/control-plane/runtime-proof-closeout-self-consistency-v1-20260623",
@@ -764,6 +743,7 @@
       "  remotes/origin/integrate/extraction-metric-ontology-gate-v1-20260531",
       "  remotes/origin/integrate/extraction-post-pr297-scale-marker-repair-v1-20260606",
       "  remotes/origin/integrate/extraction-post-pr299-accepted-output-audit-v1-20260607",
+      "  remotes/origin/local/tenn-entrypoint-current-baseline-v1-20260623",
       "  remotes/origin/main",
       "  remotes/origin/main-sloppy-fix",
       "  remotes/origin/migration/clean-runtime-baseline-reconstruct-base-36130cbd",
@@ -917,16 +897,16 @@
       "  remotes/public/main"
     ],
     "reports": {
-      "count": 2256,
+      "count": 2261,
       "exists": true,
       "path": "reports/agent_jobs"
     },
     "task_cards": {
-      "count": 424,
+      "count": 425,
       "exists": true,
       "path": "docs/agent_tasks"
     },
-    "topic": "repo path ownership work preservation duplicate work",
+    "topic": "repo path ownership work preservation duplicate work PR 399 canonical update",
     "worktrees": [
       "worktree /mnt/sdb2/home/l4nd0/tenn",
       "HEAD c102f3f21505a01a8333b2f442dc2403cf67b509",
@@ -2493,7 +2473,7 @@
       "branch refs/heads/safe/repo-native-goal-schema-slice-v1-20260524-clean-codex",
       "",
       "worktree /home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
-      "HEAD b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "HEAD 4881b5f57fd146243cebb4e246dfa55ae886fbad",
       "branch refs/heads/control-plane/repo-path-ownership-work-preservation-v1-20260623",
       "",
       "worktree /home/l4nd0/tenn-repo-prunable-worktree-metadata-prune-cleanup-v1-20260608",
@@ -3094,7 +3074,7 @@
   "git_root": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
   "guard_runner_path": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
   "guard_support_status": "PASS",
-  "head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+  "head": "4881b5f57fd146243cebb4e246dfa55ae886fbad",
   "ledger": {
     "resolve_path": {
       "command": [
@@ -3150,7 +3130,7 @@
     }
   },
   "ledger_status": "PASS",
-  "merge_base": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+  "merge_base": "406b7a6b350042f8119c75919677b04d9a949db3",
   "path_classifications": [
     "DATA_MISSING",
     "DIRTY_RELATED_WORKTREE",
@@ -3165,34 +3145,23 @@
   "path_ownership": {
     "branch": "control-plane/repo-path-ownership-work-preservation-v1-20260623",
     "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-    "canonical_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+    "canonical_head": "bb4df393f046829cd5d81ba91cde0d5a70352260",
     "classification": "DIRTY_RELATED_WORKTREE",
     "dirty_status": [
-      "M  .agents/skills/tenn-fix/SKILL.md",
-      "MM .agents/skills/tenn-git-guard/SKILL.md",
-      "MM .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
-      "MM .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
-      "M  AGENTS.md",
-      "A  docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md",
-      "M  docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-      "M  docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
-      "M  docs/dev_flow/CONTROL_PLANE_STATUS.md",
-      "AM docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
-      "M  docs/dev_flow/SKILLS_SURFACE.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DECISIONS.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DUPLICATE_WORK_AUDIT.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
-      "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
-      "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
+      " M docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      " M docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
+      " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
     ],
     "exists": true,
     "git_root": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
-    "head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+    "head": "4881b5f57fd146243cebb4e246dfa55ae886fbad",
     "is_git_worktree": true,
-    "merge_base_with_canonical": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+    "merge_base_with_canonical": "bb4df393f046829cd5d81ba91cde0d5a70352260",
     "path": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
     "reasons": [
       "dirty status overlaps topic terms"
@@ -3203,7 +3172,7 @@
     {
       "branch": "local/tenn-entrypoint-current-baseline-v1-20260623",
       "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-      "canonical_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "canonical_head": "bb4df393f046829cd5d81ba91cde0d5a70352260",
       "classification": "STALE_PATH",
       "dirty_status": [],
       "exists": true,
@@ -3240,7 +3209,7 @@
     {
       "branch": "control-plane/tenn-git-guard-global-runner-preservation-v1-20260623",
       "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-      "canonical_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "canonical_head": "bb4df393f046829cd5d81ba91cde0d5a70352260",
       "classification": "STALE_PATH",
       "dirty_status": [],
       "exists": true,
@@ -3257,34 +3226,23 @@
     {
       "branch": "control-plane/repo-path-ownership-work-preservation-v1-20260623",
       "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-      "canonical_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "canonical_head": "bb4df393f046829cd5d81ba91cde0d5a70352260",
       "classification": "DIRTY_RELATED_WORKTREE",
       "dirty_status": [
-        "M  .agents/skills/tenn-fix/SKILL.md",
-        "MM .agents/skills/tenn-git-guard/SKILL.md",
-        "MM .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
-        "MM .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
-        "M  AGENTS.md",
-        "A  docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md",
-        "M  docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-        "M  docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
-        "M  docs/dev_flow/CONTROL_PLANE_STATUS.md",
-        "AM docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
-        "M  docs/dev_flow/SKILLS_SURFACE.md",
-        "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DECISIONS.md",
-        "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/DUPLICATE_WORK_AUDIT.md",
-        "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
-        "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
-        "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
-        "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
-        "AM reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
-        "A  reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
+        " M docs/dev_flow/CONTROL_PLANE_STATUS.md",
+        " M docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/GUARD_PREFLIGHT.json",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_AUDIT.md",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PATH_OWNERSHIP_CHECK.json",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/PR_REVIEW.md",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/README.md",
+        " M reports/agent_jobs/repo_path_ownership_work_preservation_v1_20260623/VALIDATION.md"
       ],
       "exists": true,
       "git_root": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
-      "head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "head": "4881b5f57fd146243cebb4e246dfa55ae886fbad",
       "is_git_worktree": true,
-      "merge_base_with_canonical": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+      "merge_base_with_canonical": "bb4df393f046829cd5d81ba91cde0d5a70352260",
       "path": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
       "reasons": [
         "dirty status overlaps topic terms"
@@ -3317,5 +3275,5 @@
   "repo_root": "/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623",
   "schema_version": "tenn_git_guard_preflight_v1",
   "stop_reimplementation": true,
-  "upstream": null
+  "upstream": "origin/control-plane/repo-path-ownership-work-preservation-v1-20260623"
 }

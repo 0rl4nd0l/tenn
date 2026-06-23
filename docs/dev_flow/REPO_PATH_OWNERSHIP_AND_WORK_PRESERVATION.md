@@ -1,11 +1,12 @@
 # Repo Path Ownership And Work Preservation
 
 Status: control-plane source of truth for Tenn repo path ownership and
-duplicate-work prevention after PR #397.
+duplicate-work prevention after PR #398 canonical refresh and PR #399 branch
+update.
 
 Last verified: 2026-06-23 from
 `origin/migration/clean-runtime-baseline-reconstruct-v1` at
-`b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`.
+`bb4df393f046829cd5d81ba91cde0d5a70352260`.
 
 Scope: Codex development flow and Tenn control-plane only. This file is not
 runtime, product, extraction, data, Greyhound, service, or host-global
@@ -28,7 +29,7 @@ git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1
 As of this audit, the canonical HEAD is:
 
 ```text
-b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb
+bb4df393f046829cd5d81ba91cde0d5a70352260
 ```
 
 Do not use `origin/HEAD` as Tenn canonical. It points at `origin/main` in this
@@ -83,11 +84,11 @@ Current audit classifications:
 
 | Path | Classification | Evidence |
 | --- | --- | --- |
-| `/home/l4nd0/tenn` | `STALE_PATH` | Branch `local/tenn-entrypoint-current-baseline-v1-20260623`, HEAD `fadd49daca28295228a3b2ac9b0cd8ec5a1af992`, merge-base `1a0f1a03741d692089a0125ecb2f10691b8da597`, not based on canonical `b58c9f1...`. |
+| `/home/l4nd0/tenn` | `STALE_PATH` | Branch `local/tenn-entrypoint-current-baseline-v1-20260623`, HEAD `fadd49daca28295228a3b2ac9b0cd8ec5a1af992`, merge-base `1a0f1a03741d692089a0125ecb2f10691b8da597`, not based on canonical `bb4df393...`. |
 | `/home/l4nd0/tenn-runtime` | `RUNTIME_DIR` | Resolves to `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`; requested path name indicates runtime surface and is not a git worktree. |
 | `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1` | `SPARSE_EVIDENCE_DIR` | Contains repo-like evidence directories but no usable git worktree. |
 | `/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623` | `STALE_PATH` | Branch `control-plane/tenn-git-guard-global-runner-preservation-v1-20260623`, HEAD `db5976b88ea3b5f971c927d8609a6423a3336da4`, ancestor of canonical. |
-| `/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623` | `VALID_TASK_WORKTREE` before edits; `DIRTY_RELATED_WORKTREE` during edits | Current task branch from canonical `b58c9f1...`; dirt is this task's allowed diff. |
+| `/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623` | `VALID_TASK_WORKTREE` after merging current canonical; `DIRTY_RELATED_WORKTREE` during report closeout edits | Current task branch updated onto canonical `bb4df393...`; dirt is this task's allowed diff. |
 
 For `SPARSE_EVIDENCE_DIR`, `RUNTIME_DIR`, `NOT_GIT_REPO`, `STALE_PATH`,
 `DIRTY_RELATED_WORKTREE`, and `DATA_MISSING`, guard preflight must set

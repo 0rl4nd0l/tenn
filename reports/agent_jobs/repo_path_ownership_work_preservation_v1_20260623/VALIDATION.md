@@ -1,6 +1,6 @@
 # Validation
 
-Status: local validation passed; PR opened; merge update required.
+Status: local validation passed; PR opened; canonical update in progress.
 
 ## Completed
 
@@ -33,6 +33,15 @@ Status: local validation passed; PR opened; merge update required.
 | `gh pr checks 399` | 1 | Reported no checks on `migration/clean-runtime-baseline-reconstruct-v1`. |
 | `git fetch origin migration/clean-runtime-baseline-reconstruct-v1` | 0 | Canonical advanced from `b58c9f1c` to `bb4df393` after PR #398. |
 | `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "repo path ownership work preservation duplicate work" --json` | 0 | After fetching new canonical, guard correctly classified this branch as `STALE_PATH` with `stop_reimplementation=true`; merge/rebase was not performed without owner approval. |
+| `git merge --no-ff origin/migration/clean-runtime-baseline-reconstruct-v1` | 1 | Owner-approved canonical update started; one content conflict in `docs/dev_flow/CONTROL_PLANE_STATUS.md`. |
+| conflict resolution for `docs/dev_flow/CONTROL_PLANE_STATUS.md` | 0 | Preserved PR #398 status-refresh wording and PR #399 repo path ownership hardening. |
+| `python3 -m py_compile .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py && python3 -m unittest discover -s .agents/skills/tenn-git-guard/tests` | 0 | `Ran 8 tests`; `OK` after conflict resolution. |
+| visible skill count and frontmatter/H1 check | 0 | Visible repo-backed skill count remained `10`; `skill_frontmatter_h1_ok`. |
+| `git diff --check` and `git diff --cached --check` | 0 | No whitespace errors during conflict resolution. |
+| forbidden product/runtime/data/extraction/count-24/greyhound path guard | 0 | No guarded paths in the merge resolution. |
+| `git commit --no-edit` | 0 | Created canonical merge commit `4881b5f57fd146243cebb4e246dfa55ae886fbad`. |
+| `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md --no-write-report` | 0 | After the merge commit, task-card diff gate is clean against the worktree; PR diff remains within the task-card allowlist. |
+| regenerated `GUARD_PREFLIGHT.json` and `PATH_OWNERSHIP_CHECK.json` | 0 | Guard artifacts now record canonical head `bb4df393f046829cd5d81ba91cde0d5a70352260`; during report closeout edits, current path is correctly `DIRTY_RELATED_WORKTREE`. |
 
 ## Final Gates
 

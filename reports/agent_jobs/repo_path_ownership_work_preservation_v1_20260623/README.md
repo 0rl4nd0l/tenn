@@ -1,6 +1,6 @@
 # Repo Path Ownership Work Preservation
 
-Status: PR opened; update required before merge.
+Status: PR opened; updated onto current canonical.
 
 ## Summary
 
@@ -10,18 +10,18 @@ Codex sessions start coding.
 
 Current canonical evidence:
 
-- PR #397 is merged.
+- PR #397 and PR #398 are merged.
 - Canonical branch:
   `origin/migration/clean-runtime-baseline-reconstruct-v1`.
 - Canonical HEAD:
-  `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`.
+  `bb4df393f046829cd5d81ba91cde0d5a70352260`.
 - Fresh task worktree:
   `/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623`.
 - PR:
   `https://github.com/0rl4nd0l/tenn/pull/399`.
-- Current merge blocker:
-  canonical advanced to `bb4df393f046829cd5d81ba91cde0d5a70352260`
-  after PR #398; GitHub reports PR #399 as `CONFLICTING`.
+- Canonical update:
+  PR #399 branch merged current canonical `bb4df393f046829cd5d81ba91cde0d5a70352260`
+  in merge commit `4881b5f57fd146243cebb4e246dfa55ae886fbad`.
 
 ## What Changed
 

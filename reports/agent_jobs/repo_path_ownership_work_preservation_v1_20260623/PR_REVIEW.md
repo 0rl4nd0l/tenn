@@ -1,28 +1,29 @@
 # PR Review
 
-Status: PR opened; not merge-ready.
+Status: PR opened; canonical merge completed locally.
 
 PR: https://github.com/0rl4nd0l/tenn/pull/399
 
-Head commit: `c9a32f92e9f49f0d6cf11a4116188300bbc2baa1` before this report
-closeout update.
+Latest local merge commit before this report closeout update:
+`4881b5f57fd146243cebb4e246dfa55ae886fbad`.
 
 Latest checked PR state:
 
 - PR #399: `OPEN`
 - Head branch: `control-plane/repo-path-ownership-work-preservation-v1-20260623`
 - Base branch: `migration/clean-runtime-baseline-reconstruct-v1`
-- GitHub merge state: `DIRTY`
-- GitHub mergeable: `CONFLICTING`
-- Status checks: `statusCheckRollup=null`; `gh pr checks 399` reported no
-  checks on the base branch.
+- Previous GitHub merge state before owner-approved update: `DIRTY`
+- Previous GitHub mergeable before owner-approved update: `CONFLICTING`
+- Previous status checks: `statusCheckRollup=null`; `gh pr checks 399`
+  reported no checks on the base branch.
 - Current canonical after fetch:
   `bb4df393f046829cd5d81ba91cde0d5a70352260`
-- Blocking canonical change: PR #398, `Merge PR #398: Refresh skills surface
+- Resolved canonical change: PR #398, `Merge PR #398: Refresh skills surface
   and PR report states`.
 
-Owner decision required: approve updating PR #399 onto current canonical, or
-leave it open as a parked implementation branch until the conflict is resolved.
+Owner decision received: proceed with updating PR #399 onto current canonical.
+Resolution used a local merge of `origin/migration/clean-runtime-baseline-reconstruct-v1`
+with one conflict in `docs/dev_flow/CONTROL_PLANE_STATUS.md`.
 
 ## Review Scope
 
