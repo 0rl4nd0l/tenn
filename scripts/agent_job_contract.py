@@ -85,6 +85,7 @@ RUNTIME_PROOF_FIELD_LABELS = [
 ]
 RUNTIME_PROOF_RESULTS = {"WORKING", "PARTIAL", "BROKEN", "DATA_MISSING"}
 RUNTIME_PROOF_RISK_STATUSES = {"PARTIAL", "BROKEN", "DATA_MISSING", "DONE_WITH_RISK"}
+BOARD_DECISION_FILENAME = "BOARD_DECISION.json"
 TERMINAL_STATUS_RE = re.compile(
     r"(?im)^\s*(?:[-*]\s*)?"
     r"(?:state|status|final status|closeout status|outcome|decision)"
@@ -406,6 +407,12 @@ def _report_artifact_paths(metadata: dict[str, Any]) -> list[str]:
     return sorted(path for path in _allowed_file_set(metadata) if path.startswith(output_prefix))
 
 
+def _board_decision_artifact_paths(metadata: dict[str, Any]) -> list[str]:
+    return sorted(
+        path for path in _report_artifact_paths(metadata) if PurePosixPath(path).name == BOARD_DECISION_FILENAME
+    )
+
+
 def _task_card_search_text(parsed: ParsedTaskCard) -> str:
     parts = [parsed.body]
     for key, value in parsed.metadata.items():
@@ -458,6 +465,106 @@ def _read_artifact_text(root: Path, artifacts: Sequence[ArtifactStatus]) -> str:
         except UnicodeDecodeError:
             chunks.append(path.read_bytes().decode("utf-8", errors="ignore"))
     return "\n".join(chunks)
+
+
+def _load_board_decision_validator() -> tuple[Any | None, str | None]:
+    try:
+        from scripts.check_board_decision import validate_board_decision_file
+
+        return validate_board_decision_file, None
+    except ModuleNotFoundError:
+        try:
+            from check_board_decision import validate_board_decision_file
+
+            return validate_board_decision_file, None
+        except ModuleNotFoundError as exc:
+            return None, str(exc)
+
+
+def _board_decision_validation_issues(root: Path, artifacts: Sequence[ArtifactStatus]) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    validator: Any | None = None
+    validator_error: str | None = None
+    for artifact in artifacts:
+        if PurePosixPath(artifact.path).name != BOARD_DECISION_FILENAME:
+            continue
+        if not artifact.exists or not artifact.is_file or not artifact.size_bytes:
+            continue
+
+        if validator is None and validator_error is None:
+            validator, validator_error = _load_board_decision_validator()
+        if validator is None:
+            issues.append(
+                ValidationIssue(
+                    "board_decision",
+                    f"{artifact.path}: validator unavailable: {validator_error}",
+                )
+            )
+            continue
+
+        result = validator(root / artifact.path)
+        for issue in result.issues:
+            issues.append(
+                ValidationIssue(
+                    "board_decision",
+                    f"{artifact.path}: {issue.field}: {issue.message}",
+                )
+            )
+    return issues
+
+
+def _board_decision_artifacts_for_task_card(
+    parsed: ParsedTaskCard,
+    *,
+    repo_root: Path,
+) -> tuple[list[ArtifactStatus], list[ValidationIssue]]:
+    issues: list[ValidationIssue] = []
+    artifacts: list[ArtifactStatus] = []
+
+    try:
+        board_paths = _board_decision_artifact_paths(parsed.metadata)
+    except ValueError as exc:
+        return [], [ValidationIssue("allowed_files", str(exc))]
+    if not board_paths:
+        return [], []
+
+    report_dir: Path | None = None
+    output_dir = parsed.metadata.get("output_dir")
+    job_id = parsed.metadata.get("job_id")
+    if isinstance(output_dir, str) and isinstance(job_id, str):
+        try:
+            report_dir = resolve_report_dir(output_dir, job_id, repo_root=repo_root)
+        except ValueError as exc:
+            issues.append(ValidationIssue("output_dir", str(exc)))
+
+    for path in board_paths:
+        artifact_path = repo_root / path
+        if report_dir is not None:
+            try:
+                artifact_path.resolve(strict=False).relative_to(report_dir.resolve(strict=False))
+            except ValueError:
+                issues.append(ValidationIssue("artifacts", f"{path} resolves outside output_dir"))
+                continue
+        exists = artifact_path.exists()
+        is_file = artifact_path.is_file()
+        size_bytes = artifact_path.stat().st_size if is_file else None
+        artifacts.append(
+            ArtifactStatus(
+                path=path,
+                exists=exists,
+                is_file=is_file,
+                size_bytes=size_bytes,
+            )
+        )
+        if not exists:
+            issues.append(ValidationIssue("artifacts", f"{path} is missing"))
+        elif not is_file:
+            issues.append(ValidationIssue("artifacts", f"{path} is not a file"))
+        elif size_bytes == 0:
+            issues.append(ValidationIssue("artifacts", f"{path} is empty"))
+
+    issues.extend(_board_decision_validation_issues(repo_root, artifacts))
+    return artifacts, issues
 
 
 def _missing_runtime_proof_fields(text: str) -> list[str]:
@@ -601,6 +708,7 @@ def check_report_artifacts_for_task_card_markdown(
 
         artifact_text = _read_artifact_text(root, artifacts)
         issues.extend(_runtime_functionality_proof_issues(parsed, artifact_text))
+        issues.extend(_board_decision_validation_issues(root, artifacts))
 
     return ArtifactCheckResult(
         ok=not issues,
@@ -632,12 +740,13 @@ def check_closeout_for_task_card_markdown(
     output_dir = validation.metadata.get("output_dir")
     output_dir_text = output_dir if isinstance(output_dir, str) else None
     if not _requires_runtime_functionality_proof(parsed):
+        artifacts, issues = _board_decision_artifacts_for_task_card(parsed, repo_root=root)
         return ArtifactCheckResult(
-            ok=True,
+            ok=not issues,
             validation=validation,
             output_dir=output_dir_text,
-            artifacts=[],
-            issues=[],
+            artifacts=artifacts,
+            issues=issues,
         )
 
     return check_report_artifacts_for_task_card_markdown(markdown, repo_root=root)
