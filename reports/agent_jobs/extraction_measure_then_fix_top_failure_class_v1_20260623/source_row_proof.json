@@ -1,0 +1,161 @@
+{
+  "artifact_type": "source_row_proof_v1",
+  "dxc": {
+    "classification": "NO_FIX_PROVEN",
+    "context": "PDF text extraction on page 26 found no EBIT row. Finance costs are explicitly separate in the table, so net operating income is not safe evidence for EBIT.",
+    "decision": "No product fix. Keep fail-closed metric_label_mismatch and do not add global mapping.",
+    "header": "$'000 FY25 FY24",
+    "page": 26,
+    "period": "FY25",
+    "rows": [
+      {
+        "FY25": 46547,
+        "label": "Total revenue",
+        "unit": "thousands"
+      },
+      {
+        "FY25": -11412,
+        "label": "Finance costs",
+        "unit": "thousands"
+      },
+      {
+        "FY25": -16985,
+        "label": "Total expenses",
+        "unit": "thousands"
+      },
+      {
+        "FY25": 29562,
+        "label": "Net operating income",
+        "unit": "thousands"
+      },
+      {
+        "FY25": 39374,
+        "label": "Net profit/(loss) after tax",
+        "unit": "thousands"
+      }
+    ],
+    "slide": 25,
+    "source_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+    "table": "Consolidated profit & loss statement",
+    "target_failure_class": "metric_label_mismatch:ebit:net_operating_income",
+    "ticker": "DXC",
+    "unit": "thousands"
+  },
+  "generated_at": "2026-06-23T07:54:28.496693Z",
+  "whc": {
+    "classification": "FIX_PROVEN",
+    "decision": "Implemented narrow annual-report title-date rebinding when exact same-document annual period-end source text is present.",
+    "period": {
+      "evidence": "For the year ended 30 June 2022",
+      "page_context": [
+        57,
+        60,
+        61
+      ],
+      "period_end": "2022-06-30",
+      "period_type": "A",
+      "replay_context": [
+        {
+          "context": "coal price based on M38 Index Indonesian coal Forecasts2 For personal use only For the year ended 30 June 2022 As at 30 June 2022 for the year ended 30 June 2022",
+          "evidence": "For the year ended 30 June 2022",
+          "is_comparative_context": "true",
+          "period_end": "2022-06-30",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date",
+          "source": "source_text"
+        },
+        {
+          "context": "casts2 For personal use only For the year ended 30 June 2022 As at 30 June 2022 for the year ended 30 June 2022",
+          "evidence": "for the year ended 30 June 2022",
+          "is_comparative_context": "true",
+          "period_end": "2022-06-30",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date",
+          "source": "source_text"
+        }
+      ]
+    },
+    "post_fix_period_end": "2022-06-30",
+    "post_fix_status": "ok",
+    "pre_fix_failure": "validation_gate:period_end_source_mismatch:payload=2022-09-21:source=2022-06-30:year_ended_explicit_date",
+    "rows": [
+      {
+        "metric": "revenue",
+        "page": 57,
+        "row": "Revenue 21 4,920,102 1,556,976",
+        "table": "income_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": 4920102000.0
+      },
+      {
+        "metric": "ebit",
+        "page": 57,
+        "row": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+        "table": "income_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": 2821254000.0
+      },
+      {
+        "metric": "np_attributable",
+        "page": 57,
+        "row": "Net profit/(loss) for the year 1,951,965 (543,914)",
+        "table": "income_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": 1951965000.0
+      },
+      {
+        "metric": "operating_cf",
+        "page": 60,
+        "row": "Net cash from operating activities 3.4 2,529,823 138,765",
+        "table": "cashflow_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": 2529823000.0
+      },
+      {
+        "metric": "capex",
+        "page": 60,
+        "row": "Purchase of property, plant and equipment (124,210) (68,693)",
+        "table": "cashflow_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": -124210000.0
+      },
+      {
+        "metric": "cash_end",
+        "page": 60,
+        "row": "Cash and cash equivalents at end of year 1,215,460 95,202",
+        "table": "cashflow_statement",
+        "unit": "AUD thousands source scaled to AUD units",
+        "value": 1215460000.0
+      }
+    ],
+    "source_extraction_note": "The PDF is copy-restricted; normal pdftotext produced only boilerplate. Source rows below come from current no-write replay structured/openability evidence and parser row_refs/provenance.",
+    "source_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+    "target_failure_class": "annual_report_title_date_period_end",
+    "ticker": "WHC",
+    "unit": {
+      "currency": "AUD",
+      "evidence": "metric_source_scales and metric_scale_sources are table/thousands for extracted financial rows in the current replay.",
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "np_attributable": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands"
+      },
+      "scale": "thousands"
+    }
+  }
+}

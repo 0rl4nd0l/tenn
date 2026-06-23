@@ -1,0 +1,8 @@
+
+Generated 2026-06-23T07:54:28.496693Z
+Command basis: Python report builder using app.services.extraction_gold_eval_scorecard.build_terminal_extraction_candidate_manifest.
+Production DB queried: no.
+Canonical writes: no.
+Fixture dir: /home/l4nd0/tenn-extraction-measure-then-fix-top-failure-class-v1-20260623/financial-engine_v2/backend/tests/eval_fixtures
+Source root: /mnt/tenn-nvme2/tenn/financial-engine_v2
+Candidate class counts: {"completed_with_rows": 0, "completed_without_rows": 0, "failed_parser_error": 0, "file_exists_no_current_terminal_run": 15, "missing_host_file": 0, "queued_running_orphaned": 0, "skipped": 0, "stale_extractor_version": 0, "unknown_needs_audit": 0}
