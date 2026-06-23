@@ -14,6 +14,19 @@ Read docs/dev_flow/SKILLS_SURFACE.md fully.
 Read .agents/skills/<skill>/SKILL.md fully and follow it.
 ```
 
+First preflight command:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+```
+
+From a Tenn control-plane checkout, use this repo-backed fallback only when the
+installed host skill path is unavailable:
+
+```bash
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
+
 ## Which Skill To Ask For
 
 | Orlando wants | Ask for | What it does |
@@ -86,7 +99,8 @@ Do not use host/global review as a substitute.
 ```text
 Use tenn-fix.
 Read .agents/skills/tenn-fix/SKILL.md fully.
-Run Tenn git guard preflight.
+Run the portable Tenn git guard preflight:
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 Create or validate the task card.
 Only edit allowed files.
 Run validation, check-diff, check-closeout, and check-report-artifacts.
@@ -140,12 +154,14 @@ Run through scripts/opencode_worker_bridge.py, validate-result, then have Codex 
 2. Read `AGENTS.md`.
 3. Pick the repo-backed skill by path.
 4. Validate or create a task card.
-5. Run registry read-only and ledger validation.
-6. Do only the allowed work.
-7. Preserve report evidence.
-8. Run validation and allowed-diff checks.
-9. Apply Runtime Functionality Proof for runtime claims and run `check-closeout`.
-10. Handoff or open a PR only if explicitly permitted.
+5. Run the portable `tenn-git-guard` preflight first.
+6. In a Tenn control-plane checkout, run repo-local registry/ledger validation
+   only when those scripts are available and useful.
+7. Do only the allowed work.
+8. Preserve report evidence.
+9. Run validation and allowed-diff checks.
+10. Apply Runtime Functionality Proof for runtime claims and run `check-closeout`.
+11. Handoff or open a PR only if explicitly permitted.
 
 ## Red Flags That Codex Is Overclaiming
 
@@ -166,4 +182,4 @@ The missing question is always: did the intended output happen in the live targe
 
 Use Tenn repo skills as explicit files, not autocomplete labels. For ordinary next-action work, start with `tenn-issue`. For any mutation, use `tenn-fix`. For decisions, use `tenn-review-board`. For long goals, keep `tenn-goal-report` state current. Before stopping, use `tenn-handoff`.
 
-When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields and the `check-closeout` result. For docs/report work, ask for task-card validation, ledger/registry checks, `check-diff`, `check-report-artifacts`, and `git diff --check`.
+When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields and the `check-closeout` result. For docs/report work, ask for portable guard preflight, task-card validation, any Tenn-control-plane-local ledger/registry checks that were available, `check-diff`, `check-report-artifacts`, and `git diff --check`.

@@ -1,6 +1,6 @@
 # Control Plane Open Work Register
 
-Status: control-plane follow-up after merged PR #388 and live task-ledger current-state refresh.
+Status: control-plane follow-up after merged PR #395, live task-ledger current-state refresh, and PR report-state documentation refresh.
 
 Priority meanings:
 
@@ -19,9 +19,9 @@ Priority meanings:
 | P1 | Git hook installation check is stale or misconfigured | PARTIAL | `scripts/check_agent_hooks.py` reports configured path `/home/l4nd0/tenn/.git/hooks` missing while common-dir hooks exist under `/mnt/sdb2/...`. | Local pre-commit/pre-push expectations may not match actual hook execution. | Decide whether to standardize hooks path across worktrees. | Run a dedicated hook repair/verification task. |
 | P1 | Repo skills are not guaranteed visible in host autocomplete | HOST_ONLY | `scripts/sync_codex_skills.sh` dry-run would link 10 skills; `--apply` was not run. | Orlando may see host/global skills and miss Tenn repo skills. | Decide whether to keep path-forcing workflow or approve host sync. | Prefer explicit `.agents/skills/<skill>/SKILL.md` reads; sync only in a separate approved task. |
 | P1 | OpenCode worker usability is proven only to probe/test level | PARTIAL | Probe succeeded and unit tests passed, but no actual worker was run in this audit. | Worker scouting is available, but every task still needs per-result proof. | No decision if evidence-only scouting is acceptable. | For first real use, run one read-only scout and preserve task/result/validation artifacts. |
-| P2 | `SKILLS_SURFACE.md` freshness metadata is stale | STALE | File still references `pending-pr-380`; canonical audit is after PR #382. | Operators may distrust current skill-surface docs. | No product decision. | Tiny docs update to current commit/PR metadata. |
-| P2 | Old report states conflict with live PR state | STALE | Reports for PR #378, #380, #373, and #367 contain old statuses; GitHub shows merged or superseded outcomes. | Report search can surface stale readiness claims. | Decide whether to append refresh notes to old reports or rely on new status docs. | Add a report-state refresh index or stale-report banner task. |
-| P2 | PR #367 report lineage | SUPERSEDED | PR #367 was closed and superseded by PR #375; older report still says PR open. | Duplicate closeout work risk. | No if current docs mark it superseded. | Keep supersession note in operator docs and ledger refresh. |
+| P2 | `SKILLS_SURFACE.md` freshness metadata | IMPLEMENTED | Metadata now verifies current canonical commit `1a0f1a03741d692089a0125ecb2f10691b8da597`, visible skill count 10, hand-maintained status, and host picker `DATA_MISSING`. | Operators can use the skill-surface guide without stale prior-PR metadata. | No product decision. | Refresh again when repo skill files, templates, or this guide change. |
+| P2 | Old report states conflict with live PR state | PARTIAL | `docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md` records live state for PR #378, #380, #373, and #367. Historical report bundles remain append-only and may still contain old status phrases. | Report search can still surface stale historical bundles, but current docs now provide a verified correction page. | Decide separately whether old report bundles need archival banners. | Leave old reports untouched unless a separate report-banner task is approved. |
+| P2 | PR #367 report lineage | SUPERSEDED | PR #367 is closed unmerged and superseded by merged PR #375 plus follow-up PR #377, as recorded in `docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md`. | Duplicate closeout work risk is reduced when operators use the refresh page. | No if current docs mark it superseded. | Keep supersession note in operator docs; do not revive PR #367. |
 | P2 | `.codex/skills/cockpit-flag-orchestrator` legacy skill | STALE | `docs/agents/skill-registry.md` classifies `.codex/skills` as legacy/custom; file references older runtime concerns. | Autocomplete or local browsing can confuse Orlando. | Decide whether to archive, keep grandfathered, or remove. | Add explicit legacy warning or remove in a separate cleanup task. |
 | P2 | `.claude/monitors` legacy monitor scripts | STALE | Scripts reference Claude CLI and older paths; not Codex `/goal monitor`. | "Monitor" searches can mislead operators. | Decide whether Claude monitors are still used. | Mark legacy or remove in a separate cleanup task. |
 | P2 | Docs impact check lacks standalone validator | PARTIAL | Template and skill requirements exist; no universal docs-impact script found. | Docs-impact omissions may be missed. | Decide if this should be enforced. | Add a small validator only if omissions recur. |
@@ -36,8 +36,8 @@ Priority meanings:
 
 1. Decide the `/goal monitor` contract: host-only documented command or repo-backed wrapper/report validator.
 2. Repair and verify Git hook path behavior across Tenn worktrees.
-3. Refresh `SKILLS_SURFACE.md` metadata and stale report-state references.
-4. Watch the Runtime Functionality Proof closeout gate for false positives before widening enforcement.
-5. Decide whether to backfill older verified control-plane entries into the live task ledger, or leave historical state to GitHub/task-card/report evidence.
+3. Watch the Runtime Functionality Proof closeout gate for false positives before widening enforcement.
+4. Decide whether to backfill older verified control-plane entries into the live task ledger, or leave historical state to GitHub/task-card/report evidence.
+5. If old report-search confusion persists, approve a separate archival-banner task for the stale PR #378/#380/#373/#367 report bundles.
 
 None of these should be mixed into this status refresh unless separately approved. This task is ledger/status current-state refresh only.

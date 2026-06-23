@@ -1,0 +1,95 @@
+{
+  "schema_version": "stale_reference_matrix_v1",
+  "job_id": "control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623",
+  "generated_at": "2026-06-23T09:23:26Z",
+  "matrix": [
+    {
+      "path": "docs/dev_flow/SKILLS_SURFACE.md",
+      "stale_claim": "Freshness metadata was last_verified_commit=e402bf38e5b959f56c1bed6b35e18ba7371cd8f6 and last_verified_pr=386.",
+      "live_current_evidence": "Current canonical HEAD is b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb; visible repo skill count is 10; latest SKILLS_SURFACE history entry is 28c3d9e8 Document portable guard preflight first.",
+      "correction_needed": "Update freshness metadata, identify DATA_MISSING host picker visibility, and describe refresh procedure.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "stale_claim": "Skill surface guide row said freshness metadata still referenced pending PR #380 even though PR #382 was canonical.",
+      "live_current_evidence": "SKILLS_SURFACE metadata now verifies commit b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb and visible skill count 10.",
+      "correction_needed": "Mark the guide implemented for repo-visible freshness and point future refreshes at files that make it stale.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "stale_claim": "Historical PR state guidance did not point at a current PR-state refresh surface for old PR #380/#382/#383/#385/#386 ledger gaps.",
+      "live_current_evidence": "docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md records live state for PR #378, #380, #373, and #367; ledger backfill remains separate.",
+      "correction_needed": "Add the refresh page to the list of sources for historical PR state.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "stale_claim": "Open-work register still listed SKILLS_SURFACE.md freshness metadata as stale and requested a tiny docs update.",
+      "live_current_evidence": "SKILLS_SURFACE freshness metadata was updated in this task.",
+      "correction_needed": "Change the item to implemented and replace the next action with a future refresh condition.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "stale_claim": "Old report states conflict with live PR state and no refresh index existed.",
+      "live_current_evidence": "gh pr view shows PR #378, #380, and #373 merged; PR #367 closed unmerged and superseded by merged PR #375 plus PR #377.",
+      "correction_needed": "Point operators to a current PR-state refresh page and defer any historical report-bundle banners.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "stale_claim": "PR #367 report lineage row said older reports still say PR open.",
+      "live_current_evidence": "gh pr view 367 reports CLOSED with no merge commit; issue comment on 2026-06-18 states superseded by merged PR #375 plus follow-up PR #377.",
+      "correction_needed": "Point to the current PR-state refresh page and preserve do-not-revive guidance.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md",
+      "stale_claim": "No current docs index existed for PR #378/#380/#373/#367 historical report-state corrections.",
+      "live_current_evidence": "Live gh pr view evidence captured for PR #378, #380, #373, #367, #375, and #377.",
+      "correction_needed": "Create a current docs page for searches that land in stale historical reports.",
+      "corrected": true,
+      "reason_if_not_corrected": null
+    },
+    {
+      "path": "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/README.md",
+      "stale_claim": "State: READY_FOR_PR.",
+      "live_current_evidence": "gh pr view 378 reports MERGED at 2026-06-18T10:06:35Z with merge commit f44803bba049ea1d2cfe9341b0f9af4379736bdf.",
+      "correction_needed": "Historical report banner would be useful if old report bundles are approved for mutation.",
+      "corrected": false,
+      "reason_if_not_corrected": "Outside this task-card edit scope; old reports are append-only evidence. Current correction is docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md."
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/README.md",
+      "stale_claim": "Report still references pending PR #380 and live merge gate required.",
+      "live_current_evidence": "gh pr view 380 reports MERGED at 2026-06-22T00:04:48Z with merge commit 4d62fec4e855b313ae89136e947510c627b9bcde.",
+      "correction_needed": "Historical report banner would be useful if old report bundles are approved for mutation.",
+      "corrected": false,
+      "reason_if_not_corrected": "Outside this task-card edit scope; old reports are append-only evidence. Current correction is docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md."
+    },
+    {
+      "path": "reports/agent_jobs/dev_flow_opencode_worker_bridge_safety_fix_v1_20260618/README.md",
+      "stale_claim": "Audit report says the old report still says validating for PR #373.",
+      "live_current_evidence": "gh pr view 373 reports MERGED at 2026-06-18T05:50:15Z with merge commit 98e632996aae3bff82627a02b75e64cddd927420.",
+      "correction_needed": "Historical report banner would be useful if old report bundles are approved for mutation.",
+      "corrected": false,
+      "reason_if_not_corrected": "Outside this task-card edit scope; old reports are append-only evidence. Current correction is docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md."
+    },
+    {
+      "path": "reports/agent_jobs/dev_flow_ledger_runtime_handoff_v1_20260617/handoff/HANDOFF.md",
+      "stale_claim": "Older handoff references PR #367 open state.",
+      "live_current_evidence": "gh pr view 367 reports CLOSED with no merge commit; PR #375 and PR #377 are merged.",
+      "correction_needed": "Historical report banner would be useful if old report bundles are approved for mutation.",
+      "corrected": false,
+      "reason_if_not_corrected": "Outside this task-card edit scope; old reports are append-only evidence. Current correction is docs/dev_flow/CONTROL_PLANE_PR_STATE_REFRESH.md."
+    }
+  ]
+}

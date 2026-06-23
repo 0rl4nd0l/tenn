@@ -1,14 +1,35 @@
 # Tenn Skill Surface
 
-last_verified_commit: e402bf38e5b959f56c1bed6b35e18ba7371cd8f6
-last_verified_pr: 386
-verification_scope: repo-visible skill routing and source-map freshness only; host picker visibility not probed
+last_verified_at: 2026-06-23T09:23:26Z
+last_verified_commit: b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb
+last_verified_pr: 397
+maintenance: hand_maintained
+verification_scope: repo-visible skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
+freshness_evidence:
+- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`
+- `git log --oneline -- docs/dev_flow/SKILLS_SURFACE.md | head -1` -> `28c3d9e8 Document portable guard preflight first`
+- `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `10`
+data_missing:
+- Host picker/autocomplete visibility was not probed.
+stale_if_files:
+- `.agents/skills/**/SKILL.md`
+- `docs/dev_flow/SKILLS_SURFACE.md`
+- `docs/dev_flow/templates/*`
 source_of_truth_files:
 - AGENTS.md
 - docs/README.md
 - docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/SKILL_RECOMMENDATIONS.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/BACKEND_GUARDRAILS.md
+
+## Refresh Procedure
+
+To refresh this file, work from current
+`origin/migration/clean-runtime-baseline-reconstruct-v1`, run the visible skill
+count command above, inspect `.agents/skills/*/SKILL.md` additions/removals, and
+update `last_verified_at`, `last_verified_commit`, `last_verified_pr`,
+`freshness_evidence`, and `data_missing`. Do not infer host picker visibility
+from repo files; record it as `DATA_MISSING` unless it is probed directly.
 
 ## Purpose
 
@@ -87,6 +108,18 @@ scripts. Runtime/product repos are valid guard targets even when they do not
 contain `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
 `scripts/agent_job_contract.py`; missing ledger rows should be reported as
 `DATA_MISSING`, not as missing runtime repo files.
+
+First-class preflight command:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+```
+
+Repo-backed fallback from a Tenn control-plane checkout:
+
+```bash
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
 
 ## Runtime Proof Gate
 

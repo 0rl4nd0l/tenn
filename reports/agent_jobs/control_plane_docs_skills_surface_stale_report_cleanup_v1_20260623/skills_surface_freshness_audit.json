@@ -1,0 +1,57 @@
+{
+  "schema_version": "skills_surface_freshness_audit_v1",
+  "job_id": "control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623",
+  "generated_at": "2026-06-23T09:23:26Z",
+  "file": "docs/dev_flow/SKILLS_SURFACE.md",
+  "found": true,
+  "workspace_note": {
+    "requested_cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "requested_cwd_state": "INVALID_GIT_SNAPSHOT",
+    "requested_cwd_detail": "The provided cwd has an empty .git directory and no docs/dev_flow/SKILLS_SURFACE.md. Work moved to a clean sibling worktree from current canonical origin."
+  },
+  "maintenance_classification": "hand_maintained",
+  "classification_basis": [
+    "No generated-file header was present.",
+    "git log shows human/docs commits touching docs/dev_flow/SKILLS_SURFACE.md.",
+    "Content is operator guidance and markdown route-map prose, not machine output."
+  ],
+  "previous_metadata": {
+    "last_verified_commit": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6",
+    "last_verified_pr": 386,
+    "verification_scope": "repo-visible skill routing and source-map freshness only; host picker visibility not probed"
+  },
+  "updated_metadata": {
+    "last_verified_at": "2026-06-23T09:23:26Z",
+    "last_verified_commit": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+    "last_verified_pr": 397,
+    "maintenance": "hand_maintained",
+    "verification_scope": "repo-visible skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed",
+    "data_missing": [
+      "Host picker/autocomplete visibility was not probed."
+    ],
+    "stale_if_files": [
+      ".agents/skills/**/SKILL.md",
+      "docs/dev_flow/SKILLS_SURFACE.md",
+      "docs/dev_flow/templates/*"
+    ]
+  },
+  "evidence": {
+    "git_rev_parse_head": "21c402198c8d766b2dab8f72c858532bac5cc9c4",
+    "origin_migration_head": "b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb",
+    "latest_skills_surface_commit": "28c3d9e8 Document portable guard preflight first",
+    "visible_skill_count": 10,
+    "visible_skill_files": [
+      ".agents/skills/codex-worker-bridge/SKILL.md",
+      ".agents/skills/tenn-explain/SKILL.md",
+      ".agents/skills/tenn-financial-metric-extraction/SKILL.md",
+      ".agents/skills/tenn-fix/SKILL.md",
+      ".agents/skills/tenn-git-guard/SKILL.md",
+      ".agents/skills/tenn-goal-report/SKILL.md",
+      ".agents/skills/tenn-handoff/SKILL.md",
+      ".agents/skills/tenn-improve-codebase-architecture/SKILL.md",
+      ".agents/skills/tenn-issue/SKILL.md",
+      ".agents/skills/tenn-review-board/SKILL.md"
+    ]
+  },
+  "refresh_instructions_added": true
+}
