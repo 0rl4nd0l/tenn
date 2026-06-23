@@ -238,6 +238,13 @@ _SCALE_UNIT_ROW_CONTEXT_RE = _re.compile(
     r"half year|six months|quarter)$",
     _re.IGNORECASE,
 )
+_SCALE_UNIT_ROW_CONTEXT_PHRASE_RE = _re.compile(
+    r"\b(?:for\s+the\s+)?(?:year|half[-\s]?year|six\s+months|quarter)\s+ended\b"
+    r"|\bas\s+at\b"
+    r"|\b(?:current|prior|comparative)\s+(?:period|year|half|quarter)\b"
+    r"|\b(?:30|31)\s+(?:january|march|june|september|december)\b",
+    _re.IGNORECASE,
+)
 
 _MILLION_UNIT_BOUNDARY = r"(?=\s|$|\)|%|,|;|:)"
 _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
@@ -335,6 +342,61 @@ def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
     return ranked[0][0]
 
 
+def _detect_scale_marker_in_text(text: str) -> str:
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, text, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
+def _is_scale_unit_context_cell(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    if not text:
+        return True
+    return bool(
+        _SCALE_UNIT_ROW_CONTEXT_RE.search(text)
+        or _SCALE_UNIT_ROW_CONTEXT_PHRASE_RE.search(text)
+    )
+
+
+def _scale_marker_cell_is_unit_context(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    for pattern, _scale in _SCALE_PATTERNS:
+        text = _re.sub(pattern, " ", text, flags=_re.IGNORECASE)
+    text = _re.sub(
+        r"(?<!\w)(?:A\$|\$A|US\$|\$US|\$|AUD|USD|RP\.?)(?!\w)",
+        " ",
+        text,
+        flags=_re.IGNORECASE,
+    )
+    text = _re.sub(r"[\(\)\[\],;:]+", " ", text)
+    text = " ".join(text.split()).strip()
+    return _is_scale_unit_context_cell(text)
+
+
+def _detect_scale_from_unit_rows(rows: list[list[Any]] | None) -> str:
+    for row in rows or []:
+        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
+        if not nonempty:
+            continue
+        detected_scale = "unknown"
+        non_unit_cells: list[str] = []
+        for cell in nonempty:
+            cell_scale = _detect_scale_marker_in_text(cell)
+            if cell_scale != "unknown":
+                if _scale_marker_cell_is_unit_context(cell):
+                    detected_scale = cell_scale
+                else:
+                    non_unit_cells.append(cell)
+                continue
+            if _is_scale_unit_context_cell(cell):
+                continue
+            non_unit_cells.append(cell)
+        if detected_scale != "unknown" and not non_unit_cells:
+            return detected_scale
+    return "unknown"
+
+
 def _detect_explicit_currency_million_header(tables) -> str | None:
     hits: dict[str, int] = {}
     for table in tables[:20]:
@@ -361,39 +423,16 @@ def _detect_scale_from_table(table) -> str:
         surfaces.append(" ".join(str(h) for h in table.headers))
     if getattr(table, "caption", None):
         surfaces.append(str(table.caption))
-    for row in (table.rows or [])[:3]:
-        surfaces.append(" ".join(str(cell) for cell in row))
 
     combined = " ".join(surfaces)
-    for pattern, scale in _SCALE_PATTERNS:
-        if _re.search(pattern, combined, _re.IGNORECASE):
-            return scale
+    detected = _detect_scale_marker_in_text(combined)
+    if detected != "unknown":
+        return detected
 
     # Some parser paths fragment statement headings so the source-unit row
-    # (for example: "Notes | $m | $m") lands just below the first few rows.
-    # Only accept rows that are unit/header context, not arbitrary prose rows.
-    for row in (table.rows or [])[:8]:
-        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
-        if not nonempty:
-            continue
-        row_text = " ".join(nonempty)
-        detected_scale = "unknown"
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, row_text, _re.IGNORECASE):
-                detected_scale = scale
-                break
-        if detected_scale == "unknown":
-            continue
-        non_unit_cells = []
-        for cell in nonempty:
-            if any(_re.search(pattern, cell, _re.IGNORECASE) for pattern, _ in _SCALE_PATTERNS):
-                continue
-            if _SCALE_UNIT_ROW_CONTEXT_RE.search(cell):
-                continue
-            non_unit_cells.append(cell)
-        if not non_unit_cells:
-            return detected_scale
-    return "unknown"
+    # (for example: "Notes | $m | $m") lands below narrative rows. Only accept
+    # rows that are unit/header context, not arbitrary prose rows.
+    return _detect_scale_from_unit_rows(table.rows or [])
 
 
 def _detect_scale_from_tables(tables) -> str:
@@ -1646,6 +1685,223 @@ def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
     return parsed, False
 
 
+_CASHFLOW_STRONG_CAPEX_LABELS = (
+    "paymentsforpropertyplantandequipment",
+    "paymentforpropertyplantandequipment",
+    "purchasesofpropertyplantandequipment",
+    "purchaseofpropertyplantandequipment",
+    "paymentsforppe",
+    "paymentforppe",
+    "purchasesofppe",
+    "purchaseofppe",
+)
+_CASHFLOW_WEAK_CAPEX_ROW_MARKERS = (
+    "acquisitionofsubsidiary",
+    "acquisitionofbusiness",
+    "businesscombination",
+    "cashacquired",
+    "netofcashacquired",
+)
+_CASHFLOW_CAPEX_OUTFLOW_MARKERS = (
+    "payment",
+    "payments",
+    "purchase",
+    "purchases",
+    "acquisition",
+    "acquisitions",
+    "expenditure",
+    "additions",
+)
+_CASHFLOW_STRONG_CASH_END_LABELS = (
+    "cashandcashequivalentsattheendofthehalfyear",
+    "cashandcashequivalentsattheendoftheperiod",
+    "cashandcashequivalentsattheend",
+    "totalcashandcashequivalents",
+)
+_CASHFLOW_WEAK_CASH_END_ROW_MARKERS = ("cashandgold",)
+_CASHFLOW_EXPLICIT_AMOUNT_RE = _re.compile(
+    r"(?P<paren>\()?\s*"
+    r"(?P<currency>A\$|\$A|US\$|\$US|\$|AUD|USD)?\s*"
+    r"(?P<num>[+-]?(?:\d+(?:,\d{3})+|\d+)(?:\.\d+)?)\s*"
+    r"(?P<suffix>thousands?|millions?|billions?|trillions?|mn|m|bn|b|tn|t)\b"
+    r"\)?",
+    _re.IGNORECASE,
+)
+
+
+def _normalise_fragmented_pdf_text(value: Any) -> str:
+    text = " ".join(str(value or "").replace("\u00a0", " ").split()).strip()
+    text = _re.sub(r"(?<=\d)\s+\.\s*(?=\d)", ".", text)
+    text = _re.sub(r"\bmilli\s+on\b", "million", text, flags=_re.IGNORECASE)
+    return text
+
+
+def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return True
+    return any(marker in compact for marker in _CASHFLOW_WEAK_CAPEX_ROW_MARKERS)
+
+
+def _cashflow_cash_end_row_is_weak(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return True
+    if any(marker in compact for marker in _CASHFLOW_STRONG_CASH_END_LABELS):
+        return False
+    return any(marker in compact for marker in _CASHFLOW_WEAK_CASH_END_ROW_MARKERS)
+
+
+def _cashflow_row_has_strong_capex_label(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS)
+
+
+def _cashflow_row_has_strong_cash_end_label(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    if any(marker in compact for marker in _CASHFLOW_WEAK_CASH_END_ROW_MARKERS):
+        return False
+    return any(marker in compact for marker in _CASHFLOW_STRONG_CASH_END_LABELS)
+
+
+def _cashflow_row_is_outflow(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_CAPEX_OUTFLOW_MARKERS)
+
+
+def _cashflow_capex_row_ref(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        if _CASHFLOW_EXPLICIT_AMOUNT_RE.search(text):
+            break
+        label_cells.append(text)
+
+    label = _normalise_fragmented_pdf_text(" ".join(label_cells))
+    if label:
+        return label
+    return _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))[:180]
+
+
+def _cashflow_cash_end_row_ref(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        label_cells.append(text)
+
+    label = _normalise_fragmented_pdf_text(" ".join(label_cells))
+    if label:
+        return label
+    return _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))[:180]
+
+
+def _parse_cashflow_capex_row_amount(row: list[Any], scale: str) -> float | None:
+    multiplier = SCALE_MULTIPLIERS.get(scale, 1)
+    for cell in row[1:]:
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        raw_value, has_explicit_unit = parsed
+        if not has_explicit_unit and abs(raw_value) < 100:
+            continue
+        value = raw_value if has_explicit_unit else raw_value * multiplier
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+
+    row_text = _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    for match in _CASHFLOW_EXPLICIT_AMOUNT_RE.finditer(row_text):
+        try:
+            raw_value = float(match.group("num").replace(",", ""))
+        except ValueError:
+            continue
+        suffix = str(match.group("suffix") or "").lower()
+        value = raw_value * _ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS[suffix]
+        if match.group("paren"):
+            value = -abs(value)
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+    return None
+
+
+def _parse_cashflow_cash_end_row_amount(row: list[Any], scale: str) -> float | None:
+    multiplier = SCALE_MULTIPLIERS.get(scale, 1)
+    for cell in row[1:]:
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        raw_value, has_explicit_unit = parsed
+        if not has_explicit_unit and abs(raw_value) < 100:
+            continue
+        return raw_value if has_explicit_unit else raw_value * multiplier
+    return None
+
+
+def _recover_preferred_cashflow_capex_from_table(
+    table, scale: str
+) -> tuple[float, str] | None:
+    for row in table.rows or []:
+        if not _cashflow_row_has_strong_capex_label(row):
+            continue
+        value = _parse_cashflow_capex_row_amount(row, scale)
+        if value is None:
+            continue
+        return value, _cashflow_capex_row_ref(row)
+    return None
+
+
+def _recover_preferred_cashflow_cash_end_from_table(
+    table, scale: str
+) -> tuple[float, str] | None:
+    for row in table.rows or []:
+        if not _cashflow_row_has_strong_cash_end_label(row):
+            continue
+        value = _parse_cashflow_cash_end_row_amount(row, scale)
+        if value is None:
+            continue
+        return value, _cashflow_cash_end_row_ref(row)
+    return None
+
+
+def _recover_preferred_cashflow_cash_end_from_tables(
+    tables: Any,
+    scale: Any,
+) -> tuple[float, str, Any, str, str] | None:
+    for table in tables or []:
+        table_scale = _detect_scale_from_table(table)
+        scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
+        recovered = _recover_preferred_cashflow_cash_end_from_table(
+            table,
+            scale_for_table,
+        )
+        if recovered is None:
+            continue
+        value, row_ref = recovered
+        return (
+            value,
+            row_ref,
+            getattr(table, "page_number", None),
+            scale_for_table,
+            "table" if table_scale != "unknown" else "document",
+        )
+    return None
+
+
 def _is_missing_row_ref(value: Any) -> bool:
     text = " ".join(str(value or "").strip().lower().split())
     return not text or text in {"unknown", "n/a", "na", "null", "none", "-"}
@@ -1958,6 +2214,8 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        if not isinstance(extracted["row_refs"], dict):
+            extracted["row_refs"] = {}
         extracted["period_col"] = raw_payload.get("period_col")
         if table_type == "income_statement":
             extracted["row_refs"] = _expand_income_statement_row_refs(
@@ -2003,6 +2261,36 @@ def _extract_single_table(
             and not extracted["row_refs"].get("net_debt")
         ):
             extracted["row_refs"]["net_debt"] = "Net debt"
+        if table_type == "cashflow_statement" and (
+            extracted.get("capex") is None
+            or _cashflow_capex_row_is_weak(extracted["row_refs"].get("capex"))
+        ):
+            recovered_capex = _recover_preferred_cashflow_capex_from_table(
+                table, scale_for_table
+            )
+            if recovered_capex is not None:
+                recovered_value, recovered_row_ref = recovered_capex
+                extracted["capex"] = recovered_value
+                extracted["row_refs"]["capex"] = recovered_row_ref
+                logger.info(
+                    "Recovered cashflow capex from preferred PP&E row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
+        if table_type == "cashflow_statement" and (
+            extracted.get("cash_end") is None
+            or _cashflow_cash_end_row_is_weak(extracted["row_refs"].get("cash_end"))
+        ):
+            recovered_cash_end = _recover_preferred_cashflow_cash_end_from_table(
+                table, scale_for_table
+            )
+            if recovered_cash_end is not None:
+                recovered_value, recovered_row_ref = recovered_cash_end
+                extracted["cash_end"] = recovered_value
+                extracted["row_refs"]["cash_end"] = recovered_row_ref
+                logger.info(
+                    "Recovered cashflow cash_end from preferred cash-equivalents row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -3981,6 +4269,7 @@ def _accepted_output_scale_magnitude_risk_error(
 
 _APPENDIX_WRAPPER_DOCUMENT_MARKERS = ("appendix4d", "appendix4e")
 _APPENDIX_WRAPPER_REQUIRED_METRICS = {"revenue", "np_attributable"}
+_APPENDIX_WRAPPER_SOURCE_METRICS = _APPENDIX_WRAPPER_REQUIRED_METRICS | {"ebit"}
 _APPENDIX_WRAPPER_DISCLOSURE_MARKER_GROUPS: tuple[tuple[str, ...], ...] = (
     ("ntapersecurity", "nettangibleassetspersecurity"),
     ("dividendsdistributions", "dividends", "distribution"),
@@ -4006,6 +4295,18 @@ _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS = (
     "profitafterincometaxexpensefromordinaryactivities",
     "profitfromordinaryactivitiesaftertax",
     "lossfromordinaryactivitiesaftertax",
+    "netlossprofitaftertaxattributabletomembers",
+    "netlossprofitaftertaxattributable",
+)
+_APPENDIX_WRAPPER_EBIT_LABELS = (
+    "earningsbeforeinterestandtaxebit",
+    "earningsbeforeinteresttaxebit",
+    "earningsbeforeinterestandtax",
+)
+_APPENDIX_WRAPPER_EBIT_REJECT_LABELS = (
+    "ebitda",
+    "depreciationandamortisation",
+    "depreciationamortisation",
 )
 _SOURCE_NUMBER_RE = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?$")
 
@@ -4085,6 +4386,56 @@ def _parse_source_numeric_value(value: Any) -> float | None:
 
 def _scale_source_value(value: float, scale: Any) -> float:
     return value * SCALE_MULTIPLIERS.get(str(scale or "unknown"), 1)
+
+
+def _appendix_wrapper_label_from_table_row(row: list[Any]) -> str:
+    label_parts: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_source_numeric_value(text) is not None:
+            break
+        if "%" in text or "$" in text or re.fullmatch(r"\d+(?:\.\d+)?", text):
+            continue
+        label_parts.append(text)
+    return " ".join(" ".join(label_parts).split())[:120]
+
+
+def _find_appendix_wrapper_metric_in_tables(
+    tables: Any,
+    label_markers: tuple[str, ...],
+    *,
+    scale: Any,
+    max_page: int = 4,
+    reject_markers: tuple[str, ...] = (),
+) -> tuple[float, str, str] | None:
+    for table in tables or []:
+        try:
+            page = int(getattr(table, "page_number", 0))
+        except (TypeError, ValueError):
+            page = 0
+        if page and page > max_page:
+            continue
+        for row in getattr(table, "rows", []) or []:
+            row_text = _normalise_fragmented_pdf_text(
+                " ".join(str(cell) for cell in row)
+            )
+            compact_row = _normalize_filter_text(row_text)
+            if not any(marker in compact_row for marker in label_markers):
+                continue
+            if any(marker in compact_row for marker in reject_markers):
+                continue
+            label = _appendix_wrapper_label_from_table_row(row)
+            if not label:
+                continue
+            for cell in row[1:]:
+                raw_value = _parse_source_numeric_value(cell)
+                if raw_value is None:
+                    continue
+                value = _scale_source_value(raw_value, scale)
+                return value, label, f"appendix_wrapper:page_{page or '?'}:{label}"
+    return None
 
 
 def _find_appendix_wrapper_metric_in_sections(
@@ -4187,11 +4538,29 @@ def _build_appendix_wrapper_source_payload(
             source_payload["row_refs"]["revenue"] = row_ref
             source_payload["provenance"]["revenue"] = provenance
 
-        np_attributable = _find_appendix_wrapper_metric_in_sections(
-            source_sections,
+        ebit = _find_appendix_wrapper_metric_in_tables(
+            tables,
+            _APPENDIX_WRAPPER_EBIT_LABELS,
+            scale=scale,
+            reject_markers=_APPENDIX_WRAPPER_EBIT_REJECT_LABELS,
+        )
+        if ebit is not None:
+            value, row_ref, provenance = ebit
+            source_payload["metrics"]["ebit"] = value
+            source_payload["row_refs"]["ebit"] = row_ref
+            source_payload["provenance"]["ebit"] = provenance
+
+        np_attributable = _find_appendix_wrapper_metric_in_tables(
+            tables,
             _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS,
             scale=scale,
         )
+        if np_attributable is None:
+            np_attributable = _find_appendix_wrapper_metric_in_sections(
+                source_sections,
+                _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS,
+                scale=scale,
+            )
         if np_attributable is not None:
             value, row_ref, provenance = np_attributable
             source_payload["metrics"]["np_attributable"] = value
@@ -4223,15 +4592,29 @@ def _apply_appendix_wrapper_source_payload(
         if isinstance(payload.get("field_provenance"), dict)
         else {}
     )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+    wrapper_scale = str(wrapper_source.get("scale") or "").strip()
     for metric_name, value in wrapper_source.get("metrics", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS and value is not None:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS and value is not None:
             metrics[metric_name] = value
             payload[metric_name] = value
+            if wrapper_scale and wrapper_scale != "unknown":
+                metric_source_scales[metric_name] = wrapper_scale
+                metric_scale_sources[metric_name] = "wrapper"
     for metric_name, row_ref in wrapper_source.get("row_refs", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS:
             row_refs[metric_name] = row_ref
     for metric_name, source in wrapper_source.get("provenance", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS:
             provenance[metric_name] = source
             source_match = _EXTRACTION_RE.match(str(source))
             if source_match:
@@ -4257,6 +4640,8 @@ def _apply_appendix_wrapper_source_payload(
     payload["row_refs"] = row_refs
     payload["provenance"] = provenance
     payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
 
     if wrapper_source.get("wrapper_disclosures") is not None:
         payload["wrapper_disclosures"] = list(wrapper_source["wrapper_disclosures"])
@@ -4286,6 +4671,71 @@ def _apply_appendix_wrapper_source_payload(
             _coerce_confidence(payload.get("confidence_metrics", 0.0)),
             0.9,
         )
+
+
+def _apply_preferred_cash_end_source_payload(
+    payload: dict[str, Any],
+    tables: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    if (
+        payload.get("cash_end") is not None
+        and not _cashflow_cash_end_row_is_weak(row_refs.get("cash_end"))
+    ):
+        return
+
+    recovered = _recover_preferred_cashflow_cash_end_from_tables(tables, scale)
+    if recovered is None:
+        return
+
+    value, row_ref, page, metric_scale, scale_source = recovered
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+
+    metrics["cash_end"] = value
+    payload["cash_end"] = value
+    row_refs["cash_end"] = row_ref
+    page_tag = f"page_{page}" if page is not None else "page_?"
+    provenance["cash_end"] = f"source_table:{page_tag}:{row_ref}"
+    if metric_scale and metric_scale != "unknown":
+        metric_source_scales["cash_end"] = metric_scale
+        metric_scale_sources["cash_end"] = scale_source
+    field_provenance["cash_end"] = _build_field_provenance_entry(
+        metric_name="cash_end",
+        source="source_table",
+        page=page,
+        row_ref=row_ref,
+        scale=metric_scale,
+        scale_source=scale_source,
+        pass1_result=pass1_result,
+    )
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
 
 
 def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
@@ -5558,6 +6008,12 @@ def run_multipass_extraction(
     _apply_appendix_wrapper_source_payload(
         payload,
         pass1.get("_appendix_wrapper_source"),
+    )
+    _apply_preferred_cash_end_source_payload(
+        payload,
+        structured_tables,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
     )
     source_bound = payload.get("source_bound")
     if not isinstance(source_bound, dict):
