@@ -11,6 +11,7 @@ For serious Tenn work, start with:
 ```text
 Read AGENTS.md fully.
 Read docs/dev_flow/SKILLS_SURFACE.md fully.
+Read docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md when path ownership or prior-work preservation is in scope.
 Read .agents/skills/<skill>/SKILL.md fully and follow it.
 ```
 
@@ -153,7 +154,9 @@ Run through scripts/opencode_worker_bridge.py, validate-result, then have Codex 
 2. Read `AGENTS.md`.
 3. Pick the repo-backed skill by path.
 4. Validate or create a task card.
-5. Run the portable `tenn-git-guard` preflight first.
+5. Run the portable `tenn-git-guard` preflight first and inspect
+   `path_ownership`, `duplicate_work_classification`, and
+   `stop_reimplementation`.
 6. In a Tenn control-plane checkout, run repo-local registry/ledger validation
    only when those scripts are available and useful.
 7. Do only the allowed work.
@@ -182,3 +185,8 @@ The missing question is always: did the intended output happen in the live targe
 Use Tenn repo skills as explicit files, not autocomplete labels. For ordinary next-action work, start with `tenn-issue`. For any mutation, use `tenn-fix`. For decisions, use `tenn-review-board`. For long goals, keep `tenn-goal-report` state current. Before stopping, use `tenn-handoff`.
 
 When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields and the `check-closeout` result. For docs/report work, ask for portable guard preflight, task-card validation, any Tenn-control-plane-local ledger/registry checks that were available, `check-diff`, `check-report-artifacts`, and `git diff --check`.
+
+For path/worktree or duplicate-work concerns, ask for the exact classification
+from `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md`: valid
+starting path, invalid/sparse/runtime-only paths, prior-work search surfaces,
+preservation status, and whether Codex stopped instead of reimplementing.

@@ -79,14 +79,19 @@ one-off PDF fixes.
 
 `tenn-git-guard` remains a visible repo skill because wrappers need a shared,
 current preflight contract. It is not a user-facing cleanup command. It owns
-branch, worktree, dirty-state, registry, task-ledger, duplicate-work, task-card,
-and allowed-file preflight.
+branch, worktree, path ownership, dirty-state, registry, task-ledger,
+duplicate-work, task-card, and allowed-file preflight.
 
 The guard must use the portable skill runner before requiring repo-local Tenn
 scripts. Runtime/product repos are valid guard targets even when they do not
 contain `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
 `scripts/agent_job_contract.py`; missing ledger rows should be reported as
 `DATA_MISSING`, not as missing runtime repo files.
+
+For candidate path audits, add `--audit-path <path>` and classify results with
+`docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md`. Do not start
+implementation from `NOT_GIT_REPO`, `SPARSE_EVIDENCE_DIR`, `RUNTIME_DIR`,
+`STALE_PATH`, `DIRTY_RELATED_WORKTREE`, or ambiguous `DATA_MISSING` paths.
 
 First-class preflight command:
 
