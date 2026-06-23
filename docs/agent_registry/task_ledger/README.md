@@ -27,6 +27,11 @@ path. Resolve `<registry_root>` in this order:
 The committed snapshot is a periodic summary for future agents and is not
 expected to be complete immediately.
 
+When the live ledger is unavailable, keep that source marked `DATA_MISSING`.
+Do not invent live entries. A committed snapshot may still record verified
+current repo or GitHub state, but it must say which source proved the status
+and must not pretend to be a live-ledger export.
+
 ## Runtime Helper
 
 Use `scripts/agent_task_ledger.py` for branch-independent ledger reads and
@@ -46,6 +51,10 @@ python3 scripts/agent_task_ledger.py append --entry-file reports/agent_jobs/<job
 Only append to the live ledger when the task card or owner approval permits that
 mutation. Otherwise write the intended entry under the report bundle and record
 why live append was skipped.
+
+If `export-summary` fails because the resolved live ledger is missing, preserve
+the failure output in the task report and either stop or write a committed
+status-refresh snapshot from independently verified repo/GitHub evidence.
 
 ## Required Preflight
 
