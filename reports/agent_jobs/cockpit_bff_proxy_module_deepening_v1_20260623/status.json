@@ -1,0 +1,25 @@
+{
+  "job_id": "cockpit_bff_proxy_module_deepening_v1_20260623",
+  "status": "implemented",
+  "branch": "dev-flow/cockpit-bff-proxy-deepening-v1-20260623-pr",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head_at_start": "6df3b29783dffe625f74dfbb4870667a4c57b750",
+  "scoped_files_changed": [
+    "docs/agent_tasks/cockpit_bff_proxy_module_deepening_v1_20260623.md",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/STATE.md",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/DECISIONS.md",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/validation.json",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/CODE_REVIEW.json",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/NEXT_GOAL.md",
+    "reports/agent_jobs/cockpit_bff_proxy_module_deepening_v1_20260623/status.json",
+    "cockpit-ui/lib/proxy.ts",
+    "cockpit-ui/lib/proxy.test.ts",
+    "cockpit-ui/app/api/cockpit/watchlist/route.ts",
+    "cockpit-ui/app/api/cockpit/watchlist/[ticker]/route.ts"
+  ],
+  "validation_status": "PASS",
+  "global_check_diff": "PASS",
+  "unrelated_dirty_paths": [],
+  "docs_impact": "DOCS_NOT_REQUIRED",
+  "docs_followup": "NONE"
+}
