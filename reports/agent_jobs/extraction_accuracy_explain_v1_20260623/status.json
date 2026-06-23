@@ -1,0 +1,12 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "job_id": "extraction_accuracy_explain_v1_20260623",
+  "status": "DONE",
+  "mode": "report_only",
+  "base_checked": {
+    "worktree_head": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6",
+    "origin_head": "f195e90d464f49916f6626242ca26d74580dc0a1",
+    "origin_delta_scope": "control-plane ledger/reporting docs; no extraction product-code files"
+  },
+  "decision": "Proceed with measurement-first extraction sprint under #73/#96/#97 before broad product fixes."
+}

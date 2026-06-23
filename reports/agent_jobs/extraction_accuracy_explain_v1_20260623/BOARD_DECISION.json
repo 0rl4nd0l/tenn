@@ -1,0 +1,72 @@
+{
+  "artifact_type": "tenn_review_board_decision_v1",
+  "decision": "proceed",
+  "next_action": "Run a measurement-first extraction sprint from current origin: refresh #96 runtime coverage, refresh #97 extracted-payload scorecard, then implement only the top source-proven failure-class fix.",
+  "task_tier": "critical",
+  "recommended_model": "high reasoning",
+  "actual_model": "Codex GPT-5",
+  "why_this_model": "Broad financial extraction accuracy combines runtime coverage, source-row truth, evaluation denominator, and canonical promotion risk.",
+  "worker_model_allowed": true,
+  "worker_decision_limit": "Workers may gather read-only coverage, scorecard, and source-row evidence; orchestrator owns implementation and promotion decisions.",
+  "escalation_needed": false,
+  "final_decision_authority": "orchestrator_with_owner_boundaries",
+  "lower_tier_insufficient_reason": "A lower-tier decision could mistake green targeted replays for broad extraction accuracy.",
+  "ledger_sources_checked": [
+    "active agent registry",
+    "live task ledger path",
+    "committed task ledger",
+    "task cards",
+    "report bundles",
+    "open GitHub PRs",
+    "open GitHub issues",
+    "worktrees"
+  ],
+  "duplicate_work_classification": "DATA_MISSING_FALLBACK_REQUIRED",
+  "matching_candidates": [
+    {
+      "kind": "issue",
+      "number": 73,
+      "title": "[Financial Truth] ASX evidence-bound extraction redesign parent tracker",
+      "classification": "PARENT_TRACKER"
+    },
+    {
+      "kind": "issue",
+      "number": 96,
+      "title": "[Query Orchestration] Most PDF-path documents lack terminal extraction",
+      "classification": "CONTROLLING_TRACKER_FOR_RUNTIME_COVERAGE"
+    },
+    {
+      "kind": "issue",
+      "number": 97,
+      "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage",
+      "classification": "CONTROLLING_TRACKER_FOR_ACCURACY_SCORECARD"
+    },
+    {
+      "kind": "open_pr",
+      "number": 340,
+      "title": "chore(extraction): add WHC OCR openability probe packet",
+      "classification": "RELATED_WHC_EVIDENCE_NOT_BROAD_FIX"
+    },
+    {
+      "kind": "open_pr",
+      "number": 131,
+      "title": "[codex] prepare integration-ready metric gate branch",
+      "classification": "RELATED_OLDER_GATE_WORK_NOT_CURRENT_PROOF"
+    }
+  ],
+  "duplicate_work_decision": "Do not start duplicate broad extraction work from this explanation. Continue under #73/#96/#97 with a fresh task card.",
+  "root_problem": "Tenn lacks a fresh end-to-end denominator and source-bound scorecard for current extracted payloads; remaining hard cases need row-level proof before product fixes.",
+  "overfitting_assessment": "High risk if the next task fixes one PDF without measuring runtime coverage and scorecard failures.",
+  "report_loop_assessment": "Acceptable only if the next sprint produces a ranked failure matrix and one source-proven implementation lane.",
+  "broad_progress_assessment": "Progress exists: JAY retired, validation fallback fixed, no-write replays completed, WHC/EDU fail-closed confirmed. Broad accuracy remains unproven.",
+  "class_based_approach": "Use failure classes: runtime coverage, extracted-payload scoring, table/openability, scale binding, period binding, metric-label semantics, provenance completeness.",
+  "production_readiness_value": "Highest next value is a measurement-first sprint because it identifies the denominator and top failure class before code changes.",
+  "minority_objection": "Targeted green replays are enough to move directly to WHC/DXC code fixes.",
+  "minority_objection_disposition": "Rejected: targeted replay status is not broad accuracy and does not prove source-row truth.",
+  "hard_stops": [
+    "No broad accuracy claim without current extracted-payload scorecard.",
+    "No product-code metric mapping or scale fix without exact source rows.",
+    "No canonical writes until source-bound scorecard and no-regression gates pass.",
+    "No broad prompt/parser/ontology/classifier change from ambiguous evidence."
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "artifact_type": "extraction_post_pr384_validation_matrix_v1",
+  "generated_at": "2026-06-23T16:09:20+10:00",
+  "repo_head": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6",
+  "base_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "merged_prs_in_scope": [
+    {
+      "number": 384,
+      "title": "Recover JAY market update net revenue",
+      "state": "MERGED",
+      "merged_at": "2026-06-22T02:53:34Z",
+      "merge_commit": "a938313fea1aaaa04f4f9d9bf045f2230e50e684",
+      "url": "https://github.com/0rl4nd0l/tenn/pull/384"
+    },
+    {
+      "number": 386,
+      "title": "runtime-proof-explicit-exemptions",
+      "state": "MERGED",
+      "merge_commit": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6"
+    }
+  ],
+  "pytest": {
+    "fallback_selftest": {
+      "status": "PASS",
+      "mode": "ephemeral_overlay",
+      "report": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/pytest_fallback_selftest.json"
+    },
+    "market_update_target": {
+      "status": "PASS",
+      "mode": "ephemeral_overlay",
+      "summary": "3 passed, 204 deselected",
+      "report": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/pytest_market_update.json"
+    },
+    "overlay_cleanup": "PASS_NO_TMP_TENN_PYTEST_OVERLAY_DIRS_REMAINED"
+  },
+  "no_write_replays": [
+    {
+      "name": "jay_canonical_replay",
+      "profile": "docling-no-write",
+      "status": "PASS",
+      "case_count": 2,
+      "side_effect_pass": true,
+      "expectation_failure_count": 0,
+      "extraction_exception_count": 0,
+      "infrastructure_failure_count": 0,
+      "selected_case_ids": [
+        "JAY_Q3FY23_MARKET_UPDATE",
+        "JAY_Q4FY23_MARKET_UPDATE_PAIR"
+      ],
+      "report_dir": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay"
+    },
+    {
+      "name": "guard_replay",
+      "profile": "docling-no-write",
+      "status": "PASS",
+      "case_count": 5,
+      "side_effect_pass": true,
+      "expectation_failure_count": 0,
+      "extraction_exception_count": 0,
+      "infrastructure_failure_count": 0,
+      "selected_case_ids": [
+        "CTN",
+        "HUB",
+        "LBL",
+        "AZJ",
+        "NSR"
+      ],
+      "excluded_case_ids": [
+        {
+          "case_id": "WHC",
+          "reason": "guard manifest entry is parser_backend=pymupdf and is incompatible with the strict docling-no-write profile"
+        }
+      ],
+      "report_dir": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay"
+    },
+    {
+      "name": "whc_edu_replay",
+      "profile": "docling-no-write",
+      "status": "PASS",
+      "case_count": 2,
+      "side_effect_pass": true,
+      "expectation_failure_count": 0,
+      "extraction_exception_count": 0,
+      "infrastructure_failure_count": 0,
+      "selected_case_ids": [
+        "WHC_2023_MIXED_UNIT",
+        "EDU_2023_MIXED_UNIT"
+      ],
+      "report_dir": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay"
+    }
+  ],
+  "case_outcomes": [
+    {
+      "case_id": "JAY_Q3FY23_MARKET_UPDATE",
+      "status": "ok",
+      "expected_status": "ok",
+      "period_type": "Q",
+      "period_end": "2023-03-31",
+      "non_null_metrics": {
+        "revenue": 1152000
+      },
+      "row_refs": {
+        "revenue": "Q3 FY23 Net Revenue"
+      },
+      "metric_source_scales": {
+        "revenue": "thousands"
+      }
+    },
+    {
+      "case_id": "JAY_Q4FY23_MARKET_UPDATE_PAIR",
+      "status": "ok",
+      "expected_status": "ok",
+      "period_type": "Q",
+      "period_end": "2023-06-30",
+      "non_null_metrics": {
+        "revenue": 1546000
+      },
+      "row_refs": {
+        "revenue": "Q4 FY23 Net Revenue"
+      },
+      "metric_source_scales": {
+        "revenue": "thousands"
+      }
+    },
+    {
+      "case_id": "WHC_2023_MIXED_UNIT",
+      "status": "failed",
+      "expected_status": "failed",
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+      "row_issue_class": "mixed_metric_source_scales",
+      "next_action": "fail_closed_behavior_confirmed; do not repair values without exact source-row scale proof"
+    },
+    {
+      "case_id": "EDU_2023_MIXED_UNIT",
+      "status": "failed",
+      "expected_status": "failed",
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+      "row_issue_class": "accepted_output_scale_magnitude_risk",
+      "next_action": "fail_closed_behavior_confirmed; do not repair values without exact source-row scale proof"
+    }
+  ],
+  "residuals": {
+    "retired": [
+      {
+        "ticker": "JAY",
+        "issue": "insufficient_metrics:0",
+        "status": "RETIRED_BY_CANONICAL_REPLAY"
+      },
+      {
+        "ticker": "WHC/EDU",
+        "issue": "mixed-unit accepted output regression",
+        "status": "FAIL_CLOSED_CONFIRMED"
+      },
+      {
+        "issue": "pytest unavailable blocker",
+        "status": "RETIRED_BY_EPHEMERAL_OVERLAY_FALLBACK"
+      },
+      {
+        "issue": "unbounded no-write replay hang",
+        "status": "RETIRED_FOR_THIS_SAMPLE_BY_COMPLETED_BOUNDED_REPLAYS"
+      }
+    ],
+    "active_or_unproven": [
+      {
+        "ticker": "DXC",
+        "issue": "metric_label_mismatch",
+        "status": "NO_FIX_PROVEN",
+        "required_next_evidence": "exact source rows proving whether net operating income is a canonical EBIT equivalent in the source context"
+      },
+      {
+        "ticker": "WHC",
+        "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+        "issue": "scale_unknown / openability proof",
+        "status": "SOURCE_ROW_SCALE_PROOF_STILL_REQUIRED",
+        "related_open_pr": 340,
+        "required_next_evidence": "exact source rows or headers proving per-metric scale and row references"
+      }
+    ]
+  },
+  "decision": "validation blocker closed; proceed only with source-row proof packet before any row-related product fix"
+}

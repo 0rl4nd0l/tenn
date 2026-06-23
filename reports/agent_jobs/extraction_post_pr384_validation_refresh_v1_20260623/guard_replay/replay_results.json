@@ -1,0 +1,1203 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 5,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782193031, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782193031, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "profile": "docling-no-write",
+  "results": [
+    {
+      "case_id": "CTN",
+      "case_timeout_seconds": 900,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "elapsed_s": 117.222,
+      "expected_period_end": "2022-03-31",
+      "expected_period_type": "Q",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 26,
+            "table_count": 17
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 2,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "operating_cf": "table",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "operating_cf": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 6,
+        "non_null_metrics": {
+          "capex": -120000.0,
+          "cash_end": 5298000.0,
+          "financing_cf": 2403000.0,
+          "investing_cf": -120000.0,
+          "operating_cf": -142000.0,
+          "shares_outstanding": 1247861892.0
+        },
+        "period_end": "2022-03-31",
+        "period_start": "2022-01-01",
+        "period_type": "Q",
+        "provenance": {
+          "capex": "cashflow_statement:page_22:Payments to acquire or for: exploration & evaluation",
+          "cash_end": "cashflow_statement:page_22:Cash and cash equivalents at end of period",
+          "financing_cf": "cashflow_statement:page_22:Net cash from / (used in) financing activities (item 3.10 above)",
+          "investing_cf": "cashflow_statement:page_22:Net cash from / (used in) investing activities (item 2.6 above)",
+          "operating_cf": "cashflow_statement:page_22:Net cash from / (used in) operating activities (item 1.9 above)",
+          "shares_outstanding": "share_capital:page_21:Issued Capital Post Placement"
+        },
+        "row_refs": {
+          "capex": "Payments to acquire or for: exploration & evaluation",
+          "cash_end": "Cash and cash equivalents at end of period",
+          "financing_cf": "Net cash from / (used in) financing activities (item 3.10 above)",
+          "investing_cf": "Net cash from / (used in) investing activities (item 2.6 above)",
+          "operating_cf": "Net cash from / (used in) operating activities (item 1.9 above)",
+          "shares_outstanding": "Issued Capital Post Placement"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+          "period_end": "2022-03-31",
+          "period_type": "Q",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "appendix_5b_source_phrase",
+            "quarterly_source_phrase",
+            "quarterly_activity_report_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "appendix_5b_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [],
+          "period_end": null,
+          "period_type": null,
+          "reason": "not_detected"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 26,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "quarterly_source_type_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "ticker": "CTN"
+    },
+    {
+      "case_id": "HUB",
+      "case_timeout_seconds": 900,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "elapsed_s": 204.202,
+      "expected_period_end": "2023-12-31",
+      "expected_period_type": "H",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 51,
+            "table_count": 44
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.926,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -10848000.0,
+          "cash_end": 60824000.0,
+          "ebit": 28593000.0,
+          "financing_cf": -34782000.0,
+          "investing_cf": -12248000.0,
+          "net_debt": -25464000.0,
+          "np_attributable": 21532000.0,
+          "operating_cf": 35107000.0,
+          "revenue": 154802000.0
+        },
+        "period_end": "2023-12-31",
+        "period_start": "2023-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_14:Payments for intangible assets use",
+          "cash_end": "cashflow_statement:page_14:unknown",
+          "ebit": "income_statement:page_11:Profit before income tax",
+          "financing_cf": "cashflow_statement:page_14:unknown",
+          "investing_cf": "cashflow_statement:page_14:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(35360000)-cash_end(60824000)",
+          "np_attributable": "income_statement:page_11:Profit after income tax for the period",
+          "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+          "revenue": "income_statement:page_11:Revenue from customers"
+        },
+        "row_refs": {
+          "capex": "Payments for intangible assets use",
+          "cash_end": "unknown",
+          "ebit": "Profit before income tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(35360000)-cash_end(60824000)",
+          "np_attributable": "Profit after income tax for the period",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "Revenue from customers"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+          "period_end": "2023-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "purpose to empower better financial futures together. CONTENTS 1 Appendix 4D - Half-Year Ended 31 December 2023 2 Financial Highlights 1HFY24 3 Directors' report 7 Auditor's independence decl",
+              "evidence": "Half-Year Ended 31 December 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "CTORS' REPORT FINANCIAL STATEMENTS GLOSSARY CORPORATE INFORMATION 1 Appendix 4D Half-year ended 31 December 2023 under ASX Listing Rule 4.2A.3 Results for announcement to the market Current pe",
+              "evidence": "Half-year ended 31 December 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ents in associates. See page 15 and note 2.1 for further details. Subsequent to half-year ended 31 December 2023 the directors have determined a fully franked interim dividend of 18.5 cents pe",
+              "evidence": "half-year ended 31 December 2023",
+              "is_comparative_context": "true",
+              "period_end": "2023-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "e (a fully franked 14.0 cents per share interim dividend was paid following the half-year ended 31 December 2022). Dates for the dividend are as follows: Explanation of results Refer to the at",
+              "evidence": "half-year ended 31 December 2022",
+              "is_comparative_context": "true",
+              "period_end": "2022-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "ember 2023 under ASX Listing Rule 4.2A.3 Results for announcement to the market Current period: 1 July 2023 to 31 December 2023 Prior corresponding period: 1 July 2022 to 31 December 2022 1. Includes revenu",
+              "evidence": "Current period: 1 July 2023 to 31 December 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-12-31",
+              "period_start": "2023-07-01",
+              "period_type": "H",
+              "reason": "current_period_explicit_range",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2023-12-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date",
+          "selection_rule": "current_period_source_text_over_comparative_period_end"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 51,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "current_period_line_binding_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "ticker": "HUB"
+    },
+    {
+      "case_id": "LBL",
+      "case_timeout_seconds": 900,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "elapsed_s": 147.671,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 24,
+            "table_count": 3
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 0.943,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table"
+        },
+        "metric_source_scales": {
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands"
+        },
+        "non_null_metric_count": 7,
+        "non_null_metrics": {
+          "cash_end": 5634800.0,
+          "ebit": 5812200.0,
+          "financing_cf": -4257100.0,
+          "investing_cf": -991800.0,
+          "np_attributable": 3844800.0,
+          "operating_cf": 5124600.0,
+          "revenue": 43475600.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "cash_end": "cashflow_statement:page_22:Cash &Equivalents",
+          "ebit": "income_statement:page_21:EBIT",
+          "financing_cf": "cashflow_statement:page_22:Cashflow from financing",
+          "investing_cf": "cashflow_statement:page_22:Cashflow from investing",
+          "np_attributable": "income_statement:page_21:NPAT For",
+          "operating_cf": "cashflow_statement:page_22:Cashflow from operations For",
+          "revenue": "income_statement:page_21:Sales Revenue"
+        },
+        "row_refs": {
+          "cash_end": "Cash &Equivalents",
+          "ebit": "EBIT",
+          "financing_cf": "Cashflow from financing",
+          "investing_cf": "Cashflow from investing",
+          "np_attributable": "NPAT For",
+          "operating_cf": "Cashflow from operations For",
+          "revenue": "Sales Revenue"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "source_period_end_evidence": {
+          "hits": [],
+          "period_end": null,
+          "period_type": null,
+          "reason": "not_detected"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 24,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "companion_period_repaired_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "ticker": "LBL"
+    },
+    {
+      "case_id": "AZJ",
+      "case_timeout_seconds": 900,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "elapsed_s": 301.12,
+      "expected_period_end": "2025-06-30",
+      "expected_period_type": "A",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 65,
+            "table_count": 59
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -350500000.0,
+          "cash_end": 10500000.0,
+          "ebit": 578100000.0,
+          "financing_cf": -434000000.0,
+          "investing_cf": -349300000.0,
+          "np_attributable": 226600000.0,
+          "operating_cf": 788200000.0,
+          "revenue": 1428200000.0,
+          "shares_outstanding": 250000130.0
+        },
+        "period_end": "2025-06-30",
+        "period_start": "2024-07-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_13:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_13:unknown",
+          "ebit": "income_statement:page_9:Operating profit",
+          "financing_cf": "cashflow_statement:page_13:unknown",
+          "investing_cf": "cashflow_statement:page_13:unknown",
+          "np_attributable": "income_statement:page_9:Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+          "operating_cf": "cashflow_statement:page_13:Net cash inflow from operating activities",
+          "revenue": "income_statement:page_9:Revenue from continuing operations",
+          "shares_outstanding": "share_capital:page_39:At 30 June 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Operating profit",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "Revenue from continuing operations",
+          "shares_outstanding": "At 30 June 2025"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "period_end": "2025-06-30",
+          "period_type": "A",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "nal use only Aurizon Network Pty Ltd ABN 78 132 181 116 Annual Financial Report for the year ended 30 June 2025 For personal use only This financial report is the consolidated financial state",
+              "evidence": "for the year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "l 8 900 Ann Street Fortitude Valley QLD 4006 The financial report for the Group for the year ended 30 June 2025 has been authorised for issue in accordance with a resolution of the Directors",
+              "evidence": "for the year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "August 2025. 1 For personal use only Aurizon Network Pty Ltd Directors' report For the year ended 30 June 2025 Directors' Report The Directors of Aurizon Network Pty Ltd (the Company) presen",
+              "evidence": "For the year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "led entities (collectively referred to as the consolidated entity or the Group) for the financial year ended 30 June 2025 (FY2025). Aurizon Network Pty Ltd is a subsidiary of Aurizon Holdings Limited.",
+              "evidence": "for the financial year ended 30 June 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2025-06-30",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 65,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "scale_source_suspect_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "ticker": "AZJ"
+    },
+    {
+      "case_id": "NSR",
+      "case_timeout_seconds": 900,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "elapsed_s": 196.14,
+      "expected_period_end": "2021-12-31",
+      "expected_period_type": "H",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 29,
+            "table_count": 33
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.852,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -402000.0,
+          "cash_end": 57387000.0,
+          "ebit": 274928000.0,
+          "financing_cf": -7761000.0,
+          "investing_cf": -96221000.0,
+          "net_debt": 754115000.0,
+          "operating_cf": 65489000.0,
+          "revenue": 131645000.0,
+          "shares_outstanding": 1186585992.0
+        },
+        "period_end": "2021-12-31",
+        "period_start": "2021-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_12:Purchase of property, plant and equipment",
+          "cash_end": "cashflow_statement:page_12:unknown",
+          "ebit": "income_statement:page_8:Profit before income tax",
+          "financing_cf": "cashflow_statement:page_12:unknown",
+          "investing_cf": "cashflow_statement:page_12:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(811502000)-cash_end(57387000)",
+          "operating_cf": "cashflow_statement:page_12:Net cash flows from operating activities",
+          "revenue": "income_statement:page_8:Total revenue",
+          "shares_outstanding": "share_capital:page_24:Weighted average number of securities on issue during the period"
+        },
+        "row_refs": {
+          "capex": "Purchase of property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Profit before income tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(811502000)-cash_end(57387000)",
+          "operating_cf": "Net cash flows from operating activities",
+          "revenue": "Total revenue",
+          "shares_outstanding": "Weighted average number of securities on issue during the period"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+          "period_end": "2021-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "six_months_ended_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "onal use only NSR NATIONAL STORAGE REIT (NSR) CONSOLIDATED FINANCIAL STATEMENTS FOR THE HALF-YEAR ENDED 31 DECEMBER 2021 National Storage Holdings Limited ACN 166 572 845 National Storage Financial Se",
+              "evidence": "FOR THE HALF-YEAR ENDED 31 DECEMBER 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "le entity for National Storage Property Trust ARSN 101 227 712 FINANCIAL REPORT FOR THE SIX MONTHS ENDED 31 DECEMBER 2021 1 For personal use only CONTENTS FINANCIAL REPORT FOR THE SIX MONTHS ENDED 31 D",
+              "evidence": "FOR THE SIX MONTHS ENDED 31 DECEMBER 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "MONTHS ENDED 31 DECEMBER 2021 1 For personal use only CONTENTS FINANCIAL REPORT FOR THE SIX MONTHS ENDED 31 DECEMBER 2021 2 For personal use only CORPORATE INFORMATION National Storage Holdings Limited",
+              "evidence": "FOR THE SIX MONTHS ENDED 31 DECEMBER 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "NSR . Auditor Ernst & Young 111 Eagle Street Brisbane QLD 4000 FINANCIAL REPORT FOR THE SIX MONTHS ENDED 31 DECEMBER 2021 3 For personal use only DIRECTORS' REPORT The Directors of NSH jointly with the",
+              "evidence": "FOR THE SIX MONTHS ENDED 31 DECEMBER 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "entities (' NSH Group ') and NSPT and its controlled entities (' NSPT Group ') for the half-year ended 31 December 2021 (' Reporting Period '). DIRECTORS National Storage Holdings Limited The NSH Dir",
+              "evidence": "for the half-year ended 31 December 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "of Preparation' in Notes 1 and 2 in the Financial Statements. Operating results For the half-year ended 31 December 2021, total revenue increased by 32% to $131.6m (31 December 2020: $99.6m) driven by",
+              "evidence": "For the half-year ended 31 December 2021",
+              "is_comparative_context": "false",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": ".0m). 1 Underlying earnings is a non-IFRS measure (unaudited) FINANCIAL REPORT FOR THE SIX MONTHS ENDED 31 DECEMBER 2021 4",
+              "evidence": "FOR THE SIX MONTHS ENDED 31 DECEMBER 2021",
+              "is_comparative_context": "true",
+              "period_end": "2021-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2021-12-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 29,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "clean_scale_control",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR"
+    }
+  ],
+  "status": "PASS"
+}

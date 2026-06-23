@@ -1,0 +1,54 @@
+{
+  "artifact_type": "tenn_review_board_decision_v1",
+  "decision": "proceed",
+  "next_action": "Create a bounded source-row proof packet for DXC metric_label_mismatch and WHC scale_unknown/openability before any product-code row fix.",
+  "task_tier": "critical",
+  "recommended_model": "high reasoning",
+  "actual_model": "Codex GPT-5",
+  "why_this_model": "Financial-truth row mapping and scale binding require source-bound proof and contrarian validation before code changes.",
+  "worker_model_allowed": false,
+  "worker_decision_limit": "Workers may gather exact row evidence only; orchestrator owns fix/no-fix decision.",
+  "escalation_needed": false,
+  "final_decision_authority": "orchestrator_with_owner_boundaries",
+  "lower_tier_insufficient_reason": "A lower-tier decision could overread green replay status as metric truth.",
+  "ledger_sources_checked": [
+    "live task ledger path",
+    "committed task ledger",
+    "agent job registry",
+    "task cards",
+    "report bundles",
+    "open GitHub PRs",
+    "open GitHub issues",
+    "worktrees"
+  ],
+  "duplicate_work_classification": "DATA_MISSING_FALLBACK_REQUIRED",
+  "matching_candidates": [
+    {
+      "kind": "open_pr",
+      "number": 340,
+      "title": "chore(extraction): add WHC OCR openability probe packet",
+      "classification": "RELATED_NOT_DUPLICATE",
+      "reason": "WHC evidence packet exists, but it does not cover this post-PR384 validation refresh or DXC row-proof decision."
+    }
+  ],
+  "duplicate_work_decision": "Proceed report-only; use PR #340 as related WHC evidence if the next row-proof lane inspects WHC.",
+  "root_problem": "Validation blockers are closed, but remaining row issues need exact source-row proof before product fixes.",
+  "overfitting_assessment": "The next lane must target row-proof classes, not a single green replay or one PDF result.",
+  "report_loop_assessment": "Avoid report-only loop by requiring the next packet to end in FIX_PROVEN, NO_FIX_PROVEN, or DATA_MISSING.",
+  "broad_progress_assessment": "JAY retired, guard replay completed, WHC/EDU fail-closed regression confirmed.",
+  "class_based_approach": "Prioritize metric_label_mismatch and scale_unknown row-proof classes.",
+  "production_readiness_value": "High: removes the remaining ambiguity before touching financial-truth extraction code.",
+  "minority_objection": "Green replays could justify direct WHC/DXC fixes.",
+  "minority_objection_disposition": "Rejected because replay status is not source-row metric truth.",
+  "validation_summary": {
+    "pytest_fallback": "PASS",
+    "jay_canonical_replay": "PASS",
+    "compatible_guard_replay": "PASS",
+    "whc_edu_mixed_unit_replay": "PASS"
+  },
+  "hard_stops_for_next_lane": [
+    "No product code unless exact source rows prove a narrow mapping or scale binding.",
+    "No broad prompt, parser, ontology, or classifier changes from ambiguous row labels.",
+    "No DB, Qdrant, Redis, source PDF, gold-label, prompt, model, dependency, service, backfill, or broad extraction writes."
+  ]
+}

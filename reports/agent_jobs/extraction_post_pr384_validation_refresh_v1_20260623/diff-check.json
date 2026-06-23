@@ -1,0 +1,80 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_post_pr384_validation_refresh_v1_20260623.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_post_pr384_validation_refresh_v1_20260623.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/TASK_CARD.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/STATE.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/DECISIONS.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/BOARD.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/BOARD_DECISION.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/status.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/validation.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/diff-check.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/pytest_fallback_selftest.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/pytest_market_update.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/post_merge_matrix.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay/input_manifest.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay/replay_results.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay/side_effect_audit.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay/validation.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/jay_canonical_replay/logs/replay.log",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay/input_manifest.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay/replay_results.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay/side_effect_audit.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay/validation.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/guard_replay/logs/replay.log",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay/input_manifest.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay/replay_results.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay/side_effect_audit.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay/validation.json",
+        "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623/whc_edu_replay/logs/replay.log"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/NEXT_GOAL.md",
+        "docs/validation_baseline.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_post_pr384_validation_refresh_v1_20260623",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_post_pr384_validation_refresh_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Post-merge refresh of the PR #384 metric-extraction validation gaps using the canonical branch, pytest fallback, and bounded no-write replay timeout.",
+      "recommended_model": "high reasoning",
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance",
+        "Reporting"
+      ],
+      "task_scope": "report_only",
+      "task_tier": "critical",
+      "timeout_seconds": 7200,
+      "why_this_model": "Financial-truth extraction evidence and replay results must not be converted into product fixes without source-bound proof.",
+      "worker_decision_limit": "No worker delegation; orchestrator owns evidence refresh and review-board decision.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "job_id": "extraction_post_pr384_validation_refresh_v1_20260623",
+  "status": "DONE",
+  "completed_at": "2026-06-23T16:09:20+10:00",
+  "branch": "safe/extraction-post-pr384-validation-refresh-v1-20260623",
+  "head": "e402bf38e5b959f56c1bed6b35e18ba7371cd8f6",
+  "summary": "Post-PR384 canonical validation refresh completed. Pytest fallback and all targeted no-write replays passed with side effects clean.",
+  "next": "Run a bounded DXC/WHC source-row proof packet before product-code row fixes."
+}

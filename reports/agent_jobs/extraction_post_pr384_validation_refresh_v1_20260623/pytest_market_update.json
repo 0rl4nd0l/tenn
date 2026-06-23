@@ -1,0 +1,41 @@
+{
+  "plan": {
+    "base_python": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python",
+    "install_command": [
+      "/tmp/tenn-pytest-overlay-vpzg0b8i/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "pytest>=8.3.3,<10",
+      "pytest-asyncio>=0.24.0,<2",
+      "respx>=0.23.1,<0.24"
+    ],
+    "mode": "ephemeral_overlay",
+    "overlay_dir": "/tmp/tenn-pytest-overlay-vpzg0b8i",
+    "pytest_command": [
+      "/tmp/tenn-pytest-overlay-vpzg0b8i/bin/python",
+      "-m",
+      "pytest",
+      "-c",
+      "pytest.ini",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "-k",
+      "market_update_net_revenue_candidate",
+      "-q"
+    ],
+    "pythonpath": [
+      "/home/l4nd0/tenn-extraction-post-pr384-validation-refresh-v1-20260623",
+      "/home/l4nd0/tenn-extraction-post-pr384-validation-refresh-v1-20260623/financial-engine_v2",
+      "/home/l4nd0/tenn-extraction-post-pr384-validation-refresh-v1-20260623/financial-engine_v2/backend",
+      "/home/l4nd0/tenn-extraction-post-pr384-validation-refresh-v1-20260623/scripts",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/lib/python3.11/site-packages"
+    ],
+    "runner_python": "/tmp/tenn-pytest-overlay-vpzg0b8i/bin/python",
+    "target_site_packages": [
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/lib/python3.11/site-packages"
+    ]
+  },
+  "returncode": 0,
+  "status": "PASS"
+}
