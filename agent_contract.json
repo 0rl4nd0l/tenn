@@ -6,5 +6,45 @@
   "base_url": "http://127.0.0.1:8000",
   "healthcheck": "/api/health",
   "healthcheck_url": "http://127.0.0.1:8000/api/health",
-  "validation": "scripts/validate_system.sh"
+  "validation": "scripts/validate_system.sh",
+  "runtime_modes": {
+    "agent_local_backend": {
+      "mode": "agent_local_backend",
+      "audience": "agents and focused backend validation",
+      "status": "canonical_for_agent_runtime_tasks",
+      "entrypoint": "financial-engine_v2/scripts/run_local_backend.sh",
+      "command": "LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh",
+      "healthcheck_url": "http://127.0.0.1:8000/api/health",
+      "validation": "scripts/validate_system.sh",
+      "notes": [
+        "Uses the local backend script through scripts/start_system.sh for deterministic agent checks.",
+        "Does not start the full Docker Compose stack unless the task explicitly requires it."
+      ]
+    },
+    "full_stack_cockpit": {
+      "mode": "full_stack_cockpit",
+      "audience": "operator UI and full infrastructure startup",
+      "status": "canonical_for_operator_full_stack",
+      "entrypoint": "scripts/cockpit",
+      "command": "cockpit start new",
+      "healthcheck_url": "http://127.0.0.1:8000/api/health",
+      "ui_url": "http://127.0.0.1:8081",
+      "validation": "cockpit doctor",
+      "notes": [
+        "Uses Docker Compose for backend, worker, Redis, Postgres, and Qdrant.",
+        "Launches the Next.js Cockpit UI after the full stack is started."
+      ]
+    },
+    "batch_orchestrator": {
+      "mode": "batch_orchestrator",
+      "audience": "batch workflow execution",
+      "status": "supported_not_system_bootstrap",
+      "entrypoint": "run.py",
+      "command": "python run.py",
+      "notes": [
+        "Runs batch workflows and may require external providers or network.",
+        "Does not define the running system health contract."
+      ]
+    }
+  }
 }

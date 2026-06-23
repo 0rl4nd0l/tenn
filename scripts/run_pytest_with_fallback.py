@@ -21,9 +21,9 @@ import sys
 import tempfile
 from typing import Sequence
 
+import python_import_contract as import_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
+REPO_ROOT = import_contract.REPO_ROOT
 DEFAULT_BASE_PYTHONS = (
     REPO_ROOT / "financial-engine_v2" / ".venv" / "bin" / "python",
     REPO_ROOT / ".venv" / "bin" / "python",
@@ -33,12 +33,7 @@ DEFAULT_OVERLAY_PACKAGES = (
     "pytest-asyncio>=0.24.0,<2",
     "respx>=0.23.1,<0.24",
 )
-DEFAULT_PYTHONPATH = (
-    REPO_ROOT,
-    REPO_ROOT / "financial-engine_v2",
-    BACKEND_ROOT,
-    REPO_ROOT / "scripts",
-)
+DEFAULT_PYTHONPATH = import_contract.import_roots()
 
 
 @dataclass(frozen=True)
@@ -128,16 +123,7 @@ def python_site_packages(python: Path) -> list[str]:
 
 
 def merged_pythonpath(paths: Sequence[str | Path], existing: str | None = None) -> str:
-    merged: list[str] = []
-    for path in paths:
-        text = str(path)
-        if text and text not in merged:
-            merged.append(text)
-    if existing:
-        for text in existing.split(os.pathsep):
-            if text and text not in merged:
-                merged.append(text)
-    return os.pathsep.join(merged)
+    return import_contract.merge_pythonpath(paths, existing)
 
 
 def create_overlay(base_python: Path, *, packages: Sequence[str]) -> tuple[Path, list[str]]:
@@ -170,11 +156,10 @@ def build_plan(
     overlay_packages: Sequence[str] = DEFAULT_OVERLAY_PACKAGES,
     existing_pythonpath: str | None = None,
 ) -> PytestPlan:
-    pythonpath = [
-        *[str(path) for path in DEFAULT_PYTHONPATH],
-        *[str(path) for path in target_site_packages],
-    ]
-    env_pythonpath = merged_pythonpath(pythonpath, existing_pythonpath)
+    pythonpath = import_contract.dev_pythonpath_entries(
+        extra_paths=target_site_packages,
+        existing=existing_pythonpath,
+    )
     normalized_args = normalize_pytest_args(pytest_args)
 
     if pytest_available:
@@ -204,7 +189,7 @@ def build_plan(
         install_command=install_command,
         overlay_dir=overlay_text,
         target_site_packages=list(target_site_packages),
-        pythonpath=env_pythonpath.split(os.pathsep) if env_pythonpath else [],
+        pythonpath=pythonpath,
     )
 
 
