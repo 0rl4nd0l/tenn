@@ -18,7 +18,9 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
 - Active task card when one exists.
 - Current report directory, preferably the task card `output_dir`.
 - Current git state, validation state, and known PR/issue references.
-- Agent Task Ledger state from `scripts/agent_task_ledger.py` when available.
+- Agent Task Ledger state from the portable guard preflight, plus
+  Tenn-control-plane-local `scripts/agent_task_ledger.py` output when
+  available.
 - Relevant report bundles, review-board reports, worker results, task cards,
   validation artifacts, failed attempts, known risks, and do-not-touch
   boundaries.
@@ -31,9 +33,13 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
    - `git rev-parse HEAD`
    - `git rev-parse --abbrev-ref --symbolic-full-name @{u}`
    - `git status --short --untracked-files=all`
-   - `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`
-   - `python3 scripts/agent_task_ledger.py resolve-path`
-   - `python3 scripts/agent_task_ledger.py validate`
+   - `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json`
+   - from a Tenn control-plane checkout, if the installed host skill path is
+     unavailable: `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json`
+   - Tenn-control-plane-local follow-up checks when the scripts are available:
+     `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`,
+     `python3 scripts/agent_task_ledger.py resolve-path`, and
+     `python3 scripts/agent_task_ledger.py validate`
 2. Investigate the session:
    - current task or goal
    - completed work

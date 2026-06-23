@@ -1,8 +1,8 @@
 # Tenn Skill Surface
 
-last_verified_commit: e402bf38e5b959f56c1bed6b35e18ba7371cd8f6
-last_verified_pr: 386
-verification_scope: repo-visible skill routing and source-map freshness only; host picker visibility not probed
+last_verified_commit: 1a0f1a03741d692089a0125ecb2f10691b8da597
+last_verified_pr: 395
+verification_scope: repo-visible skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
 source_of_truth_files:
 - AGENTS.md
 - docs/README.md
@@ -87,6 +87,18 @@ scripts. Runtime/product repos are valid guard targets even when they do not
 contain `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
 `scripts/agent_job_contract.py`; missing ledger rows should be reported as
 `DATA_MISSING`, not as missing runtime repo files.
+
+First-class preflight command:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+```
+
+Repo-backed fallback from a Tenn control-plane checkout:
+
+```bash
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
 
 ## Runtime Proof Gate
 

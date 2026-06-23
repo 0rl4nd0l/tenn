@@ -23,7 +23,7 @@ From the installed host skill surface:
 ```bash
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
   preflight \
-  --repo-root . \
+  --repo-root <repo-root> \
   --topic "<topic-or-path>" \
   --json
 ```
@@ -72,7 +72,7 @@ git rev-parse HEAD
 git remote -v
 git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
-python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 ```
 
 If the installed host skill path is unavailable inside a control-plane checkout,
@@ -98,7 +98,7 @@ workflow starts coding, inspect the branch-independent Agent Task Ledger and the
 durable committed summary when present:
 
 ```bash
-python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 ```
 
 When both the portable runner and repo-local `scripts/agent_task_ledger.py` are

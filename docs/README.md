@@ -27,6 +27,16 @@ git branch --show-current
 git rev-parse HEAD
 git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json
+```
+
+Use the installed portable guard first. The `.agents/...` command is the
+repo-backed fallback from a Tenn control-plane checkout. Runtime/product repos
+do not need Tenn-local `scripts/agent_*` files for guard preflight. In a Tenn
+control-plane checkout, these local follow-up checks may add focused validation:
+
+```bash
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
 python3 scripts/agent_task_ledger.py --repo-root . validate
 ```
