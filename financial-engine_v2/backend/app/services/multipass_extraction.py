@@ -238,6 +238,13 @@ _SCALE_UNIT_ROW_CONTEXT_RE = _re.compile(
     r"half year|six months|quarter)$",
     _re.IGNORECASE,
 )
+_SCALE_UNIT_ROW_CONTEXT_PHRASE_RE = _re.compile(
+    r"\b(?:for\s+the\s+)?(?:year|half[-\s]?year|six\s+months|quarter)\s+ended\b"
+    r"|\bas\s+at\b"
+    r"|\b(?:current|prior|comparative)\s+(?:period|year|half|quarter)\b"
+    r"|\b(?:30|31)\s+(?:january|march|june|september|december)\b",
+    _re.IGNORECASE,
+)
 
 _MILLION_UNIT_BOUNDARY = r"(?=\s|$|\)|%|,|;|:)"
 _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
@@ -335,6 +342,61 @@ def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
     return ranked[0][0]
 
 
+def _detect_scale_marker_in_text(text: str) -> str:
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, text, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
+def _is_scale_unit_context_cell(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    if not text:
+        return True
+    return bool(
+        _SCALE_UNIT_ROW_CONTEXT_RE.search(text)
+        or _SCALE_UNIT_ROW_CONTEXT_PHRASE_RE.search(text)
+    )
+
+
+def _scale_marker_cell_is_unit_context(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    for pattern, _scale in _SCALE_PATTERNS:
+        text = _re.sub(pattern, " ", text, flags=_re.IGNORECASE)
+    text = _re.sub(
+        r"(?<!\w)(?:A\$|\$A|US\$|\$US|\$|AUD|USD|RP\.?)(?!\w)",
+        " ",
+        text,
+        flags=_re.IGNORECASE,
+    )
+    text = _re.sub(r"[\(\)\[\],;:]+", " ", text)
+    text = " ".join(text.split()).strip()
+    return _is_scale_unit_context_cell(text)
+
+
+def _detect_scale_from_unit_rows(rows: list[list[Any]] | None) -> str:
+    for row in rows or []:
+        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
+        if not nonempty:
+            continue
+        detected_scale = "unknown"
+        non_unit_cells: list[str] = []
+        for cell in nonempty:
+            cell_scale = _detect_scale_marker_in_text(cell)
+            if cell_scale != "unknown":
+                if _scale_marker_cell_is_unit_context(cell):
+                    detected_scale = cell_scale
+                else:
+                    non_unit_cells.append(cell)
+                continue
+            if _is_scale_unit_context_cell(cell):
+                continue
+            non_unit_cells.append(cell)
+        if detected_scale != "unknown" and not non_unit_cells:
+            return detected_scale
+    return "unknown"
+
+
 def _detect_explicit_currency_million_header(tables) -> str | None:
     hits: dict[str, int] = {}
     for table in tables[:20]:
@@ -361,39 +423,16 @@ def _detect_scale_from_table(table) -> str:
         surfaces.append(" ".join(str(h) for h in table.headers))
     if getattr(table, "caption", None):
         surfaces.append(str(table.caption))
-    for row in (table.rows or [])[:3]:
-        surfaces.append(" ".join(str(cell) for cell in row))
 
     combined = " ".join(surfaces)
-    for pattern, scale in _SCALE_PATTERNS:
-        if _re.search(pattern, combined, _re.IGNORECASE):
-            return scale
+    detected = _detect_scale_marker_in_text(combined)
+    if detected != "unknown":
+        return detected
 
     # Some parser paths fragment statement headings so the source-unit row
-    # (for example: "Notes | $m | $m") lands just below the first few rows.
-    # Only accept rows that are unit/header context, not arbitrary prose rows.
-    for row in (table.rows or [])[:8]:
-        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
-        if not nonempty:
-            continue
-        row_text = " ".join(nonempty)
-        detected_scale = "unknown"
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, row_text, _re.IGNORECASE):
-                detected_scale = scale
-                break
-        if detected_scale == "unknown":
-            continue
-        non_unit_cells = []
-        for cell in nonempty:
-            if any(_re.search(pattern, cell, _re.IGNORECASE) for pattern, _ in _SCALE_PATTERNS):
-                continue
-            if _SCALE_UNIT_ROW_CONTEXT_RE.search(cell):
-                continue
-            non_unit_cells.append(cell)
-        if not non_unit_cells:
-            return detected_scale
-    return "unknown"
+    # (for example: "Notes | $m | $m") lands below narrative rows. Only accept
+    # rows that are unit/header context, not arbitrary prose rows.
+    return _detect_scale_from_unit_rows(table.rows or [])
 
 
 def _detect_scale_from_tables(tables) -> str:
@@ -1646,6 +1685,132 @@ def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
     return parsed, False
 
 
+_CASHFLOW_STRONG_CAPEX_LABELS = (
+    "paymentsforpropertyplantandequipment",
+    "paymentforpropertyplantandequipment",
+    "purchasesofpropertyplantandequipment",
+    "purchaseofpropertyplantandequipment",
+    "paymentsforppe",
+    "paymentforppe",
+    "purchasesofppe",
+    "purchaseofppe",
+)
+_CASHFLOW_WEAK_CAPEX_ROW_MARKERS = (
+    "acquisitionofsubsidiary",
+    "acquisitionofbusiness",
+    "businesscombination",
+    "cashacquired",
+    "netofcashacquired",
+)
+_CASHFLOW_CAPEX_OUTFLOW_MARKERS = (
+    "payment",
+    "payments",
+    "purchase",
+    "purchases",
+    "acquisition",
+    "acquisitions",
+    "expenditure",
+    "additions",
+)
+_CASHFLOW_EXPLICIT_AMOUNT_RE = _re.compile(
+    r"(?P<paren>\()?\s*"
+    r"(?P<currency>A\$|\$A|US\$|\$US|\$|AUD|USD)?\s*"
+    r"(?P<num>[+-]?(?:\d+(?:,\d{3})+|\d+)(?:\.\d+)?)\s*"
+    r"(?P<suffix>thousands?|millions?|billions?|trillions?|mn|m|bn|b|tn|t)\b"
+    r"\)?",
+    _re.IGNORECASE,
+)
+
+
+def _normalise_fragmented_pdf_text(value: Any) -> str:
+    text = " ".join(str(value or "").replace("\u00a0", " ").split()).strip()
+    text = _re.sub(r"(?<=\d)\s+\.\s*(?=\d)", ".", text)
+    text = _re.sub(r"\bmilli\s+on\b", "million", text, flags=_re.IGNORECASE)
+    return text
+
+
+def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return True
+    return any(marker in compact for marker in _CASHFLOW_WEAK_CAPEX_ROW_MARKERS)
+
+
+def _cashflow_row_has_strong_capex_label(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS)
+
+
+def _cashflow_row_is_outflow(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_CAPEX_OUTFLOW_MARKERS)
+
+
+def _cashflow_capex_row_ref(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        if _CASHFLOW_EXPLICIT_AMOUNT_RE.search(text):
+            break
+        label_cells.append(text)
+
+    label = _normalise_fragmented_pdf_text(" ".join(label_cells))
+    if label:
+        return label
+    return _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))[:180]
+
+
+def _parse_cashflow_capex_row_amount(row: list[Any], scale: str) -> float | None:
+    multiplier = SCALE_MULTIPLIERS.get(scale, 1)
+    for cell in row[1:]:
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        raw_value, has_explicit_unit = parsed
+        if not has_explicit_unit and abs(raw_value) < 100:
+            continue
+        value = raw_value if has_explicit_unit else raw_value * multiplier
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+
+    row_text = _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    for match in _CASHFLOW_EXPLICIT_AMOUNT_RE.finditer(row_text):
+        try:
+            raw_value = float(match.group("num").replace(",", ""))
+        except ValueError:
+            continue
+        suffix = str(match.group("suffix") or "").lower()
+        value = raw_value * _ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS[suffix]
+        if match.group("paren"):
+            value = -abs(value)
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+    return None
+
+
+def _recover_preferred_cashflow_capex_from_table(
+    table, scale: str
+) -> tuple[float, str] | None:
+    for row in table.rows or []:
+        if not _cashflow_row_has_strong_capex_label(row):
+            continue
+        value = _parse_cashflow_capex_row_amount(row, scale)
+        if value is None:
+            continue
+        return value, _cashflow_capex_row_ref(row)
+    return None
+
+
 def _is_missing_row_ref(value: Any) -> bool:
     text = " ".join(str(value or "").strip().lower().split())
     return not text or text in {"unknown", "n/a", "na", "null", "none", "-"}
@@ -1958,6 +2123,8 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        if not isinstance(extracted["row_refs"], dict):
+            extracted["row_refs"] = {}
         extracted["period_col"] = raw_payload.get("period_col")
         if table_type == "income_statement":
             extracted["row_refs"] = _expand_income_statement_row_refs(
@@ -2003,6 +2170,21 @@ def _extract_single_table(
             and not extracted["row_refs"].get("net_debt")
         ):
             extracted["row_refs"]["net_debt"] = "Net debt"
+        if table_type == "cashflow_statement" and (
+            extracted.get("capex") is None
+            or _cashflow_capex_row_is_weak(extracted["row_refs"].get("capex"))
+        ):
+            recovered_capex = _recover_preferred_cashflow_capex_from_table(
+                table, scale_for_table
+            )
+            if recovered_capex is not None:
+                recovered_value, recovered_row_ref = recovered_capex
+                extracted["capex"] = recovered_value
+                extracted["row_refs"]["capex"] = recovered_row_ref
+                logger.info(
+                    "Recovered cashflow capex from preferred PP&E row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
         return extracted
 
     prompt = _build_prompt(markdown)

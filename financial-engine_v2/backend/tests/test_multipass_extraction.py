@@ -3284,6 +3284,121 @@ def test_pass4_common_metric_source_scale_overrides_document_scale():
     assert _common_metric_source_scale(payload, "millions") == "thousands"
 
 
+def test_cashflow_scale_detection_prefers_formal_unit_row_over_prose_million():
+    """RMS-style merged cash-flow tables must not inherit scale from prose rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _detect_scale_from_table
+
+    table = DoclingTable(
+        page_number=15,
+        caption="Merged cashflow statement (Appendix 5B)",
+        headers=[
+            "STATEMENT OF CASH FLOWS\nFor the half-year ended 31 December 2025",
+            "",
+            "",
+            "",
+            "",
+        ],
+        rows=[
+            [
+                "STATEMENT OF CASH FLOWS\nFor the half-year ended 31 December 2025",
+                "",
+                "",
+                "",
+                "",
+            ],
+            ["Cash flow", "", "", "", ""],
+            [
+                "The cash provided by operating activities of $171.2 million was down",
+                "",
+                "",
+                "",
+                "",
+            ],
+            ["Cash used in investing activities totalled $211.4 million", "", "", "", ""],
+            ["2025", "", "", "2024", ""],
+            ["Note", "", "$'000", "", "$'000"],
+            ["Cash flows from / (used in) operating activities", "", "", "", ""],
+            ["Net cash provided by operating activities", "", "171,179", "", "327,338"],
+        ],
+    )
+
+    assert _detect_scale_from_table(table) == "thousands"
+
+
+def test_cashflow_capex_prefers_ppe_row_over_acquisition_outflow():
+    """RMS capex should bind to PP&E, not acquisition-of-subsidiary cash flow."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=15,
+        caption="Merged cashflow statement (Appendix 5B)",
+        headers=[
+            "STATEMENT OF CASH FLOWS\nFor the half-year ended 31 December 2025",
+            "",
+            "",
+            "",
+            "",
+        ],
+        rows=[
+            ["2025", "", "", "2024", ""],
+            ["Note", "", "$'000", "", "$'000"],
+            ["Cash flows from / (used in) operating activities", "", "", "", ""],
+            ["Net cash provided by operating activities", "", "171,179", "", "327,338"],
+            ["Cash flows (used in) / from investing activities", "", "", "", ""],
+            ["Payments for property, plant and equipment", "10", "(25,239)", "", "(11,748)"],
+            ["Payments for mine development", "11", "(83,614)", "", "(60,981)"],
+            ["Payments for acquisition of subsidiary, net of cash acquired", "15", "(71,217)", "", "-"],
+            ["Net cash used in investing activities", "", "(211,390)", "", "(246,051)"],
+            ["Cash flows used in financing activities", "", "", "", ""],
+            ["Net cash used in financing activities", "", "(84,747)", "", "(51,106)"],
+        ],
+    )
+
+    raw_response = {
+        "operating_cf": "171,179",
+        "investing_cf": "(211,390)",
+        "financing_cf": "(84,747)",
+        "cash_end": None,
+        "capex": "(71,217)",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "operating_cf": "Net cash provided by operating activities",
+            "investing_cf": "Net cash used in investing activities",
+            "financing_cf": "Net cash used in financing activities",
+            "capex": "Payments for acquisition of subsidiary, net of cash acquired",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["_scale"] == "thousands"
+    assert result["operating_cf"] == 171_179_000
+    assert result["investing_cf"] == -211_390_000
+    assert result["financing_cf"] == -84_747_000
+    assert result["capex"] == -25_239_000
+    assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
+
+
 def test_pass4_emits_structured_field_provenance_for_metrics():
     """Reconciled payloads should expose machine-readable per-metric provenance."""
     from app.services.multipass_extraction import _run_pass4_reconciler
