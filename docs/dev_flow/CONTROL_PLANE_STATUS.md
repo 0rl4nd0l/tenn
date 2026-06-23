@@ -1,10 +1,11 @@
 # Tenn Control Plane Status
 
-Status: control-plane status after merged PR #395 and portable guard runner
-preservation.
+Status: control-plane status after merged PR #397 portable guard preflight
+guidance and PR report-state documentation refresh.
 
-Verified from canonical commit
-`1a0f1a03741d692089a0125ecb2f10691b8da597` from
+Verified from branch
+`control-plane/docs-skills-surface-stale-report-cleanup-v1-20260623`, rebased
+onto canonical commit `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb` from
 `origin/migration/clean-runtime-baseline-reconstruct-v1`. Git remote
 `origin/HEAD` points at `origin/main`; Tenn canonical for this work is the
 migration branch requested by the task.
@@ -28,7 +29,7 @@ migration branch requested by the task.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | AGENTS.md policy | `AGENTS.md` | Repo constitution for source-of-truth, task cards, registry, Runtime Functionality Proof, skills, and `WAITING_ON_USER`. | IMPLEMENTED | Codex should read it automatically; force it with `Read AGENTS.md fully first.` | Full file read in current worktree; runtime proof fields present and docs check passed. | Automatic loading is host/Codex behavior, not repo-proven by the file itself. | Keep using it as first repo authority; verify loading by asking Codex to quote current commit and task-card rules. |
 | AGENTS.md automatic loading | Host Codex runtime | Loads repo instructions into the active agent session. | HOST_ONLY | Start Codex in repo. | Current session followed the repo instructions after explicit read. | No repo-side test proves the host loaded it without the explicit read. | For critical work, explicitly request `Read AGENTS.md fully first`. |
-| Skill surface guide | `docs/dev_flow/SKILLS_SURFACE.md` | Defines visible Tenn skill surface and retired entrypoints. | PARTIAL | Read the file before skill routing questions. | Full file read; visible skill count is 10. | Freshness metadata still references pending PR #380 even though PR #382 is canonical. | Refresh metadata in a tiny docs task. |
+| Skill surface guide | `docs/dev_flow/SKILLS_SURFACE.md` | Defines visible Tenn skill surface and retired entrypoints. | IMPLEMENTED | Read the file before skill routing questions. | Full file read; visible skill count is 10; freshness metadata verified at `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`. | Host picker/autocomplete visibility was not probed and remains `DATA_MISSING`. | Refresh metadata when `.agents/skills/**/SKILL.md`, `docs/dev_flow/SKILLS_SURFACE.md`, or `docs/dev_flow/templates/*` changes. |
 | `tenn-issue` | `.agents/skills/tenn-issue/SKILL.md` | Read-only issue discovery, triage, and "what next?" guidance. | IMPLEMENTED | Ask for `tenn-issue` or ask Codex to read the skill file. | Skill exists with H1/frontmatter; PR/report evidence shows prior usage. | It is an instruction skill, not a CLI binary. | Use for backlog discovery and next-action selection. |
 | `tenn-fix` | `.agents/skills/tenn-fix/SKILL.md` | Bounded implementation orchestrator with task-card, registry, ledger, docs-impact, worker, validation, and PR gates. | IMPLEMENTED | Ask for `tenn-fix`; require task-card-first execution. | Skill exists with H1/frontmatter; contract scripts validate this audit task card. | Depends on agent discipline and Runtime Functionality Proof for runtime work. | Use for implementation only after scope and allowlist are explicit. |
 | `tenn-review-board` | `.agents/skills/tenn-review-board/SKILL.md`; `docs/dev_flow/templates/BOARD*.json` | Multi-perspective and contrarian review for risky decisions. | IMPLEMENTED | Ask for `tenn-review-board`, not generic `$review`. | Skill and board templates exist. | No universal schema/CI validator was found for board outputs. | Use for decisions before risky implementation. |
