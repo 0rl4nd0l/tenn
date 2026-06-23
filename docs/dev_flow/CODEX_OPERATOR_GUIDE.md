@@ -117,7 +117,11 @@ python3 scripts/agent_job_contract.py check-closeout <task-card> --repo-root .
 For active task cards, `scripts/agent_job_hook.py` runs this gate on
 Stop/SessionEnd. Runtime-like cards must either include the proof fields in
 their report artifacts or explicitly declare report-only, docs-only, or
-control-plane-only scope.
+control-plane-only scope. Use task-card frontmatter such as
+`closeout_scope: report_only`, `closeout_scope: docs_only`, or
+`closeout_scope: control_plane_only`; alternatively add an anchored body line
+like `Closeout scope: report-only`. Casual mentions of these words do not
+exempt a runtime-like card.
 
 ### OpenCode Worker Scout
 

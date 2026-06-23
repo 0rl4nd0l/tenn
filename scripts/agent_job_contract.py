@@ -55,18 +55,23 @@ RUNTIME_LIKE_KEYWORDS = {
     "scheduler",
     "service",
 }
-NON_RUNTIME_SCOPE_PHRASES = {
-    "audit-only",
-    "audit only",
-    "control-plane",
-    "control plane",
-    "docs-only",
-    "docs only",
-    "documentation-only",
-    "documentation only",
-    "report-only",
-    "report only",
+NON_RUNTIME_CLOSEOUT_SCOPES = {
+    "audit_only",
+    "control_plane_only",
+    "docs_only",
+    "documentation_only",
+    "report_only",
 }
+NON_RUNTIME_CLOSEOUT_SCOPE_KEYS = {"closeout_scope", "task_scope"}
+NON_RUNTIME_SCOPE_DECLARATION_RE = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?"
+    r"(?:(?:closeout[ \t]+)?scope|task[ \t]+scope|mode)[ \t]*:[ \t]*`?"
+    r"([A-Za-z_-]+(?:[ \t]+[A-Za-z_-]+){0,2})`?\b"
+)
+THIS_TASK_SCOPE_DECLARATION_RE = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?this[ \t]+task[ \t]+is[ \t]+`?"
+    r"([A-Za-z_-]+(?:[ \t]+[A-Za-z_-]+){0,2})`?\b"
+)
 RUNTIME_PROOF_FIELD_LABELS = [
     "intended output",
     "live output location",
@@ -413,13 +418,31 @@ def _task_card_search_text(parsed: ParsedTaskCard) -> str:
     return "\n".join(parts).lower()
 
 
-def _declares_non_runtime_closeout_scope(text: str) -> bool:
-    return any(phrase in text for phrase in NON_RUNTIME_SCOPE_PHRASES)
+def _normalize_closeout_scope(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = re.sub(r"[\s-]+", "_", value.strip().lower())
+    return normalized or None
+
+
+def _declares_non_runtime_closeout_scope(parsed: ParsedTaskCard) -> bool:
+    for key in NON_RUNTIME_CLOSEOUT_SCOPE_KEYS:
+        normalized = _normalize_closeout_scope(parsed.metadata.get(key))
+        if normalized in NON_RUNTIME_CLOSEOUT_SCOPES:
+            return True
+
+    for pattern in (NON_RUNTIME_SCOPE_DECLARATION_RE, THIS_TASK_SCOPE_DECLARATION_RE):
+        for match in pattern.finditer(parsed.body):
+            normalized = _normalize_closeout_scope(match.group(1))
+            if normalized in NON_RUNTIME_CLOSEOUT_SCOPES:
+                return True
+
+    return False
 
 
 def _requires_runtime_functionality_proof(parsed: ParsedTaskCard) -> bool:
     text = _task_card_search_text(parsed)
-    if _declares_non_runtime_closeout_scope(text):
+    if _declares_non_runtime_closeout_scope(parsed):
         return False
     return any(re.search(rf"\b{re.escape(keyword)}\b", text) for keyword in RUNTIME_LIKE_KEYWORDS)
 
