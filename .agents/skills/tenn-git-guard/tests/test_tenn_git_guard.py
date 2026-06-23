@@ -227,6 +227,73 @@ class TennGitGuardTest(unittest.TestCase):
             self.assertTrue(payload["stop_reimplementation"])
             self.assertEqual(payload["final_decision"], "block")
 
+    def test_local_canonical_branch_behind_remote_blocks_as_stale_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(base)
+
+            run(["git", "checkout", "-b", "migration/clean-runtime-baseline-reconstruct-v1"], cwd=repo)
+            local_canonical_head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            current_tree = subprocess.check_output(
+                ["git", "rev-parse", f"{local_canonical_head}^{{tree}}"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            remote_canonical_head = subprocess.check_output(
+                ["git", "commit-tree", current_tree, "-m", "remote canonical"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            run(
+                [
+                    "git",
+                    "update-ref",
+                    "refs/remotes/origin/migration/clean-runtime-baseline-reconstruct-v1",
+                    remote_canonical_head,
+                ],
+                cwd=repo,
+            )
+            self.assertEqual(
+                subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=repo,
+                    text=True,
+                ).strip(),
+                local_canonical_head,
+            )
+            self.assertNotEqual(
+                subprocess.run(
+                    [
+                        "git",
+                        "merge-base",
+                        "HEAD",
+                        "origin/migration/clean-runtime-baseline-reconstruct-v1",
+                    ],
+                    cwd=repo,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                ).returncode,
+                0,
+            )
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="repo path ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["path_ownership"]["classification"], "STALE_PATH")
+            self.assertTrue(payload["path_ownership_blocks_implementation"])
+            self.assertTrue(payload["stop_reimplementation"])
+            self.assertEqual(payload["final_decision"], "block")
+
     def test_not_git_repo_blocks_with_path_ownership_classification(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "not-git"
