@@ -1,6 +1,6 @@
 # Repo Path Ownership Work Preservation
 
-Status: local validation passed; PR publication pending.
+Status: PR opened.
 
 ## Summary
 
@@ -17,6 +17,8 @@ Current canonical evidence:
   `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`.
 - Fresh task worktree:
   `/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623`.
+- PR:
+  `https://github.com/0rl4nd0l/tenn/pull/399`.
 
 ## What Changed
 

@@ -1,6 +1,6 @@
 # Validation
 
-Status: local validation passed; PR publication pending.
+Status: local validation passed; PR opened.
 
 ## Completed
 
@@ -26,6 +26,9 @@ Status: local validation passed; PR publication pending.
 | `git diff --cached --name-only` | 0 | Staged files match the task-card allowlist. |
 | `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/repo_path_ownership_work_preservation_v1_20260623.md --no-write-report` | 0 | Allowed staged diff only, including forced report artifacts. |
 | `git diff --cached --check` | 0 | No staged whitespace errors. |
+| `git commit -m "chore(control-plane): enforce repo path ownership preflight"` | 0 | Created commit `c9a32f92e9f49f0d6cf11a4116188300bbc2baa1`; pre-commit skipped missing local `ruff`. |
+| `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/repo-path-ownership-work-preservation-v1-20260623` | 0 | Branch pushed; hook skipped missing local `ruff`/`pytest` after focused validation and ran markdown hygiene successfully. |
+| `gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/repo-path-ownership-work-preservation-v1-20260623 ...` | 0 | Opened PR #399: `https://github.com/0rl4nd0l/tenn/pull/399`. |
 
 ## Final Gates
 

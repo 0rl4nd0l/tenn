@@ -1,6 +1,11 @@
 # PR Review
 
-Status: local review pass.
+Status: PR opened.
+
+PR: https://github.com/0rl4nd0l/tenn/pull/399
+
+Head commit: `c9a32f92e9f49f0d6cf11a4116188300bbc2baa1` before this report
+closeout update.
 
 ## Review Scope
 
