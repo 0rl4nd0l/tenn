@@ -1,6 +1,6 @@
 # Repo Path Ownership Work Preservation
 
-Status: PR opened.
+Status: PR opened; update required before merge.
 
 ## Summary
 
@@ -19,6 +19,9 @@ Current canonical evidence:
   `/home/l4nd0/tenn-repo-path-ownership-work-preservation-v1-20260623`.
 - PR:
   `https://github.com/0rl4nd0l/tenn/pull/399`.
+- Current merge blocker:
+  canonical advanced to `bb4df393f046829cd5d81ba91cde0d5a70352260`
+  after PR #398; GitHub reports PR #399 as `CONFLICTING`.
 
 ## What Changed
 

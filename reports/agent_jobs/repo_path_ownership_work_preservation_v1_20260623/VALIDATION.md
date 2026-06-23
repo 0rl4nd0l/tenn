@@ -1,6 +1,6 @@
 # Validation
 
-Status: local validation passed; PR opened.
+Status: local validation passed; PR opened; merge update required.
 
 ## Completed
 
@@ -29,6 +29,10 @@ Status: local validation passed; PR opened.
 | `git commit -m "chore(control-plane): enforce repo path ownership preflight"` | 0 | Created commit `c9a32f92e9f49f0d6cf11a4116188300bbc2baa1`; pre-commit skipped missing local `ruff`. |
 | `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/repo-path-ownership-work-preservation-v1-20260623` | 0 | Branch pushed; hook skipped missing local `ruff`/`pytest` after focused validation and ran markdown hygiene successfully. |
 | `gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/repo-path-ownership-work-preservation-v1-20260623 ...` | 0 | Opened PR #399: `https://github.com/0rl4nd0l/tenn/pull/399`. |
+| `gh pr view 399 --json number,url,title,state,isDraft,baseRefName,headRefName,mergeStateStatus,mergeable,reviewDecision,statusCheckRollup,commits` | 0 | PR #399 is `OPEN`, mergeStateStatus `DIRTY`, mergeable `CONFLICTING`, statusCheckRollup `null`. |
+| `gh pr checks 399` | 1 | Reported no checks on `migration/clean-runtime-baseline-reconstruct-v1`. |
+| `git fetch origin migration/clean-runtime-baseline-reconstruct-v1` | 0 | Canonical advanced from `b58c9f1c` to `bb4df393` after PR #398. |
+| `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "repo path ownership work preservation duplicate work" --json` | 0 | After fetching new canonical, guard correctly classified this branch as `STALE_PATH` with `stop_reimplementation=true`; merge/rebase was not performed without owner approval. |
 
 ## Final Gates
 
