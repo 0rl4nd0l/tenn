@@ -16,6 +16,9 @@ instead of expanding this file.
   `/home/l4nd0`, NVMe, venv, Docker, or service availability without checking.
 - Use `docs/README.md` as the documentation source map before browsing the
   wider docs tree or historical report archives.
+- Use `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` before
+  implementation-capable work when repo path ownership, stale worktrees, or
+  duplicate-work preservation is in scope.
 - Use `docs/entrypoints.md` for runtime entrypoint context only when the task
   needs runtime work. Most repo-hygiene tasks should not start services.
 
@@ -90,6 +93,8 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
   owner-boundary paths.
 - Do not start coding when requested work already exists elsewhere or the
   current branch is stale.
+- If cwd is not a valid Tenn git worktree, stop or create a fresh sibling
+  worktree from current canonical; do not repair or clean the wrong path.
 
 ### Advanced-Code And Stale-Work Policy
 
@@ -151,6 +156,10 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 - Do not reimplement work that already exists. Classify similar work before
   coding as active, open-PR, merged-canonical, stale-preserve, superseded,
   owner-boundary, or unknown.
+- For owner-facing preservation decisions, use `ADOPT`, `CONTINUE`,
+  `MERGE_READY`, `PARK`, `SUPERSEDE`, `BLOCKED`, `DUPLICATE`, or
+  `DATA_MISSING` as defined in
+  `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md`.
 - Implementation-capable sessions must write or update a ledger entry for their
   claim, progress, wait/block state, PR, merge, done, parked, or superseded
   state.

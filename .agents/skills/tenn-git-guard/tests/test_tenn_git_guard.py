@@ -41,10 +41,11 @@ def make_repo(base: Path) -> Path:
     return repo
 
 
-def make_fake_control_plane(base: Path) -> Path:
+def make_fake_control_plane(base: Path, *, ledger_search_payload: dict[str, object] | None = None) -> Path:
     root = base / "control-plane"
     scripts = root / "scripts"
     scripts.mkdir(parents=True)
+    search_payload = ledger_search_payload or {"ok": True, "matches": []}
     (scripts / "agent_job_contract.py").write_text("# fake contract\n", encoding="utf-8")
     (scripts / "agent_job_registry.py").write_text(
         "\n".join(
@@ -66,6 +67,7 @@ def make_fake_control_plane(base: Path) -> Path:
         "\n".join(
             [
                 "import json, os, sys",
+                f"SEARCH_PAYLOAD = {json.dumps(search_payload, sort_keys=True)!r}",
                 "cmd = sys.argv[1] if len(sys.argv) > 1 else ''",
                 "if cmd == 'resolve-path':",
                 "    print(os.path.join("
@@ -74,7 +76,7 @@ def make_fake_control_plane(base: Path) -> Path:
                 "elif cmd == 'validate':",
                 "    print(json.dumps({'ok': True, 'data_missing': [], 'entry_count': 0}))",
                 "elif cmd == 'search':",
-                "    print(json.dumps({'ok': True, 'matches': []}))",
+                "    print(json.dumps(json.loads(SEARCH_PAYLOAD)))",
                 "else:",
                 "    raise SystemExit(2)",
             ]
@@ -173,10 +175,103 @@ class TennGitGuardTest(unittest.TestCase):
 
             payload = guard.preflight(
                 repo_root=repo,
+                topic="dirty",
                 env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
             )
 
             self.assertTrue(any("dirty.txt" in row for row in payload["dirty_status"]))
+            self.assertEqual(payload["path_ownership"]["classification"], "DIRTY_RELATED_WORKTREE")
+            self.assertTrue(payload["path_ownership_blocks_implementation"])
+            self.assertTrue(payload["stop_reimplementation"])
+            self.assertEqual(payload["final_decision"], "block")
+
+    def test_branch_not_based_on_current_canonical_blocks_as_stale_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(base)
+
+            run(["git", "checkout", "-b", "canonical"], cwd=repo)
+            (repo / "canonical.txt").write_text("canonical\n", encoding="utf-8")
+            run(["git", "add", "canonical.txt"], cwd=repo)
+            run(["git", "commit", "-m", "canonical"], cwd=repo)
+            canonical_head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            run(
+                [
+                    "git",
+                    "update-ref",
+                    "refs/remotes/origin/migration/clean-runtime-baseline-reconstruct-v1",
+                    canonical_head,
+                ],
+                cwd=repo,
+            )
+
+            run(["git", "checkout", "master"], cwd=repo)
+            run(["git", "checkout", "-b", "stale-task"], cwd=repo)
+            (repo / "task.txt").write_text("task\n", encoding="utf-8")
+            run(["git", "add", "task.txt"], cwd=repo)
+            run(["git", "commit", "-m", "task"], cwd=repo)
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="repo path ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["path_ownership"]["classification"], "STALE_PATH")
+            self.assertTrue(payload["path_ownership_blocks_implementation"])
+            self.assertTrue(payload["stop_reimplementation"])
+            self.assertEqual(payload["final_decision"], "block")
+
+    def test_not_git_repo_blocks_with_path_ownership_classification(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "not-git"
+            path.mkdir()
+
+            payload = guard.preflight(repo_root=path, topic="repo path ownership")
+
+            self.assertEqual(payload["final_decision"], "block")
+            self.assertEqual(payload["errors"], ["repo_root_is_not_a_git_repository"])
+            self.assertEqual(payload["path_ownership"]["classification"], "NOT_GIT_REPO")
+            self.assertTrue(payload["path_ownership_blocks_implementation"])
+            self.assertTrue(payload["stop_reimplementation"])
+
+    def test_ledger_proven_open_pr_blocks_duplicate_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(
+                base,
+                ledger_search_payload={
+                    "ok": True,
+                    "data_missing": [],
+                    "issues": [],
+                    "duplicate_work_classification": "OPEN_PR_WAIT",
+                    "matches": [
+                        {
+                            "source": "live",
+                            "path": "ledger.jsonl",
+                            "line": 1,
+                            "entry": {"task_id": "existing", "status": "pr_opened"},
+                        }
+                    ],
+                },
+            )
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="repo path ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["duplicate_work_classification"], "OPEN_PR_WAIT")
+            self.assertEqual(payload["duplicate_work_status"], "DUPLICATE")
+            self.assertTrue(payload["stop_reimplementation"])
+            self.assertEqual(payload["final_decision"], "block")
 
 
 if __name__ == "__main__":

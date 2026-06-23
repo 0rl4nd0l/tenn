@@ -1,13 +1,13 @@
 # Tenn Skill Surface
 
-last_verified_at: 2026-06-23T09:23:26Z
-last_verified_commit: b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb
-last_verified_pr: 397
+last_verified_at: 2026-06-23T10:17:43Z
+last_verified_commit: bb4df393f046829cd5d81ba91cde0d5a70352260
+last_verified_pr: 399
 maintenance: hand_maintained
 verification_scope: repo-visible skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
 freshness_evidence:
-- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `b58c9f1ce79b5e9583b1b30cf98b3507867f0aeb`
-- `git log --oneline -- docs/dev_flow/SKILLS_SURFACE.md | head -1` -> `28c3d9e8 Document portable guard preflight first`
+- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `bb4df393f046829cd5d81ba91cde0d5a70352260`
+- `git log --oneline -- docs/dev_flow/SKILLS_SURFACE.md | head -1` -> `65c878d3 docs(control-plane): refresh skills surface and PR report states`
 - `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `10`
 data_missing:
 - Host picker/autocomplete visibility was not probed.
@@ -100,14 +100,19 @@ one-off PDF fixes.
 
 `tenn-git-guard` remains a visible repo skill because wrappers need a shared,
 current preflight contract. It is not a user-facing cleanup command. It owns
-branch, worktree, dirty-state, registry, task-ledger, duplicate-work, task-card,
-and allowed-file preflight.
+branch, worktree, path ownership, dirty-state, registry, task-ledger,
+duplicate-work, task-card, and allowed-file preflight.
 
 The guard must use the portable skill runner before requiring repo-local Tenn
 scripts. Runtime/product repos are valid guard targets even when they do not
 contain `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
 `scripts/agent_job_contract.py`; missing ledger rows should be reported as
 `DATA_MISSING`, not as missing runtime repo files.
+
+For candidate path audits, add `--audit-path <path>` and classify results with
+`docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md`. Do not start
+implementation from `NOT_GIT_REPO`, `SPARSE_EVIDENCE_DIR`, `RUNTIME_DIR`,
+`STALE_PATH`, `DIRTY_RELATED_WORKTREE`, or ambiguous `DATA_MISSING` paths.
 
 First-class preflight command:
 

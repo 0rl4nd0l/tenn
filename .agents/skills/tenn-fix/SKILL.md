@@ -14,11 +14,15 @@ board decision, task card, handoff, or explicit fix request.
 
 1. Read `ISSUE.md`, `BOARD_DECISION.json`, task card, or the current user fix
    request.
-2. Run `tenn-git-guard` preflight.
+2. Run `tenn-git-guard` preflight and inspect `path_ownership`,
+   `canonical_head`, `duplicate_work_status`, and `stop_reimplementation`.
 3. Stop when the guard returns `OPEN_PR_WAIT` or `MERGED_USE_CANONICAL` unless
    Orlando explicitly overrides with continue, adopt, or supersede instructions.
    Stop on `OWNER_BOUNDARY` or `UNKNOWN_ASK` when the next meaningful step needs
    an owner decision.
+   Also stop when `path_ownership.classification` is not a valid clean
+   canonical/task worktree; create a fresh sibling worktree from canonical only
+   when the task card and owner boundaries allow it.
 4. Create or validate a task card before any mutation.
 5. Confirm every intended path is inside the task-card `allowed_files`.
 6. Write or update Task Ledger state when the workflow is implementation-capable:

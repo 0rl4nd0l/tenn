@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +31,46 @@ KNOWN_CONTROL_PLANE_ROOTS = (
     "tenn-agent-ledger-runtime-handoff-v1-20260617",
 )
 DEFAULT_FALLBACK_BASE = "origin/migration/clean-runtime-baseline-reconstruct-v1"
+DEFAULT_CANONICAL_BRANCH = DEFAULT_FALLBACK_BASE
+CANONICAL_BRANCH_REF = "refs/heads/migration/clean-runtime-baseline-reconstruct-v1"
+PATH_CLASSIFICATIONS = {
+    "VALID_CANONICAL_WORKTREE",
+    "VALID_TASK_WORKTREE",
+    "SPARSE_EVIDENCE_DIR",
+    "RUNTIME_DIR",
+    "NOT_GIT_REPO",
+    "STALE_PATH",
+    "DIRTY_RELATED_WORKTREE",
+    "DIRTY_UNRELATED_WORKTREE",
+    DATA_MISSING,
+}
+PATH_BLOCKING_CLASSIFICATIONS = {
+    "SPARSE_EVIDENCE_DIR",
+    "RUNTIME_DIR",
+    "NOT_GIT_REPO",
+    "STALE_PATH",
+    "DIRTY_RELATED_WORKTREE",
+    DATA_MISSING,
+}
+BLOCKING_DUPLICATE_CLASSES = {
+    "ACTIVE_CONTINUE",
+    "OPEN_PR_WAIT",
+    "MERGED_USE_CANONICAL",
+    "STALE_PRESERVE",
+    "OWNER_BOUNDARY",
+}
+DUPLICATE_STATUS_MAP = {
+    "ACTIVE_CONTINUE": "CONTINUE",
+    "OPEN_PR_WAIT": "DUPLICATE",
+    "MERGED_USE_CANONICAL": "ADOPT",
+    "STALE_PRESERVE": "PARK",
+    "SUPERSEDED_IGNORE": "SUPERSEDE",
+    "OWNER_BOUNDARY": "BLOCKED",
+    "UNKNOWN_ASK": DATA_MISSING,
+    "DATA_MISSING_FALLBACK_REQUIRED": DATA_MISSING,
+    "DATA_MISSING_FALLBACK_CHECKED": DATA_MISSING,
+    "NO_MATCHING_ACTIVE_WORK_FOUND": "not_applicable",
+}
 
 
 def run_command(
@@ -67,6 +108,31 @@ def git_text(repo_root: Path, *args: str) -> str | None:
     if result["returncode"] != 0:
         return None
     return str(result["stdout"]).strip() or None
+
+
+def topic_tokens(topic: str | None) -> set[str]:
+    if not topic:
+        return set()
+    return {token for token in re.split(r"[^a-z0-9]+", topic.lower()) if len(token) >= 4}
+
+
+def dirty_rows_match_topic(rows: Sequence[str], topic: str | None) -> bool:
+    tokens = topic_tokens(topic)
+    if not tokens:
+        return False
+    haystack = "\n".join(rows).lower()
+    return any(token in haystack for token in tokens)
+
+
+def path_indicates_runtime(path: Path, requested_path: Path | None = None) -> bool:
+    for candidate in (requested_path, path):
+        if candidate is None:
+            continue
+        if candidate.name.endswith("-runtime"):
+            return True
+        if "runtime" in candidate.parts:
+            return True
+    return False
 
 
 def json_from_stdout(result: Mapping[str, Any]) -> Any:
@@ -201,6 +267,143 @@ def selected_base(repo_root: Path) -> tuple[str | None, str | None, list[str]]:
     return None, None, checked
 
 
+def canonical_head(repo_root: Path, base: str | None) -> str | None:
+    if not base:
+        return None
+    return git_text(repo_root, "rev-parse", "--verify", base)
+
+
+def path_ownership_for_git_worktree(
+    *,
+    path: Path,
+    requested_path: Path | None = None,
+    topic: str | None,
+    canonical_branch: str | None,
+    canonical_head_value: str | None,
+) -> dict[str, Any]:
+    git_root = git_text(path, "rev-parse", "--show-toplevel")
+    branch = git_text(path, "branch", "--show-current")
+    head = git_text(path, "rev-parse", "HEAD")
+    status_result = git_command(path, "status", "--short", "--untracked-files=all")
+    dirty_status = status_result["stdout"].splitlines() if status_result["returncode"] == 0 else []
+    merge_base = (
+        git_text(path, "merge-base", "HEAD", canonical_branch)
+        if canonical_branch and head
+        else None
+    )
+
+    reasons: list[str] = []
+    if dirty_status:
+        if dirty_rows_match_topic(dirty_status, topic):
+            classification = "DIRTY_RELATED_WORKTREE"
+            reasons.append("dirty status overlaps topic terms")
+        else:
+            classification = "DIRTY_UNRELATED_WORKTREE"
+            reasons.append("dirty status exists but does not overlap topic terms")
+    elif path_indicates_runtime(path, requested_path):
+        classification = "RUNTIME_DIR"
+        reasons.append("path name indicates runtime surface")
+    elif (
+        canonical_head_value
+        and head == canonical_head_value
+        and branch == "migration/clean-runtime-baseline-reconstruct-v1"
+    ):
+        classification = "VALID_CANONICAL_WORKTREE"
+        reasons.append("checked-out branch is canonical and HEAD equals canonical head")
+    elif canonical_head_value and head != canonical_head_value and merge_base == head:
+        classification = "STALE_PATH"
+        reasons.append("HEAD is an ancestor of canonical head")
+    elif canonical_head_value and merge_base and merge_base != canonical_head_value:
+        classification = "STALE_PATH"
+        reasons.append("branch is not based on current canonical head")
+    else:
+        classification = "VALID_TASK_WORKTREE"
+        reasons.append("valid git worktree; use only if branch/task ownership is correct")
+
+    return {
+        "path": str(requested_path or path),
+        "resolved_path": str(path),
+        "exists": path.exists(),
+        "classification": classification,
+        "is_git_worktree": True,
+        "git_root": git_root,
+        "branch": branch,
+        "head": head,
+        "canonical_branch": canonical_branch,
+        "canonical_head": canonical_head_value,
+        "merge_base_with_canonical": merge_base,
+        "dirty_status": dirty_status,
+        "reasons": reasons,
+    }
+
+
+def path_ownership_for_path(
+    path: Path,
+    *,
+    topic: str | None,
+    canonical_branch: str | None,
+    canonical_head_value: str | None,
+) -> dict[str, Any]:
+    requested_path = path.expanduser()
+    path = requested_path.resolve(strict=False)
+    if not path.exists():
+        return {
+            "path": str(requested_path),
+            "resolved_path": str(path),
+            "exists": False,
+            "classification": DATA_MISSING,
+            "is_git_worktree": False,
+            "reasons": ["path does not exist"],
+        }
+
+    git_root = git_text(path, "rev-parse", "--show-toplevel")
+    if git_root is not None:
+        return path_ownership_for_git_worktree(
+            path=path,
+            requested_path=requested_path,
+            topic=topic,
+            canonical_branch=canonical_branch,
+            canonical_head_value=canonical_head_value,
+        )
+
+    reasons: list[str] = []
+    if path_indicates_runtime(path, requested_path):
+        classification = "RUNTIME_DIR"
+        reasons.append("path exists but is not a git repo and name indicates runtime surface")
+    elif any((path / marker).exists() for marker in ("reports", "docs", ".agents")):
+        classification = "SPARSE_EVIDENCE_DIR"
+        reasons.append("path contains repo-like evidence directories but is not a git worktree")
+    else:
+        classification = "NOT_GIT_REPO"
+        reasons.append("path exists but git rev-parse failed")
+
+    return {
+        "path": str(requested_path),
+        "resolved_path": str(path),
+        "exists": True,
+        "classification": classification,
+        "is_git_worktree": False,
+        "reasons": reasons,
+    }
+
+
+def duplicate_classification_from_ledger(ledger_payload: Mapping[str, Any]) -> tuple[str | None, list[Any]]:
+    search = ledger_payload.get("search")
+    if not isinstance(search, Mapping):
+        return None, []
+    classification = search.get("duplicate_work_classification")
+    if not isinstance(classification, str) or not classification:
+        return None, []
+    matches = search.get("matches")
+    if isinstance(matches, list):
+        return classification, matches
+    return classification, []
+
+
+def duplicate_status_for_classification(classification: str) -> str:
+    return DUPLICATE_STATUS_MAP.get(classification, DATA_MISSING)
+
+
 def control_plane_env(env: Mapping[str, str], registry_root: Path) -> dict[str, str]:
     merged = dict(env)
     merged["TENN_AGENT_REGISTRY_ROOT"] = str(registry_root)
@@ -325,18 +528,31 @@ def preflight(
     *,
     repo_root: Path,
     topic: str | None = None,
+    audit_paths: Sequence[Path] | None = None,
     env: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     env = dict(env or os.environ)
     repo_root = repo_root.expanduser().resolve()
     git_root = git_text(repo_root, "rev-parse", "--show-toplevel")
     if git_root is None:
+        path_ownership = path_ownership_for_path(
+            repo_root,
+            topic=topic,
+            canonical_branch=DEFAULT_CANONICAL_BRANCH,
+            canonical_head_value=None,
+        )
         return {
             "schema_version": "tenn_git_guard_preflight_v1",
             "repo_root": str(repo_root),
             "status": "ERROR",
             "final_decision": "block",
             "errors": ["repo_root_is_not_a_git_repository"],
+            "canonical_branch": DEFAULT_CANONICAL_BRANCH,
+            "canonical_branch_ref": CANONICAL_BRANCH_REF,
+            "canonical_head": None,
+            "path_ownership": path_ownership,
+            "path_ownership_blocks_implementation": True,
+            "stop_reimplementation": True,
         }
 
     branch = git_text(repo_root, "branch", "--show-current")
@@ -344,6 +560,7 @@ def preflight(
     remotes = git_command(repo_root, "remote", "-v")
     status_result = git_command(repo_root, "status", "--short", "--untracked-files=all")
     base, merge_base, base_checked = selected_base(repo_root)
+    canonical_head_value = canonical_head(repo_root, DEFAULT_CANONICAL_BRANCH)
     control_plane_root, control_plane_checked = discover_control_plane_root(env)
     registry_root, registry_source, registry_checked = resolve_registry_root(repo_root, env)
     registry_status, registry_payload, registry_missing = run_registry_check(
@@ -360,6 +577,21 @@ def preflight(
         topic=topic,
     )
     fallback = fallback_sources(repo_root, topic)
+    path_ownership = path_ownership_for_path(
+        repo_root,
+        topic=topic,
+        canonical_branch=DEFAULT_CANONICAL_BRANCH,
+        canonical_head_value=canonical_head_value,
+    )
+    audited_paths = [
+        path_ownership_for_path(
+            candidate,
+            topic=topic,
+            canonical_branch=DEFAULT_CANONICAL_BRANCH,
+            canonical_head_value=canonical_head_value,
+        )
+        for candidate in (audit_paths or [])
+    ]
 
     data_missing_sources: list[str] = []
     if control_plane_root is None:
@@ -373,11 +605,30 @@ def preflight(
     data_missing_sources = sorted(set(data_missing_sources))
 
     guard_support_status = "PASS" if control_plane_root is not None else DATA_MISSING
-    if data_missing_sources:
+    ledger_duplicate_classification, ledger_duplicate_matches = duplicate_classification_from_ledger(ledger_payload)
+    if ledger_duplicate_classification in BLOCKING_DUPLICATE_CLASSES:
+        duplicate_work_classification = ledger_duplicate_classification
+        duplicate_work_blocks_implementation = True
+    elif ledger_duplicate_classification == "UNKNOWN_ASK" and ledger_duplicate_matches:
+        duplicate_work_classification = ledger_duplicate_classification
+        duplicate_work_blocks_implementation = True
+    elif data_missing_sources:
         duplicate_work_classification = "DATA_MISSING_FALLBACK_CHECKED"
-        final_decision = "warning"
+        duplicate_work_blocks_implementation = False
+    elif ledger_duplicate_classification == "SUPERSEDED_IGNORE":
+        duplicate_work_classification = ledger_duplicate_classification
+        duplicate_work_blocks_implementation = False
     else:
         duplicate_work_classification = "NO_MATCHING_ACTIVE_WORK_FOUND"
+        duplicate_work_blocks_implementation = False
+    duplicate_work_status = duplicate_status_for_classification(duplicate_work_classification)
+    path_ownership_classification = path_ownership.get("classification")
+    path_ownership_blocks_implementation = path_ownership_classification in PATH_BLOCKING_CLASSIFICATIONS
+    if duplicate_work_blocks_implementation or path_ownership_blocks_implementation:
+        final_decision = "block"
+    elif data_missing_sources:
+        final_decision = "warning"
+    else:
         final_decision = "pass"
 
     return {
@@ -388,6 +639,9 @@ def preflight(
         "head": head,
         "upstream": base if base and base != DEFAULT_FALLBACK_BASE else None,
         "base": base,
+        "canonical_branch": DEFAULT_CANONICAL_BRANCH,
+        "canonical_branch_ref": CANONICAL_BRANCH_REF,
+        "canonical_head": canonical_head_value,
         "merge_base": merge_base,
         "remotes": remotes["stdout"].splitlines() if remotes["returncode"] == 0 else [],
         "dirty_status": status_result["stdout"].splitlines()
@@ -405,6 +659,23 @@ def preflight(
         "ledger_status": ledger_status,
         "ledger": ledger_payload,
         "duplicate_work_classification": duplicate_work_classification,
+        "duplicate_work_status": duplicate_work_status,
+        "duplicate_work_statuses": [
+            "ADOPT",
+            "CONTINUE",
+            "MERGE_READY",
+            "PARK",
+            "SUPERSEDE",
+            "BLOCKED",
+            "DUPLICATE",
+            DATA_MISSING,
+        ],
+        "duplicate_work_matches": ledger_duplicate_matches,
+        "path_ownership_blocks_implementation": path_ownership_blocks_implementation,
+        "stop_reimplementation": final_decision == "block",
+        "path_ownership": path_ownership,
+        "path_ownership_audit": audited_paths,
+        "path_classifications": sorted(PATH_CLASSIFICATIONS),
         "fallback_sources_checked": fallback,
         "comparison_base_checked": base_checked,
         "data_missing_sources": data_missing_sources,
@@ -418,11 +689,15 @@ def print_human(payload: Mapping[str, Any]) -> None:
     print(f"head: {payload.get('head')}")
     print(f"base: {payload.get('base')}")
     print(f"merge_base: {payload.get('merge_base')}")
+    path_ownership = payload.get("path_ownership")
+    if isinstance(path_ownership, Mapping):
+        print(f"path_ownership: {path_ownership.get('classification')}")
     print(f"guard_support_status: {payload.get('guard_support_status')}")
     print(f"control_plane_root: {payload.get('control_plane_root')}")
     print(f"registry_status: {payload.get('registry_status')}")
     print(f"ledger_status: {payload.get('ledger_status')}")
     print(f"duplicate_work_classification: {payload.get('duplicate_work_classification')}")
+    print(f"duplicate_work_status: {payload.get('duplicate_work_status')}")
     print(f"final_decision: {payload.get('final_decision')}")
     if payload.get("data_missing_sources"):
         print("data_missing_sources:")
@@ -436,6 +711,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     preflight_parser = subparsers.add_parser("preflight")
     preflight_parser.add_argument("--repo-root", required=True, type=Path)
     preflight_parser.add_argument("--topic", default=None)
+    preflight_parser.add_argument("--audit-path", action="append", type=Path, default=[])
     preflight_parser.add_argument("--json", action="store_true")
     return parser.parse_args(argv)
 
@@ -443,7 +719,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     if args.command == "preflight":
-        payload = preflight(repo_root=args.repo_root, topic=args.topic)
+        payload = preflight(repo_root=args.repo_root, topic=args.topic, audit_paths=args.audit_path)
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True, default=str))
         else:

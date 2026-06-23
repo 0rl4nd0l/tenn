@@ -91,6 +91,13 @@ python3 scripts/agent_task_ledger.py resolve-path
 python3 scripts/agent_task_ledger.py validate
 ```
 
+The preflight output includes `path_ownership`, `canonical_branch`,
+`canonical_head`, `path_ownership_blocks_implementation`,
+`duplicate_work_status`, and `stop_reimplementation`. For candidate paths, pass
+`--audit-path <path>` and use
+`docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` as the
+classification source of truth.
+
 ## Task Ledger Preflight
 
 `tenn-git-guard` owns duplicate-work preflight. Before any implementation-capable
@@ -186,6 +193,10 @@ Classify similar work before coding:
 - `UNKNOWN_ASK`: evidence is insufficient and the next meaningful step needs an
   owner decision.
 
+Owner-facing preservation statuses are `ADOPT`, `CONTINUE`, `MERGE_READY`,
+`PARK`, `SUPERSEDE`, `BLOCKED`, `DUPLICATE`, and `DATA_MISSING`. The guard maps
+ledger classifications to those statuses in `duplicate_work_status`.
+
 Block implementation when matching active, open-PR, merged, or owner-boundary
 work exists unless Orlando explicitly chooses continue, adopt, supersede, or
 ignore. When only ledger evidence is missing but fallback search is clean, record
@@ -215,6 +226,29 @@ candidate:
 
 Do not code over better existing work. Do not leave valuable stale work rotting
 when a validated commit or PR path is in scope and approved.
+
+## Path Ownership
+
+Before mutation, prove the current path is a Tenn git worktree or create a
+fresh sibling worktree from canonical. Guard path classifications are:
+
+- `VALID_CANONICAL_WORKTREE`
+- `VALID_TASK_WORKTREE`
+- `SPARSE_EVIDENCE_DIR`
+- `RUNTIME_DIR`
+- `NOT_GIT_REPO`
+- `STALE_PATH`
+- `DIRTY_RELATED_WORKTREE`
+- `DIRTY_UNRELATED_WORKTREE`
+- `DATA_MISSING`
+
+Only `VALID_CANONICAL_WORKTREE` and clean, task-owned
+`VALID_TASK_WORKTREE` are valid starting points for new implementation.
+Stop before coding from non-git, sparse, runtime-only, stale, dirty-related, or
+ambiguous paths. The guard sets `path_ownership_blocks_implementation=true` and
+`stop_reimplementation=true` for those blocking path states. Do not clean or
+repair those paths unless a separate approved task card authorizes that exact
+action.
 
 ## Hook Cooperation
 
