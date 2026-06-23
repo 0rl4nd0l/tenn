@@ -11,15 +11,21 @@ registry state, reports, source PDFs, parser output, or metric scorecards.
 ## Required Preflight
 
 1. Verify repo path, branch, HEAD, origin, and dirty state.
-2. Re-check the relevant GitHub issues read-only before relying on older issue
+2. Run the portable Tenn guard first:
+   `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json`.
+   From a Tenn control-plane checkout, use the repo-backed fallback only when
+   the installed host skill path is unavailable:
+   `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json`.
+3. Re-check the relevant GitHub issues read-only before relying on older issue
    context. Current blocker families usually include #73, #96, #97, and #286,
    but live evidence wins.
-3. Validate or create a task card before edits. Keep allowed files exact.
-4. Inspect active registry evidence safely:
+4. Validate or create a task card before edits. Keep allowed files exact.
+5. In Tenn control-plane checkouts, inspect active registry evidence safely:
    `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`.
+   Runtime/product repos do not need this repo-local script for guard preflight.
    If read-only registry inspection is unavailable, record `DATA_MISSING`; do
    not substitute a lock-writing fallback for read-only audit.
-5. Decide whether the task is audit-only, report-local, or one narrow safe
+6. Decide whether the task is audit-only, report-local, or one narrow safe
    extension. If unclear, stop with `WAITING_ON_USER`.
 
 ## Financial Truth Rules

@@ -207,15 +207,23 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 
 ## Task Cards, Registry, And Merge Parking
 
+- Run the portable guard before relying on repo-local Tenn scripts:
+  `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json`.
+  From a Tenn control-plane checkout, the repo-backed fallback is
+  `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json`.
+  Missing repo-local `scripts/agent_*` files in runtime/product repos is not
+  itself repo corruption; record `DATA_MISSING` only for unavailable evidence.
 - Implementation-capable work should have a task card before edits. Validate it
-  with `python3 scripts/agent_job_contract.py validate <task_card>` when the
-  script is available.
+  with the Tenn-control-plane-local
+  `python3 scripts/agent_job_contract.py validate <task_card>` when the script
+  is available.
 - Keep `allowed_files` exact. Include report artifacts explicitly because
   `reports/` is ignored and local `check-diff` is literal.
-- Use `python3 scripts/agent_job_registry.py list-active --read-only` for
-  read-only registry inspection. Do not use lock-writing registry commands for
-  read-only audit. If safe read-only registry evidence is unavailable, record
-  `DATA_MISSING`.
+- Use the Tenn-control-plane-local
+  `python3 scripts/agent_job_registry.py list-active --read-only` for focused
+  registry inspection when the script is available. Do not use lock-writing
+  registry commands for read-only audit. If safe read-only registry evidence is
+  unavailable, record `DATA_MISSING`.
 - Use `docs/agent_registry/merge_parking/REGISTRY.md` for parked merge state.
   Do not merge, rebase, cherry-pick, unpark, or delete parked work without
   explicit approval.
