@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -56,6 +57,45 @@ def runtime_proof_report(*, proof_result: str = "WORKING", state: str = "DONE") 
             "",
         ]
     )
+
+
+def board_decision_payload(**overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "schema_version": "tenn_review_board_decision_v1",
+        "decision": "proceed",
+        "evidence_grade": "VERIFIED",
+        "reason": "Closeout evidence is valid and in scope.",
+        "task_tier": "medium",
+        "recommended_model": "standard coding model",
+        "actual_model": "GPT-5 Codex",
+        "why_this_model": "Shared control-plane closeout tooling needs focused implementation.",
+        "worker_model_allowed": "no",
+        "worker_decision_limit": "none",
+        "escalation_needed": "none",
+        "ledger_sources_checked": ["live ledger", "committed ledger"],
+        "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+        "matching_candidates": [],
+        "duplicate_work_decision": "continue narrow implementation",
+        "minority_objection": "none_found",
+        "minority_objection_checks": "Reviewed scope, tests, and owner boundaries.",
+        "counter_lineage_required": False,
+        "functionality_proof_required": False,
+        "functionality_proof_status": "not_applicable",
+        "functionality_proof_remaining_blocker": "none",
+        "zoom_out_required": False,
+        "root_problem_check": "closeout should validate board decision shape automatically",
+        "overfitting_risk": "low",
+        "report_only_loop_risk": "low",
+        "broad_system_progress": "adds a reusable closeout gate",
+        "class_based_approach_better": "no",
+        "production_readiness_value_next_action": "run check-closeout",
+        "financial_extraction_breadth_provenance_confidence_regression_check": "not applicable",
+        "required_changes": [],
+        "owner_approval_needed": [],
+        "next_goal": "commit closeout gate wiring",
+    }
+    payload.update(overrides)
+    return payload
 
 
 def issue_fields(result: ajc.ValidationResult) -> set[str]:
@@ -608,6 +648,52 @@ def test_check_closeout_runtime_card_requires_report_artifacts(tmp_path) -> None
 
     assert not result.ok
     assert any(issue.field == "allowed_files" for issue in result.issues)
+
+
+def test_check_closeout_non_runtime_invalid_board_decision_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "BOARD_DECISION.json").write_text(
+        json.dumps({"decision": "ship_it"}) + "\n",
+        encoding="utf-8",
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(
+            body="Closeout scope: control-plane-only\n\nReview-board closeout.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json"],
+            closeout_scope="control_plane_only",
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "board_decision" and "decision" in issue.message for issue in result.issues)
+
+
+def test_check_closeout_non_runtime_valid_board_decision_passes(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "BOARD_DECISION.json").write_text(
+        json.dumps(board_decision_payload(), indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(
+            body="Closeout scope: control-plane-only\n\nReview-board closeout.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json"],
+            closeout_scope="control_plane_only",
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert [artifact.path for artifact in result.artifacts] == [
+        "reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json"
+    ]
 
 
 def test_check_artifacts_alias_still_outputs_json(tmp_path) -> None:

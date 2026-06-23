@@ -91,6 +91,8 @@ Use Runtime Functionality Proof before any DONE claim for runtime/product/data b
 Use tenn-review-board.
 Read .agents/skills/tenn-review-board/SKILL.md fully.
 Produce BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md in a report bundle.
+Validate the decision with python3 scripts/check_board_decision.py <report-dir>/BOARD_DECISION.json.
+If the task card lists BOARD_DECISION.json under output_dir, check-closeout validates it automatically too.
 Do not use host/global review as a substitute.
 ```
 
@@ -104,6 +106,7 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
 Create or validate the task card.
 Only edit allowed files.
 Run validation, check-diff, check-closeout, and check-report-artifacts.
+Treat check-closeout as the final report gate for Runtime Functionality Proof and listed BOARD_DECISION.json artifacts.
 Open a PR only if the task card explicitly permits it.
 ```
 
@@ -128,6 +131,9 @@ The closeout gate is:
 ```text
 python3 scripts/agent_job_contract.py check-closeout <task-card> --repo-root .
 ```
+
+This gate also validates any `BOARD_DECISION.json` report artifact listed in
+the task card `allowed_files` under `output_dir`.
 
 For active task cards, `scripts/agent_job_hook.py` runs this gate on
 Stop/SessionEnd. Runtime-like cards must either include the proof fields in
