@@ -1,0 +1,87 @@
+{
+  "schema_version": "agent_job_status_v1",
+  "job_id": "control_plane_hook_status_docs_refresh_v1_20260623",
+  "status": "complete",
+  "lane": "Reporting",
+  "supporting_lanes": [
+    "Evaluation",
+    "Repo Hygiene"
+  ],
+  "owner": "Codex",
+  "task_card": "docs/agent_tasks/control_plane_hook_status_docs_refresh_v1_20260623.md",
+  "worktree": "/home/l4nd0/tenn-control-plane-hook-status-docs-refresh-v1-20260623",
+  "branch": "control-plane/hook-status-docs-refresh-v1-20260623",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_commit": "d2d5b70bb404e0821154f907393f3dfb8dac5896",
+  "checked_at": "2026-06-23T11:39:21Z",
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "scope": {
+    "docs_only": true,
+    "hook_scripts_changed": false,
+    "git_config_changed": false,
+    "runtime_or_product_code_changed": false,
+    "extraction_or_parser_code_changed": false,
+    "db_qdrant_news_memory_changed": false,
+    "ci_workflow_changed": false
+  },
+  "github_state": {
+    "pr_399": {
+      "state": "MERGED",
+      "merge_commit": "43df758d57280408f3d2c2567772ae2add90b36b"
+    },
+    "pr_400": {
+      "state": "MERGED",
+      "merge_commit": "d2d5b70bb404e0821154f907393f3dfb8dac5896"
+    },
+    "pr_402": {
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state_status": "CLEAN",
+      "overlap": "NO_STATUS_DOC_OVERLAP"
+    }
+  },
+  "hook_evidence": {
+    "core_hooks_path": ".githooks",
+    "core_hooks_path_origin": "file:/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/config",
+    "current_worktree_strict_check": "PASS",
+    "home_l4nd0_tenn_strict_check": "PASS"
+  },
+  "corrected_claims": [
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "before": "Git hook installation check is stale or misconfigured; PARTIAL; repair needed.",
+      "after": "Git hook installation check across worktrees; IMPLEMENTED; current linked family uses core.hooksPath=.githooks."
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "before": "Git hooks PARTIAL; stale/missing configured path.",
+      "after": "Git hooks IMPLEMENTED for the current host worktree family; fresh clones must still verify local config."
+    }
+  ],
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active": "PASS_NO_ACTIVE_JOBS",
+    "registry_check_overlap": "PASS",
+    "stale_phrase_search_after_edits": "PASS_NO_MATCHES",
+    "json_validation": "PASS",
+    "markdown_hygiene": "PASS",
+    "check_report_artifacts": "PASS",
+    "check_diff": "PASS",
+    "git_diff_check": "PASS",
+    "cached_diff_check": "PASS",
+    "changed_files_vs_allowed_files": "PASS",
+    "final_git_status": "PASS_CLEAN_AFTER_COMMIT",
+    "initial_push": "BLOCKED_BY_MISSING_LOCAL_VENV_TOOLS",
+    "push_policy": "USE_TENN_ALLOW_MISSING_HOOK_TOOLS_AFTER_DOCS_VALIDATION"
+  },
+  "docs_impact": {
+    "status": "DOCS_UPDATED",
+    "docs_changed": [
+      "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "docs/dev_flow/CONTROL_PLANE_STATUS.md"
+    ],
+    "docs_followup": "Refresh SKILLS_SURFACE.md freshness metadata separately if desired; this task did not change skill routing or skill files."
+  },
+  "next_narrow_cleanup_candidate": "Decide /goal monitor contract: permanent HOST_ONLY documentation or a separate repo-wrapper/report-protocol task."
+}

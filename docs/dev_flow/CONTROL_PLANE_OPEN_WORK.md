@@ -1,7 +1,8 @@
 # Control Plane Open Work Register
 
-Status: control-plane follow-up after merged PR #398 and PR #399 repo path
-ownership / work-preservation hardening.
+Status: control-plane follow-up after merged PR #398, PR #399 repo path
+ownership / work-preservation hardening, PR #400 board-decision closeout
+validation, and verified local Git hook configuration.
 
 Priority meanings:
 
@@ -18,7 +19,7 @@ Priority meanings:
 | P0 | Repo path/worktree confusion and duplicate-work loss | IMPLEMENTED | `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` defines canonical branch/path rules and preservation statuses; `tenn-git-guard` preflight now reports `path_ownership`, `duplicate_work_status`, and `stop_reimplementation`. | Future implementation-capable sessions have a single first command and stop rule before coding from stale, sparse, runtime-only, dirty, or duplicate-work paths. | No immediate decision for the control-plane gate. | Monitor whether guard classifications need tuning for symlink-heavy runtime paths or high-risk `DATA_MISSING` handling. |
 | P1 | Repo `/goal monitor` implementation | NOT_FOUND | No repo command, script, hook, daemon, or timer was found. Host `codex-goal-monitor` exists only outside the repo. | Orlando can be misled into thinking `/goal monitor` is a Tenn feature. | Decide whether host-only monitor is enough or a repo wrapper/report protocol is needed. | Either document HOST_ONLY permanently or approve a repo-backed monitor wrapper task. |
 | P1 | Task ledger current-state drift | PARTIAL | Current worktree resolves the live ledger path as present with 2 raw entries for `task_ledger_current_state_refresh_v1_20260623`; latest state is `done`, and the committed snapshot was exported from that live ledger after PR #388. | "What next?" flows now have a live branch-independent current-state entry for this task, but older hand-curated PR #380/#382/#383/#385/#386 snapshot entries are not present in the live ledger. | Decide whether historical control-plane work should be backfilled into the live ledger or left to GitHub/task-card/report evidence. | Continue appending future mutable tasks to the live ledger; backfill older verified work only through a separate approved task. |
-| P1 | Git hook installation check is stale or misconfigured | PARTIAL | `scripts/check_agent_hooks.py` reports configured path `/home/l4nd0/tenn/.git/hooks` missing while common-dir hooks exist under `/mnt/sdb2/...`. | Local pre-commit/pre-push expectations may not match actual hook execution. | Decide whether to standardize hooks path across worktrees. | Run a dedicated hook repair/verification task. |
+| P1 | Git hook installation check across worktrees | IMPLEMENTED | Current linked worktree family uses repo-local Git config `core.hooksPath=.githooks`; `git config --show-origin --get core.hooksPath` resolves to `/home/l4nd0/tenn-extraction-handoff-continuation-v1-20260621/.git/config`, and strict `scripts/check_agent_hooks.py` passes in this worktree and `/home/l4nd0/tenn`. | The previous cross-repo hook-path mismatch is resolved for the current host worktree family. Fresh clones still need local Git config verification. | No immediate decision. Treat hook installation as host-local Git config plus tracked `.githooks` files. | Keep strict `check_agent_hooks.py` in preflight and rerun after creating new worktrees or clones. |
 | P1 | Repo skills are not guaranteed visible in host autocomplete | HOST_ONLY | `scripts/sync_codex_skills.sh` dry-run would link 10 skills; `--apply` was not run. | Orlando may see host/global skills and miss Tenn repo skills. | Decide whether to keep path-forcing workflow or approve host sync. | Prefer explicit `.agents/skills/<skill>/SKILL.md` reads; sync only in a separate approved task. |
 | P1 | OpenCode worker usability is proven only to probe/test level | PARTIAL | Probe succeeded and unit tests passed, but no actual worker was run in this audit. | Worker scouting is available, but every task still needs per-result proof. | No decision if evidence-only scouting is acceptable. | For first real use, run one read-only scout and preserve task/result/validation artifacts. |
 | P2 | `SKILLS_SURFACE.md` freshness metadata | IMPLEMENTED | Metadata now verifies current canonical commit `bb4df393f046829cd5d81ba91cde0d5a70352260`, visible skill count 10, hand-maintained status, and host picker `DATA_MISSING`. | Operators can use the skill-surface guide without stale prior-PR metadata. | No product decision. | Refresh again when repo skill files, templates, or this guide change. |
@@ -37,9 +38,9 @@ Priority meanings:
 ## Recommended Fix Order
 
 1. Decide the `/goal monitor` contract: host-only documented command or repo-backed wrapper/report validator.
-2. Repair and verify Git hook path behavior across Tenn worktrees.
-3. Watch the Runtime Functionality Proof closeout gate for false positives before widening enforcement.
-4. Decide whether to backfill older verified control-plane entries into the live task ledger, or leave historical state to GitHub/task-card/report evidence.
-5. If old report-search confusion persists, approve a separate archival-banner task for the stale PR #378/#380/#373/#367 report bundles.
+2. Watch the Runtime Functionality Proof closeout gate for false positives before widening enforcement.
+3. Decide whether to backfill older verified control-plane entries into the live task ledger, or leave historical state to GitHub/task-card/report evidence.
+4. If old report-search confusion persists, approve a separate archival-banner task for the stale PR #378/#380/#373/#367 report bundles.
 
-None of these should be mixed into this status refresh unless separately approved. This task is ledger/status current-state refresh only.
+None of these should be mixed into a hook-status docs refresh unless separately
+approved.
