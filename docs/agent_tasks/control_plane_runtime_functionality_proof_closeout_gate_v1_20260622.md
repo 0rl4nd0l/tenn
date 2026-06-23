@@ -11,6 +11,7 @@ timeout_seconds: 3600
 output_dir: reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622
 mutation_mode: safe_extension
 production_data_access: false
+closeout_scope: control_plane_only
 allowed_files:
   - docs/agent_tasks/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622.md
   - scripts/agent_job_contract.py
