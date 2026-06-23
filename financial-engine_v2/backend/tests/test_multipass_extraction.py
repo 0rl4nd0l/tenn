@@ -1484,6 +1484,87 @@ def test_scale_detects_fragmented_statement_unit_row_below_headings():
     assert _detect_scale_from_tables([table]) == "millions"
 
 
+def test_statement_page_text_recovers_uppercase_m_scale_when_table_unit_row_dropped():
+    """TCL-style PyMuPDF tables can drop formal $M unit rows kept in page text."""
+    from app.services.multipass_extraction import (
+        _detect_scale_from_statement_page_text,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=17,
+        caption="Consolidated statement of comprehensive income for the half-year ended 31 December 2025",
+        headers=["Revenue B4", "1,983", "1,833"],
+        rows=[
+            ["Revenue B4", "1,983", "1,833"],
+            ["Profit/(loss) before income tax", "352", "(8)"],
+        ],
+    )
+    sections = [
+        {
+            "page": 17,
+            "text": "Half-year ended 31 December 2025 31 December 2024 Note $M $M Revenue B4 1,983 1,833",
+        }
+    ]
+
+    assert _detect_scale_from_statement_page_text(sections, [table]) == "millions"
+
+
+def test_statement_page_text_ignores_non_statement_m_summary_rows():
+    """Dollar-M prose/highlight values must not become document scale evidence."""
+    from app.services.multipass_extraction import (
+        _detect_scale_from_statement_page_text,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=13,
+        caption="",
+        headers=["Market capitalisation", "$44.3B", "$43.5B"],
+        rows=[
+            ["Securities on issue", "3,115M", "3,108M"],
+            ["Cash and cash equivalents", "$1,229M", "$1,727M"],
+        ],
+    )
+    sections = [
+        {
+            "page": 13,
+            "text": "Market capitalisation $44.3B Securities on issue 3,115M Cash and cash equivalents $1,229M",
+        }
+    ]
+
+    assert _detect_scale_from_statement_page_text(sections, [table]) == "unknown"
+
+
+def test_statement_page_text_abstains_on_mixed_statement_page_scales():
+    """Mixed group/entity statement units are not safe document-scale evidence."""
+    from app.services.multipass_extraction import (
+        _detect_scale_from_statement_page_text,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=20,
+            caption="Consolidated Statement of Cash Flows",
+            headers=["Net cash inflow from operating activities", "168.5", "264.1"],
+            rows=[],
+        ),
+        DoclingTable(
+            page_number=51,
+            caption="Consolidated Statement of Comprehensive Income",
+            headers=["Total income", "243,661", "299,840"],
+            rows=[],
+        ),
+    ]
+    sections = [
+        {"page": 20, "text": "31 Dec 2025 31 Dec 2024 Note $m $m Net cash inflow 168.5"},
+        {"page": 51, "text": "31 Dec 2025 31 Dec 2024 Note $'000 $'000 Total income 243,661"},
+    ]
+
+    assert _detect_scale_from_statement_page_text(sections, tables) == "unknown"
+
+
 def test_scale_unknown_table_preserves_pass1_scale():
     """When table scan returns 'unknown', pass1['scale'] must remain unchanged."""
     from app.services.multipass_extraction import _detect_scale_from_tables
