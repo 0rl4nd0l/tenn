@@ -2,11 +2,17 @@
 
 The active runtime is `financial-engine_v2`. The canonical env file lives at `financial-engine_v2/.env`.
 
+Freshness note: during the 2026-06-23 docs audit, checked-in launcher and
+verifier evidence pointed runtime data and models at `/mnt/tenn-nvme2/tenn/...`.
+Older `/mnt/nvme/tenn/...` examples below are retained as historical or
+alternate-host examples until refreshed by a runtime/topology task. This docs
+audit did not prove backend, Qdrant, Postgres, or Cockpit functionality.
+
 ## Canonical env spec
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. In the current host deployment, `financial-engine_v2/.env.local` pins this to `/mnt/nvme/tenn/runtime-data`. |
+| `DATA_ROOT` | `./data` template default; launcher default if unset is currently `/mnt/tenn-nvme2/tenn/financial-engine_v2/data` | Root for runtime data, reports, and derived paths. Host overrides are environment-specific and must be rechecked before runtime work. |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant vector store endpoint. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API base URL. |
 | `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp endpoint for chat, coding, and routing. |
@@ -15,7 +21,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `EXTRACT_MODEL` | `qwen2.5-14b-instruct` | Model name for extraction workloads. In router mode, extraction requests this model by name and the server loads it on demand. Should be an instruct-tuned model for reliable structured JSON output from financial documents. |
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
 | `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
-| `LLAMA_SERVER_MODELS_DIR` | `/mnt/nvme/tenn/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
+| `LLAMA_SERVER_MODELS_DIR` | `/mnt/tenn-nvme2/tenn/models` on the 2026-06-23 checked launcher/verifier path | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
 | `LLAMA_SERVER_PARALLEL` | `1` | llama.cpp request slots. Keep `1` on Tesla M40 unless a benchmark validates more; match with `TENN_LLM_GPU_WORKER_CONCURRENCY`. |
 | `LLAMA_SERVER_MMAP` | `1` | Set to `0` so `scripts/run_llama_server.sh` and `scripts/run_extraction_server.sh` pass `--no-mmap` when mmap-based load stalls on Tesla M40 (see `docs/ops/09_llama_server_m40_model_load_runbook.md`). |
 | `LLAMA_SERVER_CACHE_TYPE_K` | _(unset)_ | Optional KV-cache override passed to `llama-server` as `--cache-type-k`. Leave unset on Tesla M40 unless you have verified the target model/runtime supports the requested cache type. |
@@ -45,8 +51,8 @@ The cockpit loads `.env` from its own repo root (`financial-engine_v2/.env`) bef
 
 Local host override note:
 
-- `financial-engine_v2/.env.local` currently points Tenn runtime data at `/mnt/nvme/tenn/runtime-data`
-- `~/.config/tenn/llama-server.env` points llama.cpp router mode at `/mnt/nvme/tenn/models`
+- `financial-engine_v2/scripts/run_local_backend.sh` defaulted `DATA_ROOT` to `/mnt/tenn-nvme2/tenn/financial-engine_v2/data` when checked on 2026-06-23.
+- `scripts/verify_nvme_runtime_endpoints.sh` expected `/mnt/tenn-nvme2/tenn/financial-engine_v2/{data,reports}` and `/mnt/tenn-nvme2/tenn/models` when checked on 2026-06-23.
 - llama.cpp launcher defaults no longer force KV-cache quantization; enable `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V` explicitly if you want non-default cache types
 - the legacy root Ollama store at `/usr/share/ollama/.ollama/models` has been pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
 - inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
@@ -65,7 +71,7 @@ Use a different data root:
 DATA_ROOT=/srv/tenn-data
 ```
 
-Current host-local runtime-data override:
+Historical or alternate host-local runtime-data override example:
 
 ```dotenv
 DATA_ROOT=/mnt/nvme/tenn/runtime-data
@@ -88,7 +94,7 @@ Single-instance router mode (default — recommended):
 ```dotenv
 # Single llama-server in router mode on 8001.
 # All models served from NVMe; clients select per-request via "model" field.
-# Chat default: qwen3-30b-a3b-instruct (llmfit score 94.0)
+# Chat default in checked config on 2026-06-23: Qwen3-30B-A3B-Instruct-2507-Q3_K_M
 # Extraction: qwen2.5-14b-instruct (requested by model name, loaded on demand)
 # Chat/extraction mutex: while extraction is active on the shared router,
 # cockpit chat must route to the configured API backend instead of local llama.cpp.

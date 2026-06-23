@@ -2,6 +2,12 @@
 
 Current active runtime is `financial-engine_v2`.
 
+Agent documentation entrypoints:
+- `AGENTS.md` is the repo constitution.
+- `docs/README.md` is the documentation source map and active/archive index.
+- Runtime status and host paths are volatile; re-run preflight before treating
+  runtime docs as current evidence.
+
 Main user entrypoint:
 - `cockpit start new`
 - UI served at `http://127.0.0.1:8081`
@@ -32,8 +38,12 @@ Repository governance note:
 - `LICENSE_STATUS.md` (top-level Tenn license intent pending maintainer decision)
 
 ## Local Backend Status
-Current verified local backend entrypoint is:
+Documented local backend entrypoint is:
 - `financial-engine_v2/scripts/run_local_backend.sh`
+
+This docs audit did not prove backend runtime functionality. Treat profile
+behavior below as configured/documented state until revalidated in a runtime
+task.
 
 Two supported local profiles:
 - `LOCAL_BACKEND_PROFILE=isolated`
@@ -41,12 +51,12 @@ Two supported local profiles:
   - embeddings/Qdrant/extraction off
   - `/chat` returns a degraded response instead of failing
 - `LOCAL_BACKEND_PROFILE=full`
-  - verified working with local Qdrant + local llama.cpp + commentary retrieval
-  - known-good docs are in [financial-engine_v2/README.md](/home/l4nd0/tenn/financial-engine_v2/README.md)
+  - configured/documented for local Qdrant + local llama.cpp + commentary retrieval
+  - known-good docs are in [financial-engine_v2/README.md](financial-engine_v2/README.md)
 
-Known current behavior:
+Known runtime notes, requiring fresh verification before use as current state:
 - `/chat` retrieves from `commentary_chunks` and optional `commentary_chunks_v2`, not `asx_docs`
-- local launcher now keeps `DATA_ROOT` on the repo `data/` directory unless explicitly overridden
+- local launcher defaults `DATA_ROOT` from `financial-engine_v2/scripts/run_local_backend.sh`; during the 2026-06-23 docs audit, the script default was `/mnt/tenn-nvme2/tenn/financial-engine_v2/data`
 - explicit shell env overrides `.env` and `.env.local` for local runs
 
 Batch/orchestration path:
@@ -68,7 +78,7 @@ Validated command sequence:
 9. `python scripts/validate_financial_metrics_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.gates.json`
 10. `python scripts/validate_financial_coverage_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.coverage_gates.json`
 
-Current passing gate set:
+Last documented passing gate set; not rerun during the 2026-06-23 docs audit:
 - Ruff gate across `autodev`, `financial-engine_v2/backend`, and `scripts`
 - Pytest gate across `autodev/tests`, `financial-engine_v2/backend/tests`, and `scripts`
 - Canonical dataset eval + canonical regression baseline gate

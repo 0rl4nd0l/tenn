@@ -1,0 +1,119 @@
+[
+  {
+    "id": "runtime_startup_scope_conflict",
+    "paths": [
+      "README.md",
+      "docs/entrypoints.md",
+      "docs/startup.md"
+    ],
+    "classification": "Resolved by scope note",
+    "freshness_order_used": [
+      "current audit evidence",
+      "AGENTS.md",
+      "README.md",
+      "docs/entrypoints.md",
+      "docs/startup.md"
+    ],
+    "summary": "README and entrypoints identify run_local_backend.sh as canonical for agent backend bootstrap; startup described full-stack Docker as backend-only. Added scope note to docs/startup.md.",
+    "remaining_risk": "Runtime behavior was not probed; future runtime work must reverify."
+  },
+  {
+    "id": "current_state_fragmentation",
+    "paths": [
+      "README.md",
+      "docs/current_system.md",
+      "docs/setup/environment.md",
+      "docs/claude/current-state.md",
+      "docs/architecture/model-routing.md"
+    ],
+    "classification": "Partially resolved by source map and archive/reference notes",
+    "freshness_order_used": [
+      "current audit evidence",
+      "docs/README.md",
+      "AGENTS.md",
+      "older snapshots"
+    ],
+    "summary": "Current-state claims are scattered across runtime and Claude docs. Added docs source map plus reference banners on docs/current_system.md and docs/claude/current-state.md.",
+    "remaining_risk": "Host paths/models/ports remain dated examples until runtime probes are run."
+  },
+  {
+    "id": "skill_surface_metadata_stale",
+    "paths": [
+      "docs/dev_flow/SKILLS_SURFACE.md"
+    ],
+    "classification": "Resolved for repo-visible docs scope",
+    "freshness_order_used": [
+      "current HEAD e402bf38",
+      "find .agents/skills",
+      "subagent inventory"
+    ],
+    "summary": "Updated last_verified_commit from pending-pr-380 to e402bf38 and added verification_scope.",
+    "remaining_risk": "Host picker visibility was not probed."
+  },
+  {
+    "id": "control_plane_status_pr387_collision",
+    "paths": [
+      "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "docs/agent_registry/task_ledger/*"
+    ],
+    "classification": "Left untouched due audit-time HIGH collision with PR #387",
+    "freshness_order_used": [
+      "live GitHub/gh evidence from scout",
+      "current worktree evidence"
+    ],
+    "summary": "Scout found open draft PR #387 modifying these surfaces during the audit. This job avoided independent edits. Publish preflight later found PR #387 merged.",
+    "remaining_risk": "No PR #387 collision at publish preflight; re-check live GitHub state before any future edits to status/open-work/ledger docs."
+  },
+  {
+    "id": "prompt_authority_conflict",
+    "paths": [
+      "docs/prompts/CODEX_MASTER_PROMPT.md",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "classification": "Resolved by demotion note",
+    "freshness_order_used": [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "current audit evidence",
+      "old prompt doc"
+    ],
+    "summary": "The old prompt claimed all agents must use it. Updated it to reference-only and removed current all-agent authority wording.",
+    "remaining_risk": "Old external copies may still exist outside repo."
+  },
+  {
+    "id": "live_task_ledger_missing",
+    "paths": [
+      "docs/agent_registry/task_ledger/README.md",
+      "docs/agent_registry/task_ledger/LEDGER.jsonl"
+    ],
+    "classification": "DATA_MISSING recorded, not resolved",
+    "freshness_order_used": [
+      "agent_task_ledger.py validate output",
+      "registry preflight"
+    ],
+    "summary": "Live ledger path resolved but file was missing; committed ledger existed with zero entries. No ledger docs edited due audit-time PR #387 collision.",
+    "remaining_risk": "Future implementation-capable sessions must run fallback duplicate-work search."
+  },
+  {
+    "id": "runtime_path_and_model_config_drift",
+    "paths": [
+      "README.md",
+      "docs/setup/environment.md",
+      "docs/current_system.md",
+      "docs/architecture/model-routing.md",
+      "financial-engine_v2/scripts/run_local_backend.sh",
+      "scripts/verify_nvme_runtime_endpoints.sh",
+      "financial-engine_v2/backend/app/config/model_routing.yaml"
+    ],
+    "classification": "Docs refreshed from checked code/config evidence; runtime functionality remains DATA_MISSING",
+    "freshness_order_used": [
+      "current checked-in code/config",
+      "read-only service/listener check",
+      "older docs"
+    ],
+    "summary": "Older docs referenced /mnt/nvme paths, repo data fallback, and old qwen3 model labels. Updated docs to use checked launcher/verifier/model_routing evidence for /mnt/tenn-nvme2 and Qwen3-30B-A3B-Instruct-2507-Q3_K_M, with no health/functionality claim.",
+    "remaining_risk": "cockpit_api.py still has a default /mnt/nvme model discovery path; code/config inconsistency is out of scope and needs a separate runtime task."
+  }
+]

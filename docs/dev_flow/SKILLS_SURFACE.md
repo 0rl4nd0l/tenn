@@ -1,9 +1,11 @@
 # Tenn Skill Surface
 
-last_verified_commit: pending-pr-380
-last_verified_pr: 380
+last_verified_commit: e402bf38e5b959f56c1bed6b35e18ba7371cd8f6
+last_verified_pr: 386
+verification_scope: repo-visible skill routing and source-map freshness only; host picker visibility not probed
 source_of_truth_files:
 - AGENTS.md
+- docs/README.md
 - docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/SKILL_RECOMMENDATIONS.md
 - reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/BACKEND_GUARDRAILS.md
@@ -31,6 +33,17 @@ Use these as the normal entrypoints:
 | `tenn-goal-report` | A long `/goal` run needs state, validation, report, or handoff discipline. |
 | `tenn-handoff` | Work must be packaged for a fresh session with git, ledger, validation, and next-goal context. |
 | `tenn-financial-metric-extraction` | Issue-backed Financial Truth extraction work is explicitly in scope. |
+
+## Specialist And Backend Skills
+
+These are active repo-backed skills, but they are not normal first-stop
+operator commands:
+
+| Skill | Classification | Use when |
+| --- | --- | --- |
+| `tenn-git-guard` | backend guard | Wrappers need shared branch, worktree, dirty-state, registry, ledger, duplicate-work, task-card, and allowed-file preflight. |
+| `codex-worker-bridge` | backend bridge | OpenCode/Codex worker bridge contracts or worker-result validation are explicitly in scope. |
+| `tenn-improve-codebase-architecture` | specialist | The task explicitly asks for architecture improvement or deep refactoring opportunities and product/data boundaries are clear. |
 
 ## Core Modes Instead Of More Skills
 
@@ -62,7 +75,7 @@ production-readiness value. For financial extraction, favor failure classes,
 document classes, breadth, provenance, confidence, and regression coverage over
 one-off PDF fixes.
 
-## Backend Skills That Stay Visible
+## Backend Guard That Stays Visible
 
 `tenn-git-guard` remains a visible repo skill because wrappers need a shared,
 current preflight contract. It is not a user-facing cleanup command. It owns
