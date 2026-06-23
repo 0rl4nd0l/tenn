@@ -1,0 +1,25 @@
+{
+  "code_review": {
+    "critical": 0,
+    "status": "SUCCESS",
+    "suggestions": 0,
+    "warnings": 0
+  },
+  "generated_at": "2026-06-23T08:03:09.742927Z",
+  "pr_prep_validation": {
+    "pytest_period_openability_slice": "8 passed, 1 warning",
+    "task_card_check_diff": "passed",
+    "task_card_validate": "passed",
+    "whc_no_write_replay": "PASS side_effect_pass=true"
+  },
+  "unit_focused": "passed",
+  "unit_neighboring_slice": "passed",
+  "warnings": [
+    "pytest unknown config option asyncio_default_fixture_loop_scope under uv pytest"
+  ],
+  "whc_replay": {
+    "period_end": "2022-06-30",
+    "status": "ok",
+    "validation_failure_count": 0
+  }
+}

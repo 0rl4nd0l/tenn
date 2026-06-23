@@ -1,0 +1,59 @@
+{
+  "artifact_type": "ranked_failure_class_matrix_v1",
+  "broad_accuracy_status": "not_solved",
+  "count_24_count_32_justified": false,
+  "count_24_count_32_reason": "Current #96 terminal coverage and #97 fixture-payload scoring still have zero overlapping approved fixture actual payloads.",
+  "generated_at": "2026-06-23T07:54:28.496693Z",
+  "ranking_basis": "impact_docs first, then scoreable metric impact, with source-row proof deciding implementation eligibility",
+  "rows": [
+    {
+      "failure_class": "file_exists_no_current_terminal_run",
+      "impact_docs": 15,
+      "impact_scoreable_metrics": 73,
+      "implemented": false,
+      "rank": 1,
+      "recommended_next_action": "Run an approved bounded current-version extraction pass for the fixture document_ids before claiming broad accuracy.",
+      "source_proof_classification": "DATA_MISSING",
+      "source_proof_result": "No current terminal payload exists for the approved fixture document_ids; this is a coverage/runtime evidence gap, not a source-row-proven product-code defect."
+    },
+    {
+      "failure_class": "not_evaluated_no_actual_payload",
+      "impact_docs": 15,
+      "impact_scoreable_metrics": 73,
+      "implemented": false,
+      "rank": 2,
+      "recommended_next_action": "Populate report-local actual payloads through approved current terminal extraction; do not infer correctness from fixture/source PDF existence.",
+      "source_proof_classification": "DATA_MISSING",
+      "source_proof_result": "Payload scorecard cannot score correctness without current actual payloads for fixture document_ids."
+    },
+    {
+      "failure_class": "WHC annual_report_title_date_period_end",
+      "fix_files": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+      ],
+      "impact_docs": 1,
+      "impact_scoreable_metrics": 9,
+      "implemented": true,
+      "post_fix_validation": {
+        "whc_replay_period_end": "2022-06-30",
+        "whc_replay_status": "ok",
+        "whc_replay_validation_failures": 0
+      },
+      "rank": 3,
+      "source_proof_classification": "FIX_PROVEN",
+      "source_proof_result": "WHC annual report source text proves period_end 2022-06-30 while the leading filename date 2022-09-21 is an announcement/publication date."
+    },
+    {
+      "failure_class": "DXC metric_label_mismatch:ebit:net_operating_income",
+      "impact_docs": 1,
+      "impact_scoreable_metrics": 1,
+      "implemented": false,
+      "rank": 4,
+      "recommended_next_action": "Keep the metric-label mismatch fail-closed; do not add global net_operating_income-to-EBIT mapping.",
+      "source_proof_classification": "NO_FIX_PROVEN",
+      "source_proof_result": "Source row proves net operating income, not EBIT; the same table separately includes finance costs and no EBIT row."
+    }
+  ],
+  "top_source_proven_low_medium_blast_fix": "WHC annual_report_title_date_period_end"
+}

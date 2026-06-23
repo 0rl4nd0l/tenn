@@ -149,6 +149,91 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+def test_run_multipass_rebinds_annual_report_title_date_to_source_period_end():
+    """Annual-report publication dates must yield to exact same-document period text."""
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 4
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "text": (
+                    "Whitehaven Coal 2022 Annual Report. "
+                    "For the year ended 30 June 2022."
+                ),
+                "page": 1,
+            },
+        ]
+
+    pass1_title_date = {
+        "report_type": "A",
+        "period_end": "2022-09-21",
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+    pass3a_results = [
+        {
+            "_source": "income_statement",
+            "_page_number": 57,
+            "pass3_confidence": 0.9,
+            "revenue": 4_920_102_000,
+            "ebit": 2_821_254_000,
+            "np_attributable": 1_951_965_000,
+            "row_refs": {
+                "revenue": "Revenue 21 4,920,102 1,556,976",
+                "ebit": "EBIT 2,821,254",
+                "np_attributable": "Net profit attributable 1,951,965",
+            },
+        }
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_title_date,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/whc.pdf",
+            {
+                "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+                "ticker": "WHC",
+                "title": (
+                    "2022-09-21_2022-annual-report_"
+                    "9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+                ),
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["period_type"] == "A"
+    assert result.payload["period_end"] == "2022-06-30"
+    assert result.payload["period_start"] == date(2021, 7, 1)
+    assert result.payload["source_bound"]["period_end"] == "2022-06-30"
+    assert result.payload["source_period_end_evidence"]["reason"] == (
+        "year_ended_explicit_date"
+    )
+    assert result.payload["source_period_end_binding"]["reason"] == (
+        "explicit_source_annual_period_end_over_announcement_title_date"
+    )
+
+
 def test_run_multipass_blocks_title_only_half_year_period_end_distinct_when_pass1_misses_it():
     from app.services.multipass_extraction import run_multipass_extraction
 

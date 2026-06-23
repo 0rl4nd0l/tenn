@@ -2605,9 +2605,17 @@ _COMPARATIVE_PERIOD_CONTEXT_RE = re.compile(
 _SAME_DOCUMENT_HALF_YEAR_PERIOD_END_REASONS = frozenset(
     {"half_year_ended_explicit_date", "current_period_explicit_range"}
 )
+_SAME_DOCUMENT_PERIOD_END_REASONS_BY_TYPE = {
+    "A": frozenset({"year_ended_explicit_date"}),
+    "H": _SAME_DOCUMENT_HALF_YEAR_PERIOD_END_REASONS,
+}
 
 _LEADING_ANNOUNCEMENT_DATE_RE = re.compile(
     r"^\s*(?P<date>\d{4}-\d{1,2}-\d{1,2})(?:[_\s-]|$)"
+)
+_ANNUAL_TITLE_HINT_RE = re.compile(
+    r"\b(?:annual\s+report|appendix\s*4e)\b",
+    re.IGNORECASE,
 )
 _HALF_YEAR_TITLE_HINT_RE = re.compile(
     r"\b(?:1h\s*fy\d{2,4}|half\s*year|interim|appendix\s*4d)\b",
@@ -4564,28 +4572,36 @@ def _has_half_year_title_hint(payload: dict, titles: list[str]) -> bool:
     return False
 
 
+def _has_annual_title_hint(title: str) -> bool:
+    normalized = re.sub(r"[_\-]+", " ", title)
+    return bool(_ANNUAL_TITLE_HINT_RE.search(normalized))
+
+
 def _bind_explicit_source_period_end_over_announcement_date(
     pass1_result: dict,
     source_period_end_evidence: dict,
     title: Any,
 ) -> bool:
     """
-    Replace a half-year announcement-date period_end only with exact source text.
+    Replace an announcement-date period_end only with exact source text.
 
     This is the narrow positive counterpart to
     `_announcement_date_period_end_mismatch`: title dates still fail closed unless
-    an explicit half-year period-end phrase is present in parsed source text.
+    an explicit same-document period-end phrase is present in parsed source text.
     """
 
     report_type = str(
         pass1_result.get("report_type") or pass1_result.get("period_type") or ""
     ).strip()
-    if report_type != "H":
+    if report_type not in {"A", "H"}:
         return False
-    if source_period_end_evidence.get("period_type") != "H":
+    if source_period_end_evidence.get("period_type") != report_type:
         return False
     evidence_reason = str(source_period_end_evidence.get("reason") or "")
-    if evidence_reason not in _SAME_DOCUMENT_HALF_YEAR_PERIOD_END_REASONS:
+    allowed_reasons = _SAME_DOCUMENT_PERIOD_END_REASONS_BY_TYPE.get(
+        report_type, frozenset()
+    )
+    if evidence_reason not in allowed_reasons:
         return False
     if not _has_source_text_period_end_hit(
         source_period_end_evidence,
@@ -4603,15 +4619,20 @@ def _bind_explicit_source_period_end_over_announcement_date(
         return False
 
     title_text = str(title or "")
-    if not _has_half_year_title_hint({}, [title_text]):
+    if report_type == "H" and not _has_half_year_title_hint({}, [title_text]):
+        return False
+    if report_type == "A" and not _has_annual_title_hint(title_text):
         return False
     title_date = _leading_announcement_date_from_title(title_text)
     if title_date is None or title_date != current_period_end:
         return False
 
     pass1_result["period_end"] = source_period_end.isoformat()
+    period_label = "annual" if report_type == "A" else "half_year"
     pass1_result["_source_period_end_binding"] = {
-        "reason": "explicit_source_half_year_period_end_over_announcement_title_date",
+        "reason": (
+            f"explicit_source_{period_label}_period_end_over_announcement_title_date"
+        ),
         "from_period_end": current_period_end.isoformat(),
         "to_period_end": source_period_end.isoformat(),
         "source_period_end_reason": source_period_end_evidence.get("reason"),

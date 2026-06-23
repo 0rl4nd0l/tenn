@@ -1,0 +1,21 @@
+{
+  "artifact_type": "implementation_decision_v1",
+  "change_summary": [
+    "Allowed same-document announcement-date period rebinding for annual reports when pass1 report_type is A, source_period_end_evidence period_type is A, reason is year_ended_explicit_date, the title has annual report/appendix 4e evidence, and the current period_end equals the leading title date.",
+    "Kept half-year behavior gated by existing half-year title hints and source reasons.",
+    "Added a focused annual-report regression test for WHC-style publication date versus source period end."
+  ],
+  "files_changed": [
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+  ],
+  "fix_class": "WHC annual_report_title_date_period_end",
+  "generated_at": "2026-06-23T07:54:28.496693Z",
+  "implemented": true,
+  "not_implemented": [
+    "No DXC net_operating_income-to-EBIT mapping; source proof is NO_FIX_PROVEN.",
+    "No broad ontology, prompt, parser, schema, model, source PDF, or gold-label changes.",
+    "No broad fixture extraction/backfill; current fixture actual payloads remain DATA_MISSING until separately approved."
+  ],
+  "why_this_fix": "It was the top residual with exact source-row proof and low/medium blast radius after excluding broader runtime coverage gaps that are DATA_MISSING rather than product-code defects."
+}
