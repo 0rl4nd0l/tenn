@@ -62,9 +62,7 @@ pipeline functionality is claimed.
 - Host picker/autocomplete visibility was not probed in this session.
 - Host-global skills under `/home/l4nd0/.codex`, `/home/l4nd0/.agents`, and
   plugin caches are intentionally untouched.
-- Merge/push was not completed: `git push --dry-run origin
-  HEAD:refs/heads/migration/clean-runtime-baseline-reconstruct-v1` was blocked
-  by the local pre-push hook because
-  `financial-engine_v2/.venv/bin/ruff` and
-  `financial-engine_v2/.venv/bin/pytest` are missing. The suggested bypass flag
-  was not used.
+- Merge/push completed after owner approval to use
+  `TENN_ALLOW_MISSING_HOOK_TOOLS=1`. Remote
+  `origin/migration/clean-runtime-baseline-reconstruct-v1` was fast-forwarded
+  to `adabbb7945aa00cdec03f3275a7154814200be58`.

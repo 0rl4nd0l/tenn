@@ -32,11 +32,16 @@
   - result: blocked by local pre-push hook; missing
     `financial-engine_v2/.venv/bin/ruff` and
     `financial-engine_v2/.venv/bin/pytest`
-  - action: no push/merge performed; hook bypass flag not used
+- `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push origin HEAD:refs/heads/migration/clean-runtime-baseline-reconstruct-v1`
+  - result: passed after owner approval; pre-push skipped missing local
+    ruff/pytest checks and passed markdown hygiene
+  - remote update: `6a777b3d..adabbb79`
+- `git rev-parse HEAD origin/migration/clean-runtime-baseline-reconstruct-v1`
+  - result: both resolve to `adabbb7945aa00cdec03f3275a7154814200be58`
 
 ## Not Run
 
 - Runtime/product/extraction tests were not run because this change only updates
   repo-local skill entrypoints and refreshes control-plane docs.
-- Pre-push ruff/pytest checks were not run because the hook-required venv tools
-  are absent in this worktree.
+- Pre-push ruff/pytest checks were bypassed with owner approval because the
+  hook-required venv tools are absent in this worktree.
