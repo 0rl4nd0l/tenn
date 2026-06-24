@@ -70,7 +70,10 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
      otherwise record exact uncommitted paths and next action
 5. Optionally run architecture review for substantial sessions when it reduces
    risk and does not create another report-only loop.
-6. Write the handoff artifacts.
+6. Write the handoff artifacts, then print only the short fresh-session goal,
+   the `HANDOFF.md` path, and a concise git-dirt summary for Orlando. Do not
+   paste the full handoff, artifact map, validation history, or a long recap
+   into chat when the handoff docs contain that context.
 
 ## Fresh-Session Continuation Contract
 
@@ -93,6 +96,11 @@ Also include:
 - what the next session must not touch
 - the next 5-10 key milestones when the session is part of a larger repair
 - stop conditions and owner decisions needed
+- leftover git dirt, separated into staged, unstaged, untracked,
+  ignored/report artifacts, and owner-boundary or pre-existing dirt. For each
+  dirt item, state whether it is session-created, intentionally preserved, safe
+  to commit, should be ignored, or needs owner approval. If no dirt remains,
+  say `git_dirt: clean`.
 
 When continuation requires orchestration, `NEXT_GOAL.md` must instruct the
 fresh session to read `HANDOFF.md` first, run `tenn-git-guard` and ledger/task
@@ -100,6 +108,11 @@ duplicate checks, then act as an orchestrator through `tenn-fix`: split
 independent lanes, delegate only bounded workers, review worker outputs before
 integration, integrate one coherent change at a time, validate, and report
 honestly.
+
+The operator-facing closeout after writing a handoff should be terse. Print the
+short goal from `NEXT_GOAL.md`, the repo-relative `HANDOFF.md` path, and a
+one-line git-dirt summary. Do not summarize the full handoff in chat unless
+Orlando explicitly asks for the summary.
 
 ## Required Artifacts
 
@@ -128,6 +141,7 @@ Use `docs/dev_flow/templates/HANDOFF.md` as the section contract.
 - Runtime functionality proof, or `not_applicable`
 - Reports/task cards created
 - Git status and dirt
+- Leftover git dirt and next action
 - Ledger status
 - Failed attempts / mistakes
 - Open risks
@@ -164,6 +178,11 @@ safe source exists, write `DATA_MISSING`.
 orchestrator when work remains. The prompt must name the first action, the main
 do-not-touch boundaries, and the stop state.
 
+After creating `NEXT_GOAL.md`, print that short prompt as the final answer for
+the current session, preceded or followed only by the `HANDOFF.md` path and a
+concise git-dirt summary. The handoff file is the durable context; chat output
+is just the new-session goal plus whether any dirt was left behind.
+
 Use `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md` for this handoff-specific
 prompt. Do not make the shared `docs/dev_flow/templates/NEXT_GOAL.md`
 handoff-specific; `tenn-issue`, `tenn-review-board`, and other non-handoff
@@ -182,6 +201,11 @@ A handoff is not complete unless:
   verified
 - `NEXT_GOAL.md` exists
 - the short fresh-session prompt exists
+- `HANDOFF.md` records leftover git dirt using current `git status --short
+  --untracked-files=all` evidence and, when relevant, ignored/report artifact
+  evidence
+- the final chat closeout prints only the short fresh-session goal,
+  `HANDOFF.md` path, and concise git-dirt summary, not a full handoff recap
 - relevant artifacts and failed attempts are linked by path or URL
 - the first next action and do-not-touch boundaries are explicit
 - no product/runtime/data/extraction mutation occurred outside approved scope
