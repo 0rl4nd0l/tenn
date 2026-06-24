@@ -1,0 +1,54 @@
+{
+  "task_id": "control_plane_handoff_next_goal_print_only_v1_20260624",
+  "parent_task_id": null,
+  "workflow": "tenn-fix",
+  "status": "done_with_risk",
+  "started_at": "2026-06-24T14:44:52+10:00",
+  "updated_at": "2026-06-24T14:44:52+10:00",
+  "owner": "Codex",
+  "session_id": "DATA_MISSING",
+  "thread_id": "DATA_MISSING",
+  "codex_goal_id": "DATA_MISSING",
+  "source_session_ref": "DATA_MISSING",
+  "issue_refs": [],
+  "pr_refs": [],
+  "branch": "control-plane/handoff-next-goal-print-only-v1-20260624",
+  "worktree": "/home/l4nd0/tenn-handoff-next-goal-print-only-v1-20260624",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "files_touched": [
+    ".agents/skills/tenn-handoff/SKILL.md",
+    "docs/dev_flow/templates/HANDOFF.md",
+    "docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md",
+    "docs/agent_tasks/control_plane_handoff_next_goal_print_only_v1_20260624.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/README.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/STATE.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/DECISIONS.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/VALIDATION.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/PR_REVIEW.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/git_guard.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/diff-check.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/report-artifacts.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/ledger_entry.json"
+  ],
+  "artifacts": [
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/README.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/VALIDATION.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/PR_REVIEW.md"
+  ],
+  "summary": "Updated tenn-handoff so the final chat closeout prints only the short next-session goal, HANDOFF.md path, and git-dirt summary.",
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "python3 scripts/agent_job_contract.py validate docs/agent_tasks/control_plane_handoff_next_goal_print_only_v1_20260624.md",
+      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_handoff_next_goal_print_only_v1_20260624.md --repo-root .",
+      "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/control_plane_handoff_next_goal_print_only_v1_20260624.md --repo-root .",
+      "git diff --check",
+      "git push -u origin control-plane/handoff-next-goal-print-only-v1-20260624 (blocked by missing local hook tools; bypass planned with TENN_ALLOW_MISSING_HOOK_TOOLS=1)"
+    ]
+  },
+  "next_action": "review_then_commit_or_pr_if_desired",
+  "owner_boundary": false,
+  "supersedes": [],
+  "superseded_by": [],
+  "live_ledger_append": "skipped_no_live_registry_mutation_requested"
+}

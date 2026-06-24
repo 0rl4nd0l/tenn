@@ -95,7 +95,25 @@
 
 ## Git status and dirt
 
-- <tracked dirt, untracked dirt, ignored generated files, or clean>
+- command: `git status --short --untracked-files=all`
+- tracked_dirt:
+  - <path/status or none>
+- staged_dirt:
+  - <path/status or none>
+- unstaged_dirt:
+  - <path/status or none>
+- untracked_dirt:
+  - <path/status or none>
+- ignored_or_report_artifacts:
+  - <path/status or none; use `git status --short --ignored=matching <path>`
+    when report artifacts are intentionally ignored>
+- session_created_dirt:
+  - <path and why it exists, or none>
+- pre_existing_or_owner_boundary_dirt:
+  - <path and owner decision needed, or none>
+- git_dirt_summary: <clean|session_created_only|pre_existing_preserved|owner_boundary|DATA_MISSING>
+- next_agent_dirt_action:
+  <commit exact allowlisted paths|preserve untouched|review before editing|ask owner|none>
 
 ## Ledger status
 

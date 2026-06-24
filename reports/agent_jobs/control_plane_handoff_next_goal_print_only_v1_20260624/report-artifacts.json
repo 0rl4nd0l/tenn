@@ -1,0 +1,16 @@
+{
+  "schema_version": "manual_report_artifacts_v1",
+  "job_id": "control_plane_handoff_next_goal_print_only_v1_20260624",
+  "status": "validated",
+  "artifacts": [
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/README.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/STATE.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/DECISIONS.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/VALIDATION.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/PR_REVIEW.md",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/git_guard.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/diff-check.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/report-artifacts.json",
+    "reports/agent_jobs/control_plane_handoff_next_goal_print_only_v1_20260624/ledger_entry.json"
+  ]
+}
