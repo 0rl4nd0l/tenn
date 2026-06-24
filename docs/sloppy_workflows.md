@@ -67,7 +67,7 @@ these rules:
 | Missing or empty artifact file | Set `found_count=missing_artifact`; skip fix mode successfully. |
 | Malformed JSON or missing `issues` array | Hard error from the selector step. |
 | Valid artifact with zero `status: found` issues | Set `found_count=0`; skip fix mode successfully. |
-| Valid artifact with one or more `status: found` issues | Run Sloppy fix mode with the artifact path as `output-file`. |
+| Valid artifact with one or more `status: found` issues | Run Sloppy fix mode with the artifact path as `output-file` when Claude auth is enabled; otherwise skip through the no-credentials path. |
 
 Manual runs set `found_count=manual` and pass `/tmp/sloppy-fix-issues.json` as
 the Sloppy `output-file` path.
@@ -130,10 +130,10 @@ without posting.
 
 ## Local verification
 
-Run the focused workflow tests after editing either Sloppy workflow:
+Run the focused fix-workflow tests after editing `Sloppy Fix`:
 
 ```bash
-python -m unittest scripts/test_sloppy_fix_workflow.py
+python3 -m unittest scripts/test_sloppy_fix_workflow.py
 ```
 
 These tests parse `.github/workflows/sloppy-fix.yml` with a GitHub Actions-safe
@@ -143,3 +143,8 @@ YAML loader and assert:
 - Claude provider, auth, action, model, and output-file wiring are preserved
 - seeded and fixed issue counts propagate into the PR comment job
 - the fix workflow remains unscheduled
+
+For `Sloppy Scan` edits, also verify the scan workflow still uploads
+`/tmp/sloppy-scan-issues.json` as the `sloppy-scan-issues` artifact and preserves
+the intended provider path (`github-models` by default, manual `agent` mode for
+Codex/OpenAI).
