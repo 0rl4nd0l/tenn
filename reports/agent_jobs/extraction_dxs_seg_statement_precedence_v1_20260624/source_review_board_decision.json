@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "decision": "ask_owner",
+  "evidence_grade": "VERIFIED",
+  "reason": "Source inspection verified remaining DXS and SEG extractor-class defects, but no one-smallest safe extractor fix fits this task card. ANZ and the ambiguous quarantines require policy or gold decisions before code changes are defensible.",
+  "task_tier": "critical",
+  "recommended_model": "high reasoning plus review board",
+  "actual_model": "Codex GPT-5",
+  "why_this_model": "The decision crosses financial truth, source provenance, and scorecard policy; a lower-reasoning implementation pass would likely overfit a parser patch to one fixture.",
+  "worker_model_allowed": "false - no worker delegation was used because source evidence and stop/go authority had to stay in one audited lane.",
+  "worker_decision_limit": "Workers must not approve extractor behavior or gold/policy semantics for this lane.",
+  "escalation_needed": "true - owner approval is needed to split DXS/SEG extractor-class work from ANZ/gold/policy work.",
+  "ledger_sources_checked": [
+    "tenn git guard preflight",
+    "read-only registry active job list",
+    "agent task ledger validate",
+    "GitHub PR #405",
+    "GitHub issue #97",
+    "PR #405 report artifacts",
+    "source PDFs for ANZ, DXS, and SEG"
+  ],
+  "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+  "matching_candidates": [],
+  "duplicate_work_decision": "Proceed with report-only stop packet; no active duplicate lane was found.",
+  "minority_objection": "Patch DXS group-statement preference now as the smallest proven fix.",
+  "minority_objection_checks": "Rejected after source inspection because DXS is a stapled/group statement precedence behavior with regression risk and needs dedicated positive and negative tests outside this stop packet.",
+  "counter_lineage_required": false,
+  "functionality_proof_required": false,
+  "functionality_proof_status": "not_applicable",
+  "functionality_proof_remaining_blocker": "No functionality proof is required because no extractor code changed; the #97 gate remains at the PR #405 blocked state.",
+  "zoom_out_required": true,
+  "root_problem_check": "The root problem is not only extractor row matching. Remaining blockers split into extractor-class source selection, bank policy, and gold/evaluation ambiguity.",
+  "overfitting_risk": "High if DXS or SEG are patched as one-off label fixes; both need class-level statement precedence tests.",
+  "report_only_loop_risk": "Moderate. The report should immediately feed two scoped follow-ups rather than another broad audit.",
+  "broad_system_progress": "The packet narrows #97 from generic blockers to DXS/SEG extractor-class work plus ANZ/gold/policy decisions.",
+  "class_based_approach_better": "Yes. DXS should be tested as stapled/group statement selection; SEG should be tested as wrapper/full-statement precedence.",
+  "production_readiness_value_next_action": "Highest value next action is a narrow DXS/SEG extractor task with fixture-level regression tests, then a separate gold/policy approval lane.",
+  "financial_extraction_breadth_provenance_confidence_regression_check": "No breadth claim is made. Provenance confidence improved for blocker classification only; approved-15 gate remains blocked.",
+  "required_changes": [
+    "Create a scoped DXS/SEG extractor-class task for group-statement and wrapper/full-statement precedence.",
+    "Create or run a gold/policy review for ANZ bank metrics, candidate-review expectations, and net-debt ambiguous labels."
+  ],
+  "owner_approval_needed": [
+    "Approve splitting extractor-class work from policy/gold work.",
+    "Approve whether ANZ bank rows should use operating income or net interest income, and whether bank magnitude gates need metric-family policy.",
+    "Approve treatment of candidate-review and ambiguous net-debt expectations in #97 gate counting."
+  ],
+  "next_goal": "Start a new safe-extension task for DXS/SEG extractor-class statement precedence, with dedicated positive and negative tests, then rerun affected no-write replay and the approved-15 #97 scorecard.",
+  "final_decision_authority": "Owner approval required before extractor implementation.",
+  "lower_tier_decision_insufficient": "A small/medium implementation pass cannot safely decide bank metric semantics, ambiguous gold labels, or class-level statement precedence behavior."
+}

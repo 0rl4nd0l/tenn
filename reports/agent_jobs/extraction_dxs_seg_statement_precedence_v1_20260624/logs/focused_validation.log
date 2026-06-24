@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/l4nd0/tenn-extraction-dxs-seg-statement-precedence-v1-20260624/financial-engine_v2/backend
+configfile: pytest.ini
+plugins: anyio-4.14.0
+collected 243 items
+
+financial-engine_v2/backend/tests/test_multipass_extraction.py ......... [  3%]
+........................................................................ [ 33%]
+........................................................................ [ 62%]
+........................................................................ [ 92%]
+..................                                                       [100%]
+
+=============================== warnings summary ===============================
+../../../var/log/ssd_data/l4nd0_cache/uv/archive-v0/gm5PpVQX1she2pD669rTr/lib/python3.11/site-packages/_pytest/config/__init__.py:1464
+  /var/log/ssd_data/l4nd0_cache/uv/archive-v0/gm5PpVQX1she2pD669rTr/lib/python3.11/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_default_fixture_loop_scope
+
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 243 passed, 1 warning in 1.69s ========================

@@ -1,0 +1,70 @@
+Consider using the pymupdf_layout package for a greatly improved page layout analysis.
+Filter too aggressive for cashflow_statement: 75 → 4 rows (95% reduction) — using full table
+Filter too aggressive for balance_sheet: 63 → 6 rows (90% reduction) — using full table
+Filter too aggressive for cashflow_statement: 69 → 2 rows (97% reduction) — using full table
+Filter too aggressive for income_statement: 42 → 8 rows (81% reduction) — using full table
+Filter too aggressive for balance_sheet: 59 → 4 rows (93% reduction) — using full table
+non-AUD currency detected: USD — values stored as-is (no FX conversion applied)
+validation_gate:non_aud_currency:USD — downgrading to ok_low_confidence (no FX policy)
+non-AUD currency detected: USD — values stored as-is (no FX conversion applied)
+validation_gate:non_aud_currency:USD — downgrading to ok_low_confidence (no FX policy)
+Filter too aggressive for income_statement: 34 → 5 rows (85% reduction) — using full table
+Filter too aggressive for income_statement: 36 → 1 rows (97% reduction) — using full table
+Filter too aggressive for balance_sheet: 36 → 1 rows (97% reduction) — using full table
+non-AUD currency detected: USD — values stored as-is (no FX conversion applied)
+Pass 3a failed for balance_sheet: No valid JSON found in llama.cpp response: {
+  "thinking": "Found the relevant rows for total debt and net debt, verified column headers for the period ending 2025-12-31, checked scale in header.",
+  "metrics": {
+    "net_debt": 257 - 412,
+    "total_debt": 5499 + 257,
+    "shares_outstanding": null
+  },
+  "row_refs": {
+    "net_debt": "Borrowings and finance lease liabilities, Borrowings and finance lease liabilities",
+    "total_debt": " — retrying with truncated table
+validation_gate:non_aud_currency:USD — downgrading to ok_low_confidence (no FX policy)
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+Filter too aggressive for income_statement: 47 → 3 rows (94% reduction) — using full table
+Filter too aggressive for balance_sheet: 56 → 2 rows (96% reduction) — using full table
+non-AUD currency detected: USD — values stored as-is (no FX conversion applied)
+Filter too aggressive for cashflow_statement: 71 → 6 rows (92% reduction) — using full table
+Filter too aggressive for balance_sheet: 71 → 6 rows (92% reduction) — using full table
+Filter too aggressive for cashflow_statement: 52 → 5 rows (90% reduction) — using full table
+Filter too aggressive for balance_sheet: 57 → 5 rows (91% reduction) — using full table
+MuPDF error: format error: No common ancestor in structure tree
+
+MuPDF error: format error: No common ancestor in structure tree
+
+Filter too aggressive for cashflow_statement: 65 → 4 rows (94% reduction) — using full table
+{
+  "accepted_payload_count": 12,
+  "case_count": 15,
+  "fail_closed_payload_count": 3,
+  "failed_payload_count": 0,
+  "gate_decision": "blocked",
+  "gate_status": "fail",
+  "result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_evidence": 0,
+    "missing_expected_metric": 5,
+    "not_evaluated_no_actual_payload": 18,
+    "present_correct": 48,
+    "present_wrong_value": 2,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "side_effect_pass": true,
+  "status": "PARTIAL"
+}
