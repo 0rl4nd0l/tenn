@@ -1,0 +1,366 @@
+{
+  "artifact_type": "approved_15_failure_classes_v1",
+  "ranked_fixture_classes": [
+    {
+      "count": 10,
+      "fixture": "ANZ_H_2025-03-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "AZJ_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "CSL_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "FMG_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "TCL_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "TLS_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "WOW_H_2026-01-04.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 9,
+      "fixture": "DXS_H_2025-12-31.json",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 7,
+      "fixture": "SEG_H_2025-12-31.json",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 1,
+      "fixture": "DXS_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 1,
+      "fixture": "QBE_H_2025-06-30.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 1,
+      "fixture": "SEG_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    }
+  ],
+  "ranked_metric_classes": [
+    {
+      "count": 10,
+      "metric_name": "net_debt",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "revenue",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "ebit",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "np_attributable",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "operating_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "investing_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "financing_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "capex",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "cash_end",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "shares_outstanding",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 2,
+      "metric_name": "revenue",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "np_attributable",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "operating_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "investing_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "financing_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "cash_end",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "shares_outstanding",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 1,
+      "metric_name": "ebit",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 1,
+      "metric_name": "capex",
+      "result_class": "not_evaluated_no_actual_payload"
+    }
+  ],
+  "ranked_result_classes": [
+    {
+      "count": 73,
+      "examples": [
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-03-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 11153000000.0,
+          "fixture": "ANZ_H_2025-03-31.json",
+          "metric_name": "revenue",
+          "reason": "Expectation requires review or has ambiguous label evidence"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-03-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 5222000000.0,
+          "fixture": "ANZ_H_2025-03-31.json",
+          "metric_name": "ebit",
+          "reason": "Expectation requires review or has ambiguous label evidence"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-03-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 3663000000.0,
+          "fixture": "ANZ_H_2025-03-31.json",
+          "metric_name": "np_attributable",
+          "reason": "Expectation requires review or has ambiguous label evidence"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-03-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 47507000000.0,
+          "fixture": "ANZ_H_2025-03-31.json",
+          "metric_name": "operating_cf",
+          "reason": "Expectation requires review or has ambiguous label evidence"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-03-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": -10262000000.0,
+          "fixture": "ANZ_H_2025-03-31.json",
+          "metric_name": "investing_cf",
+          "reason": "Expectation requires review or has ambiguous label evidence"
+        }
+      ],
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 16,
+      "examples": [
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 360000000.0,
+          "fixture": "DXS_H_2025-12-31.json",
+          "metric_name": "revenue",
+          "reason": "No actual extracted payload supplied for this document"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 347600000.0,
+          "fixture": "DXS_H_2025-12-31.json",
+          "metric_name": "ebit",
+          "reason": "No actual extracted payload supplied for this document"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 348500000.0,
+          "fixture": "DXS_H_2025-12-31.json",
+          "metric_name": "np_attributable",
+          "reason": "No actual extracted payload supplied for this document"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 168500000.0,
+          "fixture": "DXS_H_2025-12-31.json",
+          "metric_name": "operating_cf",
+          "reason": "No actual extracted payload supplied for this document"
+        },
+        {
+          "actual_context": {
+            "currency": null,
+            "period_end": null,
+            "period_type": null,
+            "scale": null
+          },
+          "actual_value": null,
+          "expected_context": {
+            "currency": "AUD",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "millions"
+          },
+          "expected_value": 83900000.0,
+          "fixture": "DXS_H_2025-12-31.json",
+          "metric_name": "investing_cf",
+          "reason": "No actual extracted payload supplied for this document"
+        }
+      ],
+      "result_class": "not_evaluated_no_actual_payload"
+    }
+  ]
+}

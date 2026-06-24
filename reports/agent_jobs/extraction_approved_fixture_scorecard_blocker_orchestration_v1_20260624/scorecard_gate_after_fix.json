@@ -1,5 +1,5 @@
 {
-  "actual_payload_document_count": 24,
+  "actual_payload_document_count": 12,
   "actual_payload_supplied": true,
   "allowed_noncanonical_abstention_count": 0,
   "allowed_result_classes": [
@@ -8,16 +8,6 @@
   ],
   "artifact_type": "pre_persistence_scorecard_gate_v1",
   "blockers": [
-    {
-      "code": "missing_expected_metric",
-      "count": 4,
-      "policy": "result class blocks pre-persistence promotion"
-    },
-    {
-      "code": "present_wrong_value",
-      "count": 4,
-      "policy": "result class blocks pre-persistence promotion"
-    },
     {
       "code": "ambiguous_quarantined",
       "count": 73,
@@ -103,9 +93,7 @@
   ],
   "blocking_result_class_summary": {
     "ambiguous_quarantined": 73,
-    "missing_expected_metric": 4,
-    "not_evaluated_no_actual_payload": 16,
-    "present_wrong_value": 4
+    "not_evaluated_no_actual_payload": 16
   },
   "blocking_result_classes": [
     "missing_expected_metric",
@@ -136,10 +124,10 @@
   "result_class_summary": {
     "ambiguous_quarantined": 73,
     "missing_evidence": 0,
-    "missing_expected_metric": 4,
+    "missing_expected_metric": 0,
     "not_evaluated_no_actual_payload": 16,
-    "present_correct": 49,
-    "present_wrong_value": 4,
+    "present_correct": 57,
+    "present_wrong_value": 0,
     "unsupported_correctly_abstained": 0,
     "wrong_period": 0,
     "wrong_unit_currency_scale": 0

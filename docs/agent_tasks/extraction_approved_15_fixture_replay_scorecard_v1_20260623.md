@@ -47,7 +47,7 @@ recommended_model: "high reasoning"
 actual_model: "Codex GPT-5"
 why_this_model: "The job must preserve Financial Truth boundaries while running bounded no-write extraction replay, evaluating payload scorecards, ranking failure classes, and possibly making one source-proven fix."
 worker_model_allowed: false
-worker_decision_limit: "No workers planned initially; replay and failure ranking are bounded and evidence-driven."
+worker_decision_limit: "No workers used; replay, source inspection, code change, and validation were handled directly in this bounded task."
 escalation_needed: false
 task_scope: safe_execution
 ---

@@ -1,0 +1,78 @@
+{
+  "agent": "evidence-scout",
+  "attach_mode_allowed": false,
+  "attach_mode_requested": false,
+  "command": [
+    "/home/l4nd0/.opencode/bin/opencode",
+    "run",
+    "--pure",
+    "--agent",
+    "evidence-scout",
+    "--model",
+    "deepseek/deepseek-chat",
+    "--dir",
+    "/home/l4nd0/tenn",
+    "<prompt>"
+  ],
+  "decision_limit": "evidence_only",
+  "ended_at": "2026-06-23T14:51:14.345249+00:00",
+  "exit_code": 0,
+  "model": "deepseek/deepseek-chat",
+  "permission_enforcement": {
+    "config_sha256": "5442743626bc8e14c56d1891bc351910f5b03cabb047aedf7db24f2a35ffe08a",
+    "method": "OPENCODE_CONFIG_CONTENT",
+    "profile": "readonly",
+    "verification": {
+      "issues": [],
+      "method": "opencode_config_content_debug_config",
+      "ok": true,
+      "reason": null,
+      "summary": {
+        "agent_bash_default": "deny",
+        "agent_edit": "deny",
+        "agent_external_directory": "deny",
+        "global_bash_default": "deny",
+        "global_edit": "deny",
+        "global_external_directory": "deny"
+      }
+    },
+    "verified": true
+  },
+  "raw_output_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/raw_output.txt",
+  "remote_permission_verified": false,
+  "result_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/WORKER_RESULT.md",
+  "result_validation": {
+    "fields": {
+      "confidence": "HIGH \u2014 all 8 hard-failure rows identified with exact expected vs actual values; fixture provenance notes confirm ground truth for each.",
+      "decision_limit": "evidence_only",
+      "evidence_paths": "- reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/failure_rows.json\n- reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard.json\n- reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/replay_results.json\n- financial-engine_v2/backend/tests/eval_fixtures/BHP_A_2021-06-30.json\n- financial-engine_v2/backend/tests/eval_fixtures/EQR_Q_2025-12-31.json\n- financial-engine_v2/backend/tests/eval_fixtures/GRE_Q_2024-12-31.json\n- financial-engine_v2/backend/tests/eval_fixtures/MIN_H_2025-12-31.json\n- financial-engine_v2/backend/tests/eval_fixtures/QBE_H_2025-06-30.json",
+      "findings": "'missing_expected_metric rows (4 total):'\n- '1. BHP_A_2021-06-30 | np_attributable | expected=11,304M | actual=null | Fixture note: \"Attributable to BHP shareholders\" = 11,304 on page 44. Missing from actual payload (replay_results shows np_attributable=null). PARSER-FIXABLE: the label \"Attributable to BHP shareholders\" may not match prompt ontology field name np_attributable; NP reconciliation or label-matching pass needs widening.'\n- '2. BHP_A_2021-06-30 | cash_end | expected=15,246M | actual=null | Fixture note: \"Cash and cash equivalents, net of overdrafts, at the end of the financial year\" on page 46. Missing from actual payload. PARSER-FIXABLE: same root cause \u2014 LLM or pass-2 table locator missed the cash_end row in the cash flow statement.'\n- '3. MIN_H_2025-12-31 | ebit | expected=1,031M | actual=null | Fixture note: \"PROFIT/(LOSS) FROM OPERATIONS = 1,031\" on page 14 (income statement row 13). Replay shows ebit=null, np_attributable got wrong value 2M (see below). PARSER-FIXABLE: EBIT extraction label match for \"Profit from operations\" may need wider tolerance or an additional pass-3 label alias.'\n- '4. QBE_H_2025-06-30 | capex | expected=-9M | actual=null | Fixture note: \"Payments for purchase of property, plant and equipment = (9)\" on page 17. Very small insurance PP&E. PARSER-FIXABLE: tiny capex likely below the absolute-value threshold in the extractor or the row was not in the extracted table region. Low impact.'\n'present_wrong_value rows (4 total):'\n- '1. EQR_Q_2025-12-31 | investing_cf | expected=-2,656K | actual=-255K | Scorecard actual=-255K; replay_results shows investing_cf=-255K. Fixture note total investing sec 2.6 = -2,656. The actual -255 matches the sub-item 2.1(d) exploration spend only. PARSER-FIXABLE: the LLM read the subtotal row (item 2.1) instead of the grand total (item 2.6). Target: pass-3 (extract pass) needs to prefer the section total over sub-item rows for investing_cf.'\n- '2. GRE_Q_2024-12-31 | investing_cf | expected=-624K | actual=-1,193K | Scorecard actual=-1,193K. Fixture note total investing sec 2.6 = -624 (entirely exploration). The actual -1,193 is the sum of capex(0)+exploration(-624)+other investing items, suggesting the LLM combined multiple line items or read a different column. PARSER-FIXABLE: pass-3 row-selection logic may aggregate sub-items instead of using the section total line.'\n- '3. MIN_H_2025-12-31 | np_attributable | expected=495M | actual=2M | Fixture note: \"Equity holders of the parent = 495\" on page 14. The actual 2M is the NCI/minority interest (78M stated, but 2M is a different non-owner line). PARSER-FIXABLE: extractor picked up non-controlling interest instead of parent attribution; label disambiguation between \"Equity holders of the parent\" and \"Non-controlling interests\" needs improvement.'\n- '4. QBE_H_2025-06-30 | shares_outstanding | expected=1,510M | actual=8,409M | Fixture note: \"Issued ordinary shares, fully paid at 30 June = 1,510 millions\" from Note 4.3.1. Actual 8,409M appears to be the total issued shares including treasury, not the net figure. PARSER-FIXABLE: share count source disambiguation \u2014 LLM used a different row from the share capital note or the balance sheet line.'",
+      "model": "deepseek/deepseek-chat",
+      "recommended_next_action": "\"Codex should inspect multipass_extraction.py pass-3 (extract pass) row-selection logic in the cash-flow and income-statement branches, particularly: (a) how section-total rows vs sub-item rows are preferred for metrics like investing_cf, (b) how np_attributable disambiguates parent-equity from NCI, (c) how shares_outstanding resolves gross vs net share counts. Target files: financial-engine_v2/backend/app/services/multipass_extraction.py lines ~200-400 (pass-3 extraction rules) and the pass-2 table locator heuristics. Also review test_multipass_extraction.py for coverage of the specific 5B sub-item-vs-total pattern.\"",
+      "risks": "- \"EQR investing_cf wrong-row selection (sub-item vs section total) and GRE investing_cf aggregation suggest a systemic pass-3 row-preference issue in Appendix 5B extraction, not isolated to one fixture.\"\n- \"MIN np_attributable 2M vs 495M and BHP np_attributable missing (both same canonical field np_attributable) suggest the prompt ontology for profit-attribution labels may need a single aligned label strategy (parent-equity vs total-vs-NCI disambiguation).\"\n- \"QBE shares_outstanding 8,409M vs 1,510M indicates treasury-share gross/net confusion \u2014 this may affect other insurance/bank fixtures with complex capital structures.\"\n- \"All 8 failures are in scored/CONFIRMED_SOURCE_EVIDENCED status; no gold-label or source-PDF mutation needed. Broad ontology change is not required \u2014 narrow pass-level or alias-list fixes should suffice.\"",
+      "stop_condition_hit": "false\n```",
+      "summary": "Inspected 4 missing_expected_metric and 4 present_wrong_value hard failures from the approved-15-fixture scorecard. 3 of 4 present_wrong_value failures are gross extraction errors (wrong table row / wrong share count). 3 of 4 missing_expected_metric failures are LB: the metric is in the source PDF but the LLM missed it. 1 missing (QBE capex) is a tiny insurance-PP&E value. All 8 failures are likely parser-fixable with targeted prompt or pass-level tuning; none require source PDF, ontology, or gold-label mutation.",
+      "task_tier": "small",
+      "worker_id": "scored-failures"
+    },
+    "issues": [
+      {
+        "field": "stop_condition_hit",
+        "message": "must be exactly one of: DATA_MISSING, no, yes"
+      }
+    ],
+    "ok": false
+  },
+  "runtime": "opencode",
+  "schema_version": 1,
+  "session_id": "019ef3a6-0234-7b13-bc22-b26d4f8b0770",
+  "started_at": "2026-06-23T14:50:30.449413+00:00",
+  "status": "result_invalid",
+  "task_file": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures-task.md",
+  "task_path": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures/WORKER_TASK.md",
+  "task_tier": "small",
+  "timed_out": false,
+  "workdir": "/home/l4nd0/tenn",
+  "worker_dir": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/workers/scored-failures",
+  "worker_id": "scored-failures"
+}
