@@ -4385,6 +4385,243 @@ def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
     assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
+def test_income_source_overlay_prefers_full_statement_over_appendix_wrapper():
+    """SEG-style full financial statements outrank Appendix 4D wrapper rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    full_statement = DoclingTable(
+        page_number=15,
+        caption="Consolidated statement of profit or loss and other comprehensive income",
+        headers=["", "31 Dec 2025 $'000", "31 Dec 2024 $'000"],
+        rows=[
+            ["", "31 Dec 2025 $'000", "31 Dec 2024 $'000"],
+            ["Revenue from continuing operations", "73,671", "65,000"],
+            [
+                "Profit / (loss) after income tax from continuing operations",
+                "3,243",
+                "1,100",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "revenue": 73_671_000,
+            "np_attributable": 9_715_000,
+        },
+        "revenue": 73_671_000,
+        "np_attributable": 9_715_000,
+        "row_refs": {
+            "revenue": "2.1 Revenues from ordinary activities",
+            "np_attributable": "2.3 Pre AASB-16 EBITDA",
+        },
+        "provenance": {
+            "revenue": "appendix_wrapper:page_3:2.1 Revenues from ordinary activities",
+            "np_attributable": "appendix_wrapper:page_3:2.3 Pre AASB-16 EBITDA",
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [full_statement],
+        scale="thousands",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 73_671_000
+    assert payload["metrics"]["np_attributable"] == 3_243_000
+    assert payload["row_refs"]["revenue"] == "Revenue from continuing operations"
+    assert (
+        payload["row_refs"]["np_attributable"]
+        == "Profit / (loss) after income tax from continuing operations"
+    )
+    assert payload["provenance"]["np_attributable"].startswith("income_statement:")
+
+
+def test_income_source_overlay_prefers_total_rows_in_full_statement():
+    """DXS-style group statements should use total revenue and period profit rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    group_statement = DoclingTable(
+        page_number=16,
+        caption="Consolidated Statement of Comprehensive Income",
+        headers=["", "Note", "31 Dec 2025 $m", "31 Dec 2024 $m"],
+        rows=[
+            ["Revenue from ordinary activities", "", "", ""],
+            ["Property revenue", "2", "150.0", "159.1"],
+            ["Development revenue", "", "14.9", "20.2"],
+            ["Management fees and other revenue", "3", "174.3", "242.3"],
+            ["Interest revenue", "", "20.8", "13.1"],
+            ["Total revenue from ordinary activities", "", "360.0", "434.7"],
+            ["Profit for the period before tax", "", "347.6", "27.4"],
+            ["Income tax benefit/(expense)", "5", "0.9", "(17.1)"],
+            ["Profit for the period", "", "348.5", "10.3"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"revenue": None, "ebit": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [group_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 360_000_000
+    assert payload["metrics"]["ebit"] == 347_600_000
+    assert payload["metrics"]["np_attributable"] == 348_500_000
+    assert payload["row_refs"]["revenue"] == "Total revenue from ordinary activities"
+
+
+def test_statement_text_overlay_recovers_fragmented_full_statements_over_wrapper():
+    """SEG-style fragmented statement pages should override Appendix wrapper rows."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "revenue": 73_671_000,
+            "np_attributable": 9_715_000,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": None,
+        },
+        "revenue": 73_671_000,
+        "np_attributable": 9_715_000,
+        "row_refs": {
+            "revenue": "2.1 Revenues from ordinary activities",
+            "np_attributable": "2.3 Pre AASB-16 EBITDA",
+        },
+        "provenance": {
+            "revenue": "appendix_wrapper:page_3:2.1 Revenues from ordinary activities",
+            "np_attributable": "appendix_wrapper:page_3:2.3 Pre AASB-16 EBITDA",
+        },
+    }
+    sections = [
+        {
+            "page": 12,
+            "text": "Consolidated statement of profit or loss and other comprehensive income for the",
+        },
+        {"page": 12, "text": "financial half year ended 31 December 2025"},
+        {"page": 12, "text": "Revenue from continuing operations"},
+        {"page": 12, "text": "2"},
+        {"page": 12, "text": "73,671"},
+        {"page": 12, "text": "57,546"},
+        {"page": 12, "text": "Profit / (loss) after income tax from continuing operations"},
+        {"page": 12, "text": "3,243"},
+        {"page": 12, "text": "(456)"},
+        {
+            "page": 17,
+            "text": "Consolidated statement of cash flows for the financial half year ended 31 December 2025",
+        },
+        {"page": 17, "text": "Net operating cash flows provided by operating activities"},
+        {"page": 17, "text": "11,619"},
+        {"page": 17, "text": "2,448"},
+        {"page": 17, "text": "Net cash from investing activities"},
+        {"page": 17, "text": "7,527"},
+        {"page": 17, "text": "18,502"},
+        {"page": 17, "text": "Net cash used in financing activities"},
+        {"page": 17, "text": "(7,369)"},
+        {"page": 17, "text": "(19,831)"},
+        {"page": 17, "text": "Cash and cash equivalents at the end of the half year"},
+        {"page": 17, "text": "26,716"},
+        {"page": 17, "text": "11,855"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="thousands",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 73_671_000
+    assert payload["metrics"]["np_attributable"] == 3_243_000
+    assert payload["metrics"]["operating_cf"] == 11_619_000
+    assert payload["metrics"]["investing_cf"] == 7_527_000
+    assert payload["metrics"]["financing_cf"] == -7_369_000
+    assert payload["metrics"]["cash_end"] == 26_716_000
+    assert payload["provenance"]["np_attributable"].startswith("income_statement:")
+    assert payload["provenance"]["operating_cf"].startswith("cashflow_statement:")
+
+
+def test_income_source_overlay_keeps_appendix_wrapper_when_no_full_statement_exists():
+    """Wrapper-only Appendix 4D payloads remain valid when no full statement is present."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "revenue": 73_671_000,
+            "np_attributable": 3_243_000,
+        },
+        "revenue": 73_671_000,
+        "np_attributable": 3_243_000,
+        "row_refs": {
+            "revenue": "2.1 Revenues from ordinary activities",
+            "np_attributable": "2.5 Profit attributable to members",
+        },
+        "provenance": {
+            "revenue": "appendix_wrapper:page_3:2.1 Revenues from ordinary activities",
+            "np_attributable": "appendix_wrapper:page_3:2.5 Profit attributable to members",
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [],
+        scale="thousands",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 3_243_000
+    assert payload["row_refs"]["np_attributable"] == "2.5 Profit attributable to members"
+
+
 def test_appendix_wrapper_does_not_treat_ebitda_as_ebit():
     """EBITDA rows are not source proof for EBIT."""
     from app.services.docling_extract import DoclingTable
@@ -4791,6 +5028,66 @@ def test_pass2_merges_fragmented_5b_cf_tables():
     assert "investing activities" in all_text
     assert "financing activities" in all_text
     assert "702" in all_text  # cash_end from section 4
+
+
+def test_pass2_cashflow_prefers_consolidated_group_statement_over_component_statement():
+    """DXS-style stapled groups must prefer the consolidated cash-flow statement."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    component_statement = DoclingTable(
+        page_number=51,
+        caption="Dexus Property Trust Statement of Cash Flows",
+        headers=["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+        rows=[
+            ["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+            ["Cash flow from operating activities", "", ""],
+            ["Net cash inflow from operating activities", "735.2", "120.0"],
+            ["Net cash inflow from investing activities", "4,000.0", "200.0"],
+            ["Net cash outflow from financing activities", "(500.0)", "(300.0)"],
+            ["Cash and cash equivalents at the end of the period", "11.0", "8.0"],
+        ],
+    )
+    consolidated_statement = DoclingTable(
+        page_number=20,
+        caption="Dexus Consolidated Statement of Cash Flows",
+        headers=["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+        rows=[
+            ["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+            ["Cash flow from operating activities", "", ""],
+            ["Net cash inflow/(outflow) from operating activities", "168.5", "108.3"],
+            ["Net cash inflow/(outflow) from investing activities", "83.9", "(40.1)"],
+            ["Net cash inflow/(outflow) from financing activities", "(243.0)", "(91.0)"],
+            ["Cash and cash equivalents at the end of the period", "74.7", "66.1"],
+        ],
+    )
+
+    result = _run_pass2_locator([component_statement, consolidated_statement])
+
+    assert result["cashflow_statement"] is consolidated_statement
+
+
+def test_pass2_cashflow_keeps_component_statement_when_no_group_statement_exists():
+    """The group-preference rule must not reject a standalone statement."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    component_statement = DoclingTable(
+        page_number=51,
+        caption="Dexus Property Trust Statement of Cash Flows",
+        headers=["", "31 Dec 2025 $m"],
+        rows=[
+            ["", "31 Dec 2025 $m"],
+            ["Net cash inflow from operating activities", "735.2"],
+            ["Net cash inflow from investing activities", "4,000.0"],
+            ["Net cash outflow from financing activities", "(500.0)"],
+            ["Cash and cash equivalents at the end of the period", "11.0"],
+        ],
+    )
+
+    result = _run_pass2_locator([component_statement])
+
+    assert result["cashflow_statement"] is component_statement
 
 
 # ---------------------------------------------------------------------------

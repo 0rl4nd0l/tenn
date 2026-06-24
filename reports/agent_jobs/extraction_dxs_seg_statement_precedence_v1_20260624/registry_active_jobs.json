@@ -1,0 +1,11 @@
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "lock_acquired": false,
+  "ok": true,
+  "read_only": true,
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-extraction-dxs-seg-statement-precedence-v1-20260624",
+  "warnings": []
+}

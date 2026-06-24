@@ -1,0 +1,20 @@
+{
+  "data_missing": [],
+  "entry_count": 17,
+  "issues": [],
+  "ok": true,
+  "sources_checked": [
+    {
+      "entry_count": 15,
+      "exists": true,
+      "kind": "live",
+      "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+    },
+    {
+      "entry_count": 2,
+      "exists": true,
+      "kind": "committed",
+      "path": "/home/l4nd0/tenn-extraction-dxs-seg-statement-precedence-v1-20260624/docs/agent_registry/task_ledger/LEDGER.jsonl"
+    }
+  ]
+}
