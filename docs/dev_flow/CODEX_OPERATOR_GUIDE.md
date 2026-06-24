@@ -1,6 +1,8 @@
 # Codex Operator Guide
 
-Status: practical Orlando guide for the Tenn control plane after PR #383 and the Runtime Functionality Proof closeout-gate follow-up.
+Status: practical Orlando guide for the Tenn control plane after PR #383, the
+Runtime Functionality Proof closeout-gate follow-up, and the 2026-06-24
+key/narrative skill surface trim.
 
 ## The Operating Rule
 
@@ -38,7 +40,10 @@ python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo
 | Long-running goal | `tenn-goal-report` | Keeps report-local state and stop/continue discipline. |
 | Handoff or new session | `tenn-handoff` | Creates durable handoff and next prompt. |
 | Plain-English status | `tenn-explain` | Explains branch, issue, report, or subsystem state. |
+| Zoom out | `zoom-out` or `tenn-explain` | Steps up one layer and maps the broader system/problem. |
+| Brief mode | `caveman` | Makes future answers terse while preserving technical accuracy. |
 | Metric extraction | `tenn-financial-metric-extraction` | Uses the narrow Financial Truth extraction workflow. |
+| Architecture improvement | `tenn-improve-codebase-architecture` | Runs architecture/deepening review under Tenn gates. |
 | Worker scouts | `codex-worker-bridge` through `tenn-fix` | Runs bounded OpenCode evidence scouts under Codex authority. |
 | Git/task-card safety | `tenn-git-guard` | Backend guard for preflight, registry, ledger, and allowed diff checks. |
 
@@ -188,7 +193,10 @@ The missing question is always: did the intended output happen in the live targe
 
 ## How To Operate Codex From Now On
 
-Use Tenn repo skills as explicit files, not autocomplete labels. For ordinary next-action work, start with `tenn-issue`. For any mutation, use `tenn-fix`. For decisions, use `tenn-review-board`. For long goals, keep `tenn-goal-report` state current. Before stopping, use `tenn-handoff`.
+Use Tenn repo skills as explicit files, not autocomplete labels. For ordinary
+next-action work, start with `tenn-issue`. For any mutation, use `tenn-fix`.
+For decisions, use `tenn-review-board`. For long goals, keep
+`tenn-goal-report` state current. Before stopping, use `tenn-handoff`.
 
 When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields and the `check-closeout` result. For docs/report work, ask for portable guard preflight, task-card validation, any Tenn-control-plane-local ledger/registry checks that were available, `check-diff`, `check-report-artifacts`, and `git diff --check`.
 

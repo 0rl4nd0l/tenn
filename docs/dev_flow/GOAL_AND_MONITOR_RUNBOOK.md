@@ -1,12 +1,16 @@
 # Goal And Monitor Runbook
 
-Status: report-only audit. This file distinguishes repo-backed Tenn behavior from host-only Codex slash-goal behavior.
+Status: report-only audit, refreshed after the 2026-06-24 key/narrative skill
+surface trim. This file distinguishes repo-backed Tenn behavior from host-only
+Codex slash-goal behavior.
 
 Verified from commit `154888ecca6220ab598efcd140a2c2b62fca3da7`.
 
 ## Short Answer
 
-`/goal` is Codex/host behavior, not Tenn repo code. The Tenn repo provides `tenn-goal-report`, task cards, report bundles, handoff templates, and the Runtime Functionality Proof policy.
+`/goal` is Codex/host behavior, not Tenn repo code. The Tenn repo provides
+`tenn-goal-report`, task cards, report bundles, handoff templates, retained
+skills, and the Runtime Functionality Proof policy.
 
 No repo-backed `/goal monitor` implementation was found. A host-only command named `codex-goal-monitor` exists on this machine and is read-only/warning-oriented. It must be labeled `HOST_ONLY` in Tenn docs and reports.
 
@@ -43,7 +47,8 @@ Repo behavior begins only after Codex is operating in the Tenn checkout:
 
 ## What `tenn-goal-report` Implements
 
-`tenn-goal-report` is a repo-backed reporting protocol for long-running Tenn work. It gives Codex a way to keep a durable report of:
+`tenn-goal-report` is a repo-backed reporting protocol for long-running Tenn
+work. It gives Codex a way to keep a durable report of:
 
 - current objective and exact scope;
 - task card and allowlist;
@@ -52,7 +57,9 @@ Repo behavior begins only after Codex is operating in the Tenn checkout:
 - completed work versus remaining work;
 - handoff and next prompt.
 
-It does not implement the `/goal` slash command. It does not run a daemon, timer, or hook. It does not automatically stop Codex when a goal is complete or blocked.
+It does not implement the `/goal` slash command. It does not run a daemon,
+timer, or hook. It does not automatically stop Codex when a goal is complete or
+blocked.
 
 Use it like this:
 
