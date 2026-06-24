@@ -1069,14 +1069,25 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     # For each label: highest score wins; if tied, non-TOC beats TOC; if still tied,
     # earlier page wins (formal statements appear before notes in ASX filings).
     # Negate page_number so that lower pages win on tiebreak.
+    statement_precedence_labels = ("income_statement", "cashflow_statement", "balance_sheet")
     for label in _TABLE_KEYWORDS:
         if pools[label]:
+            candidates = pools[label]
+            if label in statement_precedence_labels:
+                max_score = max(score for score, _not_toc, _table in candidates)
+                # Precedence is only safe among credible near-top candidates.
+                # A weak note table that merely mentions "consolidated" must not
+                # outrank a much stronger formal statement table.
+                candidates = [
+                    candidate
+                    for candidate in candidates
+                    if candidate[0] >= max_score - 2
+                ]
             winner_score, _winner_not_toc, winner_table = max(
-                pools[label],
+                candidates,
                 key=lambda x: (
                     _statement_precedence_rank(x[2])
-                    if label
-                    in ("income_statement", "cashflow_statement", "balance_sheet")
+                    if label in statement_precedence_labels
                     else 0,
                     x[0],
                     x[1],

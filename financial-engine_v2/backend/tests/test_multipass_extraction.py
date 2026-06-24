@@ -5067,6 +5067,39 @@ def test_pass2_cashflow_prefers_consolidated_group_statement_over_component_stat
     assert result["cashflow_statement"] is consolidated_statement
 
 
+def test_pass2_cashflow_does_not_let_low_score_consolidated_note_beat_formal_statement():
+    """Precedence should not let an incidental consolidated note beat a strong statement."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    weak_consolidated_note = DoclingTable(
+        page_number=5,
+        caption="Consolidated operating activities note",
+        headers=["", "31 Dec 2025 $m"],
+        rows=[
+            ["", "31 Dec 2025 $m"],
+            ["Operating activities commentary", "1.0"],
+        ],
+    )
+    formal_statement = DoclingTable(
+        page_number=20,
+        caption="Statement of Cash Flows",
+        headers=["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+        rows=[
+            ["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+            ["Cash flows from operating activities", "", ""],
+            ["Net cash inflow/(outflow) from operating activities", "168.5", "108.3"],
+            ["Net cash inflow/(outflow) from investing activities", "83.9", "(40.1)"],
+            ["Net cash inflow/(outflow) from financing activities", "(243.0)", "(91.0)"],
+            ["Cash and cash equivalents at the end of the period", "74.7", "66.1"],
+        ],
+    )
+
+    result = _run_pass2_locator([weak_consolidated_note, formal_statement])
+
+    assert result["cashflow_statement"] is formal_statement
+
+
 def test_pass2_cashflow_keeps_component_statement_when_no_group_statement_exists():
     """The group-preference rule must not reject a standalone statement."""
     from app.services.multipass_extraction import _run_pass2_locator
