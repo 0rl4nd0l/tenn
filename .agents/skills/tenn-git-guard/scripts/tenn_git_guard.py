@@ -273,6 +273,16 @@ def canonical_head(repo_root: Path, base: str | None) -> str | None:
     return git_text(repo_root, "rev-parse", "--verify", base)
 
 
+def local_branch_name(ref: str | None) -> str | None:
+    if not ref:
+        return None
+    if ref.startswith("refs/heads/"):
+        return ref.removeprefix("refs/heads/")
+    if ref.startswith("origin/"):
+        return ref.removeprefix("origin/")
+    return ref
+
+
 def path_ownership_for_git_worktree(
     *,
     path: Path,
@@ -310,6 +320,13 @@ def path_ownership_for_git_worktree(
     ):
         classification = "VALID_CANONICAL_WORKTREE"
         reasons.append("checked-out branch is canonical and HEAD equals canonical head")
+    elif (
+        canonical_head_value
+        and head != canonical_head_value
+        and branch == local_branch_name(canonical_branch)
+    ):
+        classification = "STALE_PATH"
+        reasons.append("checked-out canonical branch is not at canonical head")
     elif canonical_head_value and head != canonical_head_value and merge_base == head:
         classification = "STALE_PATH"
         reasons.append("HEAD is an ancestor of canonical head")
