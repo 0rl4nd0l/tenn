@@ -1,0 +1,42 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scope is the staged report-only issue #234 preservation packet.",
+      "No product, runtime, data, extraction, or historical parity artifact changes are in scope.",
+      "The packet is intended for a draft PR and issue #234 closeout remains a later explicit step."
+    ],
+    "sources_used": [
+      "git diff --cached --name-status",
+      "git diff --cached --stat",
+      "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md",
+      "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md --repo-root . --no-write-report",
+      "git diff --cached --check"
+    ],
+    "files_read": [
+      "docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md",
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/README.md",
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/CLASSIFICATION.md",
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/EVIDENCE.md",
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/VALIDATION.md",
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/PUBLISH_REFRESH.md"
+    ],
+    "files_modified": [
+      "reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/CODE_REVIEW.json"
+    ],
+    "validation_checks": [
+      "Task-card validate passed with no issues.",
+      "Registry read-only check passed with active_jobs=[] and lock_acquired=false.",
+      "Task-card check-diff passed with disallowed_files=[] for 10 staged paths.",
+      "git diff --cached --check passed.",
+      "Historical parity artifact hash matched current canonical and source packet: a47422b732ba09f29a082e02eee4707c22d7bf24.",
+      "Code review found no critical findings, warnings, or suggestions."
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}
