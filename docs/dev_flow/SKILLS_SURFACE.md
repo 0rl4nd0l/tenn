@@ -1,20 +1,20 @@
 # Tenn Skill Surface
 
-last_verified_at: 2026-06-24T06:00:01Z
-last_verified_commit: 6a777b3d8cff7b250a189aea76e30fa3ec4388b4
+last_verified_at: 2026-06-25T06:00:00Z
+last_verified_commit: a68553a7341ef5344626d37da196c9e390584cf8
 last_verified_pr: DATA_MISSING
 maintenance: hand_maintained
 verification_scope: repo-visible key and narrative-support skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
 freshness_evidence:
-- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `6a777b3d8cff7b250a189aea76e30fa3ec4388b4`
+- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `a68553a7341ef5344626d37da196c9e390584cf8`
 - `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `12`
-- `find .codex/skills -maxdepth 2 -name SKILL.md | sort` -> no output
+- `[ ! -d .codex/skills ] || find .codex/skills -maxdepth 2 -name SKILL.md | sort` -> no output; `.codex/skills` is absent in this snapshot
 data_missing:
 - Host picker/autocomplete visibility was not probed.
 - No PR existed for this local branch when the file was refreshed.
 stale_if_files:
 - `.agents/skills/**/SKILL.md`
-- `.codex/skills/**/SKILL.md`
+- `.codex/skills/**/SKILL.md` if the legacy directory exists again
 - `docs/dev_flow/SKILLS_SURFACE.md`
 - `docs/dev_flow/templates/*`
 source_of_truth_files:
@@ -30,7 +30,7 @@ source_of_truth_files:
 To refresh this file, work from current
 `origin/migration/clean-runtime-baseline-reconstruct-v1`, run the visible skill
 count commands above, inspect `.agents/skills/*/SKILL.md` and legacy
-`.codex/skills/*/SKILL.md` additions/removals, and update
+`.codex/skills/*/SKILL.md` additions/removals if that directory exists, and update
 `last_verified_at`, `last_verified_commit`, `last_verified_pr`,
 `freshness_evidence`, and `data_missing`. Do not infer host picker visibility
 from repo files; record it as `DATA_MISSING` unless it is probed directly.
@@ -208,8 +208,8 @@ This trim is reversible:
 
 - Count visible repo skill entrypoints with:
   `find .agents/skills -maxdepth 2 -name SKILL.md | sort`
-- Confirm the legacy custom repo skill surface is empty with:
-  `find .codex/skills -maxdepth 2 -name SKILL.md | sort`
+- Confirm the legacy custom repo skill surface has no visible entrypoints with:
+  `[ ! -d .codex/skills ] || find .codex/skills -maxdepth 2 -name SKILL.md | sort`
 - Confirm the count did not increase unless a task-card design note explicitly
   justifies the increase.
 - Confirm removed entrypoints are absent.
