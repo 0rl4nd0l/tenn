@@ -11,6 +11,21 @@ Active Tenn repo-backed Codex skills live under:
 .agents/skills/<skill-name>/SKILL.md
 ```
 
+Current approved repo-backed entrypoints:
+
+- `caveman`
+- `codex-worker-bridge`
+- `tenn-fix`
+- `tenn-financial-metric-extraction`
+- `tenn-goal-report`
+- `tenn-review-board`
+- `tenn-handoff`
+- `tenn-explain`
+- `tenn-git-guard`
+- `tenn-improve-codebase-architecture`
+- `tenn-issue`
+- `zoom-out`
+
 Rules:
 
 - The first H1 is required and identifies the skill.
@@ -22,8 +37,9 @@ Rules:
 
 ## Legacy Or Tool-Specific Surfaces
 
-- `.codex/skills`: legacy/custom Codex surface. Do not treat as active repo
-  authority unless a current task card explicitly grandfathers a skill.
+- `.codex/skills`: legacy/custom Codex surface. It should not contain visible
+  repo-local `SKILL.md` entrypoints unless a current task card explicitly
+  grandfathers one.
 - `.claude/skills`: Claude-only reference/import surface.
 - `.kilocode/skills`: Kilo Code-only reference/import surface.
 - `docs/claude/skills`: reference docs, not active Codex policy.

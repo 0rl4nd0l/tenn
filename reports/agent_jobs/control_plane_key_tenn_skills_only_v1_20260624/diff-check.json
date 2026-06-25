@@ -1,0 +1,138 @@
+{
+  "changed_files": [
+    {
+      "path": ".agents/skills/caveman/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/codex-worker-bridge/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/tenn-financial-metric-extraction/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/tenn-goal-report/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/tenn-improve-codebase-architecture/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/tenn-issue/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": ".agents/skills/zoom-out/SKILL.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/README.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/control_plane_key_tenn_skills_only_v1_20260624.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agents/skill-registry.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/GOAL_AND_MONITOR_RUNBOOK.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/OPENCODE_WORKER_BRIDGE_RUNBOOK.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/SKILLS_SURFACE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/PR_REVIEW.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/diff-check.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/control_plane_key_tenn_skills_only_v1_20260624.md",
+        "docs/README.md",
+        "docs/agents/skill-registry.md",
+        "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+        "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+        "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+        "docs/dev_flow/GOAL_AND_MONITOR_RUNBOOK.md",
+        "docs/dev_flow/OPENCODE_WORKER_BRIDGE_RUNBOOK.md",
+        "docs/dev_flow/SKILLS_SURFACE.md",
+        ".agents/skills/caveman/SKILL.md",
+        ".agents/skills/codex-worker-bridge/SKILL.md",
+        ".agents/skills/tenn-financial-metric-extraction/SKILL.md",
+        ".agents/skills/tenn-goal-report/SKILL.md",
+        ".agents/skills/tenn-improve-codebase-architecture/SKILL.md",
+        ".agents/skills/tenn-issue/SKILL.md",
+        ".agents/skills/zoom-out/SKILL.md",
+        ".codex/skills/cockpit-flag-orchestrator/SKILL.md",
+        ".codex/skills/cockpit-flag-orchestrator/agents/openai.yaml",
+        ".codex/skills/cockpit-flag-orchestrator/references/subagent-prompts.md",
+        "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/README.md",
+        "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/STATE.md",
+        "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/VALIDATION.md",
+        "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/PR_REVIEW.md",
+        "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "job_id": "control_plane_key_tenn_skills_only_v1_20260624",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/control_plane_key_tenn_skills_only_v1_20260624",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

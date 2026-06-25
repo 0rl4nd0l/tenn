@@ -1,0 +1,92 @@
+{
+  "artifact_type": "source_inspection_v1",
+  "canonical_mutation": "none",
+  "created_at_utc": "2026-06-23T18:02:16.829211+00:00",
+  "source_mutation": "none",
+  "source_rows": [
+    {
+      "fix_class": "prefer ending cash row over net increase/decrease cash movement",
+      "fixture": "BHP_A_2021-06-30",
+      "metric": "cash_end",
+      "period_column": "2021 US$M",
+      "row": "Cash and cash equivalents, net of overdrafts, at the end of the financial year",
+      "scaled_value": 15246000000,
+      "source": "Consolidated Cash Flow Statement, page 46",
+      "source_value": "15,246"
+    },
+    {
+      "fix_class": "reject weighted-average/provision rows; recover dual-listed ordinary shares on issue prose",
+      "fixture": "BHP_A_2021-06-30",
+      "metric": "shares_outstanding",
+      "period_column": "At 30 June 2021",
+      "row": "BHP Group Limited had 2,945 million ordinary shares on issue ... BHP Group Plc had 2,112 million ordinary shares on issue",
+      "scaled_value": 5057000000,
+      "source": "Dividends / dual-listed company prose, page 53",
+      "source_value": "2,945 million + 2,112 million"
+    },
+    {
+      "fix_class": "formal income statement row recovery",
+      "fixture": "MIN_H_2025-12-31",
+      "metric": "ebit",
+      "period_column": "31 Dec 2025 $M",
+      "row": "PROFIT/(LOSS) FROM OPERATIONS",
+      "scaled_value": 1031000000,
+      "source": "Consolidated statement of profit or loss, page 14",
+      "source_value": "1,031"
+    },
+    {
+      "fix_class": "formal owner-attributable profit row recovery",
+      "fixture": "MIN_H_2025-12-31",
+      "metric": "np_attributable",
+      "period_column": "31 Dec 2025 $M",
+      "row": "Equity holders of the parent",
+      "scaled_value": 495000000,
+      "source": "Consolidated statement of profit or loss, page 14",
+      "source_value": "495"
+    },
+    {
+      "fix_class": "small-millions PP&E capex recovery",
+      "fixture": "QBE_H_2025-06-30",
+      "metric": "capex",
+      "period_column": "30 June 2025 US$M",
+      "row": "Payments for purchase of property, plant and equipment",
+      "scaled_value": -9000000,
+      "source": "Consolidated statement of cash flows, page 21",
+      "source_value": "(9)"
+    },
+    {
+      "fix_class": "Appendix 5B current-quarter summary section recovery",
+      "fixture": "EQR_Q_2025-12-31",
+      "metric": "operating_cf / investing_cf / financing_cf",
+      "period_column": "Current quarter $A'000",
+      "row": "4.2 / 4.3 / 4.4 Net cash from/(used in) operating, investing, financing activities",
+      "scaled_value": {
+        "financing_cf": 12012000,
+        "investing_cf": -2656000,
+        "operating_cf": 1154000
+      },
+      "source": "Appendix 5B section 4 summary, page 15",
+      "source_value": "1,154 / (2,656) / 12,012"
+    },
+    {
+      "fix_class": "Appendix 5B current-quarter section recovery",
+      "fixture": "GRE_Q_2024-12-31",
+      "metric": "investing_cf",
+      "period_column": "Current quarter $A'000",
+      "row": "Net cash from / (used in) investing activities (item 2.6 above)",
+      "scaled_value": -624000,
+      "source": "Appendix 5B section 4.3, page 12",
+      "source_value": "(624)"
+    },
+    {
+      "fix_class": "prefer number-of-shares column over equity dollar balance",
+      "fixture": "RMS_H_2025-12-31",
+      "metric": "shares_outstanding",
+      "period_column": "Number of shares",
+      "row": "At 31 December 2025",
+      "scaled_value": 1924937480,
+      "source": "Share capital note, page 31",
+      "source_value": "1,924,937,480"
+    }
+  ]
+}

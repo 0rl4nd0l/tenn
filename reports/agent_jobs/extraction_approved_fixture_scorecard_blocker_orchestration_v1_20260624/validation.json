@@ -1,0 +1,303 @@
+{
+  "artifact_type": "validation_summary_v1",
+  "before_after": {
+    "after_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 0,
+      "not_evaluated_no_actual_payload": 16,
+      "present_correct": 57,
+      "present_wrong_value": 0,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    },
+    "before_replay": {
+      "accepted_payload_count": 12,
+      "fail_closed_payload_count": 3,
+      "failed_payload_count": 0,
+      "status": "PARTIAL"
+    },
+    "before_report": "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard.json",
+    "before_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 4,
+      "not_evaluated_no_actual_payload": 16,
+      "present_correct": 49,
+      "present_wrong_value": 4,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    }
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+      "exit_code": 0,
+      "name": "task card validate",
+      "summary": "ok"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run ... pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k <focused set>",
+      "exit_code": 0,
+      "log": "logs/focused_validation.log",
+      "name": "focused tests",
+      "summary": "14 passed, 223 deselected, 1 warning"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run ... pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "log": "logs/full_multipass_validation.log",
+      "name": "full multipass tests",
+      "summary": "237 passed, 1 warning"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "log": "logs/ruff_validation.log",
+      "name": "ruff",
+      "summary": "All checks passed"
+    },
+    {
+      "command": "one-fixture no-write replay for BHP_A_2021-06-30 using temp DATA_ROOT",
+      "exit_code": 0,
+      "name": "BHP smoke replay",
+      "summary": "cash_end=15246000000; shares_outstanding=5057000000; source rows ending cash and ordinary shares on issue prose"
+    },
+    {
+      "command": "custom report-local approved 15 replay harness using temp DATA_ROOT/cache/output",
+      "exit_code": 0,
+      "log": "logs/replay_after_fix.log",
+      "name": "approved 15 no-write replay + #97 scorecard",
+      "summary": "12 accepted, 0 failed, 3 fail-closed; side_effect_pass=True; scorecard gate=fail/blocked"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "name": "git diff --check",
+      "summary": "no whitespace errors"
+    },
+    {
+      "command": "python3 scripts/check_board_decision.py reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624/BOARD_DECISION.json",
+      "exit_code": 0,
+      "name": "board decision validator",
+      "summary": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+      "exit_code": 0,
+      "name": "task card check-report-artifacts",
+      "summary": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+      "exit_code": 0,
+      "log": "diff-check.json",
+      "name": "task card check-diff",
+      "summary": "ok; no disallowed files"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624.md",
+      "exit_code": 0,
+      "name": "task card check-closeout",
+      "summary": "ok"
+    }
+  ],
+  "count_24_justified": false,
+  "count_24_reason": "No: scorecard gate is still fail/blocked with 73 ambiguous_quarantined and 16 not_evaluated_no_actual_payload from fail-closed fixtures.",
+  "created_at_utc": "2026-06-23T18:02:16.829589+00:00",
+  "replay": {
+    "accepted_payload_count": 12,
+    "elapsed_s": 1829.298,
+    "fail_closed_payload_count": 3,
+    "failed_payload_count": 0,
+    "payload_generation": [
+      {
+        "case_id": "ANZ_H_2025-03-31",
+        "document_id": "anz_20250331_h",
+        "elapsed_s": 118.385,
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+        "non_null_metric_count": 9,
+        "result_status": "failed",
+        "status": "fail_closed",
+        "ticker": "ANZ"
+      },
+      {
+        "case_id": "AZJ_H_2025-12-31",
+        "document_id": "azj_20251231_h",
+        "elapsed_s": 109.334,
+        "error": null,
+        "non_null_metric_count": 8,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "AZJ"
+      },
+      {
+        "case_id": "BHP_A_2021-06-30",
+        "document_id": "bhp_fy2021_preliminary_final",
+        "elapsed_s": 122.673,
+        "error": null,
+        "non_null_metric_count": 9,
+        "result_status": "ok_low_confidence",
+        "status": "accepted",
+        "ticker": "BHP"
+      },
+      {
+        "case_id": "CSL_H_2025-12-31",
+        "document_id": "csl_20251231_h",
+        "elapsed_s": 121.592,
+        "error": null,
+        "non_null_metric_count": 10,
+        "result_status": "ok_low_confidence",
+        "status": "accepted",
+        "ticker": "CSL"
+      },
+      {
+        "case_id": "DXS_H_2025-12-31",
+        "document_id": "dxs_20251231_h",
+        "elapsed_s": 147.972,
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+        "non_null_metric_count": 9,
+        "result_status": "failed",
+        "status": "fail_closed",
+        "ticker": "DXS"
+      },
+      {
+        "case_id": "EQR_Q_2025-12-31",
+        "document_id": "eqr_q4_fy2026_appendix5b",
+        "elapsed_s": 106.748,
+        "error": null,
+        "non_null_metric_count": 4,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "EQR"
+      },
+      {
+        "case_id": "FMG_H_2025-12-31",
+        "document_id": "fmg_20251231_h",
+        "elapsed_s": 162.302,
+        "error": null,
+        "non_null_metric_count": 8,
+        "result_status": "ok_low_confidence",
+        "status": "accepted",
+        "ticker": "FMG"
+      },
+      {
+        "case_id": "GRE_Q_2024-12-31",
+        "document_id": "gre_q4_fy2025_appendix5b",
+        "elapsed_s": 50.71,
+        "error": null,
+        "non_null_metric_count": 5,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "GRE"
+      },
+      {
+        "case_id": "MIN_H_2025-12-31",
+        "document_id": "min_2025h1_appendix4d",
+        "elapsed_s": 136.374,
+        "error": null,
+        "non_null_metric_count": 9,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "MIN"
+      },
+      {
+        "case_id": "QBE_H_2025-06-30",
+        "document_id": "qbe_20250630_h",
+        "elapsed_s": 128.364,
+        "error": null,
+        "non_null_metric_count": 10,
+        "result_status": "ok_low_confidence",
+        "status": "accepted",
+        "ticker": "QBE"
+      },
+      {
+        "case_id": "RMS_H_2025-12-31",
+        "document_id": "rms_2025h1_appendix4d",
+        "elapsed_s": 152.032,
+        "error": null,
+        "non_null_metric_count": 9,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "RMS"
+      },
+      {
+        "case_id": "SEG_H_2025-12-31",
+        "document_id": "seg_h_fy2026_appendix4d",
+        "elapsed_s": 74.223,
+        "error": "validation_gate:wrapper_missing_disclosure_evidence",
+        "non_null_metric_count": 2,
+        "result_status": "failed",
+        "status": "fail_closed",
+        "ticker": "SEG"
+      },
+      {
+        "case_id": "TCL_H_2025-12-31",
+        "document_id": "tcl_20251231_h",
+        "elapsed_s": 127.043,
+        "error": null,
+        "non_null_metric_count": 10,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "TCL"
+      },
+      {
+        "case_id": "TLS_H_2025-12-31",
+        "document_id": "tls_20251231_h",
+        "elapsed_s": 149.043,
+        "error": null,
+        "non_null_metric_count": 9,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "TLS"
+      },
+      {
+        "case_id": "WOW_H_2026-01-04",
+        "document_id": "wow_20260104_h",
+        "elapsed_s": 116.444,
+        "error": null,
+        "non_null_metric_count": 9,
+        "result_status": "ok",
+        "status": "accepted",
+        "ticker": "WOW"
+      }
+    ],
+    "side_effect_pass": true,
+    "status": "PARTIAL"
+  },
+  "scorecard": {
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "not_evaluated_no_actual_payload": 16
+    },
+    "decision": "blocked",
+    "evaluation_counts": {
+      "abstain": 0,
+      "exact": 39,
+      "missing": 0,
+      "missing_evidence": 0,
+      "not_evaluated_no_actual": 16,
+      "null": 13,
+      "quarantine": 73,
+      "tolerated": 5,
+      "unsupported": 0,
+      "wrong": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    },
+    "gate_status": "fail",
+    "result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 0,
+      "not_evaluated_no_actual_payload": 16,
+      "present_correct": 57,
+      "present_wrong_value": 0,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    }
+  }
+}

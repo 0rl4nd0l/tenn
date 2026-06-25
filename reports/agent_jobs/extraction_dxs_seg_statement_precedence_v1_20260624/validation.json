@@ -1,0 +1,242 @@
+{
+  "artifact_type": "extraction_dxs_seg_statement_precedence_validation_v1",
+  "job_id": "extraction_dxs_seg_statement_precedence_v1_20260624",
+  "status": "DONE_WITH_RISK",
+  "functionality_result": "PARTIAL",
+  "scope_result": "scoped_dxs_seg_statement_precedence_fixed",
+  "completed_at": "2026-06-24T06:30:06Z",
+  "worktree": "/home/l4nd0/tenn-extraction-dxs-seg-statement-precedence-v1-20260624",
+  "branch": "safe/extraction-dxs-seg-statement-precedence-v1-20260624",
+  "head": "61d5c9eeac054422eac5230d382cc4e2b36eec6a",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "preflight": {
+    "git_guard": {
+      "status": "pass",
+      "artifact": "guard_preflight.json"
+    },
+    "registry_read_only": {
+      "status": "pass",
+      "artifact": "registry_active_jobs.json",
+      "summary": "active_jobs=[]"
+    },
+    "task_ledger_validate": {
+      "status": "pass",
+      "artifact": "ledger_validate.json"
+    },
+    "task_card_validate": {
+      "status": "pass",
+      "artifact": "task_card_validate.json"
+    },
+    "duplicate_work_search": {
+      "status": "pass",
+      "artifact": "duplicate_work_search.json",
+      "classification": "NO_EXACT_ACTIVE_OR_OPEN_PR_IMPLEMENTATION_FOUND"
+    }
+  },
+  "changes": {
+    "code": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py"
+    ],
+    "tests": [
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "summary": [
+      "Added statement-source precedence ranking that prefers consolidated/stapled/group/full statements over parent/company-only/closed-group/Appendix wrappers.",
+      "Limited cashflow candidate merging so Appendix fragments can merge without overwriting formal full statement selections.",
+      "Added full-statement income and cashflow source recovery from formal statement pages for DXS/SEG fragmented table extraction.",
+      "Added positive and negative focused regression tests for group/stapled precedence and full-statement-over-wrapper precedence."
+    ]
+  },
+  "validation_commands": [
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic-settings --with pymupdf --with SQLAlchemy --with httpx --with beautifulsoup4 --with qdrant-client pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -k \"pass2_cashflow_prefers_consolidated_group_statement_over_component_statement or pass2_cashflow_keeps_component_statement_when_no_group_statement_exists or income_source_overlay_prefers_full_statement_over_appendix_wrapper or income_source_overlay_keeps_appendix_wrapper_when_no_full_statement_exists or income_source_overlay_prefers_total_rows_in_full_statement or statement_text_overlay_recovers_fragmented_full_statements_over_wrapper\"",
+      "status": "pass",
+      "summary": "6 passed, 237 deselected, 1 warning"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic-settings --with pymupdf --with SQLAlchemy --with httpx --with beautifulsoup4 --with qdrant-client pytest financial-engine_v2/backend/tests/test_multipass_extraction.py > reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/logs/focused_validation.log 2>&1",
+      "status": "pass",
+      "summary": "243 passed, 1 warning in 1.69s",
+      "artifact": "logs/focused_validation.log"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py > reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/logs/ruff_validation.log 2>&1",
+      "status": "pass",
+      "summary": "All checks passed",
+      "artifact": "logs/ruff_validation.log"
+    },
+    {
+      "command": "approved-15 report-local no-write replay and scorecard harness using reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/fixture_manifest.json and loopback LLM http://127.0.0.1:8001",
+      "status": "partial",
+      "summary": "15 cases, 12 accepted, 3 fail-closed, 0 failed, side-effect pass; elapsed 1860.364s",
+      "artifacts": [
+        "raw_replay_after_fix/validation.json",
+        "raw_replay_after_fix/replay_results.json",
+        "raw_replay_after_fix/side_effect_audit.json",
+        "replay_results_after_fix.json",
+        "scorecard_after_fix.json",
+        "scorecard_gate_after_fix.json",
+        "logs/replay_after_fix.log",
+        "logs/scorecard_after_fix.log"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "status": "pass",
+      "summary": "No whitespace errors"
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py validate --entry-file reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/LEDGER_ENTRY.json",
+      "status": "pass",
+      "summary": "ok=true, entry_count=1"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_dxs_seg_statement_precedence_v1_20260624.md",
+      "status": "pass",
+      "summary": "ok=true, issues=[]",
+      "artifact": "task_card_validate.json"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_dxs_seg_statement_precedence_v1_20260624.md",
+      "status": "pass",
+      "summary": "ok=true, issues=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_dxs_seg_statement_precedence_v1_20260624.md --no-write-report",
+      "status": "pass",
+      "summary": "ok=true, disallowed_files=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/extraction_dxs_seg_statement_precedence_v1_20260624.md",
+      "status": "pass",
+      "summary": "ok=true, runtime functionality proof result PARTIAL accepted"
+    }
+  ],
+  "approved_15_replay": {
+    "status": "PARTIAL",
+    "case_count": 15,
+    "accepted_payload_count": 12,
+    "fail_closed_payload_count": 3,
+    "failed_payload_count": 0,
+    "fail_closed_case_ids": [
+      "GRE_Q_2024-12-31",
+      "QBE_H_2025-06-30",
+      "TCL_H_2025-12-31"
+    ],
+    "side_effect_pass": true,
+    "infrastructure_failure_count": 0,
+    "extraction_exception_count": 0,
+    "elapsed_s": 1860.364
+  },
+  "dxs_seg_scorecard_rows": {
+    "dxs_20251231_h": {
+      "statement_precedence_rows": {
+        "revenue": "present_correct",
+        "ebit": "present_correct",
+        "np_attributable": "present_correct",
+        "operating_cf": "present_correct",
+        "investing_cf": "present_correct",
+        "financing_cf": "present_correct",
+        "capex": "present_correct",
+        "cash_end": "present_correct",
+        "shares_outstanding": "present_correct"
+      },
+      "out_of_scope_rows": {
+        "net_debt": "ambiguous_quarantined"
+      }
+    },
+    "seg_h_fy2026_appendix4d": {
+      "statement_precedence_rows": {
+        "revenue": "present_correct",
+        "np_attributable": "present_correct",
+        "operating_cf": "present_correct",
+        "investing_cf": "present_correct",
+        "financing_cf": "present_correct",
+        "cash_end": "present_correct"
+      },
+      "out_of_scope_rows": {
+        "shares_outstanding": "missing_expected_metric",
+        "net_debt": "ambiguous_quarantined"
+      }
+    }
+  },
+  "approved_15_scorecard_gate": {
+    "gate_status": "fail",
+    "decision": "blocked",
+    "passed": false,
+    "result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 5,
+      "not_evaluated_no_actual_payload": 18,
+      "present_correct": 48,
+      "present_wrong_value": 2,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    },
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_expected_metric": 5,
+      "not_evaluated_no_actual_payload": 18,
+      "present_wrong_value": 2
+    },
+    "remaining_specific_scored_blockers": [
+      "bhp_fy2021_preliminary_final np_attributable present_wrong_value",
+      "min_2025h1_appendix4d np_attributable present_wrong_value",
+      "rms_2025h1_appendix4d operating_cf missing_expected_metric",
+      "rms_2025h1_appendix4d investing_cf missing_expected_metric",
+      "rms_2025h1_appendix4d financing_cf missing_expected_metric",
+      "rms_2025h1_appendix4d capex missing_expected_metric",
+      "seg_h_fy2026_appendix4d shares_outstanding missing_expected_metric"
+    ]
+  },
+  "side_effect_audit": {
+    "forbidden_surface_clean": true,
+    "report_only_durable_writes": true,
+    "isolated_cache_contained": true,
+    "isolated_runtime_contained": true,
+    "unexpected_git_status_changes": [],
+    "forbidden_surface_mutation": {
+      "db_write": false,
+      "qdrant_write": false,
+      "redis_write": false,
+      "news_write": false,
+      "memory_write": false,
+      "gold_label_write": false,
+      "source_pdf_write": false,
+      "prompt_write": false,
+      "schema_write": false,
+      "runtime_config_write": false,
+      "service_start": false,
+      "model_gpu_write": false,
+      "github_mutation": false
+    }
+  },
+  "runtime_functionality_proof": {
+    "intended_output": "DXS/SEG no-write extraction payloads and approved-15 #97 scorecard rows for statement-precedence metrics",
+    "live_output_location": "report-local files under reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/",
+    "pre_run_max_timestamp_or_count": "Prior source-review packet classified DXS/SEG as source-proven extractor-class blockers; report-local pre-run baseline exact count is DATA_MISSING",
+    "post_run_max_timestamp_or_count": "raw_replay_after_fix/validation.json status PARTIAL, 15 cases, 12 accepted, 3 fail-closed, 0 failed",
+    "rows_files_inserted_or_updated_after_run_start": "report artifacts only; forbidden surface mutation false",
+    "readiness_gate_status": "approved-15 scorecard gate fail/blocked",
+    "exact_command_query_used": "validation_commands[3]",
+    "result": "PARTIAL",
+    "remaining_blocker": "Full approved-15 #97 pre-persistence gate remains blocked by out-of-scope rows and ambiguous quarantines"
+  },
+  "not_touched": [
+    "gold fixtures",
+    "source PDFs",
+    "prompts",
+    "schema",
+    "database",
+    "Qdrant",
+    "Redis",
+    "news",
+    "memory",
+    "model/GPU",
+    "runtime state",
+    "GitHub issues or PRs"
+  ],
+  "next_recommended_prompt": "/goal Continue from reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/validation.json. Preserve the DXS/SEG statement-precedence fix. Triage the remaining approved-15 #97 blockers only by owner-approved lane: SEG shares outstanding, RMS cashflow/capex, BHP/MIN wrong NP, GRE/QBE/TCL fail-closed, or ambiguous quarantine policy."
+}

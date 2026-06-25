@@ -232,10 +232,27 @@ _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?=\s|$|\)|,|;|:)",
     _re.IGNORECASE,
 )
+_STATEMENT_PAGE_SCALE_CAPTION_RE = _re.compile(
+    r"\b(?:"
+    r"consolidated\s+)?"
+    r"(?:statement\s+of\s+(?:comprehensive\s+)?income|"
+    r"statement\s+of\s+cash\s+flows?|"
+    r"statement\s+of\s+financial\s+position|"
+    r"balance\s+sheet)"
+    r"\b",
+    _re.IGNORECASE,
+)
 _SCALE_UNIT_ROW_CONTEXT_RE = _re.compile(
     r"^(?:notes?|note|period|current|prior|comparative|fy\d{2,4}|h[12]|"
     r"q[1-4]|\d{4}|20\d{2}|19\d{2}|as at|for the year|year ended|"
     r"half year|six months|quarter)$",
+    _re.IGNORECASE,
+)
+_SCALE_UNIT_ROW_CONTEXT_PHRASE_RE = _re.compile(
+    r"\b(?:for\s+the\s+)?(?:year|half[-\s]?year|six\s+months|quarter)\s+ended\b"
+    r"|\bas\s+at\b"
+    r"|\b(?:current|prior|comparative)\s+(?:period|year|half|quarter)\b"
+    r"|\b(?:30|31)\s+(?:january|march|june|september|december)\b",
     _re.IGNORECASE,
 )
 
@@ -335,6 +352,61 @@ def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
     return ranked[0][0]
 
 
+def _detect_scale_marker_in_text(text: str) -> str:
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, text, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
+def _is_scale_unit_context_cell(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    if not text:
+        return True
+    return bool(
+        _SCALE_UNIT_ROW_CONTEXT_RE.search(text)
+        or _SCALE_UNIT_ROW_CONTEXT_PHRASE_RE.search(text)
+    )
+
+
+def _scale_marker_cell_is_unit_context(cell: Any) -> bool:
+    text = " ".join(str(cell or "").split()).strip()
+    for pattern, _scale in _SCALE_PATTERNS:
+        text = _re.sub(pattern, " ", text, flags=_re.IGNORECASE)
+    text = _re.sub(
+        r"(?<!\w)(?:A\$|\$A|US\$|\$US|\$|AUD|USD|RP\.?)(?!\w)",
+        " ",
+        text,
+        flags=_re.IGNORECASE,
+    )
+    text = _re.sub(r"[\(\)\[\],;:]+", " ", text)
+    text = " ".join(text.split()).strip()
+    return _is_scale_unit_context_cell(text)
+
+
+def _detect_scale_from_unit_rows(rows: list[list[Any]] | None) -> str:
+    for row in rows or []:
+        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
+        if not nonempty:
+            continue
+        detected_scale = "unknown"
+        non_unit_cells: list[str] = []
+        for cell in nonempty:
+            cell_scale = _detect_scale_marker_in_text(cell)
+            if cell_scale != "unknown":
+                if _scale_marker_cell_is_unit_context(cell):
+                    detected_scale = cell_scale
+                else:
+                    non_unit_cells.append(cell)
+                continue
+            if _is_scale_unit_context_cell(cell):
+                continue
+            non_unit_cells.append(cell)
+        if detected_scale != "unknown" and not non_unit_cells:
+            return detected_scale
+    return "unknown"
+
+
 def _detect_explicit_currency_million_header(tables) -> str | None:
     hits: dict[str, int] = {}
     for table in tables[:20]:
@@ -361,39 +433,16 @@ def _detect_scale_from_table(table) -> str:
         surfaces.append(" ".join(str(h) for h in table.headers))
     if getattr(table, "caption", None):
         surfaces.append(str(table.caption))
-    for row in (table.rows or [])[:3]:
-        surfaces.append(" ".join(str(cell) for cell in row))
 
     combined = " ".join(surfaces)
-    for pattern, scale in _SCALE_PATTERNS:
-        if _re.search(pattern, combined, _re.IGNORECASE):
-            return scale
+    detected = _detect_scale_marker_in_text(combined)
+    if detected != "unknown":
+        return detected
 
     # Some parser paths fragment statement headings so the source-unit row
-    # (for example: "Notes | $m | $m") lands just below the first few rows.
-    # Only accept rows that are unit/header context, not arbitrary prose rows.
-    for row in (table.rows or [])[:8]:
-        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
-        if not nonempty:
-            continue
-        row_text = " ".join(nonempty)
-        detected_scale = "unknown"
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, row_text, _re.IGNORECASE):
-                detected_scale = scale
-                break
-        if detected_scale == "unknown":
-            continue
-        non_unit_cells = []
-        for cell in nonempty:
-            if any(_re.search(pattern, cell, _re.IGNORECASE) for pattern, _ in _SCALE_PATTERNS):
-                continue
-            if _SCALE_UNIT_ROW_CONTEXT_RE.search(cell):
-                continue
-            non_unit_cells.append(cell)
-        if not non_unit_cells:
-            return detected_scale
-    return "unknown"
+    # (for example: "Notes | $m | $m") lands below narrative rows. Only accept
+    # rows that are unit/header context, not arbitrary prose rows.
+    return _detect_scale_from_unit_rows(table.rows or [])
 
 
 def _detect_scale_from_tables(tables) -> str:
@@ -442,6 +491,69 @@ def _detect_scale_from_source_text(text: Any) -> str:
     """Detect only explicit document-level scale markers from source text."""
     if _SOURCE_TEXT_THOUSANDS_SCALE_RE.search(str(text or "")):
         return "thousands"
+    return "unknown"
+
+
+def _detect_scale_from_statement_page_fragments(fragments: list[str]) -> str:
+    detected_scales = {
+        scale
+        for fragment in fragments
+        if (scale := _detect_scale_marker_in_text(fragment)) != "unknown"
+        and _scale_marker_cell_is_unit_context(fragment)
+    }
+    if len(detected_scales) == 1:
+        return next(iter(detected_scales))
+    return "unknown"
+
+
+def _detect_scale_from_statement_page_text(
+    sections: list[dict] | None, tables: Any
+) -> str:
+    """
+    Recover explicit statement-page scale when a parser drops the unit row.
+
+    PyMuPDF table extraction can omit standalone "$M" / "$'000" column-unit rows
+    from formal statement tables while preserving them in the page text. Limit this
+    fallback to pages whose extracted table captions identify canonical statements,
+    and abstain if those statement pages disagree on scale.
+    """
+    statement_pages: set[int] = set()
+    for table in tables or []:
+        surfaces: list[str] = []
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        if getattr(table, "headers", None):
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if not _STATEMENT_PAGE_SCALE_CAPTION_RE.search(" ".join(surfaces)):
+            continue
+        try:
+            page = int(getattr(table, "page_number", 0))
+        except (TypeError, ValueError):
+            continue
+        if page > 0:
+            statement_pages.add(page)
+
+    if not statement_pages:
+        return "unknown"
+
+    page_text: dict[int, list[str]] = {page: [] for page in statement_pages}
+    for section in sections or []:
+        try:
+            page = int(section.get("page"))
+        except (TypeError, ValueError):
+            continue
+        if page in page_text:
+            text = str(section.get("text") or "").strip()
+            if text:
+                page_text[page].append(text)
+
+    detected_scales = set()
+    for page in sorted(statement_pages):
+        scale = _detect_scale_from_statement_page_fragments(page_text.get(page, []))
+        if scale != "unknown":
+            detected_scales.add(scale)
+    if len(detected_scales) == 1:
+        return next(iter(detected_scales))
     return "unknown"
 
 
@@ -761,6 +873,82 @@ def _merge_cf_tables(
     )
 
 
+def _table_precedence_text(table: Any, *, max_rows: int = 12) -> str:
+    return _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])[:max_rows]
+                    if row
+                ),
+            ]
+        )
+    )
+
+
+def _statement_precedence_rank(table: Any) -> int:
+    """Prefer group/full statements over wrappers or component-entity tables."""
+    text = _table_precedence_text(table)
+    rank = 0
+    if any(
+        marker in text
+        for marker in (
+            "appendix4d",
+            "appendix4e",
+            "resultsforannouncement",
+        )
+    ):
+        rank -= 80
+    if any(
+        marker in text
+        for marker in (
+            "deedofcrossguarantee",
+            "closedgroup",
+            "parententity",
+            "companyonly",
+        )
+    ):
+        rank -= 60
+    if "consolidated" in text:
+        rank += 80
+    if any(
+        marker in text
+        for marker in (
+            "stapledgroup",
+            "stapledentity",
+            "securityholders",
+        )
+    ):
+        rank += 40
+    if any(marker in text for marker in ("thegroup", "groupstatement")):
+        rank += 20
+    return rank
+
+
+def _cashflow_candidate_is_appendix_fragment(table: Any) -> bool:
+    text = _table_precedence_text(table, max_rows=30)
+    if "appendix5b" in text or "quarterlycashflowreport" in text:
+        return True
+    section_markers = {"1.9", "2.6", "3.10", "4.2", "4.3", "4.4", "4.6"}
+    for row in getattr(table, "rows", []) or []:
+        if not row:
+            continue
+        first_cell = str(row[0] or "").strip().rstrip(".")
+        if first_cell in section_markers:
+            return True
+    return False
+
+
+def _should_merge_cf_candidates(candidates: list[tuple[int, Any]]) -> bool:
+    return bool(candidates) and all(
+        _cashflow_candidate_is_appendix_fragment(table)
+        for _score, table in candidates
+    )
+
+
 def _run_pass2_locator(tables) -> dict[str, Any]:
     """
     Pass 2: score each DoclingTable against keyword map. Returns labelled dict.
@@ -881,10 +1069,30 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     # For each label: highest score wins; if tied, non-TOC beats TOC; if still tied,
     # earlier page wins (formal statements appear before notes in ASX filings).
     # Negate page_number so that lower pages win on tiebreak.
+    statement_precedence_labels = ("income_statement", "cashflow_statement", "balance_sheet")
     for label in _TABLE_KEYWORDS:
         if pools[label]:
+            candidates = pools[label]
+            if label in statement_precedence_labels:
+                max_score = max(score for score, _not_toc, _table in candidates)
+                # Precedence is only safe among credible near-top candidates.
+                # A weak note table that merely mentions "consolidated" must not
+                # outrank a much stronger formal statement table.
+                candidates = [
+                    candidate
+                    for candidate in candidates
+                    if candidate[0] >= max_score - 2
+                ]
             winner_score, _winner_not_toc, winner_table = max(
-                pools[label], key=lambda x: (x[0], x[1], -x[2].page_number)
+                candidates,
+                key=lambda x: (
+                    _statement_precedence_rank(x[2])
+                    if label in statement_precedence_labels
+                    else 0,
+                    x[0],
+                    x[1],
+                    -x[2].page_number,
+                ),
             )
             labelled[label] = winner_table
             logger.info(
@@ -906,7 +1114,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             for score, _not_toc, tbl in pools["cashflow_statement"]
             if score >= _CF_MERGE_THRESHOLD
         ]
-        if len(cf_candidates) > 1:
+        if len(cf_candidates) > 1 and _should_merge_cf_candidates(cf_candidates):
             labelled["cashflow_statement"] = _merge_cf_tables(cf_candidates)
 
     def _normalize_locator_text(value: Any) -> str:
@@ -1646,6 +1854,440 @@ def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
     return parsed, False
 
 
+_CASHFLOW_STRONG_CAPEX_LABELS = (
+    "paymentsforpropertyplantandequipment",
+    "paymentforpropertyplantandequipment",
+    "purchasesofpropertyplantandequipment",
+    "purchaseofpropertyplantandequipment",
+    "paymentsforppe",
+    "paymentforppe",
+    "purchasesofppe",
+    "purchaseofppe",
+)
+_CASHFLOW_WEAK_CAPEX_ROW_MARKERS = (
+    "acquisitionofsubsidiary",
+    "acquisitionofbusiness",
+    "businesscombination",
+    "cashacquired",
+    "netofcashacquired",
+    "developmentofopenpit",
+    "undergroundmines",
+    "minedevelopment",
+    "exploration",
+)
+_CASHFLOW_CAPEX_OUTFLOW_MARKERS = (
+    "payment",
+    "payments",
+    "purchase",
+    "purchases",
+    "acquisition",
+    "acquisitions",
+    "expenditure",
+    "additions",
+)
+_CASHFLOW_STRONG_CASH_END_LABELS = (
+    "cashandcashequivalentsattheendofthehalfyear",
+    "cashandcashequivalentsattheendoftheperiod",
+    "cashandcashequivalentsattheend",
+    "cashandcashequivalentsnetofoverdraftsattheendofthefinancialyear",
+    "cashandcashequivalentsnetofoverdraftsattheend",
+    "totalcashandcashequivalents",
+)
+_CASHFLOW_WEAK_CASH_END_ROW_MARKERS = (
+    "cashandgold",
+    "netincreasedecreaseincashandcashequivalents",
+    "netincreaseincashandcashequivalents",
+    "netdecreaseincashandcashequivalents",
+    "beginningofthefinancialyear",
+    "beginningoftheperiod",
+)
+_CASHFLOW_EXPLICIT_AMOUNT_RE = _re.compile(
+    r"(?P<paren>\()?\s*"
+    r"(?P<currency>A\$|\$A|US\$|\$US|\$|AUD|USD)?\s*"
+    r"(?P<num>[+-]?(?:\d+(?:,\d{3})+|\d+)(?:\.\d+)?)\s*"
+    r"(?P<suffix>thousands?|millions?|billions?|trillions?|mn|m|bn|b|tn|t)\b"
+    r"\)?",
+    _re.IGNORECASE,
+)
+
+
+def _normalise_fragmented_pdf_text(value: Any) -> str:
+    text = " ".join(str(value or "").replace("\u00a0", " ").split()).strip()
+    text = _re.sub(r"(?<=\d)\s+\.\s*(?=\d)", ".", text)
+    text = _re.sub(r"\bmilli\s+on\b", "million", text, flags=_re.IGNORECASE)
+    return text
+
+
+def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return True
+    if any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS):
+        return False
+    return any(marker in compact for marker in _CASHFLOW_WEAK_CAPEX_ROW_MARKERS)
+
+
+def _cashflow_cash_end_row_is_weak(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return True
+    if any(marker in compact for marker in _CASHFLOW_STRONG_CASH_END_LABELS):
+        return False
+    return any(marker in compact for marker in _CASHFLOW_WEAK_CASH_END_ROW_MARKERS)
+
+
+def _cashflow_row_has_strong_capex_label(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS)
+
+
+def _cashflow_row_has_strong_cash_end_label(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    if any(marker in compact for marker in _CASHFLOW_WEAK_CASH_END_ROW_MARKERS):
+        return False
+    return any(marker in compact for marker in _CASHFLOW_STRONG_CASH_END_LABELS)
+
+
+def _cashflow_row_is_outflow(row: list[Any]) -> bool:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    return any(marker in compact for marker in _CASHFLOW_CAPEX_OUTFLOW_MARKERS)
+
+
+def _cashflow_capex_row_ref(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        if _CASHFLOW_EXPLICIT_AMOUNT_RE.search(text):
+            break
+        label_cells.append(text)
+
+    label = _normalise_fragmented_pdf_text(" ".join(label_cells))
+    if label:
+        return label
+    return _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))[:180]
+
+
+def _cashflow_cash_end_row_ref(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        label_cells.append(text)
+
+    label = _normalise_fragmented_pdf_text(" ".join(label_cells))
+    if label:
+        return label
+    return _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))[:180]
+
+
+def _row_label_before_numeric_cells(row: list[Any]) -> str:
+    label_cells: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_accounting_metric_number(text) is not None:
+            break
+        if _CASHFLOW_EXPLICIT_AMOUNT_RE.search(text):
+            break
+        label_cells.append(text)
+    return _normalise_fragmented_pdf_text(" ".join(label_cells))[:180]
+
+
+def _parse_current_period_metric_cell(row: list[Any], scale: str) -> float | None:
+    parsed_values: list[tuple[float, bool]] = []
+    for cell in row[1:]:
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        parsed_values.append(parsed)
+
+    if not parsed_values:
+        return None
+
+    raw_value, has_explicit_unit = parsed_values[0]
+    if (
+        len(parsed_values) >= 2
+        and not has_explicit_unit
+        and abs(raw_value) < 100
+        and abs(parsed_values[1][0]) >= 100
+    ):
+        raw_value, has_explicit_unit = parsed_values[1]
+
+    if has_explicit_unit:
+        return raw_value
+    return raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+
+
+def _parse_cashflow_capex_row_amount(row: list[Any], scale: str) -> float | None:
+    row_text = _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    for match in _CASHFLOW_EXPLICIT_AMOUNT_RE.finditer(row_text):
+        try:
+            raw_value = float(match.group("num").replace(",", ""))
+        except ValueError:
+            continue
+        suffix = str(match.group("suffix") or "").lower()
+        value = raw_value * _ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS[suffix]
+        if match.group("paren"):
+            value = -abs(value)
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+
+    value = _parse_current_period_metric_cell(row, scale)
+    if value is not None:
+        if value > 0 and _cashflow_row_is_outflow(row):
+            value = -value
+        return value
+
+    return None
+
+
+def _parse_cashflow_cash_end_row_amount(row: list[Any], scale: str) -> float | None:
+    return _parse_current_period_metric_cell(row, scale)
+
+
+def _cell_lines(value: Any) -> list[str]:
+    return [
+        line
+        for line in (
+            _normalise_fragmented_pdf_text(raw_line)
+            for raw_line in str(value or "").replace("\u00a0", " ").splitlines()
+        )
+        if line
+    ]
+
+
+def _recover_grouped_cashflow_capex_from_table(
+    table: Any, scale: str
+) -> tuple[float, str] | None:
+    rows = list(getattr(table, "rows", []) or [])
+    for row_index, row in enumerate(rows):
+        if not row:
+            continue
+        label_lines = [
+            line
+            for line in _cell_lines(row[0])
+            if _normalize_filter_text(line) not in {"investingactivities"}
+        ]
+        target_index: int | None = None
+        target_label = ""
+        for index, label in enumerate(label_lines):
+            if any(
+                marker in _normalize_filter_text(label)
+                for marker in _CASHFLOW_STRONG_CAPEX_LABELS
+            ):
+                target_index = index
+                target_label = label
+                break
+        if target_index is None:
+            continue
+
+        current_values: list[float] = []
+        for follower in rows[row_index + 1 :]:
+            if not follower or _normalise_fragmented_pdf_text(follower[0]):
+                break
+            parsed = _parse_accounting_metric_number(
+                follower[1] if len(follower) > 1 else None
+            )
+            if parsed is None:
+                break
+            raw_value, has_explicit_unit = parsed
+            value = (
+                raw_value
+                if has_explicit_unit
+                else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+            )
+            current_values.append(value)
+            if len(current_values) >= len(label_lines):
+                break
+
+        if target_index >= len(current_values):
+            continue
+        value = current_values[target_index]
+        if value > 0:
+            value = -value
+        return value, target_label
+    return None
+
+
+def _recover_preferred_cashflow_capex_from_table(
+    table, scale: str
+) -> tuple[float, str] | None:
+    for row in table.rows or []:
+        if not _cashflow_row_has_strong_capex_label(row):
+            continue
+        value = _parse_cashflow_capex_row_amount(row, scale)
+        if value is None:
+            continue
+        return value, _cashflow_capex_row_ref(row)
+    return _recover_grouped_cashflow_capex_from_table(table, scale)
+
+
+def _recover_preferred_cashflow_cash_end_from_table(
+    table, scale: str
+) -> tuple[float, str] | None:
+    for row in table.rows or []:
+        if not _cashflow_row_has_strong_cash_end_label(row):
+            continue
+        value = _parse_cashflow_cash_end_row_amount(row, scale)
+        if value is None:
+            continue
+        return value, _cashflow_cash_end_row_ref(row)
+    return None
+
+
+def _recover_preferred_cashflow_cash_end_from_tables(
+    tables: Any,
+    scale: Any,
+) -> tuple[float, str, Any, str, str] | None:
+    for table in tables or []:
+        table_scale = _detect_scale_from_table(table)
+        scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
+        recovered = _recover_preferred_cashflow_cash_end_from_table(
+            table,
+            scale_for_table,
+        )
+        if recovered is None:
+            continue
+        value, row_ref = recovered
+        return (
+            value,
+            row_ref,
+            getattr(table, "page_number", None),
+            scale_for_table,
+            "table" if table_scale != "unknown" else "document",
+        )
+    return None
+
+
+_APPENDIX5B_SECTION_TOTALS = {
+    "1.9": "operating_cf",
+    "2.6": "investing_cf",
+    "3.10": "financing_cf",
+    "4.2": "operating_cf",
+    "4.3": "investing_cf",
+    "4.4": "financing_cf",
+    "4.6": "cash_end",
+}
+
+
+def _normalise_appendix5b_section(value: Any) -> str:
+    text = str(value or "").strip()
+    text = text.replace("\u00a0", " ")
+    text = re.sub(r"\s+", "", text)
+    return text.rstrip(".")
+
+
+def _table_has_appendix5b_sections(table: Any) -> bool:
+    text = _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])[:8]
+                    if row
+                ),
+            ]
+        )
+    )
+    if "appendix5b" in text:
+        return True
+    if "quarterlycashflowreport" in text and "statementofcashflows" in text:
+        return True
+    return any(
+        row
+        and (
+            _normalise_appendix5b_section(row[0]) in _APPENDIX5B_SECTION_TOTALS
+            or re.search(r"\b(?:1\.9|2\.6|3\.10|4\.3|4\.6)\b", str(row[0] or ""))
+        )
+        for row in (getattr(table, "rows", []) or [])
+    )
+
+
+def _recover_appendix5b_section_totals_from_table(
+    table: Any, scale: str
+) -> dict[str, tuple[float, str]]:
+    if not _table_has_appendix5b_sections(table):
+        return {}
+
+    recovered: dict[str, tuple[float, str]] = {}
+    for row in getattr(table, "rows", []) or []:
+        if not row:
+            continue
+        for section, multiline_metric_name in _APPENDIX5B_SECTION_TOTALS.items():
+            summary_section = section in {"4.2", "4.3", "4.4"}
+            if multiline_metric_name in recovered and not summary_section:
+                continue
+            multiline = _parse_appendix5b_multiline_section_value(
+                row,
+                section,
+                scale,
+            )
+            if multiline is not None:
+                recovered[multiline_metric_name] = multiline
+        metric_name = _APPENDIX5B_SECTION_TOTALS.get(
+            _normalise_appendix5b_section(row[0])
+        )
+        if metric_name is None or metric_name in recovered:
+            continue
+        value = _parse_current_period_metric_cell(row, scale)
+        if value is None:
+            continue
+        row_ref = _row_label_before_numeric_cells(row[1:]) or _normalise_fragmented_pdf_text(
+            " ".join(str(cell) for cell in row[:2])
+        )
+        recovered[metric_name] = (value, row_ref)
+    return recovered
+
+
+def _parse_appendix5b_multiline_section_value(
+    row: list[Any], section: str, scale: str
+) -> tuple[float, str] | None:
+    if len(row) < 2:
+        return None
+    label_lines = _cell_lines(row[0])
+    value_lines = _cell_lines(row[1])
+    if not label_lines or not value_lines:
+        return None
+
+    sections: list[tuple[str, str]] = []
+    for line in label_lines:
+        match = re.match(r"\s*(\d+\.\d+)\b\s*(.*)", line)
+        if match:
+            sections.append((match.group(1), line))
+
+    for index, (candidate_section, label) in enumerate(sections):
+        if candidate_section != section or index >= len(value_lines):
+            continue
+        parsed = _parse_accounting_metric_number(value_lines[index])
+        if parsed is None:
+            return None
+        raw_value, has_explicit_unit = parsed
+        value = (
+            raw_value
+            if has_explicit_unit
+            else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+        )
+        return value, label
+    return None
+
+
 def _is_missing_row_ref(value: Any) -> bool:
     text = " ".join(str(value or "").strip().lower().split())
     return not text or text in {"unknown", "n/a", "na", "null", "none", "-"}
@@ -1683,11 +2325,14 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
         compact == "ebit"
         or "earningsbeforeinterestandtax" in compact
         or "profitfromoperations" in compact
+        or "profitlossfromoperations" in compact
         or "profitlossfromoperatingactivities" in compact
         or "operatingprofit" in compact
         or "statutoryebit" in compact
         or "operatingincome" in compact
         or "profitbeforeincometax" in compact
+        or "profitfortheperiodbeforetax" in compact
+        or "lossprofitfortheperiodbeforetax" in compact
         or "cashprofitbeforetax" in compact
     ):
         return "ebit"
@@ -1695,7 +2340,9 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
         "npat" in compact
         or "netprofitaftertax" in compact
         or "profitaftertax" in compact
+        or "profitafterincometax" in compact
         or "profitlossaftertax" in compact
+        or "profitlossafterincometax" in compact
         or "profitattributable" in compact
         or "netprofitattributable" in compact
     ):
@@ -1706,6 +2353,286 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
     ):
         return "revenue"
     return None
+
+
+_NP_ATTRIBUTABLE_OWNER_MARKERS = (
+    "equityholdersoftheparent",
+    "ordinaryequityholdersofthecompany",
+    "attributabletobhpshareholders",
+    "attributabletoshareholders",
+    "attributabletoowners",
+    "attributabletomembers",
+    "attributabletoequityholders",
+)
+_NP_ATTRIBUTABLE_REJECT_MARKERS = (
+    "noncontrolling",
+    "minority",
+    "comprehensive",
+)
+
+
+def _income_row_is_attributable_profit(
+    row_label: str, previous_labels: list[str]
+) -> bool:
+    compact = _normalize_filter_text(row_label)
+    if not compact:
+        return False
+    if any(marker in compact for marker in _NP_ATTRIBUTABLE_REJECT_MARKERS):
+        return False
+    if not any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS):
+        return False
+
+    context = _normalize_filter_text(" ".join(previous_labels[-6:]))
+    if "comprehensive" in context and "profit" not in context:
+        return False
+    if "totalcomprehensive" in context:
+        return False
+    return True
+
+
+def _income_metric_priority_for_row_label(
+    row_label: str,
+    metric_name: str,
+    previous_labels: list[str],
+) -> int:
+    compact = _normalize_filter_text(row_label)
+    if metric_name == "revenue":
+        if "totalrevenuefromordinaryactivities" in compact:
+            return 100
+        if "revenuefromcontinuingoperations" in compact:
+            return 90
+        if compact in {"totalrevenue", "totalrevenues"} or "totalrevenue" in compact:
+            return 80
+        return 10
+    if metric_name == "ebit":
+        if "beforeincometax" in compact or "beforetax" in compact:
+            return 90
+        return 50
+    if metric_name == "np_attributable":
+        if "afterincometaxfromcontinuingoperations" in compact:
+            return 110
+        if "profitafterincometax" in compact or "profitaftertax" in compact:
+            return 100
+        context = _normalize_filter_text(" ".join(previous_labels[-4:]))
+        if (
+            compact in {"profitfortheperiod", "profitforthehalfyearafterincometax"}
+            or "profitfortheperiod" in compact
+            or "profitforthehalfyearafterincometax" in compact
+        ) and "incometax" in context:
+            return 80
+        return 50
+    return 0
+
+
+def _recover_income_statement_metrics_from_table(
+    table: Any, scale: str, rows_override: list[list[Any]] | None = None
+) -> dict[str, tuple[float, str]]:
+    recovered: dict[str, tuple[int, float, str]] = {}
+    previous_labels: list[str] = []
+    formal_statement_context = any(
+        marker in _table_precedence_text(table, max_rows=4)
+        for marker in (
+            "statementofcomprehensiveincome",
+            "statementofprofitorloss",
+        )
+    )
+    rows = rows_override if rows_override is not None else getattr(table, "rows", [])
+    for row in rows or []:
+        if not row:
+            continue
+        row_label = _row_label_before_numeric_cells(row)
+        if not row_label:
+            continue
+
+        metric_name = _income_metric_for_row_label(row_label)
+        if metric_name == "np_attributable" and not any(
+            marker in _normalize_filter_text(row_label)
+            for marker in (
+                "npat",
+                "netprofitattributable",
+                "profitattributable",
+                "attributable",
+                "profitaftertax",
+                "profitafterincometax",
+                "profitlossaftertax",
+                "profitlossafterincometax",
+            )
+        ):
+            metric_name = None
+        if metric_name is None and _income_row_is_attributable_profit(
+            row_label, previous_labels
+        ):
+            metric_name = "np_attributable"
+        if metric_name is None and formal_statement_context:
+            compact = _normalize_filter_text(row_label)
+            context = _normalize_filter_text(" ".join(previous_labels[-4:]))
+            if (
+                compact in {"profitfortheperiod", "profitforthehalfyearafterincometax"}
+                or "profitfortheperiod" in compact
+            ) and "incometax" in context:
+                metric_name = "np_attributable"
+
+        if metric_name in {"revenue", "ebit", "np_attributable"}:
+            value = _parse_current_period_metric_cell(row, scale)
+            if value is not None:
+                priority = _income_metric_priority_for_row_label(
+                    row_label,
+                    metric_name,
+                    previous_labels,
+                )
+                existing = recovered.get(metric_name)
+                if existing is None or priority > existing[0]:
+                    recovered[metric_name] = (priority, value, row_label)
+
+        previous_labels.append(row_label)
+    return {
+        metric_name: (value, row_label)
+        for metric_name, (_priority, value, row_label) in recovered.items()
+    }
+
+
+_SHARE_COUNT_ROW_MARKERS = (
+    "issuedordinarysharesfullypaidat",
+    "issuedordinarysharesfullypaid",
+    "sharesnotifiedtotheaustralianstockexchange",
+    "sharesnotifiedtotheaustraliansecuritiesexchange",
+    "balanceat31december",
+    "balanceattheendoftheperiod",
+    "balanceatendofperiod",
+    "at31december",
+    "at30june",
+    "closingbalance",
+    "ordinarysharesatendofperiod",
+)
+
+
+def _share_row_is_weighted_average(compact_text: str) -> bool:
+    return "weighted" in compact_text and "average" in compact_text
+
+
+def _share_count_multiplier_from_table(table: Any) -> int:
+    text = _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])[:4]
+                    if row
+                ),
+            ]
+        )
+    )
+    if (
+        "numberofsharesmillions" in text
+        or ("numberofshares" in text and "millions" in text)
+        or ("sharesmillions" in text and "usm" in text)
+    ):
+        return 1_000_000
+    if (
+        "no000s" in text
+        or "numberofshares000" in text
+        or ("numberofshares" in text and "000s" in text)
+    ):
+        return 1_000
+    return 1
+
+
+def _recover_preferred_shares_outstanding_from_table(
+    table: Any,
+) -> tuple[float, str] | None:
+    multiplier = _share_count_multiplier_from_table(table)
+    table_compact = _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])[:10]
+                    if row
+                ),
+            ]
+        )
+    )
+    table_has_share_count_evidence = any(
+        marker in table_compact
+        for marker in ("numberofshares", "ordinaryshares", "sharecapital")
+    )
+    candidates: list[tuple[int, float, str]] = []
+    for row in getattr(table, "rows", []) or []:
+        if not row:
+            continue
+        row_label = _row_label_before_numeric_cells(row)
+        compact_label = _normalize_filter_text(row_label)
+        if _share_row_is_weighted_average(compact_label):
+            continue
+        if not any(marker in compact_label for marker in _SHARE_COUNT_ROW_MARKERS):
+            continue
+        row_has_share_count_evidence = any(
+            marker in compact_label
+            for marker in ("share", "security", "securities", "unit", "stapled")
+        )
+        if (
+            any(
+                marker in compact_label
+                for marker in (
+                    "balanceat",
+                    "at31december",
+                    "at30june",
+                    "closingbalance",
+                    "ordinarysharesatendofperiod",
+                )
+            )
+            and not table_has_share_count_evidence
+            and not row_has_share_count_evidence
+        ):
+            continue
+        raw_value = _parse_current_period_metric_cell(row, "unknown")
+        if raw_value is None:
+            continue
+        value = raw_value if abs(raw_value) >= 1_000_000 else raw_value * multiplier
+        if (
+            value < 1_000_000
+            and 100 <= abs(raw_value) < 1_000_000
+            and "issuedordinarysharesfullypaid" in compact_label
+            and len(
+                [
+                    cell
+                    for cell in row[1:]
+                    if _parse_accounting_metric_number(cell) is not None
+                ]
+            )
+            >= 2
+        ):
+            value = raw_value * 1_000_000
+        if value >= 1_000_000:
+            rank = 1
+            if any(
+                marker in compact_label
+                for marker in (
+                    "at30june",
+                    "at31december",
+                    "atend",
+                    "endoftheperiod",
+                    "balanceat31december",
+                    "balanceattheendoftheperiod",
+                    "balanceatendofperiod",
+                    "closingbalance",
+                )
+            ):
+                rank = 3
+            if any(
+                marker in compact_label
+                for marker in ("beginning", "at1january", "atbeginning")
+            ):
+                rank = 0
+            candidates.append((rank, value, row_label))
+    if not candidates:
+        return None
+    _rank, value, row_label = max(candidates, key=lambda item: item[0])
+    return value, row_label
 
 
 def _expand_income_statement_row_refs(
@@ -1804,7 +2731,10 @@ def _extract_single_table(
         )
 
     def _build_output(
-        raw_payload: dict[str, Any], *, table_markdown: str
+        raw_payload: dict[str, Any],
+        *,
+        table_markdown: str,
+        rows_override: list[list[Any]] | None = None,
     ) -> dict[str, Any]:
         # Support both old flat format and new nested format
         metrics_payload = raw_payload.get("metrics")
@@ -1901,20 +2831,44 @@ def _extract_single_table(
                     "sharesnotifiedtotheaustraliansecuritiesexchange",
                 )
             )
+            if not has_share_count_evidence and table_type == "share_capital":
+                has_share_count_evidence = (
+                    "sharecapital" in compact_share_text
+                    and "number" in compact_share_text
+                )
+            row_ref_text = _normalize_filter_text(
+                str(
+                    (
+                        raw_payload.get("row_refs")
+                        if isinstance(raw_payload.get("row_refs"), dict)
+                        else {}
+                    ).get("shares_outstanding")
+                    or ""
+                )
+            )
+            row_ref_is_weighted_average = _share_row_is_weighted_average(row_ref_text)
+            row_ref_has_share_count_evidence = any(
+                marker in row_ref_text
+                for marker in (
+                    "share",
+                    "security",
+                    "securities",
+                    "unit",
+                    "stapled",
+                    "ordinary",
+                    "issued",
+                )
+            )
             row_labels = [
                 _normalize_filter_text(row[0]) for row in table.rows if row
             ]
             weighted_average_only = bool(row_labels) and all(
-                "weightedaverage" in label or not label for label in row_labels[1:]
+                _share_row_is_weighted_average(label) or not label
+                for label in row_labels[1:]
             )
-            # An absolute count (≥ 1M) is self-evident: the LLM was instructed
-            # to return the absolute share count, so a value this large cannot
-            # be an unscaled row number from a dollar-denominated column.
-            # Only apply the null guard when the value is small enough that it
-            # could be a scaled placeholder rather than a genuine count.
-            _already_absolute = abs(shares_val) >= _MIN_PLAUSIBLE_SHARES
-            if weighted_average_only or (
-                not has_share_count_evidence and not _already_absolute
+            if weighted_average_only or row_ref_is_weighted_average or (
+                not has_share_count_evidence
+                and not row_ref_has_share_count_evidence
             ):
                 logger.info(
                     "Nulling shares_outstanding from %s due to weak count evidence",
@@ -1958,6 +2912,8 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        if not isinstance(extracted["row_refs"], dict):
+            extracted["row_refs"] = {}
         extracted["period_col"] = raw_payload.get("period_col")
         if table_type == "income_statement":
             extracted["row_refs"] = _expand_income_statement_row_refs(
@@ -1965,6 +2921,30 @@ def _extract_single_table(
                 table_markdown,
                 metrics_payload,
             )
+            for metric_name, (
+                recovered_value,
+                recovered_row_ref,
+            ) in _recover_income_statement_metrics_from_table(
+                table, scale_for_table, rows_override=rows_override
+            ).items():
+                if extracted.get(metric_name) is None:
+                    extracted[metric_name] = recovered_value
+                    extracted["row_refs"][metric_name] = recovered_row_ref
+                    logger.info(
+                        "Recovered income-statement %s from source row on page %s",
+                        metric_name,
+                        getattr(table, "page_number", "?"),
+                    )
+        if table_type == "share_capital":
+            recovered_shares = _recover_preferred_shares_outstanding_from_table(table)
+            if recovered_shares is not None:
+                recovered_value, recovered_row_ref = recovered_shares
+                extracted["shares_outstanding"] = recovered_value
+                extracted["row_refs"]["shares_outstanding"] = recovered_row_ref
+                logger.info(
+                    "Recovered shares_outstanding from preferred share-count row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
         if table_type == "balance_sheet" and extracted["row_refs"].get("total_debt"):
             preferred_total_debt_ref = _select_preferred_evidence_row_ref(
                 extracted["row_refs"].get("total_debt"),
@@ -2003,10 +2983,62 @@ def _extract_single_table(
             and not extracted["row_refs"].get("net_debt")
         ):
             extracted["row_refs"]["net_debt"] = "Net debt"
+        if table_type == "cashflow_statement":
+            for metric_name, (
+                recovered_value,
+                recovered_row_ref,
+            ) in _recover_appendix5b_section_totals_from_table(
+                table, scale_for_table
+            ).items():
+                if metric_name == "cash_end" and (
+                    extracted.get("cash_end") is not None
+                    and not _cashflow_cash_end_row_is_weak(
+                        extracted["row_refs"].get("cash_end")
+                    )
+                ):
+                    continue
+                extracted[metric_name] = recovered_value
+                extracted["row_refs"][metric_name] = recovered_row_ref
+                logger.info(
+                    "Recovered Appendix 5B %s section total from page %s",
+                    metric_name,
+                    getattr(table, "page_number", "?"),
+                )
+        if table_type == "cashflow_statement" and (
+            extracted.get("capex") is None
+            or _cashflow_capex_row_is_weak(extracted["row_refs"].get("capex"))
+        ):
+            recovered_capex = _recover_preferred_cashflow_capex_from_table(
+                table, scale_for_table
+            )
+            if recovered_capex is not None:
+                recovered_value, recovered_row_ref = recovered_capex
+                extracted["capex"] = recovered_value
+                extracted["row_refs"]["capex"] = recovered_row_ref
+                logger.info(
+                    "Recovered cashflow capex from preferred PP&E row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
+        if table_type == "cashflow_statement" and (
+            extracted.get("cash_end") is None
+            or _cashflow_cash_end_row_is_weak(extracted["row_refs"].get("cash_end"))
+        ):
+            recovered_cash_end = _recover_preferred_cashflow_cash_end_from_table(
+                table, scale_for_table
+            )
+            if recovered_cash_end is not None:
+                recovered_value, recovered_row_ref = recovered_cash_end
+                extracted["cash_end"] = recovered_value
+                extracted["row_refs"]["cash_end"] = recovered_row_ref
+                logger.info(
+                    "Recovered cashflow cash_end from preferred cash-equivalents row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
         return extracted
 
     prompt = _build_prompt(markdown)
     selected_markdown = markdown
+    selected_rows = filtered_rows if filter_enabled else None
 
     try:
         raw = _llm_json_call(prompt, llm_client, max_tokens=2048, model_override=model_override)
@@ -2021,12 +3053,17 @@ def _extract_single_table(
                 truncated_prompt, llm_client, max_tokens=1024, model_override=model_override
             )
             selected_markdown = truncated_markdown
+            selected_rows = None
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
             return None
 
     selected_raw = raw
-    out = _build_output(raw, table_markdown=selected_markdown)
+    out = _build_output(
+        raw,
+        table_markdown=selected_markdown,
+        rows_override=selected_rows,
+    )
 
     used_filtered_rows = bool(
         filter_enabled and filtered_rows is not None and filtered_rows != table.rows
@@ -2045,7 +3082,11 @@ def _extract_single_table(
                     max_tokens=2048,
                     model_override=model_override,
                 )
-                full_out = _build_output(full_raw, table_markdown=full_markdown)
+                full_out = _build_output(
+                    full_raw,
+                    table_markdown=full_markdown,
+                    rows_override=None,
+                )
                 full_count = sum(1 for m in metrics if full_out.get(m) is not None)
                 current_count = sum(1 for m in metrics if out.get(m) is not None)
                 if full_count > current_count or not _needs_full_table_retry(
@@ -2477,6 +3518,15 @@ _SHARES_PROSE_PATTERNS = [
     ),
 ]
 
+_DUAL_LISTED_SHARES_ON_ISSUE_RE = re.compile(
+    r"\bhad\s+([\d,]+(?:\.\d+)?)\s+"
+    r"(million|millions|m|billion|billions|bn|b)\s+ordinary\s+shares\s+on\s+issue\b"
+    r".*?"
+    r"\bhad\s+([\d,]+(?:\.\d+)?)\s+"
+    r"(million|millions|m|billion|billions|bn|b)\s+ordinary\s+shares\s+on\s+issue\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
 # Sections likely to contain share capital notes (filter for efficiency)
 _SHARE_NOTE_RE = re.compile(
     r"note\s+\d+|share\s+capital|shares\s+on\s+issue|issued\s+capital",
@@ -2667,9 +3717,45 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
     if not candidates:
         candidates = [s for s in sections if s.get("text")]
 
-    for section in candidates:
+    candidate_texts: list[tuple[Any, str]] = []
+    for index, section in enumerate(candidates):
         text = section["text"]
         page = section.get("page", "?")
+        candidate_texts.append((page, text))
+        window_parts = [text]
+        for follower in candidates[index + 1 : index + 3]:
+            if follower.get("page") != page:
+                break
+            window_parts.append(follower.get("text") or "")
+        if len(window_parts) > 1:
+            candidate_texts.append((page, " ".join(window_parts)))
+
+    for page, text in candidate_texts:
+        dual_match = _DUAL_LISTED_SHARES_ON_ISSUE_RE.search(text)
+        if dual_match:
+            values: list[float] = []
+            for raw, unit in (
+                (dual_match.group(1), dual_match.group(2)),
+                (dual_match.group(3), dual_match.group(4)),
+            ):
+                try:
+                    values.append(
+                        float(raw.replace(",", "")) * _SOURCE_UNIT_MULTIPLIERS[unit.lower()]
+                    )
+                except (KeyError, ValueError):
+                    values = []
+                    break
+            if values:
+                value = sum(values)
+                if 1_000_000 <= value <= 100_000_000_000:
+                    provenance = f"prose_note:page_{page}:{dual_match.group(0)[:100]}"
+                    logger.info(
+                        "shares_outstanding from dual-listed prose: %.0f (page %s)",
+                        value,
+                        page,
+                    )
+                    return value, provenance
+
         for pattern in _SHARES_PROSE_PATTERNS:
             match = pattern.search(text)
             if match:
@@ -3981,6 +5067,7 @@ def _accepted_output_scale_magnitude_risk_error(
 
 _APPENDIX_WRAPPER_DOCUMENT_MARKERS = ("appendix4d", "appendix4e")
 _APPENDIX_WRAPPER_REQUIRED_METRICS = {"revenue", "np_attributable"}
+_APPENDIX_WRAPPER_SOURCE_METRICS = _APPENDIX_WRAPPER_REQUIRED_METRICS | {"ebit"}
 _APPENDIX_WRAPPER_DISCLOSURE_MARKER_GROUPS: tuple[tuple[str, ...], ...] = (
     ("ntapersecurity", "nettangibleassetspersecurity"),
     ("dividendsdistributions", "dividends", "distribution"),
@@ -4006,6 +5093,21 @@ _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS = (
     "profitafterincometaxexpensefromordinaryactivities",
     "profitfromordinaryactivitiesaftertax",
     "lossfromordinaryactivitiesaftertax",
+    "profitforthehalfyearfromordinaryactivitiesaftertaxattributable",
+    "profitforthehalfyearattributabletotheowners",
+    "profitfortheperiodfromordinaryactivitiesaftertaxattributable",
+    "netlossprofitaftertaxattributabletomembers",
+    "netlossprofitaftertaxattributable",
+)
+_APPENDIX_WRAPPER_EBIT_LABELS = (
+    "earningsbeforeinterestandtaxebit",
+    "earningsbeforeinteresttaxebit",
+    "earningsbeforeinterestandtax",
+)
+_APPENDIX_WRAPPER_EBIT_REJECT_LABELS = (
+    "ebitda",
+    "depreciationandamortisation",
+    "depreciationamortisation",
 )
 _SOURCE_NUMBER_RE = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?$")
 
@@ -4085,6 +5187,56 @@ def _parse_source_numeric_value(value: Any) -> float | None:
 
 def _scale_source_value(value: float, scale: Any) -> float:
     return value * SCALE_MULTIPLIERS.get(str(scale or "unknown"), 1)
+
+
+def _appendix_wrapper_label_from_table_row(row: list[Any]) -> str:
+    label_parts: list[str] = []
+    for cell in row:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        if _parse_source_numeric_value(text) is not None:
+            break
+        if "%" in text or "$" in text or re.fullmatch(r"\d+(?:\.\d+)?", text):
+            continue
+        label_parts.append(text)
+    return " ".join(" ".join(label_parts).split())[:120]
+
+
+def _find_appendix_wrapper_metric_in_tables(
+    tables: Any,
+    label_markers: tuple[str, ...],
+    *,
+    scale: Any,
+    max_page: int = 4,
+    reject_markers: tuple[str, ...] = (),
+) -> tuple[float, str, str] | None:
+    for table in tables or []:
+        try:
+            page = int(getattr(table, "page_number", 0))
+        except (TypeError, ValueError):
+            page = 0
+        if page and page > max_page:
+            continue
+        for row in getattr(table, "rows", []) or []:
+            row_text = _normalise_fragmented_pdf_text(
+                " ".join(str(cell) for cell in row)
+            )
+            compact_row = _normalize_filter_text(row_text)
+            if not any(marker in compact_row for marker in label_markers):
+                continue
+            if any(marker in compact_row for marker in reject_markers):
+                continue
+            label = _appendix_wrapper_label_from_table_row(row)
+            if not label:
+                continue
+            for cell in row[1:]:
+                raw_value = _parse_source_numeric_value(cell)
+                if raw_value is None:
+                    continue
+                value = _scale_source_value(raw_value, scale)
+                return value, label, f"appendix_wrapper:page_{page or '?'}:{label}"
+    return None
 
 
 def _find_appendix_wrapper_metric_in_sections(
@@ -4187,11 +5339,29 @@ def _build_appendix_wrapper_source_payload(
             source_payload["row_refs"]["revenue"] = row_ref
             source_payload["provenance"]["revenue"] = provenance
 
-        np_attributable = _find_appendix_wrapper_metric_in_sections(
-            source_sections,
+        ebit = _find_appendix_wrapper_metric_in_tables(
+            tables,
+            _APPENDIX_WRAPPER_EBIT_LABELS,
+            scale=scale,
+            reject_markers=_APPENDIX_WRAPPER_EBIT_REJECT_LABELS,
+        )
+        if ebit is not None:
+            value, row_ref, provenance = ebit
+            source_payload["metrics"]["ebit"] = value
+            source_payload["row_refs"]["ebit"] = row_ref
+            source_payload["provenance"]["ebit"] = provenance
+
+        np_attributable = _find_appendix_wrapper_metric_in_tables(
+            tables,
             _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS,
             scale=scale,
         )
+        if np_attributable is None:
+            np_attributable = _find_appendix_wrapper_metric_in_sections(
+                source_sections,
+                _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS,
+                scale=scale,
+            )
         if np_attributable is not None:
             value, row_ref, provenance = np_attributable
             source_payload["metrics"]["np_attributable"] = value
@@ -4199,6 +5369,26 @@ def _build_appendix_wrapper_source_payload(
             source_payload["provenance"]["np_attributable"] = provenance
 
     return source_payload
+
+
+_APPENDIX_WRAPPER_WEAK_ROW_MARKERS = (
+    "previousperiod",
+    "priorperiod",
+    "comparativeperiod",
+    "previousyear",
+    "prioryear",
+    "footnote",
+)
+
+
+def _appendix_wrapper_source_row_is_weak(value: Any) -> bool:
+    compact = _normalize_filter_text(value)
+    return any(marker in compact for marker in _APPENDIX_WRAPPER_WEAK_ROW_MARKERS)
+
+
+def _source_text_is_appendix_wrapper(value: Any) -> bool:
+    compact = _normalize_filter_text(value)
+    return "appendixwrapper" in compact
 
 
 def _apply_appendix_wrapper_source_payload(
@@ -4223,15 +5413,45 @@ def _apply_appendix_wrapper_source_payload(
         if isinstance(payload.get("field_provenance"), dict)
         else {}
     )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+    weak_wrapper_metrics = {
+        metric_name
+        for metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS
+        if _appendix_wrapper_source_row_is_weak(
+            wrapper_source.get("row_refs", {}).get(metric_name)
+        )
+        or _appendix_wrapper_source_row_is_weak(
+            wrapper_source.get("provenance", {}).get(metric_name)
+        )
+    }
+    wrapper_scale = str(wrapper_source.get("scale") or "").strip()
     for metric_name, value in wrapper_source.get("metrics", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS and value is not None:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS and value is not None:
+            if metric_name in weak_wrapper_metrics and metrics.get(metric_name) is not None:
+                continue
             metrics[metric_name] = value
             payload[metric_name] = value
+            if wrapper_scale and wrapper_scale != "unknown":
+                metric_source_scales[metric_name] = wrapper_scale
+                metric_scale_sources[metric_name] = "wrapper"
     for metric_name, row_ref in wrapper_source.get("row_refs", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS:
+            if metric_name in weak_wrapper_metrics and metrics.get(metric_name) is not None:
+                continue
             row_refs[metric_name] = row_ref
     for metric_name, source in wrapper_source.get("provenance", {}).items():
-        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+        if metric_name in _APPENDIX_WRAPPER_SOURCE_METRICS:
+            if metric_name in weak_wrapper_metrics and metrics.get(metric_name) is not None:
+                continue
             provenance[metric_name] = source
             source_match = _EXTRACTION_RE.match(str(source))
             if source_match:
@@ -4257,6 +5477,8 @@ def _apply_appendix_wrapper_source_payload(
     payload["row_refs"] = row_refs
     payload["provenance"] = provenance
     payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
 
     if wrapper_source.get("wrapper_disclosures") is not None:
         payload["wrapper_disclosures"] = list(wrapper_source["wrapper_disclosures"])
@@ -4286,6 +5508,508 @@ def _apply_appendix_wrapper_source_payload(
             _coerce_confidence(payload.get("confidence_metrics", 0.0)),
             0.9,
         )
+
+
+def _table_has_income_statement_source_rows(table: Any) -> bool:
+    text = _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])[:50]
+                    if row
+                ),
+            ]
+        )
+    )
+    if any(
+        marker in text
+        for marker in (
+            "appendix4d",
+            "appendix4e",
+            "resultsforannouncement",
+        )
+    ):
+        return False
+    if any(
+        _normalize_filter_text(marker) in text
+        for marker in (
+            *_SEGMENT_DISQUALIFY_PHRASES,
+            *_INCOME_STATEMENT_DISQUALIFY_PHRASES,
+        )
+    ):
+        return False
+    return any(
+        marker in text
+        for marker in (
+            "incomestatement",
+            "statementofcomprehensiveincome",
+            "statementofprofitorloss",
+            "profitlossfromoperations",
+            "profitfromoperations",
+            "revenuefromcontinuingoperations",
+            "totalrevenuefromordinaryactivities",
+            "profitlossforthehalfyearisattributableto",
+            "attributabletobhpshareholders",
+            "equityholdersoftheparent",
+        )
+    )
+
+
+def _preferred_statement_tables(tables: Any) -> list[Any]:
+    def _page_number(table: Any) -> int:
+        try:
+            return int(getattr(table, "page_number", 0) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    return sorted(
+        list(tables or []),
+        key=lambda table: (-_statement_precedence_rank(table), _page_number(table)),
+    )
+
+
+def _apply_preferred_income_statement_source_payload(
+    payload: dict[str, Any],
+    tables: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+
+    for table in _preferred_statement_tables(tables):
+        if not _table_has_income_statement_source_rows(table):
+            continue
+        table_scale = _detect_scale_from_table(table)
+        scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
+        for metric_name, (
+            recovered_value,
+            recovered_row_ref,
+        ) in _recover_income_statement_metrics_from_table(
+            table,
+            scale_for_table,
+        ).items():
+            existing_is_weak_wrapper = _appendix_wrapper_source_row_is_weak(
+                row_refs.get(metric_name)
+            ) or _appendix_wrapper_source_row_is_weak(provenance.get(metric_name))
+            existing_is_appendix_wrapper = _source_text_is_appendix_wrapper(
+                row_refs.get(metric_name)
+            ) or _source_text_is_appendix_wrapper(provenance.get(metric_name))
+            if metrics.get(metric_name) is not None and not (
+                existing_is_weak_wrapper or existing_is_appendix_wrapper
+            ):
+                continue
+            metrics[metric_name] = recovered_value
+            payload[metric_name] = recovered_value
+            row_refs[metric_name] = recovered_row_ref
+            page_tag = f"page_{getattr(table, 'page_number', '?')}"
+            provenance[metric_name] = f"income_statement:{page_tag}:{recovered_row_ref}"
+            if scale_for_table and scale_for_table != "unknown":
+                metric_source_scales[metric_name] = scale_for_table
+                metric_scale_sources[metric_name] = (
+                    "table" if table_scale != "unknown" else "document"
+                )
+            field_provenance[metric_name] = _build_field_provenance_entry(
+                metric_name=metric_name,
+                source="income_statement",
+                page=getattr(table, "page_number", None),
+                row_ref=recovered_row_ref,
+                scale=scale_for_table,
+                scale_source=metric_scale_sources.get(metric_name),
+                pass1_result=pass1_result,
+            )
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
+
+
+def _sections_by_page(sections: list[dict] | None) -> dict[int, list[str]]:
+    pages: dict[int, list[str]] = {}
+    for section in sections or []:
+        try:
+            page = int(section.get("page"))
+        except (TypeError, ValueError):
+            continue
+        text = _normalise_fragmented_pdf_text(section.get("text"))
+        if not text:
+            continue
+        pages.setdefault(page, []).append(text)
+    return pages
+
+
+def _statement_text_value_after_label(
+    lines: list[str],
+    index: int,
+    scale: str,
+    *,
+    label_width: int = 1,
+) -> float | None:
+    row = [lines[index]] + lines[index + label_width : index + label_width + 6]
+    return _parse_current_period_metric_cell(row, scale)
+
+
+def _combined_statement_text_label(lines: list[str], index: int) -> tuple[str, int]:
+    label = lines[index]
+    if index + 1 >= len(lines):
+        return label, 1
+    next_line = lines[index + 1]
+    if _parse_accounting_metric_number(next_line) is not None:
+        return label, 1
+    compact = _normalize_filter_text(label)
+    next_compact = _normalize_filter_text(next_line)
+    if (
+        compact.endswith("from")
+        or compact.endswith("of")
+        or (compact.startswith("profitloss") and next_compact)
+    ):
+        return f"{label} {next_line}", 2
+    return label, 1
+
+
+def _recover_income_statement_metrics_from_statement_text(
+    lines: list[str],
+    scale: str,
+) -> dict[str, tuple[float, str]]:
+    recovered: dict[str, tuple[int, float, str]] = {}
+    previous_labels: list[str] = []
+    for index, raw_line in enumerate(lines):
+        label, label_width = _combined_statement_text_label(lines, index)
+        compact = _normalize_filter_text(label)
+        if not compact or _parse_accounting_metric_number(label) is not None:
+            continue
+
+        metric_name = _income_metric_for_row_label(label)
+        if metric_name is None and (
+            "profitlossafterincometaxfromcontinuingoperations" in compact
+            or "profitlossforthehalfyearafterincometax" in compact
+            or "profitforthehalfyearafterincometax" in compact
+        ):
+            metric_name = "np_attributable"
+        if metric_name is None and "beforeincometax" in compact and "profit" in compact:
+            metric_name = "ebit"
+
+        if metric_name in {"revenue", "ebit", "np_attributable"}:
+            value = _statement_text_value_after_label(
+                lines,
+                index,
+                scale,
+                label_width=label_width,
+            )
+            if value is not None:
+                priority = _income_metric_priority_for_row_label(
+                    label,
+                    metric_name,
+                    previous_labels,
+                )
+                existing = recovered.get(metric_name)
+                if existing is None or priority > existing[0]:
+                    recovered[metric_name] = (priority, value, label)
+        previous_labels.append(label)
+    return {
+        metric_name: (value, row_ref)
+        for metric_name, (_priority, value, row_ref) in recovered.items()
+    }
+
+
+def _cashflow_metric_for_statement_text_label(label: str) -> str | None:
+    compact = _normalize_filter_text(label)
+    if "netoperatingcashflowsprovidedbyoperatingactivities" in compact:
+        return "operating_cf"
+    if "netcash" in compact and "operatingactivities" in compact:
+        return "operating_cf"
+    if "netcash" in compact and "investingactivities" in compact:
+        return "investing_cf"
+    if "netcash" in compact and "financingactivities" in compact:
+        return "financing_cf"
+    if _cashflow_row_has_strong_cash_end_label([label]):
+        return "cash_end"
+    if _cashflow_row_has_strong_capex_label([label]):
+        return "capex"
+    return None
+
+
+def _recover_cashflow_metrics_from_statement_text(
+    lines: list[str],
+    scale: str,
+) -> dict[str, tuple[float, str]]:
+    recovered: dict[str, tuple[float, str]] = {}
+    for index, label in enumerate(lines):
+        metric_name = _cashflow_metric_for_statement_text_label(label)
+        if metric_name is None:
+            continue
+        row = [label] + lines[index + 1 : index + 7]
+        if metric_name == "capex":
+            value = _parse_cashflow_capex_row_amount(row, scale)
+        else:
+            value = _parse_current_period_metric_cell(row, scale)
+        if value is None:
+            continue
+        recovered[metric_name] = (value, label)
+    return recovered
+
+
+def _statement_text_pages(
+    sections: list[dict] | None,
+    markers: tuple[str, ...],
+) -> list[tuple[int, list[str]]]:
+    pages = _sections_by_page(sections)
+    selected: list[tuple[int, list[str]]] = []
+    for page, lines in pages.items():
+        compact = _normalize_filter_text(" ".join(lines[:40]))
+        if any(marker in compact for marker in markers) and "resultsforannouncement" not in compact:
+            selected.append((page, lines))
+    return sorted(selected, key=lambda item: item[0])
+
+
+def _apply_preferred_statement_text_source_payload(
+    payload: dict[str, Any],
+    sections: list[dict] | None,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+    scale_for_text = str(scale or "unknown")
+
+    for page, lines in _statement_text_pages(
+        sections,
+        (
+            "consolidatedstatementofcomprehensiveincome",
+            "consolidatedstatementofprofitorloss",
+        ),
+    ):
+        recovered = _recover_income_statement_metrics_from_statement_text(
+            lines,
+            scale_for_text,
+        )
+        if not recovered:
+            continue
+        for metric_name, (value, row_ref) in recovered.items():
+            existing_is_appendix_wrapper = _source_text_is_appendix_wrapper(
+                row_refs.get(metric_name)
+            ) or _source_text_is_appendix_wrapper(provenance.get(metric_name))
+            if metrics.get(metric_name) is not None and not existing_is_appendix_wrapper:
+                continue
+            metrics[metric_name] = value
+            payload[metric_name] = value
+            row_refs[metric_name] = row_ref
+            provenance[metric_name] = f"income_statement:page_{page}:{row_ref}"
+            if scale_for_text and scale_for_text != "unknown":
+                metric_source_scales[metric_name] = scale_for_text
+                metric_scale_sources[metric_name] = "source_text"
+            field_provenance[metric_name] = _build_field_provenance_entry(
+                metric_name=metric_name,
+                source="income_statement",
+                page=page,
+                row_ref=row_ref,
+                scale=scale_for_text,
+                scale_source="source_text",
+                pass1_result=pass1_result,
+            )
+        break
+
+    for page, lines in _statement_text_pages(
+        sections,
+        ("consolidatedstatementofcashflows",),
+    ):
+        recovered = _recover_cashflow_metrics_from_statement_text(lines, scale_for_text)
+        if not recovered:
+            continue
+        for metric_name, (value, row_ref) in recovered.items():
+            current_row = row_refs.get(metric_name)
+            should_replace_capex = (
+                metric_name == "capex"
+                and _cashflow_row_has_strong_capex_label([row_ref])
+                and not _cashflow_row_has_strong_capex_label([current_row])
+            )
+            if (
+                metrics.get(metric_name) is not None
+                and metric_name != "cash_end"
+                and not should_replace_capex
+            ):
+                continue
+            if (
+                metric_name == "cash_end"
+                and metrics.get(metric_name) is not None
+                and not _cashflow_cash_end_row_is_weak(current_row)
+            ):
+                continue
+            metrics[metric_name] = value
+            payload[metric_name] = value
+            row_refs[metric_name] = row_ref
+            provenance[metric_name] = f"cashflow_statement:page_{page}:{row_ref}"
+            if scale_for_text and scale_for_text != "unknown":
+                metric_source_scales[metric_name] = scale_for_text
+                metric_scale_sources[metric_name] = "source_text"
+            field_provenance[metric_name] = _build_field_provenance_entry(
+                metric_name=metric_name,
+                source="cashflow_statement",
+                page=page,
+                row_ref=row_ref,
+                scale=scale_for_text,
+                scale_source="source_text",
+                pass1_result=pass1_result,
+            )
+        break
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
+
+
+def _apply_preferred_shares_source_payload(
+    payload: dict[str, Any],
+    tables: Any,
+    *,
+    pass1_result: dict,
+) -> None:
+    for table in tables or []:
+        recovered = _recover_preferred_shares_outstanding_from_table(table)
+        if recovered is None:
+            continue
+        recovered_value, recovered_row_ref = recovered
+        metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+        row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+        provenance = (
+            payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+        )
+        field_provenance = (
+            payload.get("field_provenance")
+            if isinstance(payload.get("field_provenance"), dict)
+            else {}
+        )
+        metrics["shares_outstanding"] = recovered_value
+        payload["shares_outstanding"] = recovered_value
+        row_refs["shares_outstanding"] = recovered_row_ref
+        page_tag = f"page_{getattr(table, 'page_number', '?')}"
+        provenance["shares_outstanding"] = f"share_capital:{page_tag}:{recovered_row_ref}"
+        field_provenance["shares_outstanding"] = _build_field_provenance_entry(
+            metric_name="shares_outstanding",
+            source="share_capital",
+            page=getattr(table, "page_number", None),
+            row_ref=recovered_row_ref,
+            scale="units",
+            scale_source="source_table",
+            pass1_result=pass1_result,
+        )
+        payload["metrics"] = metrics
+        payload["row_refs"] = row_refs
+        payload["provenance"] = provenance
+        payload["field_provenance"] = field_provenance
+        return
+
+
+def _apply_preferred_cash_end_source_payload(
+    payload: dict[str, Any],
+    tables: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    if (
+        payload.get("cash_end") is not None
+        and not _cashflow_cash_end_row_is_weak(row_refs.get("cash_end"))
+    ):
+        return
+
+    recovered = _recover_preferred_cashflow_cash_end_from_tables(tables, scale)
+    if recovered is None:
+        return
+
+    value, row_ref, page, metric_scale, scale_source = recovered
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+
+    metrics["cash_end"] = value
+    payload["cash_end"] = value
+    row_refs["cash_end"] = row_ref
+    page_tag = f"page_{page}" if page is not None else "page_?"
+    provenance["cash_end"] = f"source_table:{page_tag}:{row_ref}"
+    if metric_scale and metric_scale != "unknown":
+        metric_source_scales["cash_end"] = metric_scale
+        metric_scale_sources["cash_end"] = scale_source
+    field_provenance["cash_end"] = _build_field_provenance_entry(
+        metric_name="cash_end",
+        source="source_table",
+        page=page,
+        row_ref=row_ref,
+        scale=metric_scale,
+        scale_source=scale_source,
+        pass1_result=pass1_result,
+    )
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
 
 
 def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
@@ -5352,9 +7076,14 @@ def run_multipass_extraction(
             )
         pass1["scale"] = detected
     else:
-        source_text_scale = _detect_scale_from_source_text(
-            early_period_text or first_page_text
+        statement_page_scale = _detect_scale_from_statement_page_text(
+            structured_doc.sections, structured_tables
         )
+        source_text_scale = statement_page_scale
+        if source_text_scale == "unknown":
+            source_text_scale = _detect_scale_from_source_text(
+                early_period_text or first_page_text
+            )
         if source_text_scale != "unknown":
             if pass1.get("scale", "unknown") not in (
                 source_text_scale,
@@ -5558,6 +7287,29 @@ def run_multipass_extraction(
     _apply_appendix_wrapper_source_payload(
         payload,
         pass1.get("_appendix_wrapper_source"),
+    )
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        structured_tables,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
+    )
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        structured_doc.sections,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
+    )
+    _apply_preferred_shares_source_payload(
+        payload,
+        structured_tables,
+        pass1_result=pass1,
+    )
+    _apply_preferred_cash_end_source_payload(
+        payload,
+        structured_tables,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
     )
     source_bound = payload.get("source_bound")
     if not isinstance(source_bound, dict):

@@ -1,0 +1,37 @@
+{
+  "accepted_payload_count": 12,
+  "artifact_type": "approved_15_no_write_replay_validation_v1",
+  "case_count": 15,
+  "elapsed_s": 1860.364,
+  "extraction_exception_count": 0,
+  "fail_closed_case_ids": [
+    "GRE_Q_2024-12-31",
+    "QBE_H_2025-06-30",
+    "TCL_H_2025-12-31"
+  ],
+  "fail_closed_payload_count": 3,
+  "failed_case_ids": [],
+  "failed_payload_count": 0,
+  "infrastructure_failure_count": 0,
+  "loopback_llm_only": true,
+  "profile": "baseline-no-write",
+  "selected_case_ids": [
+    "ANZ_H_2025-03-31",
+    "AZJ_H_2025-12-31",
+    "BHP_A_2021-06-30",
+    "CSL_H_2025-12-31",
+    "DXS_H_2025-12-31",
+    "EQR_Q_2025-12-31",
+    "FMG_H_2025-12-31",
+    "GRE_Q_2024-12-31",
+    "MIN_H_2025-12-31",
+    "QBE_H_2025-06-30",
+    "RMS_H_2025-12-31",
+    "SEG_H_2025-12-31",
+    "TCL_H_2025-12-31",
+    "TLS_H_2025-12-31",
+    "WOW_H_2026-01-04"
+  ],
+  "side_effect_pass": true,
+  "status": "PARTIAL"
+}
