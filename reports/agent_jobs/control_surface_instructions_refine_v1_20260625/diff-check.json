@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": ".agents/skills/tenn-handoff/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/SKILLS_SURFACE.md",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_agent_task_ledger.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/control_surface_instructions_refine_v1_20260625.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/control_surface_instructions_refine_v1_20260625.md",
+        "docs/dev_flow/SKILLS_SURFACE.md",
+        "docs/dev_flow/templates/HANDOFF.md",
+        ".agents/skills/tenn-handoff/SKILL.md",
+        "tests/test_agent_task_ledger.py",
+        "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/README.md",
+        "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/STATE.md",
+        "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/VALIDATION.md",
+        "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/PR_REVIEW.md",
+        "reports/agent_jobs/control_surface_instructions_refine_v1_20260625/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "job_id": "control_surface_instructions_refine_v1_20260625",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/control_surface_instructions_refine_v1_20260625",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

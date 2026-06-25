@@ -149,7 +149,7 @@ Use `docs/dev_flow/templates/HANDOFF.md` as the section contract.
 - Relevant artifact map
 - What the next session should do first
 - What not to touch
-- Next 5-10 milestones
+- Next 5-10 key milestones
 - Short next `/goal`
 - Do-not-touch boundaries
 - Evidence grades

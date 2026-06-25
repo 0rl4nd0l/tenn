@@ -419,7 +419,7 @@ class AgentTaskLedgerTests(unittest.TestCase):
             "Failed attempts / mistakes",
             "Open risks",
             "Owner decisions needed",
-            "Next 10 milestones",
+            "Next 5-10 key milestones",
             "Short next `/goal`",
             "Do-not-touch boundaries",
             "Evidence grades",
