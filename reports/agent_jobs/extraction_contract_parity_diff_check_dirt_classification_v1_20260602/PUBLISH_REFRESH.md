@@ -68,7 +68,18 @@ The refresh lane may mark PR #411 ready and merge it only after:
 - `tenn-git-guard` passes on the refreshed clean branch;
 - GitHub checks are green on the refreshed head.
 
+Refresh result:
+
+```text
+merge_commit: 17c941772da0d9bd0a1a75b0794abc2c1742dc96
+merge_base_with_current_canonical: 4f45aaa4a6de9d0ae151c27599a1e19621825382
+conflicts: none
+```
+
+After the refresh merge, the PR diff against current canonical still consists
+only of this issue #234 task card and report bundle.
+
 ## Next Action
 
-Refresh PR #411 onto current canonical, rerun validation, mark ready, and merge
-only if all gates remain clean.
+Run final validation, push the refreshed branch, wait for green GitHub checks,
+mark PR #411 ready, and merge only if all gates remain clean.

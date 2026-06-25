@@ -85,3 +85,14 @@ Pre-refresh evidence:
 | `git diff --name-status b3b3a154590f36e61d297c1ac79fe623526f0b28..origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | Base drift was PR #410 skill-surface documentation/report files, outside the issue #234 packet. |
 
 Post-refresh validation is appended after the branch is refreshed.
+
+Post-refresh local evidence:
+
+| Command | Exit | Notes |
+| --- | ---: | --- |
+| `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | Current canonical merged into the PR branch with no conflicts; merge commit `17c941772da0d9bd0a1a75b0794abc2c1742dc96`. |
+| `git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | Merge base is current canonical `4f45aaa4a6de9d0ae151c27599a1e19621825382`. |
+| `git diff --name-status origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD` | 0 | PR diff remains limited to the issue #234 task card and report bundle. |
+
+Final post-refresh validation, GitHub checks, ready transition, and merge
+verification are recorded in the closeout response after those gates complete.
