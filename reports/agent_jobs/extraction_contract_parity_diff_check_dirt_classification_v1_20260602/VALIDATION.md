@@ -67,3 +67,21 @@ source_packet: 35abf15bd04cf437363aae9e392722ac5a69890a
 
 Final publish-refresh validation is recorded in `PUBLISH_REFRESH.md` and
 `CODE_REVIEW.json`.
+
+## 2026-06-25 Ready/Merge Refresh Validation
+
+After PR #411 opened, `origin/migration/clean-runtime-baseline-reconstruct-v1`
+advanced from `b3b3a154590f36e61d297c1ac79fe623526f0b28` to
+`4f45aaa4a6de9d0ae151c27599a1e19621825382` through PR #410. The operator
+approved proceeding with a current-base refresh and merge-if-safe lane.
+
+Pre-refresh evidence:
+
+| Command | Exit | Notes |
+| --- | ---: | --- |
+| `gh pr checks 411` | 0 | `lint-and-test` and `scan` passed on pre-refresh head `3662f3aaf0a3591744af221011149759aad29554`. |
+| `gh pr view 411 --json ...` | 0 | PR #411 was draft, mergeable, and `mergeStateStatus: CLEAN`. |
+| `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "PR 411 issue 234 diff-check preservation readiness" --json` | 0 | Guard blocked readiness because canonical advanced after PR #410; this triggered the current-base refresh lane. |
+| `git diff --name-status b3b3a154590f36e61d297c1ac79fe623526f0b28..origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | Base drift was PR #410 skill-surface documentation/report files, outside the issue #234 packet. |
+
+Post-refresh validation is appended after the branch is refreshed.

@@ -45,12 +45,17 @@ report/control evidence needed for classification.
 - Do not mutate product, runtime, data, extraction, prompt, source-PDF,
   gold-label, DB, Qdrant, news, memory, service, model/GPU, or production-data
   files.
-- Do not restore, clean, delete, stash, reset, merge, rebase, cherry-pick, or
-  force-push.
-- Do not mutate GitHub except opening a draft preservation PR for this exact
-  report packet after explicit operator `proceed` approval and successful
-  validation.
-- Do not close issue #234 in this publish step.
+- Do not restore, clean, delete, stash, reset, rebase, cherry-pick, or
+  force-push. Do not merge except one non-force merge of current
+  `origin/migration/clean-runtime-baseline-reconstruct-v1` into PR #411's
+  branch after explicit operator `proceed` approval, only to refresh the branch
+  from base `b3b3a154590f36e61d297c1ac79fe623526f0b28` to current base
+  `4f45aaa4a6de9d0ae151c27599a1e19621825382`.
+- Do not mutate GitHub except opening the draft preservation PR, marking PR
+  #411 ready, and merging PR #411 after explicit operator `proceed` approval,
+  current-base refresh, clean task-card validation, clean code review, clean
+  guard, and green GitHub checks.
+- Do not close issue #234 in this publish or merge step.
 - Do not start services.
 - Do not run extraction work or broad validation.
 - Do not modify the historical parity artifact at
@@ -64,6 +69,15 @@ current-base branch, committing the exact allowed files, pushing that branch,
 and opening a draft PR. It does not permit issue closeout, branch deletion,
 worktree deletion, cleanup, extraction work, broad validation, product/runtime/
 data mutation, or changing the historical parity artifact.
+
+On 2026-06-25 after PR #411 opened, CI passed and GitHub reported the PR
+mergeable, but canonical advanced via PR #410. The operator then replied
+`proceed` after being told the next safe lane was a current-base refresh plus
+ready/merge authorization. This permits the PR #411 branch refresh, ready
+transition, and merge only if the refreshed branch remains limited to this
+task card and report bundle and all validation gates stay green. It does not
+permit issue #234 closeout, cleanup, deletion, extraction work, or historical
+parity artifact mutation.
 
 ## Required Report Files
 
@@ -84,3 +98,6 @@ data mutation, or changing the historical parity artifact.
 - Changed-path guard proving the diff is limited to this task card and report
   bundle.
 - Code-reviewer JSON review of the exact diff.
+- Green GitHub PR #411 checks after current-base refresh.
+- Final merge verification that PR #411 merged into
+  `migration/clean-runtime-baseline-reconstruct-v1`.
