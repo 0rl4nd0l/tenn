@@ -62,6 +62,8 @@ On 2026-06-25, the packet was replayed onto fresh current base
 `b3b3a154590f36e61d297c1ac79fe623526f0b28` for a draft preservation PR. This
 refresh still does not permit issue closeout, branch/worktree deletion, cleanup,
 extraction work, or modification of the historical parity artifact.
+The refresh records both the Git blob hash and raw file `sha1sum` for the
+historical parity artifact so hash evidence is not ambiguous.
 
 ## Remaining Risk
 

@@ -47,7 +47,9 @@ Current-base evidence:
 
 - File exists.
 - Git index blob: `40a73fb7048d7e6722da79bce236c87048bd03d7`
-- Working-tree hash: `40a73fb7048d7e6722da79bce236c87048bd03d7`
+- `git hash-object` of working-tree file:
+  `40a73fb7048d7e6722da79bce236c87048bd03d7`
+- Raw file `sha1sum`: `a47422b732ba09f29a082e02eee4707c22d7bf24`
 - `git status --short --untracked-files=all -- <target>` prints no dirty
   status.
 - `git log -- <target>` shows the tracked file introduced by

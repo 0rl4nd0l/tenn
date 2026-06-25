@@ -22,8 +22,14 @@ parity artifact remains untouched:
 
 ## Current-Base Verification
 
-The historical parity artifact hash is unchanged between the source packet and
-current canonical:
+The historical parity artifact hashes are unchanged between the source packet
+and current canonical. Git object evidence uses the blob hash:
+
+```text
+40a73fb7048d7e6722da79bce236c87048bd03d7
+```
+
+Raw file content evidence uses `sha1sum`:
 
 ```text
 a47422b732ba09f29a082e02eee4707c22d7bf24

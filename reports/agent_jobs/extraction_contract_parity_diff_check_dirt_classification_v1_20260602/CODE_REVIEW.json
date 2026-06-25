@@ -30,7 +30,7 @@
       "Registry read-only check passed with active_jobs=[] and lock_acquired=false.",
       "Task-card check-diff passed with disallowed_files=[] for 10 staged paths.",
       "git diff --cached --check passed.",
-      "Historical parity artifact hash matched current canonical and source packet: a47422b732ba09f29a082e02eee4707c22d7bf24.",
+      "Historical parity artifact hashes matched current canonical and source packet: git hash-object 40a73fb7048d7e6722da79bce236c87048bd03d7 and sha1sum a47422b732ba09f29a082e02eee4707c22d7bf24.",
       "Code review found no critical findings, warnings, or suggestions."
     ]
   },
