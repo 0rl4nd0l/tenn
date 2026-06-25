@@ -28,3 +28,22 @@
 - reason: No Tenn product/runtime/data/extraction/count-24, Greyhound runtime,
   host-global mutation, service, DB, source-PDF, prompt, model, or production
   data surface is part of this task.
+
+## D5: Refresh PR #402 With A Non-Force Merge
+
+- decision: Refresh the existing PR #402 branch by merging current canonical
+  `origin/migration/clean-runtime-baseline-reconstruct-v1` into
+  `control-plane/null-merge-base-stale-path-guard-v1-20260623`.
+- owner_approval: Orlando's 2026-06-25 `proceed` after the PR #402 review.
+- reason: PR #402 was valid and not superseded, but stale against canonical.
+  A normal merge avoids rewriting remote PR history and keeps the update
+  pushable without force.
+- boundaries: No canonical-branch mutation, no force-push, no branch deletion,
+  no worktree removal, no runtime/product/data/extraction changes, and no
+  unrelated cleanup.
+
+## D6: Preserve The Existing Guard Patch
+
+- decision: Do not alter the guard script or regression test during the refresh.
+- reason: Focused review found no code blocker, and the refresh target is branch
+  freshness rather than changing behavior.

@@ -60,13 +60,27 @@ Forbidden:
   the port.
 - `python3 .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py`
 - `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "null merge-base stale path regression" --json`
-- Visible repo-backed skill count is exactly 10.
+- Visible repo-backed skill count matches current canonical
+  `docs/dev_flow/SKILLS_SURFACE.md`.
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/null_merge_base_stale_path_guard_v1_20260623.md --repo-root .`
 - `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/null_merge_base_stale_path_guard_v1_20260623.md --repo-root .`
 - Forbidden product/runtime/data/extraction/count-24 path guard.
 - Greyhound path guard.
 - Host-global path guard, except approved read-only host-global comparison.
+
+## Approved PR Refresh Exception
+
+After the review-board triage and PR #402 review on 2026-06-25, Orlando
+approved proceeding with the next action. That approval permits a non-force
+refresh of this existing PR branch onto current
+`origin/migration/clean-runtime-baseline-reconstruct-v1`, a normal push to the
+existing PR branch, and marking the PR ready if refreshed validation and GitHub
+checks remain green.
+
+This exception does not permit canonical-branch mutation, branch deletion,
+worktree removal, force-push, parked-work changes, runtime/product/data work, or
+unrelated cleanup.
 
 ## Definition Of Done
 

@@ -1,36 +1,24 @@
 {
   "changed_files": [
     {
-      "path": ".agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
-      "status": "M"
-    },
-    {
-      "path": ".agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/null_merge_base_stale_path_guard_v1_20260623.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/null_merge_base_stale_path_guard_v1_20260623/CODE_REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/null_merge_base_stale_path_guard_v1_20260623/DECISIONS.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/null_merge_base_stale_path_guard_v1_20260623/STATE.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/null_merge_base_stale_path_guard_v1_20260623/VALIDATION.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/null_merge_base_stale_path_guard_v1_20260623/diff-check.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
