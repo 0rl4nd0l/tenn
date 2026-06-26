@@ -3,11 +3,16 @@
 last_verified_at: 2026-06-25T06:32:20Z
 last_verified_commit: b3b3a154590f36e61d297c1ac79fe623526f0b28
 last_verified_pr: 409
+freshness_model: ancestor_plus_behavior_stale_files
+freshness_checked_at: 2026-06-26T05:30:36Z
+freshness_checked_against: c877da6eb114826365339379f10a8a06e82221a5
 maintenance: hand_maintained
 verification_scope: repo-visible key and narrative-support skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
 freshness_evidence:
 - `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `b3b3a154590f36e61d297c1ac79fe623526f0b28`
 - `gh pr view 409 --json number,state,mergedAt,mergeCommit` -> PR #409 `MERGED`, merge commit `b3b3a154590f36e61d297c1ac79fe623526f0b28`
+- `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` at freshness check -> `c877da6eb114826365339379f10a8a06e82221a5`
+- `git merge-base --is-ancestor b3b3a154590f36e61d297c1ac79fe623526f0b28 origin/migration/clean-runtime-baseline-reconstruct-v1` -> exit `0`
 - `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `12`
 - `[ ! -d .codex/skills ] || find .codex/skills -maxdepth 2 -name SKILL.md | sort` -> no output; `.codex/skills` is absent in this snapshot
 data_missing:
@@ -15,7 +20,8 @@ data_missing:
 stale_if_files:
 - `.agents/skills/**/SKILL.md`
 - `.codex/skills/**/SKILL.md` if the legacy directory exists again
-- `docs/dev_flow/SKILLS_SURFACE.md`
+- `docs/dev_flow/SKILLS_SURFACE.md` behavior/routing sections; metadata-only
+  freshness refreshes do not invalidate the audited skill surface
 - `docs/dev_flow/templates/*`
 source_of_truth_files:
 - AGENTS.md
@@ -27,13 +33,26 @@ source_of_truth_files:
 
 ## Refresh Procedure
 
+`last_verified_commit` is the audited source commit for this skill-surface
+snapshot. It is not expected to equal current
+`origin/migration/clean-runtime-baseline-reconstruct-v1` after every docs PR
+merge. A snapshot remains fresh when `last_verified_commit` is an ancestor of
+current canonical and no behavior-affecting `stale_if_files` changed after that
+commit without a newer validation entry. Metadata-only updates to this file
+should update `freshness_checked_at`, `freshness_checked_against`, and
+`freshness_evidence`; they should not churn `last_verified_commit` just to
+match the latest merge commit.
+
 To refresh this file, work from current
 `origin/migration/clean-runtime-baseline-reconstruct-v1`, run the visible skill
 count commands above, inspect `.agents/skills/*/SKILL.md` and legacy
 `.codex/skills/*/SKILL.md` additions/removals if that directory exists, and update
-`last_verified_at`, `last_verified_commit`, `last_verified_pr`,
-`freshness_evidence`, and `data_missing`. Do not infer host picker visibility
-from repo files; record it as `DATA_MISSING` unless it is probed directly.
+`last_verified_at`, `last_verified_commit`, and `last_verified_pr` only when a
+behavior-affecting skill-surface source changed or a full skill-surface audit is
+rerun. For freshness-only checks, update `freshness_checked_at`,
+`freshness_checked_against`, `freshness_evidence`, and `data_missing` instead.
+Do not infer host picker visibility from repo files; record it as
+`DATA_MISSING` unless it is probed directly.
 
 ## Purpose
 
