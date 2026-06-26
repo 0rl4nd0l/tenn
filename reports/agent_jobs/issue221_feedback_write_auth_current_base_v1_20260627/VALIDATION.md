@@ -39,6 +39,31 @@ git diff --check
 
 Result: PASS.
 
+```text
+python3 scripts/agent_job_contract.py check-diff --repo-root . docs/agent_tasks/issue221_feedback_write_auth_current_base_v1_20260627.md
+```
+
+Result: PASS.
+
+```text
+python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/issue221_feedback_write_auth_current_base_v1_20260627.md
+```
+
+Result: PASS.
+
+```text
+python3 scripts/agent_task_ledger.py validate
+```
+
+Result: PASS.
+
+```text
+gh pr view 432 --json number,url,state,isDraft,headRefName,baseRefName,mergeStateStatus,statusCheckRollup
+```
+
+Result: PR #432 open, non-draft, `mergeStateStatus=UNSTABLE`; `scan` and
+`lint-and-test` were IN_PROGRESS at `2026-06-26T18:59:35Z`.
+
 ## Known Validation Gaps
 
 - Initial focused pytest attempts failed during collection because the ephemeral

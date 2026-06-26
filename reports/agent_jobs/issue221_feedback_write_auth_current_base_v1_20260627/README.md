@@ -2,7 +2,7 @@
 
 ## Status
 
-`VALIDATED_READY_FOR_PR`.
+`PR_OPEN`.
 
 ## Current Evidence
 
@@ -12,7 +12,9 @@
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - HEAD before edits: `7d6ab6c184332d5413700eb08e6790f530000942`
 - Issue: <https://github.com/0rl4nd0l/tenn/issues/221>
-- PR: `DATA_MISSING`; not opened yet at report creation time.
+- PR: <https://github.com/0rl4nd0l/tenn/pull/432>
+- PR state at `2026-06-26T18:59:35Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`; `scan` and `lint-and-test` were IN_PROGRESS.
 
 ## Changes
 
@@ -40,6 +42,9 @@
 - Py compile touched Python files: PASS.
 - `git diff --check`: PASS.
 - Code-reviewer pass: no findings.
+- Task-card `check-diff`: PASS.
+- Task-card `check-report-artifacts`: PASS.
+- Ledger validate: PASS.
 - Frontend Vitest: DATA_MISSING; `cockpit-ui/node_modules` is absent and
   `vitest` was not available. No dependency install was run.
 
