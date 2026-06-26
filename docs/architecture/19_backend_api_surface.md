@@ -111,6 +111,21 @@ The FastAPI app mounts routes in these groups:
   - requires `X-API-Key` when `settings.local_api_key` is configured because
     it exposes global document provenance, source URLs, and local `pdf_path`
     values
+- `GET /api/cockpit/watchlist`
+- `POST /api/cockpit/watchlist`
+- `DELETE /api/cockpit/watchlist/{ticker}`
+  - local Cockpit watchlist read/write routes
+  - require `X-API-Key` when `settings.local_api_key` is configured because
+    they expose or mutate local personal watchlist state
+- `GET /api/cockpit/holdings`
+- `POST /api/cockpit/holdings`
+- `PATCH /api/cockpit/holdings/{holding_id}`
+- `DELETE /api/cockpit/holdings/{holding_id}`
+  - local Cockpit holdings read/write routes
+  - require `X-API-Key` when `settings.local_api_key` is configured because
+    they expose or mutate local personal portfolio state
+  - `local_personal_data` remains a local/contextual portfolio source label,
+    not canonical financial truth
 - `GET /api/cockpit/news/status`
   - read-only A2M/news split-truth status contract
   - public response redacts operator-only diagnostics such as artifact roots,

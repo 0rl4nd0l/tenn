@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from cockpit.storage.state import StateStore
@@ -33,12 +35,23 @@ def _fake_service(tmp_path: Path) -> _WatchlistOnlyService:
     )
 
 
-def _client(tmp_path: Path, monkeypatch) -> tuple[TestClient, _WatchlistOnlyService]:
+def _client(
+    tmp_path: Path,
+    monkeypatch,
+    *,
+    local_api_key: str = "",
+) -> tuple[TestClient, _WatchlistOnlyService]:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(
         CockpitService,
         "get_instance",
         classmethod(lambda cls: fake_service),
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings,
+        "local_api_key",
+        local_api_key,
+        raising=False,
     )
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
@@ -127,3 +140,57 @@ def test_watchlist_does_not_write_preferences_or_other_state(
     assert response.status_code == 200
     assert service.state_store.get_preferences() == {}
     assert service.state_store.list_holdings() == []
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "json_body"),
+    [
+        ("get", "/api/cockpit/watchlist", None),
+        ("post", "/api/cockpit/watchlist", {"ticker": "BHP"}),
+        ("delete", "/api/cockpit/watchlist/BHP", None),
+    ],
+)
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+def test_watchlist_routes_require_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+    method,
+    path,
+    json_body,
+    headers,
+) -> None:
+    client, service = _client(tmp_path, monkeypatch, local_api_key="local-secret")
+    service.state_store.add_watch_ticker("BHP", "2026-06-26T00:00:00Z")
+
+    request = getattr(client, method)
+    if json_body is None:
+        response = request(path, headers=headers)
+    else:
+        response = request(path, headers=headers, json=json_body)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert [row["ticker"] for row in service.state_store.list_watch_tickers()] == ["BHP"]
+
+
+def test_watchlist_routes_accept_correct_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    client, _service = _client(tmp_path, monkeypatch, local_api_key="local-secret")
+    headers = {"X-API-Key": "local-secret"}
+
+    created = client.post(
+        "/api/cockpit/watchlist",
+        headers=headers,
+        json={"ticker": "BHP"},
+    )
+    assert created.status_code == 200
+
+    listed = client.get("/api/cockpit/watchlist", headers=headers)
+    assert listed.status_code == 200
+    assert [item["ticker"] for item in listed.json()["items"]] == ["BHP"]
+
+    deleted = client.delete("/api/cockpit/watchlist/BHP", headers=headers)
+    assert deleted.status_code == 200
+    assert deleted.json() == {"ok": True, "removed": True, "ticker": "BHP"}

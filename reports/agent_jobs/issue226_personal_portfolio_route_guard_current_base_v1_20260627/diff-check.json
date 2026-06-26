@@ -1,0 +1,123 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/issue226_personal_portfolio_route_guard_current_base_v1_20260627.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/architecture/19_backend_api_surface.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_watchlist.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_local_api_key.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue226_personal_portfolio_route_guard_current_base_v1_20260627.md",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_watchlist.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py",
+        "financial-engine_v2/backend/tests/test_local_api_key.py",
+        "docs/architecture/19_backend_api_surface.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/README.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/STATE.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/VALIDATION.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/REVIEW.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/PR_BODY.md",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/status.json",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/validation.json",
+        "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "issue",
+        "cockpit-ui holdings/watchlist/chat API-key call sites"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "issue226_personal_portfolio_route_guard_current_base_v1_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/issue226_personal_portfolio_route_guard_current_base_v1_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #226 changes the direct backend access contract for local personal holdings/watchlist state.",
+      "recommended_model": "standard coding model",
+      "related_issue": 226,
+      "supporting_lanes": [
+        "Runtime",
+        "Provenance",
+        "Evaluation",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "why_this_model": "Focused backend route guard and regression tests for personal Cockpit state routes.",
+      "worker_decision_limit": "No workers used; the issue is route-local after current UI header paths were verified.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}
