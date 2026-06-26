@@ -116,6 +116,13 @@ export type ChatSessionCreateResponse = {
   created: boolean
 }
 
+export type VerificationRunsResponse = {
+  ok?: boolean
+  runs?: unknown[]
+  count?: number
+  error?: string
+}
+
 export type CockpitPreferences = {
   api_default_enabled: boolean
   marketplace_prefer_cloud_routing: boolean
@@ -982,8 +989,10 @@ export async function listDocuments(): Promise<unknown[]> {
 }
 
 export async function getTickerDocuments(ticker: string, docsLimit: number = 10): Promise<ContextDocument[]> {
+  const normalizedTicker = ticker.trim().toUpperCase()
   const payload = await apiFetch<{ docs?: ContextDocument[] }>(
-    `/api/context/ticker?ticker=${encodeURIComponent(ticker)}&docs_limit=${docsLimit}&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5`
+    `/api/context/ticker?ticker=${encodeURIComponent(normalizedTicker)}&docs_limit=${docsLimit}&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5`,
+    { headers: withApiKey() },
   )
   return Array.isArray(payload.docs) ? payload.docs : []
 }
@@ -1098,6 +1107,13 @@ export async function runVerificationContext(params: {
         low_confidence_limit: params.lowConfidenceLimit ?? 100,
       }),
     },
+  )
+}
+
+export async function getVerificationRuns(limit: number = 10): Promise<VerificationRunsResponse> {
+  return apiFetch<VerificationRunsResponse>(
+    `/api/context/verification/runs?limit=${limit}`,
+    { headers: withApiKey() },
   )
 }
 
