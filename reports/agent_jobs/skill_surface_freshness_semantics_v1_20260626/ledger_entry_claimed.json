@@ -1,0 +1,47 @@
+{
+  "artifacts": [
+    "docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md"
+  ],
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "control-plane/skill-surface-freshness-semantics-v1-20260626",
+  "codex_goal_id": "529b8126-69bb-4ba0-af67-1f6ea2cdc760",
+  "evidence_grade": "VERIFIED",
+  "files_touched": [
+    "docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md",
+    "docs/dev_flow/SKILLS_SURFACE.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/README.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/STATE.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/DECISIONS.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/VALIDATION.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/PR_REVIEW.md",
+    "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/diff-check.json"
+  ],
+  "issue_refs": [],
+  "next_action": "Patch SKILLS_SURFACE freshness semantics, validate, review, push, and open a draft PR.",
+  "owner": "Codex",
+  "owner_boundary": false,
+  "parent_task_id": "skill_surface_freshness_pr409_v1_20260625",
+  "pr_refs": [],
+  "session_id": "DATA_MISSING",
+  "source_session_ref": "codex:thread:DATA_MISSING",
+  "started_at": "2026-06-26T05:30:36Z",
+  "status": "claimed",
+  "summary": "Claimed docs-only control-plane lane to replace exact canonical-HEAD equality with ancestor-plus-stale-file SKILLS_SURFACE freshness semantics.",
+  "superseded_by": [],
+  "supersedes": [],
+  "task_id": "skill_surface_freshness_semantics_v1_20260626",
+  "thread_id": "019efd4e-8a7a-7261-a8d8-9e0745d0a223",
+  "updated_at": "2026-06-26T05:30:36Z",
+  "validation": {
+    "commands": [
+      "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626 --topic skill surface freshness semantics --json",
+      "python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic skill surface freshness semantics --json",
+      "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "python3 scripts/agent_task_ledger.py validate",
+      "python3 scripts/agent_job_contract.py validate docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md"
+    ],
+    "status": "passed"
+  },
+  "workflow": "tenn-fix",
+  "worktree": "/home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626"
+}
