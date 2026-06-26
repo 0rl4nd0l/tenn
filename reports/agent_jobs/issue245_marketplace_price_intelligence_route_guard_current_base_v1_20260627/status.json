@@ -1,34 +1,33 @@
 {
-  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627.json",
-  "agent": "Codex",
-  "allowed_files": [
-    "docs/agent_tasks/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627.md",
-    "docs/architecture/19_backend_api_surface.md",
-    "financial-engine_v2/backend/app/routes/marketplace_price_intelligence.py",
-    "financial-engine_v2/backend/tests/test_marketplace_price_intelligence.py",
-    "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/README.md",
-    "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/status.json",
-    "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/VALIDATION.md",
-    "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/REVIEW.md",
-    "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/diff-check.json"
-  ],
+  "status": "PR_OPEN",
+  "issue": 245,
+  "pr": 434,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/434",
   "branch": "safe/issue245-marketplace-price-intelligence-route-guard-current-base-v1-20260627",
-  "claimed_at": "2026-06-26T19:15:55.763471Z",
-  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
-  "heartbeat_at": "2026-06-26T19:15:55.763471Z",
-  "job_id": "issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627",
-  "lane": "Reporting",
-  "last_seen_at": "2026-06-26T19:15:55.763471Z",
-  "output_dir": "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627",
-  "owner": "Codex",
-  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
-  "registry_scope": "shared",
-  "repo_root": "/home/l4nd0/tenn-issue245-marketplace-price-intelligence-route-guard-current-base-v1-20260627",
-  "schema_version": 1,
-  "session_id": "l4nd0-System-Product-Name:2340257:issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627",
-  "started_at": "2026-06-26T19:15:55.763471Z",
-  "status": "active",
-  "task_card": "docs/agent_tasks/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627.md",
-  "updated_at": "2026-06-26T19:15:55.763471Z",
-  "worktree": "/home/l4nd0/tenn-issue245-marketplace-price-intelligence-route-guard-current-base-v1-20260627"
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "7d6ab6c184332d5413700eb08e6790f530000942",
+  "local_commits": [
+    "c6947ecbb36def536f2f724b3a5e12c946fb4248"
+  ],
+  "github_checks": {
+    "observed_at": "2026-06-26T19:21:33Z",
+    "scan": "IN_PROGRESS",
+    "lint-and-test": "IN_PROGRESS"
+  },
+  "validation": {
+    "red_pytest": "14 failed, 2 passed, 20 deselected, 1 warning",
+    "green_pytest": "16 passed, 20 deselected, 1 warning",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "code_review": "no findings",
+    "check_diff": "passed",
+    "check_report_artifacts": "passed",
+    "runtime_functionality_proof": "PARTIAL"
+  },
+  "safety": {
+    "live_runtime_started": false,
+    "production_data_access": false,
+    "forbidden_surfaces_touched": false
+  }
 }

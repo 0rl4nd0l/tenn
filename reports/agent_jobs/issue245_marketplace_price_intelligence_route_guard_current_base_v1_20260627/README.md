@@ -2,7 +2,7 @@
 
 ## Status
 
-`LOCAL_VALIDATED`.
+`PR_OPEN`.
 
 ## Current Evidence
 
@@ -15,7 +15,9 @@
 - Issue: <https://github.com/0rl4nd0l/tenn/issues/245>
 - Prior local work adopted from:
   `/home/l4nd0/tenn-issue245-marketplace-price-intelligence-route-guard-v1-20260626`
-- PR: `PENDING`
+- PR: <https://github.com/0rl4nd0l/tenn/pull/434>
+- PR state at `2026-06-26T19:21:33Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`; `scan` and `lint-and-test` were IN_PROGRESS.
 
 ## Changes
 

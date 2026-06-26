@@ -69,3 +69,11 @@ Result: PASS.
   production data mutation.
 - Frontend Vitest: not run; no frontend files changed and current source
   evidence shows BFF routes already forward request headers.
+
+## GitHub
+
+- PR: <https://github.com/0rl4nd0l/tenn/pull/434>
+- PR state at `2026-06-26T19:21:33Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`.
+- GitHub checks at `2026-06-26T19:21:33Z`: `scan` IN_PROGRESS,
+  `lint-and-test` IN_PROGRESS.
