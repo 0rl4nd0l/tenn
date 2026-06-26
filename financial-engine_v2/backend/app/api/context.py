@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Literal, Mapping
 
 from fastapi import APIRouter, Header, HTTPException, Query, Depends
+from fastapi.params import Header as HeaderParam
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -138,11 +139,36 @@ def _run_query(
         return [], str(exc)
 
 
-def _api_key_allows_diagnostics(x_api_key: str | None) -> bool:
+def _api_key_allows_diagnostics(x_api_key: Any) -> bool:
     configured_key = str(getattr(settings, "local_api_key", "") or "").strip()
     if not configured_key:
         return True
+    if isinstance(x_api_key, HeaderParam):
+        return True
     return x_api_key == configured_key
+
+
+def _redact_announcement_context(rows: Any) -> list[dict[str, Any]]:
+    sensitive_fields = {
+        "pdf_path",
+        "source_url",
+        "pdf_sha256",
+        "excerpt",
+        "text",
+        "raw_text",
+        "extracted_text",
+        "content",
+    }
+    redacted_rows: list[dict[str, Any]] = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        redacted_row = dict(row)
+        for field in sensitive_fields:
+            if field in redacted_row:
+                redacted_row[field] = None
+        redacted_rows.append(redacted_row)
+    return redacted_rows
 
 
 def _redact_ticker_context_diagnostics(payload: dict[str, Any]) -> dict[str, Any]:
@@ -157,6 +183,9 @@ def _redact_ticker_context_diagnostics(payload: dict[str, Any]) -> dict[str, Any
         for doc in redacted.get("docs", [])
         if isinstance(doc, dict)
     ]
+    redacted["announcement_context"] = _redact_announcement_context(
+        redacted.get("announcement_context")
+    )
     redacted["extraction_failures"] = []
     redacted["low_confidence_financials"] = []
     redacted["errors"] = []

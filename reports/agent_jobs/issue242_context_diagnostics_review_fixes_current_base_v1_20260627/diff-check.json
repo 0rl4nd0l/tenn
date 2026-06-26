@@ -1,15 +1,19 @@
 {
   "changed_files": [
     {
-      "path": "reports/agent_jobs/issue242_context_diagnostics_review_fixes_current_base_v1_20260627/NEXT_GOAL.md",
+      "path": "docs/architecture/19_backend_api_surface.md",
       "status": "M"
     },
     {
-      "path": "reports/agent_jobs/issue242_context_diagnostics_review_fixes_current_base_v1_20260627/README.md",
+      "path": "financial-engine_v2/backend/app/api/context.py",
       "status": "M"
     },
     {
-      "path": "reports/agent_jobs/issue242_context_diagnostics_review_fixes_current_base_v1_20260627/STATE.md",
+      "path": "financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue242_context_diagnostics_review_fixes_current_base_v1_20260627/REVIEW.md",
       "status": "M"
     },
     {

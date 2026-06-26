@@ -31,7 +31,7 @@
       "docs/architecture/19_backend_api_surface.md"
     ],
     "validation_checks": [
-      "68 focused backend/client tests passed",
+      "69 focused backend/client tests passed",
       "ruff passed",
       "py_compile passed",
       "frontend Vitest blocked because vitest is not installed"
@@ -50,3 +50,14 @@ company dump was briefly changed to pass the configured key internally. That
 would have preserved diagnostics for unauthenticated callers. The final diff
 instead threads the caller's `X-API-Key`, with regression coverage for both
 redacted unauthenticated and full authenticated company dump responses.
+
+PR #448 automated review then raised two P2 findings. Both were accepted and
+addressed locally:
+
+- Internal Python callers that omit `x_api_key` now keep diagnostics when
+  `settings.local_api_key` is configured; the HTTP no-header path still redacts.
+- Redacted ticker/company-dump responses now scrub announcement-context
+  path/source/excerpt/text fields.
+
+Regression coverage was added for both findings and the focused backend suite
+now reports `69 passed`.

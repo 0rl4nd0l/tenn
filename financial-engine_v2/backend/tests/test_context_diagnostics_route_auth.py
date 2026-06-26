@@ -60,6 +60,19 @@ def _diagnostic_db():
                     "pdf_sha256": "abc123",
                 }
             ],
+            "cockpit_announcement_context": [
+                {
+                    "document_id": "doc-1",
+                    "ticker": "BHP",
+                    "published_at": "2026-06-26",
+                    "title": "BHP result",
+                    "pdf_path": "/private/source/bhp.pdf",
+                    "source_url": "https://example.test/bhp.pdf",
+                    "excerpt": "local source excerpt",
+                    "extracted_text": "local source text",
+                    "updated_at": "2026-06-26T00:00:00Z",
+                }
+            ],
             "asx_periodic_financials": [
                 {
                     "ticker": "BHP",
@@ -103,6 +116,10 @@ def test_ticker_context_redacts_diagnostics_without_api_key_when_configured(monk
     assert payload["docs"][0]["source_url"] is None
     assert payload["docs"][0]["pdf_path"] is None
     assert payload["docs"][0]["pdf_sha256"] is None
+    assert payload["announcement_context"][0]["pdf_path"] is None
+    assert payload["announcement_context"][0]["source_url"] is None
+    assert payload["announcement_context"][0]["excerpt"] is None
+    assert payload["announcement_context"][0]["extracted_text"] is None
     assert payload["financials"]
     assert payload["extraction_failures"] == []
     assert payload["low_confidence_financials"] == []
@@ -123,6 +140,23 @@ def test_ticker_context_keeps_diagnostics_with_matching_api_key(monkeypatch):
     assert payload["docs"][0]["source_url"] == "https://example.test/bhp.pdf"
     assert payload["docs"][0]["pdf_path"] == "/private/source/bhp.pdf"
     assert payload["docs"][0]["pdf_sha256"] == "abc123"
+    assert payload["announcement_context"][0]["pdf_path"] == "/private/source/bhp.pdf"
+    assert payload["announcement_context"][0]["excerpt"] == "local source excerpt"
+    assert payload["announcement_context"][0]["extracted_text"] == "local source text"
+    assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
+    assert payload["low_confidence_financials"]
+
+
+def test_ticker_context_internal_helper_keeps_diagnostics_when_api_key_configured(
+    monkeypatch,
+):
+    monkeypatch.setattr(context_api.settings, "local_api_key", "local-secret", raising=False)
+
+    payload = context_api.get_ticker_context(ticker="BHP", db=_diagnostic_db())
+
+    assert payload["diagnostics_redacted"] is False
+    assert payload["docs"][0]["pdf_path"] == "/private/source/bhp.pdf"
+    assert payload["announcement_context"][0]["excerpt"] == "local source excerpt"
     assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
     assert payload["low_confidence_financials"]
 
@@ -150,6 +184,8 @@ def test_company_dump_redacts_diagnostics_without_api_key_when_configured(monkey
     assert payload["summary"]["extraction_failure_count"] == 0
     assert payload["summary"]["low_confidence_financial_count"] == 0
     assert payload["docs"][0]["pdf_path"] is None
+    assert payload["announcement_context"][0]["pdf_path"] is None
+    assert payload["announcement_context"][0]["excerpt"] is None
     assert payload["extraction_failures"] == []
     assert payload["low_confidence_financials"] == []
 
