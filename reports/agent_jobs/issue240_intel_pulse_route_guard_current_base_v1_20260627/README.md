@@ -2,7 +2,7 @@
 
 ## Status
 
-`LOCAL_VALIDATED`.
+`PR_OPEN`.
 
 ## Current Evidence
 
@@ -14,7 +14,9 @@
 - Issue: <https://github.com/0rl4nd0l/tenn/issues/240>
 - Prior local work adopted from:
   `/home/l4nd0/tenn-issue240-intel-pulse-route-guard-v1-20260626`
-- PR: `PENDING`
+- PR: <https://github.com/0rl4nd0l/tenn/pull/435>
+- PR state at `2026-06-26T19:31:06Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`; `scan` and `lint-and-test` were IN_PROGRESS.
 
 ## Changes
 

@@ -79,3 +79,11 @@ Result: PASS.
   production data mutation.
 - Frontend dependency install: not run; task forbids dependency or lockfile
   mutation.
+
+## GitHub
+
+- PR: <https://github.com/0rl4nd0l/tenn/pull/435>
+- PR state at `2026-06-26T19:31:06Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`.
+- GitHub checks at `2026-06-26T19:31:06Z`: `scan` IN_PROGRESS,
+  `lint-and-test` IN_PROGRESS.

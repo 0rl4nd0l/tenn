@@ -1,37 +1,35 @@
 {
-  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/issue240_intel_pulse_route_guard_current_base_v1_20260627.json",
-  "agent": "Codex",
-  "allowed_files": [
-    "docs/agent_tasks/issue240_intel_pulse_route_guard_current_base_v1_20260627.md",
-    "docs/architecture/19_backend_api_surface.md",
-    "financial-engine_v2/backend/app/routes/cockpit_api.py",
-    "financial-engine_v2/backend/tests/test_local_api_key.py",
-    "financial-engine_v2/backend/tests/test_cockpit_intel_pulse_route_auth.py",
-    "cockpit-ui/lib/api-client.ts",
-    "cockpit-ui/lib/api-client.test.ts",
-    "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/README.md",
-    "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/status.json",
-    "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/VALIDATION.md",
-    "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/REVIEW.md",
-    "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/diff-check.json"
-  ],
+  "status": "PR_OPEN",
+  "issue": 240,
+  "pr": 435,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/435",
   "branch": "safe/issue240-intel-pulse-route-guard-current-base-v1-20260627",
-  "claimed_at": "2026-06-26T19:26:49.708982Z",
-  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
-  "heartbeat_at": "2026-06-26T19:26:49.708982Z",
-  "job_id": "issue240_intel_pulse_route_guard_current_base_v1_20260627",
-  "lane": "Reporting",
-  "last_seen_at": "2026-06-26T19:26:49.708982Z",
-  "output_dir": "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627",
-  "owner": "Codex",
-  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
-  "registry_scope": "shared",
-  "repo_root": "/home/l4nd0/tenn-issue240-intel-pulse-route-guard-current-base-v1-20260627",
-  "schema_version": 1,
-  "session_id": "l4nd0-System-Product-Name:2373289:issue240_intel_pulse_route_guard_current_base_v1_20260627",
-  "started_at": "2026-06-26T19:26:49.708982Z",
-  "status": "active",
-  "task_card": "docs/agent_tasks/issue240_intel_pulse_route_guard_current_base_v1_20260627.md",
-  "updated_at": "2026-06-26T19:26:49.708982Z",
-  "worktree": "/home/l4nd0/tenn-issue240-intel-pulse-route-guard-current-base-v1-20260627"
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "7d6ab6c184332d5413700eb08e6790f530000942",
+  "local_commits": [
+    "4e76d2014d4ca060f4f5e00d19e8960cf8c0a893"
+  ],
+  "github_checks": {
+    "observed_at": "2026-06-26T19:31:06Z",
+    "scan": "IN_PROGRESS",
+    "lint-and-test": "IN_PROGRESS"
+  },
+  "validation": {
+    "red_pytest": "4 failed, 17 passed, 5 warnings",
+    "green_pytest": "21 passed, 5 warnings",
+    "frontend_vitest": "blocked: vitest not found and cockpit-ui/node_modules absent",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "code_review": "no findings",
+    "check_diff": "passed",
+    "check_report_artifacts": "passed",
+    "runtime_functionality_proof": "PARTIAL"
+  },
+  "safety": {
+    "live_runtime_started": false,
+    "production_data_access": false,
+    "dependency_install": false,
+    "forbidden_surfaces_touched": false
+  }
 }
