@@ -8,5 +8,6 @@
   "task_card": "docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md",
   "live_ledger_append": "skipped",
   "reason": "Task card and owner request require ledger validate/search only; live ledger mutation was not approved.",
-  "closeout": "local_commit_complete_owner_approved_push_and_draft_pr_merge_still_requires_approval"
+  "closeout": "draft_pr_414_open_merge_still_requires_approval",
+  "pr": "https://github.com/0rl4nd0l/tenn/pull/414"
 }

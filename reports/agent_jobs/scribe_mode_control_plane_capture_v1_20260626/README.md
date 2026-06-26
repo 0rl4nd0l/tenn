@@ -16,10 +16,11 @@ surfaces.
 - Base HEAD at start: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
 - Task card:
   `docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md`
-- Closeout: local commit complete and branch pushed. Owner approved push and
-  draft PR creation at `2026-06-26T06:59:20Z`. Owner approved the documented
-  missing-hook-tool push bypass at `2026-06-26T07:01:13Z`. Merge still needs
-  separate owner approval.
+- Closeout: local commit complete, branch pushed, and draft PR opened. Owner
+  approved push and draft PR creation at `2026-06-26T06:59:20Z`. Owner approved
+  the documented missing-hook-tool push bypass at `2026-06-26T07:01:13Z`.
+  Merge still needs separate owner approval.
+- PR: https://github.com/0rl4nd0l/tenn/pull/414
 
 ## What Changed
 
@@ -68,6 +69,13 @@ surfaces.
 
 See `VALIDATION.md`.
 
+## PR
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/414
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `safe/scribe-mode-control-plane-v1-20260626`
+- Created at: `2026-06-26T07:03:11Z`
+
 ## Runtime Functionality Proof
 
 - Required: no
@@ -97,7 +105,7 @@ See `VALIDATION.md`.
 ## Approvals Needed
 
 WAITING_ON_USER is not required for push and draft PR creation; owner approved
-that step at `2026-06-26T06:59:20Z`.
+that step at `2026-06-26T06:59:20Z`, and PR #414 is open as a draft.
 
 The first push attempt was blocked by local pre-push hook tool checks because
 `financial-engine_v2/.venv/bin/ruff` and `financial-engine_v2/.venv/bin/pytest`
@@ -120,4 +128,4 @@ changes, or GitHub issue mutation.
 
 ## Next Recommended Prompt
 
-`After draft PR creation, watch CI/review for /home/l4nd0/tenn-scribe-mode-control-plane-v1-20260626 and do not merge without explicit approval.`
+`Watch CI/review for PR #414 and do not merge without explicit approval.`

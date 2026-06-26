@@ -2,8 +2,8 @@
 
 State: DONE
 
-Current Focus: Scribe mode control-plane implementation is pushed; draft PR
-creation is approved and pending.
+Current Focus: Scribe mode control-plane implementation is pushed and draft PR
+#414 is open.
 
 ## Completed
 
@@ -38,6 +38,7 @@ creation is approved and pending.
 - Owner approved rerunning push with `TENN_ALLOW_MISSING_HOOK_TOOLS=1` after
   the local pre-push hook reported missing `ruff` and `pytest` in the repo venv.
 - Push with the approved bypass succeeded.
+- Draft PR #414 opened: https://github.com/0rl4nd0l/tenn/pull/414
 
 ## Scribe Capture
 
@@ -116,4 +117,4 @@ creation is approved and pending.
 
 ## Next Safe Action
 
-Open a draft PR; do not merge without explicit owner approval.
+Watch PR #414 CI/review; do not merge without explicit owner approval.

@@ -17,6 +17,9 @@
   Impact: rerun push with `TENN_ALLOW_MISSING_HOOK_TOOLS=1` after the hook
   reported missing repo-venv `ruff` and `pytest`. - Evidence: user said
   "proceerd" after the `WAITING_ON_USER` bypass prompt.
+- 2026-06-26 17:03 +1000 - Draft PR #414 opened. - Impact: next gate is CI and
+  review, not merge. - Evidence: GitHub connector returned
+  https://github.com/0rl4nd0l/tenn/pull/414.
 
 ## Agent Decisions
 
@@ -41,6 +44,9 @@
   approval before rerunning push. - Evidence: Tenn report-state correctness
   requires documenting stale or failed publish gates before PR creation. - Risk:
   amended commit SHA replaces the local pre-push commit SHA again.
+- 2026-06-26 17:03 +1000 - Add a final report-only commit recording PR #414. -
+  Evidence: closeout report should not say PR creation is pending after the PR
+  exists. - Risk: PR gains a small second report-state update commit.
 
 ## Reversed Or Superseded Decisions
 

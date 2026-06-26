@@ -2,6 +2,8 @@
 
 Decision: pass
 
+PR: https://github.com/0rl4nd0l/tenn/pull/414
+
 ## Scope
 
 - Branch/HEAD: `safe/scribe-mode-control-plane-v1-20260626` at local working
