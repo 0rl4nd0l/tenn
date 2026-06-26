@@ -1,6 +1,6 @@
 # Research Synthesis Route Guard Publish PR
 
-Status: validated; draft PR pending
+Status: draft PR opened; issue remains open
 
 ## Summary
 
@@ -13,6 +13,7 @@ not merge the PR or close the issue.
 - Branch: `safe/issue244-research-synthesis-route-guard-v1-20260626`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Initial HEAD: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
+- Published commit: `e978d53ce6fcbce92af480b99cd9c6b7e8fc9ea0`
 
 ## Validation
 
@@ -25,6 +26,19 @@ Focused validation passed:
 - `python3 -m py_compile financial-engine_v2/backend/app/routes/research.py financial-engine_v2/backend/tests/test_research_route_auth.py`
   passed.
 - `git diff --check` passed.
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/research_synthesis_route_guard_publish_pr_v1_20260626.md --repo-root .`
+  passed.
+- `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/research_synthesis_route_guard_publish_pr_v1_20260626.md --repo-root .`
+  passed.
+- `python3 scripts/agent_job_registry.py release research_synthesis_route_guard_publish_pr_v1_20260626 --repo-root .`
+  passed.
+- `python3 scripts/agent_task_ledger.py --repo-root . append --fill-identity ...`
+  passed with status `pr_opened`.
+
+The branch was pushed with `TENN_ALLOW_MISSING_HOOK_TOOLS=1` because the local
+checkout does not have `financial-engine_v2/.venv/bin/ruff` or
+`financial-engine_v2/.venv/bin/pytest`. Equivalent focused `uv` validation
+commands above had passed before the push.
 
 ## Runtime Functionality Proof
 
@@ -48,4 +62,9 @@ result: PARTIAL
 
 ## PR
 
-Pending.
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/417
+- Issue status comment:
+  https://github.com/0rl4nd0l/tenn/issues/244#issuecomment-4809567622
+- Issue state: open pending review/merge of PR #417.
+- Registry state: active claim released.
+- Ledger state: `pr_opened`.

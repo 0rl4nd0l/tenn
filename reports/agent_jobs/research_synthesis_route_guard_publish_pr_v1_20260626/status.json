@@ -3,18 +3,62 @@
   "issue": 244,
   "mode": "safe_extension",
   "primary_lane": "Query Orchestration",
-  "status": "validated_pr_pending",
-  "updated_at": "2026-06-26T12:27:30Z",
+  "status": "draft_pr_opened_issue_left_open",
+  "updated_at": "2026-06-26T12:29:05Z",
   "worktree": "/home/l4nd0/tenn-issue244-research-synthesis-route-guard-v1-20260626",
   "branch": "safe/issue244-research-synthesis-route-guard-v1-20260626",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "initial_head": "857e76c3180cb0b1fb9fc360652d6a9b64543c86",
+  "published_commit": "e978d53ce6fcbce92af480b99cd9c6b7e8fc9ea0",
+  "pull_request": {
+    "number": 417,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/417",
+    "draft": true,
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/issue244-research-synthesis-route-guard-v1-20260626"
+  },
+  "github_comments_posted": 1,
+  "github_comment_urls": [
+    "https://github.com/0rl4nd0l/tenn/issues/244#issuecomment-4809567622"
+  ],
+  "registry_released": true,
+  "ledger_status": "pr_opened",
   "issue_closed": false,
   "forbidden_mutations": false,
   "production_data_access": false,
+  "push_notes": [
+    "Push used TENN_ALLOW_MISSING_HOOK_TOOLS=1 because financial-engine_v2/.venv/bin/ruff and financial-engine_v2/.venv/bin/pytest are missing in this checkout.",
+    "Equivalent focused uv pytest, ruff check, py_compile, diff, and task gates passed before push."
+  ],
+  "files_changed": [
+    "docs/agent_tasks/research_synthesis_route_guard_publish_pr_v1_20260626.md",
+    "docs/agent_tasks/research_synthesis_route_guard_v1_20260626.md",
+    "docs/architecture/19_backend_api_surface.md",
+    "financial-engine_v2/backend/app/routes/research.py",
+    "financial-engine_v2/backend/tests/test_research_route_auth.py",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/README.md",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/status.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/validation.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/diff-check.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/CODE_REVIEW.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/NEXT_GOAL.md",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/issue_comment.md",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/guard_preflight.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_initial.json",
+    "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_final.json",
+    "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/README.md",
+    "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/status.json",
+    "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/PR_BODY.md",
+    "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/REVIEW.md",
+    "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/diff-check.json"
+  ],
   "validation_summary": [
     {
       "command": "task card validate",
+      "result": "PASS"
+    },
+    {
+      "command": "registry overlap and claim",
       "result": "PASS"
     },
     {
@@ -36,8 +80,28 @@
     {
       "command": "code review",
       "result": "PASS_NO_FINDINGS"
+    },
+    {
+      "command": "contract diff/report gates",
+      "result": "PASS"
+    },
+    {
+      "command": "draft PR create",
+      "result": "PASS_PR_417"
+    },
+    {
+      "command": "github issue comment",
+      "result": "POSTED_LEFT_OPEN"
+    },
+    {
+      "command": "registry release",
+      "result": "PASS"
+    },
+    {
+      "command": "ledger append",
+      "result": "PASS_PR_OPENED"
     }
   ],
   "runtime_functionality_result": "PARTIAL",
-  "remaining_blocker": "Draft PR must be opened, reviewed, and merged before issue #244 can close; no live service smoke was run."
+  "remaining_blocker": "Draft PR #417 must be reviewed and merged before issue #244 can close; no live service smoke was run."
 }

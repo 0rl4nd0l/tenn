@@ -58,7 +58,9 @@ result: PARTIAL
 Issue state:
 
 - GitHub issue #244 received a closeout comment.
-- Issue remains open because this branch is local/unpublished.
+- Publication addendum, 2026-06-26: this fix is now published as draft PR
+  #417: `https://github.com/0rl4nd0l/tenn/pull/417`.
+- Issue #244 remains open until PR #417 is reviewed and merged into canonical.
 
 Unsafe actions avoided:
 

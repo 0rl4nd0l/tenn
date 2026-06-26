@@ -1,84 +1,20 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/research_synthesis_route_guard_publish_pr_v1_20260626.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/agent_tasks/research_synthesis_route_guard_v1_20260626.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/architecture/19_backend_api_surface.md",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/routes/research.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_research_route_auth.py",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/PR_BODY.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/REVIEW.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/CODE_REVIEW.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/NEXT_GOAL.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/guard_preflight.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/issue_comment.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_final.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_initial.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
