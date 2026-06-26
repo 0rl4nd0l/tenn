@@ -1,14 +1,6 @@
 {
   "changed_files": [
     {
-      "path": "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/README.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/VALIDATION.md",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627/status.json",
       "status": "M"
     }
