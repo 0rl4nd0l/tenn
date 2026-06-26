@@ -30,6 +30,10 @@ from app.api.routes import (
 )
 from app.core.config import LOADED_ENV_FILES, PROJECT_ROOT, settings
 from app.core.db import SessionLocal, engine
+from app.core.startup_diagnostics import (
+    build_runtime_startup_summary,
+    should_warn_direct_startup,
+)
 from app.models.base import Base
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
@@ -1202,13 +1206,40 @@ def _log_resolved_models() -> None:
 
 
 def _log_runtime_config() -> None:
+    startup_summary = build_runtime_startup_summary(settings, env=os.environ)
     logger.info(
-        "Runtime config -> TASK_MODE=%s, ENABLE_EMBEDDINGS=%s, QDRANT_URL=%s, CELERY_BROKER_URL=%s",
-        settings.task_mode,
-        str(settings.enable_embeddings).lower(),
+        (
+            "Runtime config -> ENTRYPOINT=%s, TASK_MODE=%s, DB_CLASS=%s, "
+            "AUTO_CREATE_TABLES=%s, ENABLE_EMBEDDINGS=%s, ENABLE_QDRANT=%s, "
+            "ENABLE_EXTRACTION=%s, QDRANT_URL=%s, CELERY_BROKER_URL=%s"
+        ),
+        startup_summary["entrypoint"],
+        startup_summary["task_mode"],
+        startup_summary["database_url_class"],
+        str(startup_summary["auto_create_tables"]).lower(),
+        str(startup_summary["enable_embeddings"]).lower(),
+        str(startup_summary["enable_qdrant"]).lower(),
+        str(startup_summary["enable_extraction"]).lower(),
         settings.qdrant_url,
         settings.celery_broker_url,
     )
+    if should_warn_direct_startup(startup_summary):
+        logger.warning(
+            (
+                "Direct or unknown backend startup is using production-like runtime settings; "
+                "prefer `LOCAL_BACKEND_PROFILE=isolated bash "
+                "financial-engine_v2/scripts/run_local_backend.sh` for local agent mode, "
+                "or verify Redis/Qdrant/embedding/extraction dependencies are intended. "
+                "entrypoint=%s task_mode=%s db_class=%s enable_embeddings=%s "
+                "enable_qdrant=%s enable_extraction=%s"
+            ),
+            startup_summary["entrypoint"],
+            startup_summary["task_mode"],
+            startup_summary["database_url_class"],
+            str(startup_summary["enable_embeddings"]).lower(),
+            str(startup_summary["enable_qdrant"]).lower(),
+            str(startup_summary["enable_extraction"]).lower(),
+        )
     if LOADED_ENV_FILES:
         logger.debug("Loaded env files: %s", ", ".join(LOADED_ENV_FILES))
 

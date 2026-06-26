@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/direct_startup_runtime_diagnostics_current_base_v3_20260627.md",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap --repo-root . docs/agent_tasks/direct_startup_runtime_diagnostics_current_base_v3_20260627.md",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run --with pytest pytest -q financial-engine_v2/backend/tests/test_startup_diagnostics.py scripts/test_run_local_backend_script.py",
+      "exit_code": 0,
+      "summary": "4 passed, 1 warning"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/core/startup_diagnostics.py financial-engine_v2/backend/app/main.py financial-engine_v2/backend/tests/test_startup_diagnostics.py scripts/test_run_local_backend_script.py",
+      "exit_code": 0,
+      "summary": "All checks passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/core/startup_diagnostics.py financial-engine_v2/backend/app/main.py financial-engine_v2/backend/tests/test_startup_diagnostics.py scripts/test_run_local_backend_script.py",
+      "exit_code": 0
+    },
+    {
+      "command": "bash -n financial-engine_v2/scripts/run_local_backend.sh",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "runtime_functionality_result": "PARTIAL",
+  "runtime_functionality_reason": "Live backend startup/log output was not generated because service starts were out of scope."
+}
