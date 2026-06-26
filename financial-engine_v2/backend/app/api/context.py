@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Header, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -136,6 +136,32 @@ def _run_query(
             pass
         logger.warning("Query failed: %s", exc)
         return [], str(exc)
+
+
+def _api_key_allows_diagnostics(x_api_key: str | None) -> bool:
+    configured_key = str(getattr(settings, "local_api_key", "") or "").strip()
+    if not configured_key:
+        return True
+    return x_api_key == configured_key
+
+
+def _redact_ticker_context_diagnostics(payload: dict[str, Any]) -> dict[str, Any]:
+    redacted = dict(payload)
+    redacted["docs"] = [
+        {
+            **doc,
+            "source_url": None,
+            "pdf_path": None,
+            "pdf_sha256": None,
+        }
+        for doc in redacted.get("docs", [])
+        if isinstance(doc, dict)
+    ]
+    redacted["extraction_failures"] = []
+    redacted["low_confidence_financials"] = []
+    redacted["errors"] = []
+    redacted["diagnostics_redacted"] = True
+    return redacted
 
 
 def _is_missing_table_error(error: str | None) -> bool:
@@ -1399,6 +1425,7 @@ def get_ticker_context(
     failures_limit: int = Query(default=50, ge=1, le=200),
     low_confidence_threshold: float = Query(default=0.4, ge=0.0, le=1.0),
     low_confidence_limit: int = Query(default=50, ge=1, le=200),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
@@ -1525,7 +1552,7 @@ def get_ticker_context(
     if err:
         errors.append(f"low_confidence_financials: {err}")
 
-    return {
+    payload = {
         "ticker": ticker,
         "docs": docs,
         "financials": financials,
@@ -1536,7 +1563,11 @@ def get_ticker_context(
         "low_confidence_financials": low_confidence_financials,
         "backend_version": "1.0",
         "errors": errors,
+        "diagnostics_redacted": False,
     }
+    if _api_key_allows_diagnostics(x_api_key):
+        return payload
+    return _redact_ticker_context_diagnostics(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -1814,7 +1845,7 @@ def _verification_outcome_summary(
     return False, ", ".join(parts)
 
 
-@router.get("/verification")
+@router.get("/verification", dependencies=[Depends(require_api_key)])
 def get_verification_context(
     ticker: str | None = Query(default=None),
     failures_limit: int = Query(default=100, ge=1, le=500),
@@ -1869,7 +1900,7 @@ def run_verification_context(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/verification/runs")
+@router.get("/verification/runs", dependencies=[Depends(require_api_key)])
 def get_verification_runs(
     limit: int = Query(default=20, ge=1, le=50),
 ) -> dict[str, Any]:
