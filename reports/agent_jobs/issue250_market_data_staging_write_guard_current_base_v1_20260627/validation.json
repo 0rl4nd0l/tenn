@@ -1,0 +1,56 @@
+{
+  "issues": [],
+  "metadata": {
+    "actual_model": "Codex GPT-5",
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/issue250_market_data_staging_write_guard_current_base_v1_20260627.md",
+      "financial-engine_v2/backend/app/api/routes.py",
+      "financial-engine_v2/backend/tests/test_market_data_route_auth.py",
+      "docs/architecture/19_backend_api_surface.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/README.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/STATE.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/VALIDATION.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/REVIEW.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/PR_BODY.md",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/status.json",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/validation.json",
+      "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627/diff-check.json"
+    ],
+    "approval_required": false,
+    "docs_changed": [
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "docs_checked": [
+      "AGENTS.md",
+      "docs/README.md",
+      "docs/architecture/19_backend_api_surface.md",
+      "issue"
+    ],
+    "docs_followup": "NONE",
+    "docs_impact": "DOCS_UPDATED",
+    "escalation_needed": false,
+    "github_mutation_allowed": true,
+    "job_id": "issue250_market_data_staging_write_guard_current_base_v1_20260627",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/issue250_market_data_staging_write_guard_current_base_v1_20260627",
+    "owner": "Codex",
+    "production_data_access": false,
+    "reason": "Issue #250 changes the access contract for market-data GET routes when OpenBB staging writes are enabled.",
+    "recommended_model": "standard coding model",
+    "related_issue": 250,
+    "supporting_lanes": [
+      "Runtime",
+      "Reporting",
+      "Evaluation",
+      "Repo Hygiene"
+    ],
+    "task_tier": "medium",
+    "timeout_seconds": 7200,
+    "why_this_model": "Focused backend route guard and financial-truth boundary tests.",
+    "worker_decision_limit": "No workers used; the issue is narrow and backend-local.",
+    "worker_model_allowed": false
+  },
+  "ok": true
+}
