@@ -1,0 +1,40 @@
+{
+  "status": "PR_OPEN_REGISTRY_RELEASED",
+  "issue": 245,
+  "pr": 434,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/434",
+  "branch": "safe/issue245-marketplace-price-intelligence-route-guard-current-base-v1-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "7d6ab6c184332d5413700eb08e6790f530000942",
+  "local_commits": [
+    "c6947ecbb36def536f2f724b3a5e12c946fb4248",
+    "567c92b52d40670a154c416ad2663ddd54b3e87f"
+  ],
+  "registry": {
+    "job_id": "issue245_marketplace_price_intelligence_route_guard_current_base_v1_20260627",
+    "released_at": "2026-06-26T19:22:55.133898Z",
+    "active_jobs_after_release": []
+  },
+  "github_checks": {
+    "observed_at": "2026-06-26T19:22:25Z",
+    "scan": "IN_PROGRESS",
+    "lint-and-test": "IN_PROGRESS"
+  },
+  "validation": {
+    "red_pytest": "14 failed, 2 passed, 20 deselected, 1 warning",
+    "green_pytest": "16 passed, 20 deselected, 1 warning",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "code_review": "no findings",
+    "check_diff": "passed",
+    "check_report_artifacts": "passed",
+    "ledger_validate": "passed",
+    "runtime_functionality_proof": "PARTIAL"
+  },
+  "safety": {
+    "live_runtime_started": false,
+    "production_data_access": false,
+    "forbidden_surfaces_touched": false
+  }
+}
