@@ -1,0 +1,76 @@
+{
+  "schema_version": "tenn_issue_closeout_status_v1",
+  "job_id": "issue234_closeout_v1_20260626",
+  "status": "CLOSED_SUPERSEDED",
+  "timestamp": "2026-06-26T15:36:04+10:00",
+  "repo": "0rl4nd0l/tenn",
+  "worktree": "/home/l4nd0/tenn-issue234-closeout-v1-20260626",
+  "branch": "control-plane/issue234-closeout-v1-20260626",
+  "canonical_head_at_issue_closeout": "c877da6eb114826365339379f10a8a06e82221a5",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "issue": {
+    "number": 234,
+    "title": "[Repo Hygiene] Classify stale extraction contract parity diff-check dirt",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/234",
+    "state_before": "OPEN",
+    "state_after": "CLOSED",
+    "updated_at_after": "2026-06-26T05:35:52Z",
+    "closeout_comment_url": "https://github.com/0rl4nd0l/tenn/issues/234#issuecomment-4806668988"
+  },
+  "pr_evidence": {
+    "number": 411,
+    "title": "[Control Plane] Preserve issue 234 diff-check classification",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/411",
+    "state": "MERGED",
+    "merged_at": "2026-06-25T11:15:03Z",
+    "merge_commit": "c877da6eb114826365339379f10a8a06e82221a5",
+    "checks": [
+      {
+        "name": "lint-and-test",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "scan",
+        "conclusion": "SUCCESS"
+      }
+    ]
+  },
+  "classification": "SUPERSEDED_CURRENT_BASE_CLEAN",
+  "close_reason": "The stale dirty rewrite no longer applies to canonical and the classification packet is durable through merged PR #411.",
+  "github_mutations": [
+    "issue_234_comment",
+    "issue_234_close",
+    "closeout_report_branch_push_authorized",
+    "closeout_report_pr_open_authorized",
+    "closeout_report_pr_merge_if_safe_authorized"
+  ],
+  "publish_authorization": {
+    "operator_reply": "proceed",
+    "authorized_at": "2026-06-26T15:54:22+10:00",
+    "scope": "Push this exact closeout-report branch, open one PR to migration/clean-runtime-baseline-reconstruct-v1, and merge only if validation, code review, and live GitHub checks remain clean.",
+    "current_base_refresh": "One non-force merge from origin/migration/clean-runtime-baseline-reconstruct-v1 is authorized if canonical advances before publish, provided there are no conflicts and the final PR diff remains limited to allowed_files.",
+    "not_authorized": [
+      "label_milestone_assignee_project_changes",
+      "branch_or_worktree_deletion",
+      "remote_branch_deletion",
+      "cleanup",
+      "product_runtime_data_extraction_changes"
+    ]
+  },
+  "forbidden_mutations_avoided": [
+    "product_runtime_data_extraction_changes",
+    "historical_parity_artifact_change",
+    "label_milestone_assignee_project_changes",
+    "branch_or_worktree_deletion",
+    "remote_branch_deletion",
+    "unapproved_pr_open_or_merge"
+  ],
+  "remaining_data_missing": [
+    {
+      "item": "original_2026_06_02_dirty_rewrite_writer",
+      "blocking": false,
+      "reason": "Not required for closeout because current canonical is clean and PR #411 preserved the stale-state classification."
+    }
+  ],
+  "followup_required": false
+}
