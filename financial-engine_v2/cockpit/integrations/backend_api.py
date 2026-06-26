@@ -809,7 +809,7 @@ class BackendApiClient:
     def get_pending_transcripts(self, *, timeout: float = 10.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/commentary/transcripts/pending"
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url)
+            response = client.get(url, headers=self._api_key_headers())
             response.raise_for_status()
             return response.json() if response.content else {"pending": [], "count": 0}
 
