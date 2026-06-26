@@ -274,6 +274,7 @@ if ! command -v python >/dev/null 2>&1; then
 fi
 
 export PYTHONPATH="${ROOT_DIR}/backend${PYTHONPATH:+:${PYTHONPATH}}"
+export TENN_BACKEND_ENTRYPOINT="run_local_backend"
 export DATA_ROOT="${DATA_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data}"
 export DATABASE_URL="${DATABASE_URL:-sqlite:///${DATA_ROOT}/fe_local.db}"
 export REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379/0}"
