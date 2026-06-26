@@ -28,6 +28,9 @@ The FastAPI app mounts routes in these groups:
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
   also require the dependency where declared.
+- Legacy chat routes `/chat` and `/api/chat` require the dependency where
+  declared because analysis mode can invoke model/retrieval/session persistence
+  and strategy mode can invoke proposal/confirm/apply behavior.
 
 ## Route inventory
 
@@ -95,6 +98,7 @@ The FastAPI app mounts routes in these groups:
 - `POST /chat`
 - `POST /api/chat`
   - chat endpoint exposed at both paths
+  - requires `X-API-Key` when `settings.local_api_key` is configured
   - `analysis` mode delegates to `chat_with_tenn()`
   - `strategy` mode routes to proposal/confirm/apply helpers
 
@@ -307,7 +311,8 @@ Runtime note:
 ## Notes on compatibility and drift
 
 - The canonical retrieval route is `POST /rag/query`, not `POST /api/rag/query`.
-- The chat endpoint is intentionally exposed at both `/chat` and `/api/chat`.
+- The chat endpoint is intentionally exposed at both `/chat` and `/api/chat`;
+  both mounts share the same local API-key guard.
 - Ingest routes are intentionally exposed both under `/api/ingest/*` and top-level `/ingest/*`.
 - Cockpit access state is backend-owned through `/api/system/capabilities` and `/api/system/proposals/apply`; Cockpit should treat those routes as the authority rather than maintaining a parallel access toggle state.
 - Today there is still a partial mismatch between advertised proposals and executable proposals. Document operator flows against the apply endpoint, not the full capability proposal list.

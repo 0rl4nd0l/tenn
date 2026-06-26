@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from app.api.routes import require_api_key
 from app.services.chat_quality_scorer import score_turn
 from app.services.session_memory import _build_turn_payload, get_session_context, record_turn
 from app.services.strategy_controller import (
@@ -153,7 +154,7 @@ def _analysis_response(
         }
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(require_api_key)])
 def chat(payload: ChatRequest, request: Request) -> dict[str, Any]:
     try:
         if payload.mode == "analysis":
