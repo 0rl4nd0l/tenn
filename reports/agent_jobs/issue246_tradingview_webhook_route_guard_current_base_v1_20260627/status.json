@@ -1,15 +1,22 @@
 {
   "agent": "Codex",
   "branch": "safe/issue246-tradingview-webhook-route-guard-current-base-v1-20260627",
-  "completed_at": "2026-06-26T19:07:05Z",
+  "completed_at": "2026-06-26T19:08:58Z",
   "head_before_edits": "7d6ab6c184332d5413700eb08e6790f530000942",
   "issue": 246,
   "job_id": "issue246_tradingview_webhook_route_guard_current_base_v1_20260627",
   "output_dir": "reports/agent_jobs/issue246_tradingview_webhook_route_guard_current_base_v1_20260627",
-  "pr": null,
+  "pr": "https://github.com/0rl4nd0l/tenn/pull/433",
+  "pr_number": 433,
+  "pr_state": {
+    "is_draft": false,
+    "merge_state_status": "UNSTABLE",
+    "scan": "IN_PROGRESS",
+    "lint_and_test": "IN_PROGRESS"
+  },
   "result": "DONE_WITH_RISK",
   "runtime_functionality_result": "PARTIAL",
-  "status": "validated_ready_for_pr",
+  "status": "pr_open",
   "supersedes": ["tradingview_webhook_route_guard_v1_20260626"],
   "validation": {
     "backend_pytest": "8 passed, 1 warning",

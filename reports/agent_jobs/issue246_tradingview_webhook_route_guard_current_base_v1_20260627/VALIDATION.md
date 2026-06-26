@@ -39,6 +39,31 @@ git diff --check
 
 Result: PASS.
 
+```text
+python3 scripts/agent_job_contract.py check-diff --repo-root . docs/agent_tasks/issue246_tradingview_webhook_route_guard_current_base_v1_20260627.md
+```
+
+Result: PASS.
+
+```text
+python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/issue246_tradingview_webhook_route_guard_current_base_v1_20260627.md
+```
+
+Result: PASS.
+
+```text
+python3 scripts/agent_task_ledger.py validate
+```
+
+Result: PASS.
+
+```text
+gh pr view 433 --json number,url,state,isDraft,headRefName,baseRefName,mergeStateStatus,statusCheckRollup,updatedAt
+```
+
+Result: PR #433 open, non-draft, `mergeStateStatus=UNSTABLE`; `scan` and
+`lint-and-test` were IN_PROGRESS at `2026-06-26T19:08:58Z`.
+
 ## Known Validation Gaps
 
 - No live backend/Cockpit runtime was started.

@@ -2,7 +2,7 @@
 
 ## Status
 
-`VALIDATED_READY_FOR_PR`.
+`PR_OPEN`.
 
 ## Current Evidence
 
@@ -14,7 +14,9 @@
 - Issue: <https://github.com/0rl4nd0l/tenn/issues/246>
 - Prior local work adopted from:
   `/home/l4nd0/tenn-issue246-tradingview-webhook-route-guard-v1-20260626`
-- PR: `DATA_MISSING`; not opened yet at report creation time.
+- PR: <https://github.com/0rl4nd0l/tenn/pull/433>
+- PR state at `2026-06-26T19:08:58Z`: OPEN, non-draft,
+  `mergeStateStatus=UNSTABLE`; `scan` and `lint-and-test` were IN_PROGRESS.
 
 ## Changes
 
@@ -37,6 +39,9 @@
 - Py compile touched Python files: PASS.
 - `git diff --check`: PASS.
 - Code-reviewer pass: no findings.
+- Task-card `check-diff`: PASS.
+- Task-card `check-report-artifacts`: PASS.
+- Ledger validate: PASS.
 
 ## Runtime Functionality Proof
 
