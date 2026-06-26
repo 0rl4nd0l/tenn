@@ -15,6 +15,7 @@ from app.services.source_weighting import (
 )
 from app.services import tenn_chat
 from app.services.tenn_chat import (
+    _apply_chat_strategy,
     _context_rows,
     _evidence_context_rows,
     _normalize_confidence,
@@ -152,6 +153,31 @@ class TestSourceWeightingNewsArticle:
         assert result["decay_half_life"] == 7.0
         assert result["recency_decay"] == pytest.approx(0.5)
 
+    def test_apply_weighting_malformed_published_at_uses_neutral_recency_with_warning(self):
+        chunk = {
+            "source_type": "news_article",
+            "vector_score": 0.8,
+            "published_at": "not-a-date",
+        }
+
+        result = apply_weighting_to_chunk(chunk)
+
+        assert result["recency_decay"] == 1.0
+        assert result["recency_status"] == "malformed_published_at"
+        assert result["recency_warning"] == "invalid_published_at"
+        assert "not-a-date" in result["published_at_parse_error"]
+
+    def test_apply_weighting_invalid_half_life_is_not_reported_as_bad_date(self):
+        chunk = {
+            "source_type": "news_article",
+            "vector_score": 0.8,
+            "published_at": "2026-06-01T00:00:00Z",
+            "decay_half_life": "not-a-number",
+        }
+
+        with pytest.raises(ValueError):
+            apply_weighting_to_chunk(chunk)
+
 
 class TestNormalizeNewsChunk:
     def test_sets_source_name_from_title(self):
@@ -232,6 +258,37 @@ class TestContextRows:
 
 
 class TestRetrieveChatContext:
+    def test_apply_chat_strategy_keeps_valid_neighbor_with_malformed_date(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(tenn_chat, "get_active_strategy_state", lambda: {})
+
+        ranked = _apply_chat_strategy(
+            [
+                {
+                    "chunk_id": "bad-date",
+                    "source_name": "Bad timestamp",
+                    "source_type": "news_article",
+                    "vector_score": 0.9,
+                    "published_at": "not-a-date",
+                },
+                {
+                    "chunk_id": "valid-neighbor",
+                    "source_name": "Valid neighbor",
+                    "source_type": "news_article",
+                    "vector_score": 0.8,
+                },
+            ]
+        )
+
+        assert {chunk["chunk_id"] for chunk in ranked} == {
+            "bad-date",
+            "valid-neighbor",
+        }
+        bad_date = next(chunk for chunk in ranked if chunk["chunk_id"] == "bad-date")
+        assert bad_date["recency_status"] == "malformed_published_at"
+        assert bad_date["recency_warning"] == "invalid_published_at"
+
     def test_returns_commentary_and_ticker_news_rows(self, monkeypatch):
         monkeypatch.setattr(
             tenn_chat,
