@@ -1,0 +1,49 @@
+{
+  "commands": [
+    {
+      "command": "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-issue227-cockpit-marketplace-state-route-guard-current-base-v1-20260627 --topic issue227-cockpit-marketplace-state-route-guard --json",
+      "exit": 0,
+      "result": "final_decision=pass"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py financial-engine_v2/backend/tests/test_local_api_key.py -q",
+      "exit": 1,
+      "phase": "red",
+      "result": "43 failed, 35 passed, 5 warnings"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py financial-engine_v2/backend/tests/test_local_api_key.py -q",
+      "exit": 0,
+      "phase": "green",
+      "result": "78 passed, 5 warnings"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt ruff check financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py financial-engine_v2/backend/tests/test_local_api_key.py",
+      "exit": 0,
+      "result": "All checks passed!"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py financial-engine_v2/backend/tests/test_local_api_key.py",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_marketplace_state_route_guard_v1_20260602.md",
+      "exit": 0
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py --repo-root . validate",
+      "exit": 0,
+      "result": "no issues"
+    }
+  ],
+  "frontend_validation": {
+    "status": "not_run",
+    "reason": "No frontend source changed; current frontend header forwarding evidence was inspected."
+  },
+  "runtime_functionality_result": "PARTIAL",
+  "status": "passed"
+}
