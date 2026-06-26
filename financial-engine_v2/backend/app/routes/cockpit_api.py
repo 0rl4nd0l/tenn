@@ -9679,7 +9679,11 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
     )
 
 
-@router.patch("/preferences", response_model=CockpitPreferencesResponse)
+@router.patch(
+    "/preferences",
+    response_model=CockpitPreferencesResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_patch_preferences(
     payload: CockpitPreferencesPatchRequest,
 ) -> CockpitPreferencesResponse:

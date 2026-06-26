@@ -1,0 +1,39 @@
+{
+  "job_id": "issue225_cockpit_preferences_route_guard_current_base_v1_20260627",
+  "status": "passed_with_gap",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1 @ 7d6ab6c184332d5413700eb08e6790f530000942",
+  "commands": [
+    {
+      "name": "red_backend_pytest",
+      "exit_code": 1,
+      "summary": "3 failed, 20 passed, 5 warnings; missing preference PATCH auth dependency"
+    },
+    {
+      "name": "green_backend_pytest",
+      "exit_code": 0,
+      "summary": "23 passed, 5 warnings"
+    },
+    {
+      "name": "ruff",
+      "exit_code": 0,
+      "summary": "All checks passed"
+    },
+    {
+      "name": "py_compile",
+      "exit_code": 0,
+      "summary": "touched Python files compiled"
+    },
+    {
+      "name": "git_diff_check",
+      "exit_code": 0,
+      "summary": "no whitespace errors"
+    },
+    {
+      "name": "frontend_vitest",
+      "exit_code": 0,
+      "summary": "not run; cockpit-ui/node_modules/.bin/vitest missing"
+    }
+  ],
+  "runtime_or_data_mutation": false,
+  "frontend_dependency_install": false
+}

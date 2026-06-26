@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from cockpit.storage.state import StateStore
@@ -26,6 +28,7 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
     monkeypatch.setattr(
         CockpitService, "get_instance", classmethod(lambda cls: fake_service)
     )
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "", raising=False)
 
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
@@ -66,11 +69,88 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
     }
 
 
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+def test_preferences_patch_requires_api_key_before_state_mutation(
+    tmp_path,
+    monkeypatch,
+    headers,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings,
+        "local_api_key",
+        "local-secret",
+        raising=False,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.patch(
+        "/api/cockpit/preferences",
+        headers=headers,
+        json={
+            "api_default_enabled": True,
+            "marketplace_prefer_cloud_routing": True,
+            "chat_routing_policy_override": "local_preferred",
+            "chat_runtime_target": "auto",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert fake_service.state_store.get_preferences() == {}
+
+
+def test_preferences_patch_accepts_correct_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings,
+        "local_api_key",
+        "local-secret",
+        raising=False,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.patch(
+        "/api/cockpit/preferences",
+        headers={"X-API-Key": "local-secret"},
+        json={
+            "api_default_enabled": True,
+            "marketplace_prefer_cloud_routing": True,
+            "chat_routing_policy_override": "local_preferred",
+            "chat_runtime_target": "auto",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "api_default_enabled": True,
+        "marketplace_prefer_cloud_routing": True,
+        "chat_routing_policy_override": "local_preferred",
+        "chat_runtime_target": "auto",
+    }
+
+
 def test_preferences_reject_invalid_chat_routing_policy(tmp_path, monkeypatch) -> None:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(
         CockpitService, "get_instance", classmethod(lambda cls: fake_service)
     )
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "", raising=False)
 
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")

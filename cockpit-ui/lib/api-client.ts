@@ -450,6 +450,7 @@ export async function patchCockpitPreferences(patch: CockpitPreferencesPatch): P
     '/api/cockpit/preferences',
     {
       method: 'PATCH',
+      headers: withApiKey(),
       body: JSON.stringify(patch),
     },
   )
