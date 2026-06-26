@@ -111,6 +111,13 @@ The FastAPI app mounts routes in these groups:
   - requires `X-API-Key` when `settings.local_api_key` is configured because
     it exposes global document provenance, source URLs, and local `pdf_path`
     values
+- `GET /api/cockpit/pulse`
+  - returns Intel Pulse population and quality metrics for document,
+    extraction, signal, memory, trust, quarantine, and failure state
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/cockpit/matrix?stage=...`
+  - returns diagnostic density matrix data for Intel Pulse stage/entity health
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/cockpit/news/status`
   - read-only A2M/news split-truth status contract
   - public response redacts operator-only diagnostics such as artifact roots,
