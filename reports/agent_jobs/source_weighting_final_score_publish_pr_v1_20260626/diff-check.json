@@ -1,60 +1,20 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/source_weighting_final_score_contract_v1_20260602.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/agent_tasks/source_weighting_final_score_publish_pr_v1_20260626.md",
-      "status": "A"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/services/source_weighting.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/STATE.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/PR_BODY.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/REVIEW.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/status.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],

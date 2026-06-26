@@ -8,8 +8,8 @@ Local scoped fix complete for issue #259.
 resolved credibility dimension for final scoring:
 `relevance_score * resolved_credibility * recency_decay`.
 
-Issue #259 remains open because this fix is local only; no commit, push, PR, or
-merge was performed in this lane.
+Issue #259 remains open, but the fix has now been published in draft PR #418.
+No merge or issue close was performed in this lane.
 
 ## Worktree
 
@@ -24,3 +24,9 @@ merge was performed in this lane.
 - `VALIDATION.md`
 - `status.json`
 - `diff-check.json`
+
+## Publication
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/418
+- Publish report:
+  `reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/`

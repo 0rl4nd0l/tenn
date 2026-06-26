@@ -1,6 +1,6 @@
 # Source Weighting Final Score Publish PR
 
-Status: validation passed; draft PR pending
+Status: draft PR opened; issue remains open
 
 ## Summary
 
@@ -13,6 +13,7 @@ not merge the PR or close the issue.
 - Branch: `safe/issue259-source-weighting-final-score-v1-20260626`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Initial HEAD: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
+- Published commit: `81ff917b349b3e1d95611d477100812e018ef7c0`
 
 ## Validation
 
@@ -46,3 +47,12 @@ publishes a source-weighting formula/test fix for local backend scoring logic.
 | remaining blocker | Draft PR publication, review, and merge are still pending; no live service smoke was run. |
 
 result: PARTIAL
+
+## PR
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/418
+- Issue status comment:
+  https://github.com/0rl4nd0l/tenn/issues/259#issuecomment-4809651770
+- Issue state: open pending review/merge of PR #418.
+- Registry state: active claim released.
+- Ledger state: `pr_opened`.
