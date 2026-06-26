@@ -56,7 +56,7 @@ def create_session(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.get("/runs")
+@router.get("/runs", dependencies=[Depends(require_api_key)])
 def recent_runs(
     ticker: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
@@ -66,7 +66,7 @@ def recent_runs(
     return list_review_runs(db, ticker=normalized_ticker, limit=limit)
 
 
-@router.get("/sessions")
+@router.get("/sessions", dependencies=[Depends(require_api_key)])
 def recent_sessions(
     ticker: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
@@ -75,7 +75,7 @@ def recent_sessions(
     return list_review_sessions(ticker=normalized_ticker, limit=limit)
 
 
-@router.get("/session/{session_id}")
+@router.get("/session/{session_id}", dependencies=[Depends(require_api_key)])
 def get_session(session_id: str) -> dict[str, Any]:
     try:
         session = load_review_session(session_id)
@@ -114,12 +114,12 @@ def review_decision(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/errors")
+@router.get("/errors", dependencies=[Depends(require_api_key)])
 def error_queue(limit: int = Query(default=200, ge=1, le=500)) -> dict[str, Any]:
     return get_error_queue(limit=limit)
 
 
-@router.get("/run/{run_id}")
+@router.get("/run/{run_id}", dependencies=[Depends(require_api_key)])
 def run_status(
     run_id: str, limit: int = Query(default=120, ge=1, le=500)
 ) -> dict[str, Any]:
@@ -129,7 +129,7 @@ def run_status(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/snippets/{image_name}")
+@router.get("/snippets/{image_name}", dependencies=[Depends(require_api_key)])
 def get_snippet_image(image_name: str) -> FileResponse:
     if "/" in image_name or "\\" in image_name or not image_name.strip():
         raise HTTPException(status_code=400, detail="invalid snippet image name")

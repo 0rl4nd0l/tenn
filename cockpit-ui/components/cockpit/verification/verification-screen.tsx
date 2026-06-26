@@ -608,6 +608,7 @@ export function VerificationScreen() {
 
   const {
     snippetImageState,
+    snippetImageUrl,
     beginSessionSwap,
     handleSnippetImageLoad,
     handleSnippetImageError,
@@ -1821,6 +1822,7 @@ export function VerificationScreen() {
                   matchedEvidenceText={matchedEvidenceText}
                   currentSnippetPath={currentSnippetPath}
                   currentSnippetUrl={currentSnippetUrl}
+                  currentSnippetImageSrc={snippetImageUrl}
                   currentSnippetRenderKey={currentSnippetRenderKey}
                   currentRowRef={currentRowRef}
                   reviewItems={reviewItems}
@@ -1896,6 +1898,7 @@ export function VerificationScreen() {
                       matchedEvidenceText={matchedEvidenceText}
                       currentSnippetPath={currentSnippetPath}
                       currentSnippetUrl={currentSnippetUrl}
+                      currentSnippetImageSrc={snippetImageUrl}
                       currentSnippetRenderKey={currentSnippetRenderKey}
                       currentRowRef={currentRowRef}
                       reviewItems={reviewItems}

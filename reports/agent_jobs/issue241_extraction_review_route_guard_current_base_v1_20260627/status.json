@@ -1,0 +1,48 @@
+{
+  "job_id": "issue241_extraction_review_route_guard_current_base_v1_20260627",
+  "issue": 241,
+  "branch": "safe/issue241-extraction-review-route-guard-current-base-v1-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@7d6ab6c184332d5413700eb08e6790f530000942",
+  "worktree": "/home/l4nd0/tenn-issue241-extraction-review-route-guard-current-base-v1-20260627",
+  "status": "DONE_WITH_RISK",
+  "runtime_functionality_proof_result": "PARTIAL",
+  "pr": {
+    "number": 436,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/436",
+    "state_at_open": "OPEN",
+    "merge_state_at_open": "UNSTABLE",
+    "checks_at_open": "in_progress"
+  },
+  "registry": {
+    "status": "released",
+    "released_at": "2026-06-26T19:50:28.024775Z",
+    "active_jobs_after_release": 0
+  },
+  "issue_close_status": "open_until_pr_merge_or_owner_approval",
+  "docs_impact": "DOCS_UPDATED",
+  "docs_checked": [
+    "docs/README.md",
+    "docs/architecture/19_backend_api_surface.md"
+  ],
+  "docs_changed": [
+    "docs/architecture/19_backend_api_surface.md"
+  ],
+  "validation": {
+    "backend_red": "exit 1; 6 failed, 8 passed",
+    "backend_green": "exit 0; 34 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "passed",
+    "report_artifacts": "passed",
+    "frontend_vitest": "blocked: cockpit-ui/node_modules and cockpit-ui/node_modules/.bin/vitest absent"
+  },
+  "unsafe_actions_avoided": [
+    "no production data mutation",
+    "no runtime/service start",
+    "no dependency install",
+    "no merge/rebase/reset/stash/clean",
+    "no issue close"
+  ],
+  "next_action": "Wait for PR #436 CI; merge and close issue #241 only after green checks and owner-approved merge/closeout."
+}
