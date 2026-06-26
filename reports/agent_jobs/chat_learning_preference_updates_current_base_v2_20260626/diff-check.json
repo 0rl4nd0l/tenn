@@ -1,0 +1,87 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/chat_learning_preference_updates_current_base_v2_20260626.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/architecture/20_chat_learning_loop.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/tests/test_chat_preference_updater.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": false,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/chat_learning_preference_updates_current_base_v2_20260626.md",
+        "docs/architecture/20_chat_learning_loop.md",
+        "financial-engine_v2/backend/app/services/tests/test_chat_preference_updater.py",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/README.md",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/STATE.md",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/VALIDATION.md",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/status.json",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/diff-check.json",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/PR_BODY.md",
+        "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626/REVIEW.md"
+      ],
+      "approval_required": false,
+      "github_writes_allowed": [
+        "draft PR after local validation",
+        "issue comment after merge containment",
+        "issue close only after canonical merge containment"
+      ],
+      "issue": 254,
+      "job_id": "chat_learning_preference_updates_current_base_v2_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/chat_learning_preference_updates_current_base_v2_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
