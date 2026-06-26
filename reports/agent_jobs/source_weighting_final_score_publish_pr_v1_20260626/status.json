@@ -1,0 +1,105 @@
+{
+  "job_id": "source_weighting_final_score_publish_pr_v1_20260626",
+  "issue": 259,
+  "mode": "safe_extension",
+  "primary_lane": "Query Orchestration",
+  "status": "draft_pr_opened_issue_left_open",
+  "updated_at": "2026-06-26T12:40:05Z",
+  "worktree": "/home/l4nd0/tenn-issue259-source-weighting-final-score-v1-20260626",
+  "branch": "safe/issue259-source-weighting-final-score-v1-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "initial_head": "857e76c3180cb0b1fb9fc360652d6a9b64543c86",
+  "published_commit": "81ff917b349b3e1d95611d477100812e018ef7c0",
+  "pull_request": {
+    "number": 418,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/418",
+    "draft": true,
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/issue259-source-weighting-final-score-v1-20260626"
+  },
+  "github_comments_posted": 1,
+  "github_comment_urls": [
+    "https://github.com/0rl4nd0l/tenn/issues/259#issuecomment-4809651770"
+  ],
+  "registry_released": true,
+  "ledger_status": "pr_opened",
+  "issue_closed": false,
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "push_notes": [
+    "Push used TENN_ALLOW_MISSING_HOOK_TOOLS=1 because financial-engine_v2/.venv/bin/ruff and financial-engine_v2/.venv/bin/pytest are missing in this checkout.",
+    "Equivalent focused uv pytest, ruff check, py_compile, diff, and task gates passed before push."
+  ],
+  "files_changed": [
+    "docs/agent_tasks/source_weighting_final_score_contract_v1_20260602.md",
+    "docs/agent_tasks/source_weighting_final_score_publish_pr_v1_20260626.md",
+    "financial-engine_v2/backend/app/services/source_weighting.py",
+    "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/README.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/STATE.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/VALIDATION.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/status.json",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/diff-check.json",
+    "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/README.md",
+    "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/status.json",
+    "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/PR_BODY.md",
+    "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/REVIEW.md",
+    "reports/agent_jobs/source_weighting_final_score_publish_pr_v1_20260626/diff-check.json"
+  ],
+  "validation_summary": [
+    {
+      "command": "task card validate",
+      "result": "PASS"
+    },
+    {
+      "command": "registry overlap and claim",
+      "result": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+      "result": "PASS_30"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_news_retrieval_eval.py",
+      "result": "PASS_34"
+    },
+    {
+      "command": "ruff check",
+      "result": "PASS"
+    },
+    {
+      "command": "py_compile",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "code review",
+      "result": "PASS_NO_BLOCKING_FINDINGS"
+    },
+    {
+      "command": "contract diff/report gates",
+      "result": "PASS"
+    },
+    {
+      "command": "draft PR create",
+      "result": "PASS_PR_418"
+    },
+    {
+      "command": "github issue comment",
+      "result": "POSTED_LEFT_OPEN"
+    },
+    {
+      "command": "registry release",
+      "result": "PASS"
+    },
+    {
+      "command": "ledger append",
+      "result": "PASS_PR_OPENED"
+    }
+  ],
+  "runtime_functionality_result": "PARTIAL",
+  "remaining_blocker": "Draft PR #418 must be reviewed and merged before issue #259 can close; no live service smoke was run."
+}

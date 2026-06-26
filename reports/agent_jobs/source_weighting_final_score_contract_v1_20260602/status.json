@@ -1,0 +1,88 @@
+{
+  "job_id": "source_weighting_final_score_contract_v1_20260602",
+  "issue": 259,
+  "mode": "safe_extension",
+  "primary_lane": "Query Orchestration",
+  "files_changed": [
+    "financial-engine_v2/backend/app/services/source_weighting.py",
+    "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+    "docs/agent_tasks/source_weighting_final_score_contract_v1_20260602.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/README.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/STATE.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/VALIDATION.md",
+    "reports/agent_jobs/source_weighting_final_score_contract_v1_20260602/status.json"
+  ],
+  "github_comments_posted": 1,
+  "github_comment_url": "https://github.com/0rl4nd0l/tenn/issues/259#issuecomment-4807568407",
+  "issue_closed": false,
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "validation_summary": [
+    {
+      "command": "tenn-git-guard preflight",
+      "result": "PASS"
+    },
+    {
+      "command": "agent_job_registry list-active --read-only",
+      "result": "PASS"
+    },
+    {
+      "command": "agent_task_ledger search --issue 259",
+      "result": "PASS_NO_MATCHES"
+    },
+    {
+      "command": "agent_job_contract validate",
+      "result": "PASS"
+    },
+    {
+      "command": "focused scoring tests before fix",
+      "result": "EXPECTED_FAIL"
+    },
+    {
+      "command": "focused scoring tests after fix",
+      "result": "PASS_4"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+      "result": "PASS_30"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_news_retrieval_eval.py",
+      "result": "PASS_34"
+    },
+    {
+      "command": "ruff check touched python files",
+      "result": "PASS"
+    },
+    {
+      "command": "py_compile touched python files",
+      "result": "PASS"
+    },
+    {
+      "command": "ruff format --check touched python files",
+      "result": "FAIL_LEGACY_FORMAT_CHURN"
+    },
+    {
+      "command": "agent_job_contract check-diff",
+      "result": "PASS"
+    },
+    {
+      "command": "agent_job_contract check-report-artifacts",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "agent_task_ledger validate",
+      "result": "PASS"
+    },
+    {
+      "command": "gh issue comment 259",
+      "result": "PASS"
+    }
+  ],
+    "published_pr": "https://github.com/0rl4nd0l/tenn/pull/418",
+    "verdict": "DRAFT_PR_OPENED_READY_FOR_REVIEW_LEFT_OPEN"
+}
