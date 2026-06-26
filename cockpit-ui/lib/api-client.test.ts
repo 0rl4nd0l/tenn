@@ -139,3 +139,60 @@ describe('listDocuments', () => {
     )
   })
 })
+
+describe('context diagnostics API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when loading ticker documents', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ docs: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getTickerDocuments } = await import('./api-client')
+
+    await getTickerDocuments('bhp', 5)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/context/ticker?ticker=BHP&docs_limit=5&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+
+  it('sends the configured API key when loading verification runs', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, runs: [], count: 0 }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getVerificationRuns } = await import('./api-client')
+
+    await getVerificationRuns(10)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/context/verification/runs?limit=10',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})

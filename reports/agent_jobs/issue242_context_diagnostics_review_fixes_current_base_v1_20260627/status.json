@@ -1,0 +1,77 @@
+{
+  "schema_version": "tenn_fix_status_v1",
+  "job_id": "issue242_context_diagnostics_review_fixes_current_base_v1_20260627",
+  "status": "PR_OPENED",
+  "timestamp": "2026-06-27T09:54:57+10:00",
+  "repo": "0rl4nd0l/tenn",
+  "worktree": "/home/l4nd0/tenn-issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+  "branch": "safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "eb4a42910fd71077af4a389bd4a9f4400796921b",
+  "issue": 242,
+  "pr": 448,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/448",
+  "supersedes_pr": 438,
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "product_runtime_data_mutation": false,
+  "git_cleanup": false,
+  "validation_summary": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/issue242_context_diagnostics_review_fixes_current_base_v1_20260627.md",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py financial-engine_v2/backend/tests/test_context_endpoints.py financial-engine_v2/backend/tests/test_backend_api_client_context.py",
+      "result": "PASS",
+      "summary": "69 passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt ruff check financial-engine_v2/backend/app/api/context.py financial-engine_v2/cockpit/integrations/backend_api.py financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py financial-engine_v2/backend/tests/test_backend_api_client_context.py",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/api/context.py financial-engine_v2/cockpit/integrations/backend_api.py financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py financial-engine_v2/backend/tests/test_backend_api_client_context.py",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm --dir cockpit-ui exec vitest run lib/api-client.test.ts",
+      "result": "BLOCKED",
+      "summary": "Command \"vitest\" not found"
+    },
+    {
+      "command": "TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Bypassed missing repo-venv hook tools after equivalent uv validation passed; markdown hygiene passed"
+    },
+    {
+      "command": "gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Opened PR #448"
+    },
+    {
+      "command": "PR #448 automated review follow-up",
+      "result": "PASS",
+      "summary": "Addressed internal helper diagnostic preservation and announcement-context redaction; reran focused pytest and ruff"
+    }
+  ],
+  "data_missing": [
+    "live_backend_browser_route_proof",
+    "local_frontend_vitest",
+    "github_checks_until_pr448_checked"
+  ],
+  "docs_impact": {
+    "status": "DOCS_UPDATED",
+    "docs_checked": [
+      "docs/README.md",
+      "docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "docs_changed": [
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "docs_followup": [],
+    "reason": "Context diagnostic auth/redaction contract changed."
+  },
+  "verdict": "PR_OPENED_LEFT_ISSUE_OPEN"
+}

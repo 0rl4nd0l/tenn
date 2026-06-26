@@ -24,6 +24,11 @@ The FastAPI app mounts routes in these groups:
 
 - Read-only routes such as `/api/health`, `/api/docs`, `/api/financials`, and `/api/price`
   do not require an API key by default.
+- Context diagnostic reads under `/api/context/verification*` require `X-API-Key`
+  when `settings.local_api_key` is configured. `/api/context/ticker` remains a
+  backend-owned context read, but unauthenticated configured-key responses
+  redact operator diagnostics such as source paths/hashes, extraction failures,
+  announcement excerpts/source paths, low-confidence rows, and internal error details.
 - Mutating routes such as `/ingest/*`, `/backfill/*`, `/process/*`, and `/api/analysis/{ticker}`
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
@@ -46,14 +51,20 @@ The FastAPI app mounts routes in these groups:
 - `GET /api/context/verification?ticker=...`
   - verification context bundle for extraction failures and low-confidence financial rows
   - ticker is optional; empty scope returns cross-ticker queue state
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 
 ### Context and memory routes (`/api/context/*`)
 
 - `GET /api/context/ticker?ticker=...`
   - ticker context bundle: docs, financials, latest snapshot, announcement context,
     extraction failures, low-confidence financial rows
+  - when `settings.local_api_key` is configured and no matching `X-API-Key` is
+    supplied, diagnostic/path fields and announcement excerpts are redacted while
+    ordinary context fields remain available
 - `GET /api/context/company_dump?ticker=...`
   - expanded ticker dump including context + risk notes + price history + memory surfaces
+  - inherits `/api/context/ticker` diagnostic/path redaction unless a matching
+    `X-API-Key` is supplied when `settings.local_api_key` is configured
 - `GET /api/context/memory?ticker=...`
   - combined memory view for one ticker:
     - company memory
@@ -79,8 +90,10 @@ The FastAPI app mounts routes in these groups:
   - apply a confirmed proposal into durable thesis entries
 - `GET /api/context/verification?ticker=...`
   - extraction verification queue context (ticker-scoped or global)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/context/verification/runs?limit=...`
   - latest verification run history snapshots
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 
 ### Retrieval and chat
 

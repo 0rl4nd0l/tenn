@@ -16,6 +16,7 @@ import {
   getExtractionReviewSessions,
   getExtractionReviewSession,
   getTickerDocuments,
+  getVerificationRuns,
   processDocument,
   runVerificationContext,
   submitExtractionReviewDecision,
@@ -994,10 +995,8 @@ export function VerificationScreen() {
   useEffect(() => {
     setVerificationHistoryLoading(true)
     appendProgress({ scope: 'verify', message: 'Loading recent verification run history', detail: 'limit=10' })
-    fetch('/api/context/verification/runs?limit=10')
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        const payload = data as { ok?: boolean; runs?: unknown[] }
+    getVerificationRuns(10)
+      .then((payload) => {
         if (payload.ok && Array.isArray(payload.runs)) {
           setVerificationRunHistory(payload.runs as VerificationRunHistory[])
           appendProgress({
