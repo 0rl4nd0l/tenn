@@ -95,6 +95,110 @@ def test_holdings_crud_api_round_trip(tmp_path, monkeypatch) -> None:
     assert after_delete.json()["items"] == []
 
 
+@pytest.mark.parametrize(
+    ("method", "path", "json_body"),
+    [
+        ("get", "/api/cockpit/holdings", None),
+        ("post", "/api/cockpit/holdings", {"ticker": "BHP", "quantity": 10}),
+        ("patch", "/api/cockpit/holdings/existing", {"quantity": 20}),
+        ("delete", "/api/cockpit/holdings/existing", None),
+    ],
+)
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+def test_holdings_routes_require_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+    method,
+    path,
+    json_body,
+    headers,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings,
+        "local_api_key",
+        "local-secret",
+        raising=False,
+    )
+    existing_id = fake_service.state_store.add_holding(
+        ticker="BHP",
+        quantity=10,
+        avg_cost=42.5,
+    )
+    path = path.replace("existing", existing_id)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    request = getattr(client, method)
+    if json_body is None:
+        response = request(path, headers=headers)
+    else:
+        response = request(path, headers=headers, json=json_body)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    rows = fake_service.state_store.list_holdings()
+    assert len(rows) == 1
+    assert rows[0]["holding_id"] == existing_id
+    assert rows[0]["ticker"] == "BHP"
+    assert rows[0]["quantity"] == 10.0
+
+
+def test_holdings_routes_accept_correct_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings,
+        "local_api_key",
+        "local-secret",
+        raising=False,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+    headers = {"X-API-Key": "local-secret"}
+
+    create_response = client.post(
+        "/api/cockpit/holdings",
+        headers=headers,
+        json={"ticker": "BHP", "quantity": 10, "avg_cost": 42.5},
+    )
+    assert create_response.status_code == 200
+    holding_id = create_response.json()["holding_id"]
+
+    list_response = client.get("/api/cockpit/holdings", headers=headers)
+    assert list_response.status_code == 200
+    assert [item["holding_id"] for item in list_response.json()["items"]] == [
+        holding_id
+    ]
+
+    patch_response = client.patch(
+        f"/api/cockpit/holdings/{holding_id}",
+        headers=headers,
+        json={"quantity": 25},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["quantity"] == 25.0
+
+    delete_response = client.delete(
+        f"/api/cockpit/holdings/{holding_id}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"ok": True, "holding_id": holding_id}
+
+
 def test_holdings_update_unknown_id_returns_404(tmp_path, monkeypatch) -> None:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(
@@ -325,7 +429,7 @@ def test_holdings_csv_attachment_upload_requires_api_key_before_import(
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid or missing API key"
     assert add_holding_calls == []
-    assert client.get("/api/cockpit/holdings").json()["items"] == []
+    assert fake_service.state_store.list_holdings() == []
 
 
 def test_holdings_csv_attachment_upload_accepts_correct_api_key_when_configured(
@@ -359,7 +463,10 @@ def test_holdings_csv_attachment_upload_accepts_correct_api_key_when_configured(
     payload = response.json()
     assert payload["file_kind"] == "holdings_csv"
     assert payload["imported_count"] == 1
-    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    holdings = client.get(
+        "/api/cockpit/holdings",
+        headers={"X-API-Key": "local-secret"},
+    ).json()["items"]
     assert len(holdings) == 1
     assert holdings[0]["ticker"] == "BHP"
 

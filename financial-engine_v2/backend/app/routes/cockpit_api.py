@@ -5263,7 +5263,11 @@ def _watchlist_item_from_row(row: dict[str, Any]) -> CockpitWatchlistItem:
     )
 
 
-@router.get("/watchlist", response_model=CockpitWatchlistListResponse)
+@router.get(
+    "/watchlist",
+    response_model=CockpitWatchlistListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_list_watchlist() -> CockpitWatchlistListResponse:
     try:
         service = CockpitService.get_instance()
@@ -5280,7 +5284,11 @@ def cockpit_list_watchlist() -> CockpitWatchlistListResponse:
     )
 
 
-@router.post("/watchlist", response_model=CockpitWatchlistCreateResponse)
+@router.post(
+    "/watchlist",
+    response_model=CockpitWatchlistCreateResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_add_watchlist_item(
     payload: CockpitWatchlistCreateRequest,
 ) -> CockpitWatchlistCreateResponse:
@@ -5309,7 +5317,11 @@ def cockpit_add_watchlist_item(
     )
 
 
-@router.delete("/watchlist/{ticker}", response_model=CockpitWatchlistDeleteResponse)
+@router.delete(
+    "/watchlist/{ticker}",
+    response_model=CockpitWatchlistDeleteResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_remove_watchlist_item(ticker: str) -> CockpitWatchlistDeleteResponse:
     normalized = _normalize_watchlist_ticker(ticker)
     try:
@@ -5528,7 +5540,11 @@ def cockpit_home_portfolio() -> CockpitHomePortfolioResponse:
     )
 
 
-@router.get("/holdings", response_model=CockpitHoldingListResponse)
+@router.get(
+    "/holdings",
+    response_model=CockpitHoldingListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_list_holdings(
     ticker: str | None = None,
     include_archived: bool = False,
@@ -5548,7 +5564,11 @@ def cockpit_list_holdings(
         raise HTTPException(status_code=500, detail=f"Failed to list holdings: {str(exc)}") from exc
 
 
-@router.post("/holdings", response_model=CockpitHoldingRecord)
+@router.post(
+    "/holdings",
+    response_model=CockpitHoldingRecord,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_add_holding(payload: CockpitHoldingCreateRequest) -> CockpitHoldingRecord:
     ticker = str(payload.ticker or "").strip().upper()
     if not ticker:
@@ -5579,7 +5599,11 @@ def cockpit_add_holding(payload: CockpitHoldingCreateRequest) -> CockpitHoldingR
     return CockpitHoldingRecord(**dict(row))
 
 
-@router.patch("/holdings/{holding_id}", response_model=CockpitHoldingRecord)
+@router.patch(
+    "/holdings/{holding_id}",
+    response_model=CockpitHoldingRecord,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_update_holding(
     holding_id: str,
     payload: CockpitHoldingUpdateRequest,
@@ -5614,7 +5638,11 @@ def cockpit_update_holding(
     return CockpitHoldingRecord(**dict(row))
 
 
-@router.delete("/holdings/{holding_id}", response_model=CockpitHoldingMutationResponse)
+@router.delete(
+    "/holdings/{holding_id}",
+    response_model=CockpitHoldingMutationResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_remove_holding(holding_id: str) -> CockpitHoldingMutationResponse:
     try:
         service = CockpitService.get_instance()
