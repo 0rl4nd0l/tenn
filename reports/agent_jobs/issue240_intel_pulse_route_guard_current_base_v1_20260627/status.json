@@ -1,5 +1,5 @@
 {
-  "status": "PR_OPEN",
+  "status": "PR_OPEN_REGISTRY_RELEASED",
   "issue": 240,
   "pr": 435,
   "pr_url": "https://github.com/0rl4nd0l/tenn/pull/435",
@@ -7,12 +7,18 @@
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "base_head": "7d6ab6c184332d5413700eb08e6790f530000942",
   "local_commits": [
-    "4e76d2014d4ca060f4f5e00d19e8960cf8c0a893"
+    "4e76d2014d4ca060f4f5e00d19e8960cf8c0a893",
+    "64f14fc859e0884f9f5c1306e6820b918ce00757"
   ],
+  "registry": {
+    "job_id": "issue240_intel_pulse_route_guard_current_base_v1_20260627",
+    "released_at": "2026-06-26T19:32:29.526241Z",
+    "active_jobs_after_release": []
+  },
   "github_checks": {
-    "observed_at": "2026-06-26T19:31:06Z",
+    "observed_at": "2026-06-26T19:31:53Z",
     "scan": "IN_PROGRESS",
-    "lint-and-test": "IN_PROGRESS"
+    "lint-and-test": "QUEUED"
   },
   "validation": {
     "red_pytest": "4 failed, 17 passed, 5 warnings",
@@ -24,6 +30,7 @@
     "code_review": "no findings",
     "check_diff": "passed",
     "check_report_artifacts": "passed",
+    "ledger_validate": "passed",
     "runtime_functionality_proof": "PARTIAL"
   },
   "safety": {
