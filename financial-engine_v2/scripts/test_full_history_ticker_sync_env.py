@@ -50,10 +50,9 @@ if "app.providers.universe" not in sys.modules:
     universe_stub = types.ModuleType("app.providers.universe")
     universe_stub.ASX20 = ["BHP"]
     sys.modules["app.providers.universe"] = universe_stub
-if "app.services.pipeline" not in sys.modules:
-    pipeline_stub = types.ModuleType("app.services.pipeline")
-    pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
-    sys.modules["app.services.pipeline"] = pipeline_stub
+pipeline_stub = sys.modules.get("app.services.pipeline") or types.ModuleType("app.services.pipeline")
+pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
+sys.modules["app.services.pipeline"] = pipeline_stub
 if "health_guard" not in sys.modules:
     health_stub = types.ModuleType("health_guard")
     health_stub.assert_healthy = lambda *args, **kwargs: None
@@ -120,6 +119,33 @@ class FullHistoryTickerSyncEnvTests(unittest.TestCase):
         self.assertEqual(env["DATA_ROOT"], "/override/data")
         self.assertEqual(env["DOCS_ROOT"], "/override/docs")
         self.assertEqual(env["PYTHONPATH"], "backend")
+
+    def test_marketindex_recovery_row_summary_counts_blocked_markers(self) -> None:
+        mod = _load_module()
+
+        rows = [
+            SimpleNamespace(
+                ticker="BHP",
+                pdf_sha256="blocked_marketindex_headed_required",
+                document_id="doc-1",
+                source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000001",
+            ),
+            SimpleNamespace(
+                ticker="BHP",
+                pdf_sha256="clean_pdf_hash",
+                document_id="doc-2",
+                source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000002",
+            ),
+        ]
+
+        summary = mod._summarize_marketindex_headed_recovery_rows(rows, ["BHP"])
+
+        self.assertEqual(summary["requires_headed_recovery_count"], 1)
+        self.assertEqual(
+            summary["recommended_command"],
+            "python3 scripts/recover_marketindex_headed.py --ticker BHP",
+        )
+        self.assertEqual(summary["samples"][0]["stage"], "post_backfill_report")
 
 
 if __name__ == "__main__":

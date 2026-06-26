@@ -209,6 +209,36 @@ class BackfillMissingUniverseAnnouncementsTests(unittest.TestCase):
             )
             self.assertEqual(execution["full_history_report_payload"]["status"], "updated_now")
 
+    def test_attach_fresh_report_promotes_marketindex_recovery_summary(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            report = tmp / "report.json"
+            report.write_text('{"status":"old"}', encoding="utf-8")
+            before = MOD._file_signature(report)
+            report.write_text(
+                """
+                {
+                  "status": "failed",
+                  "marketindex_headed_recovery": {
+                    "requires_headed_recovery_count": 2,
+                    "recommended_command": "python3 scripts/recover_marketindex_headed.py --ticker BHP,RIO"
+                  }
+                }
+                """,
+                encoding="utf-8",
+            )
+            execution = {}
+            MOD._attach_fresh_full_history_report(
+                execution=execution,
+                full_history_report=report,
+                signature_before=before,
+            )
+            self.assertEqual(execution["requires_headed_recovery_count"], 2)
+            self.assertEqual(
+                execution["marketindex_headed_recovery_command"],
+                "python3 scripts/recover_marketindex_headed.py --ticker BHP,RIO",
+            )
+
     def test_dns_failure_classifier(self):
         self.assertTrue(MOD._looks_like_dns_failure("Temporary failure in name resolution"))
         self.assertTrue(MOD._looks_like_dns_failure("gaierror(-2)"))

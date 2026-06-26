@@ -394,9 +394,17 @@ def _attach_fresh_full_history_report(
         execution["full_history_report_ignored"] = "unchanged_since_command_start"
         return
     try:
-        execution["full_history_report_payload"] = json.loads(
+        payload = json.loads(
             full_history_report.read_text(encoding="utf-8")
         )
+        execution["full_history_report_payload"] = payload
+        marketindex_summary = payload.get("marketindex_headed_recovery") or {}
+        if isinstance(marketindex_summary, dict):
+            count = int(marketindex_summary.get("requires_headed_recovery_count") or 0)
+            command = str(marketindex_summary.get("recommended_command") or "").strip()
+            execution["requires_headed_recovery_count"] = count
+            if command:
+                execution["marketindex_headed_recovery_command"] = command
     except Exception as exc:
         execution["full_history_report_load_error"] = str(exc)
 
