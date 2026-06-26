@@ -1,0 +1,58 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/services/source_weighting.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/chat_recency_malformed_date_isolation_v1_20260602.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": false,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/chat_recency_malformed_date_isolation_v1_20260602.md",
+        "financial-engine_v2/backend/app/services/commentary_decay.py",
+        "financial-engine_v2/backend/app/services/source_weighting.py",
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+        "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/README.md",
+        "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/STATE.md",
+        "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/VALIDATION.md",
+        "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/status.json",
+        "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_writes_allowed": [
+        "issue comment after validation",
+        "issue close only if acceptance criteria are fully satisfied"
+      ],
+      "issue": 261,
+      "job_id": "chat_recency_malformed_date_isolation_v1_20260602",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance",
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

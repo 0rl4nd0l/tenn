@@ -1,0 +1,65 @@
+{
+  "job_id": "chat_recency_malformed_date_publish_pr_v1_20260626",
+  "issue": 261,
+  "mode": "safe_extension",
+  "primary_lane": "Query Orchestration",
+  "status": "validation_passed_pr_pending",
+  "updated_at": "2026-06-26T12:46:44Z",
+  "worktree": "/home/l4nd0/tenn-issue261-malformed-date-isolation-v1-20260626",
+  "branch": "safe/issue261-malformed-date-isolation-v1-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "initial_head": "857e76c3180cb0b1fb9fc360652d6a9b64543c86",
+  "pull_request": null,
+  "github_comments_posted": 0,
+  "github_comment_urls": [],
+  "registry_released": false,
+  "ledger_status": "claimed",
+  "issue_closed": false,
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "integration_note": "Adjacent to open source-weighting PRs #416 and #418; publish as draft for deliberate integration order.",
+  "files_changed": [
+    "docs/agent_tasks/chat_recency_malformed_date_isolation_v1_20260602.md",
+    "docs/agent_tasks/chat_recency_malformed_date_publish_pr_v1_20260626.md",
+    "financial-engine_v2/backend/app/services/source_weighting.py",
+    "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/"
+  ],
+  "validation_summary": [
+    {
+      "command": "task card validate",
+      "result": "PASS"
+    },
+    {
+      "command": "registry overlap and claim",
+      "result": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+      "result": "PASS_28"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_news_retrieval_eval.py",
+      "result": "PASS_34"
+    },
+    {
+      "command": "ruff check",
+      "result": "PASS"
+    },
+    {
+      "command": "py_compile",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "code review",
+      "result": "PASS_NO_BLOCKING_FINDINGS"
+    }
+  ],
+  "runtime_functionality_result": "PARTIAL",
+  "remaining_blocker": "Draft PR publication, review, and merge are still pending; no live service smoke was run."
+}
