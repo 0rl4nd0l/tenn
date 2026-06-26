@@ -1,20 +1,24 @@
 {
   "changed_files": [
     {
-      "path": "financial-engine_v2/backend/app/services/chat_quality_scorer.py",
+      "path": "reports/agent_jobs/chat_session_coherence_range_publish_pr_v1_20260626/README.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/app/services/tests/test_chat_quality_scorer.py",
+      "path": "reports/agent_jobs/chat_session_coherence_range_publish_pr_v1_20260626/diff-check.json",
       "status": "M"
     },
     {
-      "path": "docs/agent_tasks/chat_session_coherence_range_publish_pr_v1_20260626.md",
-      "status": "??"
+      "path": "reports/agent_jobs/chat_session_coherence_range_publish_pr_v1_20260626/status.json",
+      "status": "M"
     },
     {
-      "path": "docs/agent_tasks/chat_session_coherence_range_v1_20260602.md",
-      "status": "??"
+      "path": "reports/agent_jobs/chat_session_coherence_range_v1_20260602/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_session_coherence_range_v1_20260602/status.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

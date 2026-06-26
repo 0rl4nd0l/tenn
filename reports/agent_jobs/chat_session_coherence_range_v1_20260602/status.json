@@ -9,8 +9,16 @@
   ],
   "github_comments_posted": 1,
   "github_comment_urls": [
-    "https://github.com/0rl4nd0l/tenn/issues/258#issuecomment-4807361415"
+    "https://github.com/0rl4nd0l/tenn/issues/258#issuecomment-4807361415",
+    "https://github.com/0rl4nd0l/tenn/issues/258#issuecomment-4809403931"
   ],
+  "published_pr": {
+    "number": 415,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/415",
+    "draft": true,
+    "published_commit": "4c93a022beb81b9d564cb3c9b1e6eedb0ad6972d",
+    "published_at": "2026-06-26T12:04:52Z"
+  },
   "issue_closed": false,
   "forbidden_mutations": false,
   "production_data_access": false,
@@ -56,5 +64,5 @@
       "result": "PASS_DONE_OWNER_BOUNDARY"
     }
   ],
-  "verdict": "LOCAL_FIX_VALIDATED_READY_FOR_PR_LEFT_OPEN"
+  "verdict": "DRAFT_PR_OPENED_LEFT_OPEN_PENDING_MERGE"
 }

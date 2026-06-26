@@ -1,6 +1,6 @@
 # Chat Session Coherence Publish PR
 
-Status: in progress
+Status: draft PR opened; issue remains open
 
 ## Summary
 
@@ -13,6 +13,7 @@ not merge the PR or close the issue.
 - Branch: `safe/issue258-chat-session-coherence-range-v1-20260626`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Initial HEAD: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
+- Published commit: `4c93a022beb81b9d564cb3c9b1e6eedb0ad6972d`
 
 ## Validation
 
@@ -29,6 +30,18 @@ Focused validation passed:
 - `git diff --check` passed.
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/chat_session_coherence_range_publish_pr_v1_20260626.md --repo-root .`
   passed.
+- `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/chat_session_coherence_range_publish_pr_v1_20260626.md --repo-root .`
+  passed.
+- `python3 scripts/agent_job_registry.py release chat_session_coherence_range_publish_pr_v1_20260626 --repo-root .`
+  passed.
+- `python3 scripts/agent_task_ledger.py --repo-root . append --fill-identity ...`
+  passed with status `pr_opened`.
+
+The first `git push` was blocked because the local checkout does not have
+`financial-engine_v2/.venv/bin/ruff` or
+`financial-engine_v2/.venv/bin/pytest`. The branch was pushed with
+`TENN_ALLOW_MISSING_HOOK_TOOLS=1` after the equivalent focused `uv` validation
+commands above had passed.
 
 ## Runtime Functionality Proof
 
@@ -51,4 +64,9 @@ result: PARTIAL
 
 ## PR
 
-Pending.
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/415
+- Issue status comment:
+  https://github.com/0rl4nd0l/tenn/issues/258#issuecomment-4809403931
+- Issue state: open pending review/merge of PR #415.
+- Registry state: active claim released.
+- Ledger state: `pr_opened`.
