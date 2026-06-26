@@ -9949,7 +9949,11 @@ def cockpit_delete_route_alias_preference(
     )
 
 
-@router.get("/chat/sessions", response_model=CockpitChatSessionListResponse)
+@router.get(
+    "/chat/sessions",
+    response_model=CockpitChatSessionListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_list_chat_sessions(limit: int = 100) -> CockpitChatSessionListResponse:
     try:
         service = CockpitService.get_instance()
@@ -9977,7 +9981,11 @@ def cockpit_list_chat_sessions(limit: int = 100) -> CockpitChatSessionListRespon
     return CockpitChatSessionListResponse(items=items)
 
 
-@router.post("/chat/sessions", response_model=CockpitChatSessionCreateResponse)
+@router.post(
+    "/chat/sessions",
+    response_model=CockpitChatSessionCreateResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_create_chat_session(
     payload: CockpitChatSessionCreateRequest,
 ) -> CockpitChatSessionCreateResponse:
@@ -10002,6 +10010,7 @@ def cockpit_create_chat_session(
 @router.get(
     "/chat/sessions/{session_id}",
     response_model=CockpitChatSessionMessagesResponse,
+    dependencies=[Depends(require_api_key)],
 )
 def cockpit_get_chat_session_messages(
     session_id: str,
@@ -10052,6 +10061,7 @@ def cockpit_get_chat_session_messages(
 @router.delete(
     "/chat/sessions/{session_id}",
     response_model=CockpitChatSessionDeleteResponse,
+    dependencies=[Depends(require_api_key)],
 )
 def cockpit_delete_chat_session(session_id: str) -> CockpitChatSessionDeleteResponse:
     thread_id = _normalize_session_id(session_id)
@@ -10072,7 +10082,7 @@ def cockpit_delete_chat_session(session_id: str) -> CockpitChatSessionDeleteResp
     )
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(require_api_key)])
 async def cockpit_chat(payload: CockpitChatRequest, request: Request):
     """
     Unified cockpit chat endpoint supporting SSE streaming.

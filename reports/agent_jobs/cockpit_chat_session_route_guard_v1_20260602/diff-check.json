@@ -1,0 +1,130 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/lib/api-client.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/api-client.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_session_route_guard_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_sessions.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream_keepalive.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_local_api_key.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_chat_session_route_guard_v1_20260602.md",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_sessions.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream_keepalive.py",
+        "financial-engine_v2/backend/tests/test_local_api_key.py",
+        "cockpit-ui/lib/api-client.ts",
+        "cockpit-ui/lib/api-client.test.ts",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/README.md",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/STATE.md",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/VALIDATION.md",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/REVIEW.md",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/PR_BODY.md",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/status.json",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/validation.json",
+        "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "issue"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "NO_DOCS_CHANGE",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "cockpit_chat_session_route_guard_v1_20260602",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_chat_session_route_guard_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #229 changes the direct backend access contract and Cockpit browser API-key forwarding for core chat/session routes.",
+      "recommended_model": "standard coding model",
+      "related_issue": 229,
+      "supporting_lanes": [
+        "Reporting",
+        "Runtime",
+        "Provenance",
+        "Evaluation",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "why_this_model": "Focused backend route guard, client header forwarding, and regression tests for Cockpit chat/session authorization.",
+      "worker_decision_limit": "No workers used; the issue is route-local after current duplicate checks found no matching PR or ledger claim.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

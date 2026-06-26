@@ -4,9 +4,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from cockpit.storage.state import StateStore
@@ -24,6 +26,222 @@ def _fake_service(tmp_path: Path) -> SimpleNamespace:
         state_store=state_store,
         artifact_store=SimpleNamespace(logs_dir=logs_dir),
     )
+
+
+def _client(
+    monkeypatch,
+    fake_service: SimpleNamespace,
+    *,
+    local_api_key: str = "",
+) -> TestClient:
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", local_api_key, raising=False)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    return TestClient(app)
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+@pytest.mark.parametrize(
+    ("method", "path", "json_payload"),
+    [
+        ("GET", "/api/cockpit/chat/sessions?limit=10", None),
+        ("POST", "/api/cockpit/chat/sessions", {"session_id": "new-session"}),
+        ("GET", "/api/cockpit/chat/sessions/existing-session?limit=50", None),
+        ("DELETE", "/api/cockpit/chat/sessions/existing-session", None),
+    ],
+)
+def test_chat_session_routes_require_api_key_without_mutating_state(
+    tmp_path,
+    monkeypatch,
+    headers,
+    method: str,
+    path: str,
+    json_payload: dict[str, str] | None,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    fake_service.state_store.add_chat_message(
+        "existing-session", "user", "Keep this session", _now_iso()
+    )
+    client = _client(monkeypatch, fake_service, local_api_key="local-secret")
+
+    response = client.request(method, path, headers=headers, json=json_payload)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert not fake_service.state_store.has_chat_session("new-session")
+    assert fake_service.state_store.has_chat_session("existing-session")
+    assert len(
+        fake_service.state_store.get_chat_messages_with_ids(
+            "existing-session", limit=10
+        )
+    ) == 1
+
+
+def test_chat_session_routes_accept_matching_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    client = _client(monkeypatch, fake_service, local_api_key="local-secret")
+    headers = {"X-API-Key": "local-secret"}
+
+    create_response = client.post(
+        "/api/cockpit/chat/sessions",
+        headers=headers,
+        json={"session_id": "session-auth"},
+    )
+    assert create_response.status_code == 200
+    assert create_response.json()["created"] is True
+
+    fake_service.state_store.add_chat_message(
+        "session-auth", "user", "How is BHP going?", _now_iso()
+    )
+
+    list_response = client.get("/api/cockpit/chat/sessions?limit=10", headers=headers)
+    assert list_response.status_code == 200
+    assert [item["session_id"] for item in list_response.json()["items"]] == [
+        "session-auth"
+    ]
+
+    get_response = client.get(
+        "/api/cockpit/chat/sessions/session-auth?limit=50", headers=headers
+    )
+    assert get_response.status_code == 200
+    assert get_response.json()["items"][0]["content"] == "How is BHP going?"
+
+    delete_response = client.delete(
+        "/api/cockpit/chat/sessions/session-auth", headers=headers
+    )
+    assert delete_response.status_code == 200
+    assert delete_response.json()["deleted_count"] == 1
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_chat_post_requires_api_key_before_execution_and_side_effects(
+    tmp_path,
+    monkeypatch,
+    headers,
+) -> None:
+    class FakeChatService:
+        def __init__(self) -> None:
+            self.state_store = StateStore(str(tmp_path / "state.db"))
+            self.chat_calls = 0
+            self.finalize_calls = 0
+            self.auto_flag_calls = 0
+
+        def chat_stream(self, *args, **kwargs):
+            self.chat_calls += 1
+            return SimpleNamespace(
+                text="BHP looks steady.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "test",
+                    "latency_ms": 1,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            self.finalize_calls += 1
+
+        def auto_flag_chat_response(self, **kwargs):
+            self.auto_flag_calls += 1
+            return {"flag_id": "flag-1"}
+
+    fake_service = FakeChatService()
+    client = _client(monkeypatch, fake_service, local_api_key="local-secret")
+
+    response = client.post(
+        "/api/cockpit/chat",
+        headers=headers,
+        json={"message": "tell me about BHP", "stream": False},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert fake_service.chat_calls == 0
+    assert fake_service.finalize_calls == 0
+    assert fake_service.auto_flag_calls == 0
+    assert fake_service.state_store.list_chat_sessions(limit=10) == []
+
+
+def test_chat_post_accepts_matching_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    class FakeChatService:
+        def __init__(self) -> None:
+            self.state_store = StateStore(str(tmp_path / "state.db"))
+            self.chat_calls = 0
+            self.finalize_calls = 0
+            self.auto_flag_calls = 0
+
+        def chat_stream(self, *args, **kwargs):
+            self.chat_calls += 1
+            return SimpleNamespace(
+                text="BHP looks steady.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "test",
+                    "latency_ms": 1,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            self.finalize_calls += 1
+
+        def auto_flag_chat_response(self, **kwargs):
+            self.auto_flag_calls += 1
+            return {"flag_id": "flag-1"}
+
+    fake_service = FakeChatService()
+    client = _client(monkeypatch, fake_service, local_api_key="local-secret")
+
+    response = client.post(
+        "/api/cockpit/chat",
+        headers={"X-API-Key": "local-secret"},
+        json={"message": "tell me about BHP", "stream": False},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["text"]
+    assert fake_service.chat_calls == 1
+    assert fake_service.finalize_calls == 1
+    assert fake_service.auto_flag_calls == 1
+
+
+def test_stateless_smoke_header_does_not_bypass_configured_api_key(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = SimpleNamespace(
+        state_store=StateStore(str(tmp_path / "state.db")),
+        chat_stream=lambda *args, **kwargs: pytest.fail("chat_stream should not run"),
+    )
+    client = _client(monkeypatch, fake_service, local_api_key="local-secret")
+
+    response = client.post(
+        "/api/cockpit/chat",
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+        json={
+            "message": "stateless smoke",
+            "stream": False,
+            "stateless_smoke": True,
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
 
 
 def test_chat_sessions_list_get_delete_round_trip(tmp_path, monkeypatch) -> None:
