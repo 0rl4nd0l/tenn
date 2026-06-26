@@ -1,0 +1,30 @@
+{
+  "job_id": "issue282_backend_route_formatting_current_base_v2_20260626",
+  "issue": 282,
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "result": "PARTIAL",
+  "branch": "safe/issue282-backend-route-formatting-current-base-v2-20260626",
+  "worktree": "/home/l4nd0/tenn-issue282-backend-route-formatting-current-base-v2-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "c237716e818feaf717e370be5ecf10da2faeabf4",
+  "summary": "routes.py compact dictionary returns and import placement were normalized without changing endpoint behavior.",
+  "validation": {
+    "guard_pre_edit": "PASS",
+    "task_card_validate": "PASS",
+    "registry_overlap": "PASS",
+    "registry_claim": "PASS",
+    "ledger_claim": "PASS",
+    "py_compile": "PASS",
+    "ruff_format_check": "PASS",
+    "ruff_check": "PASS",
+    "git_diff_check": "PASS",
+    "pytest_route_focus": "PASS_19",
+    "code_review": "PASS_NO_FINDINGS",
+    "github_checks": "PENDING"
+  },
+  "runtime_functionality": {
+    "result": "PARTIAL",
+    "remaining_blocker": "No live runtime was started or queried; this is a formatting-only source cleanup pending PR publication, green GitHub checks, and canonical merge containment."
+  },
+  "next_action": "Commit, push PR, wait for GitHub checks, merge only when gated, then close issue #282 after containment."
+}
