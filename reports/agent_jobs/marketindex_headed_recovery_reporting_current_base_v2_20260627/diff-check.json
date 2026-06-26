@@ -1,0 +1,97 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/build_production_bundle.sh",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/PR_BODY.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/REVIEW.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+        "financial-engine_v2/scripts/full_history_ticker_sync.py",
+        "financial-engine_v2/scripts/build_production_bundle.sh",
+        "financial-engine_v2/scripts/marketindex_recovery_reporting.py",
+        "financial-engine_v2/scripts/resume_pending_downloads.py",
+        "financial-engine_v2/scripts/test_full_history_ticker_sync_env.py",
+        "financial-engine_v2/scripts/test_marketindex_recovery_reporting.py",
+        "financial-engine_v2/scripts/test_resume_pending_extraction_failures.py",
+        "scripts/backfill_missing_universe_announcements.py",
+        "scripts/test_backfill_missing_universe_announcements.py",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/README.md",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/STATE.md",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/VALIDATION.md",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/REVIEW.md",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/PR_BODY.md",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/status.json",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/validation.json",
+        "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+        "docs/entrypoints.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "NONE",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "marketindex_headed_recovery_reporting_current_base_v2_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #279 asks for clearer operator-facing reports for MarketIndex headed recovery blockers without changing the blocking behavior or starting runtime services.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Evaluation",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 3600,
+      "why_this_model": "Focused script/reporting contract change with current-base port of preserved stale work and unit tests.",
+      "worker_decision_limit": "No workers used; scope is narrow and source-local.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}
