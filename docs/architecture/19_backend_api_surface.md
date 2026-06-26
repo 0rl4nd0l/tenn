@@ -84,12 +84,14 @@ The FastAPI app mounts routes in these groups:
 
 - `POST /rag/query`
   - unified retrieval endpoint
-  - current implemented sources:
+  - accepted sources:
     - `asx_docs`
     - `news`
-  - current not-yet-implemented sources return `501`:
+  - unsupported sources are rejected by request validation:
     - `commentary`
     - `hybrid`
+  - commentary and hybrid retrieval remain owned by `/chat` until backend
+    retrieval support is implemented for `/rag/query`
 - `POST /chat`
 - `POST /api/chat`
   - chat endpoint exposed at both paths

@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "issue": 252,
+  "job_id": "rag_query_commentary_hybrid_source_contract_current_base_v1_20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@6dc50b558c4ec88157d4353d9c493a80ed0e91d5",
+  "branch": "safe/issue252-rag-query-contract-current-base-v1-20260627",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/rag_query_commentary_hybrid_source_contract_current_base_v1_20260627.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap --repo-root . docs/agent_tasks/rag_query_commentary_hybrid_source_contract_current_base_v1_20260627.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim --repo-root . docs/agent_tasks/rag_query_commentary_hybrid_source_contract_current_base_v1_20260627.md",
+      "status": "passed"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_rag_query_route_contract.py -q",
+      "red_status": "failed_as_expected",
+      "red_summary": "2 failed, 2 passed, 5 warnings; unsupported sources returned 501 instead of 422",
+      "green_status": "passed",
+      "green_summary": "4 passed, 5 warnings"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/main.py financial-engine_v2/backend/tests/test_rag_query_route_contract.py",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/main.py financial-engine_v2/backend/tests/test_rag_query_route_contract.py",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/rag_query_commentary_hybrid_source_contract_current_base_v1_20260627.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/rag_query_commentary_hybrid_source_contract_current_base_v1_20260627.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py --repo-root . validate",
+      "status": "passed_after_append"
+    }
+  ],
+  "runtime_functionality_proof": {
+    "result": "PARTIAL",
+    "reason": "Focused route-contract tests pass, but no live backend runtime was started."
+  },
+  "docs_impact": "DOCS_UPDATED",
+  "docs_followup": "NONE"
+}
