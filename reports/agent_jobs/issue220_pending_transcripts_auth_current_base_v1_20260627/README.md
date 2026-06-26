@@ -2,7 +2,7 @@
 
 ## Status
 
-`READY_FOR_PR`.
+`PR_OPEN`.
 
 ## Current Evidence
 
@@ -12,6 +12,7 @@
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - HEAD before edits: `7d6ab6c184332d5413700eb08e6790f530000942`
 - Issue: <https://github.com/0rl4nd0l/tenn/issues/220>
+- PR: <https://github.com/0rl4nd0l/tenn/pull/431>
 
 ## Changes
 
