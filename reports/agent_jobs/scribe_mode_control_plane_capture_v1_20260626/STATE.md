@@ -2,8 +2,8 @@
 
 State: DONE
 
-Current Focus: Scribe mode control-plane implementation is committed locally;
-owner approved push, missing-hook-tool bypass, and draft PR creation.
+Current Focus: Scribe mode control-plane implementation is pushed; draft PR
+creation is approved and pending.
 
 ## Completed
 
@@ -21,7 +21,7 @@ owner approved push, missing-hook-tool bypass, and draft PR creation.
 
 ## Blocked
 
-- None for push and draft PR creation.
+- None for draft PR creation.
 - Merge and non-draft PR state changes require separate owner approval.
 
 ## Decisions
@@ -37,6 +37,7 @@ owner approved push, missing-hook-tool bypass, and draft PR creation.
   `migration/clean-runtime-baseline-reconstruct-v1`.
 - Owner approved rerunning push with `TENN_ALLOW_MISSING_HOOK_TOOLS=1` after
   the local pre-push hook reported missing `ruff` and `pytest` in the repo venv.
+- Push with the approved bypass succeeded.
 
 ## Scribe Capture
 
@@ -115,5 +116,4 @@ owner approved push, missing-hook-tool bypass, and draft PR creation.
 
 ## Next Safe Action
 
-Push the branch and open a draft PR; do not merge without explicit owner
-approval.
+Open a draft PR; do not merge without explicit owner approval.

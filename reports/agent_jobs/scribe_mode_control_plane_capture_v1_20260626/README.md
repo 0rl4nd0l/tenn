@@ -16,9 +16,10 @@ surfaces.
 - Base HEAD at start: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
 - Task card:
   `docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md`
-- Closeout: local commit complete; owner approved push and draft PR creation at
-  `2026-06-26T06:59:20Z`. Owner approved the documented missing-hook-tool push
-  bypass at `2026-06-26T07:01:13Z`. Merge still needs separate owner approval.
+- Closeout: local commit complete and branch pushed. Owner approved push and
+  draft PR creation at `2026-06-26T06:59:20Z`. Owner approved the documented
+  missing-hook-tool push bypass at `2026-06-26T07:01:13Z`. Merge still needs
+  separate owner approval.
 
 ## What Changed
 
@@ -101,7 +102,8 @@ that step at `2026-06-26T06:59:20Z`.
 The first push attempt was blocked by local pre-push hook tool checks because
 `financial-engine_v2/.venv/bin/ruff` and `financial-engine_v2/.venv/bin/pytest`
 were missing. Owner approved rerunning the push with
-`TENN_ALLOW_MISSING_HOOK_TOOLS=1` at `2026-06-26T07:01:13Z`.
+`TENN_ALLOW_MISSING_HOOK_TOOLS=1` at `2026-06-26T07:01:13Z`; the bypassed push
+then succeeded.
 
 Approval is still required before merge, branch cleanup, non-draft PR state
 changes, or GitHub issue mutation.

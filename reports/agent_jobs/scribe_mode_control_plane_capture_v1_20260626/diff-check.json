@@ -1,14 +1,6 @@
 {
   "changed_files": [
     {
-      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/DECISIONS.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/PR_REVIEW.md",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/README.md",
       "status": "M"
     },

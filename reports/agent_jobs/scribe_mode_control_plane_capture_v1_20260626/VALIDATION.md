@@ -19,7 +19,7 @@
 | `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md --repo-root .` | 0 | `ok=true`; every allowlisted report artifact exists and is non-empty. |
 | `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md --repo-root .` | 0 | `ok=true`; control-plane-only closeout accepted. |
 | `git push -u origin safe/scribe-mode-control-plane-v1-20260626` | 1 | Blocked by pre-push hook because `financial-engine_v2/.venv/bin/ruff` and `financial-engine_v2/.venv/bin/pytest` are missing. |
-| `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/scribe-mode-control-plane-v1-20260626` | pending | Owner approved this explicit missing-hook-tool bypass at `2026-06-26T07:01:13Z`. |
+| `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/scribe-mode-control-plane-v1-20260626` | 0 | Owner approved this explicit missing-hook-tool bypass at `2026-06-26T07:01:13Z`; hook skipped lint/test checks, markdown hygiene passed, and branch was pushed. |
 
 ## Visible Skill Count
 
