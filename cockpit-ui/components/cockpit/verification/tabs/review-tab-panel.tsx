@@ -33,6 +33,9 @@ import {
   summarizeSessionDocuments,
 } from '../utils'
 
+const NO_RECENT_RUN_SELECTED = '__no_recent_run_selected__'
+const NO_REVIEW_SESSION_SELECTED = '__no_review_session_selected__'
+
 type ReviewTabPanelProps = {
   documents: ContextDocument[]
   documentsLoading: boolean
@@ -156,6 +159,8 @@ export function ReviewTabPanel({
     const itemCount = session.item_count ?? session.summary?.total ?? 0
     return `${(session.updated_at || session.created_at || '').slice(0, 16)} | ${tickerLabel} | ${itemCount} items | ${title}`
   }
+  const recentRunsSelectLabel = recentRunsLoading ? 'Loading runs...' : 'Select a past run'
+  const reviewSessionsSelectLabel = recentReviewSessionsLoading ? 'Loading saved reviews...' : 'Select a saved review'
 
   return (
     <div className="space-y-6">
@@ -219,11 +224,17 @@ export function ReviewTabPanel({
           <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[200px_1fr_auto]">
             <Field>
               <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Recent runs</FieldLabel>
-              <Select value={selectedRunId || undefined} onValueChange={onSelectedRunIdChange}>
+              <Select
+                value={selectedRunId || NO_RECENT_RUN_SELECTED}
+                onValueChange={(value) => onSelectedRunIdChange(value === NO_RECENT_RUN_SELECTED ? '' : value)}
+              >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={recentRunsLoading ? 'Loading runs...' : 'Select a past run'} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_RECENT_RUN_SELECTED} className="text-xs">
+                    {recentRunsSelectLabel}
+                  </SelectItem>
                   {recentRuns.map((run) => (
                     <SelectItem key={run.run_id} value={run.run_id} className="text-xs">
                       {`${run.created_at.slice(0, 16)} | ${run.status} | ${run.metrics_count ?? 0}m | ${reviewStateLabel(run)}`}
@@ -263,11 +274,17 @@ export function ReviewTabPanel({
           <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[minmax(220px,1fr)_auto]">
             <Field>
               <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Saved review sessions</FieldLabel>
-              <Select value={selectedReviewSessionId || undefined} onValueChange={onSelectedReviewSessionIdChange}>
+              <Select
+                value={selectedReviewSessionId || NO_REVIEW_SESSION_SELECTED}
+                onValueChange={(value) => onSelectedReviewSessionIdChange(value === NO_REVIEW_SESSION_SELECTED ? '' : value)}
+              >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={recentReviewSessionsLoading ? 'Loading saved reviews...' : 'Select a saved review'} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_REVIEW_SESSION_SELECTED} className="text-xs">
+                    {reviewSessionsSelectLabel}
+                  </SelectItem>
                   {recentReviewSessions.map((session) => (
                     <SelectItem key={session.session_id} value={session.session_id} className="text-xs">
                       {sessionLabel(session)}
