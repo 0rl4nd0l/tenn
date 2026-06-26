@@ -1,6 +1,6 @@
 # State
 
-status: `DRAFT_PR_OPENED_CI_PENDING`
+status: `PR_READY_GATE_AVAILABLE_CI_GREEN`
 
 ## Current State
 
@@ -10,8 +10,9 @@ status: `DRAFT_PR_OPENED_CI_PENDING`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@7d6ab6c184332d5413700eb08e6790f530000942`
 - Registry: claimed
 - Registry release: complete
-- Draft PR: #447
-- GitHub checks at PR creation: pending
+- PR: #447
+- GitHub checks: `lint-and-test` pass, `scan` pass
+- Merge state: `CLEAN`
 - Issues: #45, #47, #49
 - Prior PR: #133, superseded because it is now conflicting
 
@@ -29,5 +30,6 @@ status: `DRAFT_PR_OPENED_CI_PENDING`
 
 ## Next Safe Action
 
-Wait for PR #447 GitHub CI, then only mark ready/merge/close issues after
-green checks and canonical merge containment.
+Mark PR #447 ready for review if the post-metadata-push GitHub checks remain
+green and mergeStateStatus remains `CLEAN`. Merge or close issues only after
+review or merge approval and canonical merge containment.

@@ -37,6 +37,17 @@
   "session_id": "l4nd0-System-Product-Name:2913996:reporting_console_verification_news_current_base_v1_20260627",
   "started_at": "2026-06-26T22:33:16.754997Z",
   "status": "released",
+  "github_pr": 447,
+  "github_ci": {
+    "checked_at": "2026-06-26T22:53:00Z",
+    "merge_state_status": "CLEAN",
+    "checks": {
+      "lint-and-test": "SUCCESS",
+      "scan": "SUCCESS"
+    },
+    "ready_for_review_gate_available": true,
+    "issue_close_gate": "merge_and_canonical_containment_required"
+  },
   "task_card": "docs/agent_tasks/reporting_console_verification_news_current_base_v1_20260627.md",
   "updated_at": "2026-06-26T22:42:28.859184Z",
   "worktree": "/home/l4nd0/tenn-issues45-47-49-reporting-cleanliness-current-base-v1-20260627"

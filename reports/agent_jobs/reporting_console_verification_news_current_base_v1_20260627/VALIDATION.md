@@ -67,3 +67,10 @@ no reusable local toolchain. No dependency install was run.
   - `mergeStateStatus=UNSTABLE`
   - `lint-and-test=pending`
   - `scan=pending`
+- Refreshed PR state before metadata update:
+  - `isDraft=true`
+  - `mergeStateStatus=CLEAN`
+  - `lint-and-test=SUCCESS`
+  - `scan=SUCCESS`
+  - ready-for-review gate available after this metadata update is pushed and
+    post-push checks remain green

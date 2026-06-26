@@ -37,6 +37,7 @@ github_writes_allowed:
   - push branch after static and contract validation when local frontend dependencies are unavailable
   - open draft PR after static and contract validation when local frontend dependencies are unavailable
   - set TENN_ALLOW_MISSING_HOOK_TOOLS=1 for push only when missing local hook tools are recorded and PR remains draft
+  - mark PR ready for review after GitHub CI passes and mergeStateStatus is CLEAN
   - issue close only after canonical merge containment
 ---
 

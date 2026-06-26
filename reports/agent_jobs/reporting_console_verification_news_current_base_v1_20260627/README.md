@@ -1,6 +1,6 @@
 # Reporting Console, Verification, And News Current-Base Replacement
 
-Status: `DRAFT_PR_OPENED_CI_PENDING`
+Status: `PR_READY_GATE_AVAILABLE_CI_GREEN`
 
 ## Summary
 
@@ -34,8 +34,9 @@ See `VALIDATION.md`.
 
 Local executable frontend validation is `DATA_MISSING`: this fresh worktree has
 no `cockpit-ui/node_modules`, and `vitest` / `eslint` are unavailable. Per the
-task card, no dependency install was run. Any PR from this branch must stay
-draft until GitHub CI passes.
+task card, no dependency install was run. GitHub CI later passed on PR #447, so
+the ready-for-review gate is available while runtime/browser proof remains
+`DATA_MISSING`.
 
 The first push attempt was blocked by missing local pre-push hook tools
 (`financial-engine_v2/.venv/bin/ruff` and `financial-engine_v2/.venv/bin/pytest`).
@@ -51,10 +52,10 @@ the blocker recorded.
 | pre-run max timestamp or count | DATA_MISSING; no live Cockpit runtime/browser smoke was started in this task. |
 | post-run max timestamp or count | DATA_MISSING; no live Cockpit runtime/browser smoke was started in this task. |
 | rows/files inserted or updated after run start | 0 live runtime rows/files; repository files changed only. |
-| readiness/gate status | Draft PR #447 opened; GitHub checks pending at publication; local frontend executable validation DATA_MISSING due absent dependencies. |
+| readiness/gate status | PR #447 opened; GitHub checks passed (`lint-and-test`, `scan`) and mergeStateStatus is `CLEAN`; local frontend executable validation DATA_MISSING due absent dependencies. |
 | exact command/query used | `git diff --check`; `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/reporting_console_verification_news_current_base_v1_20260627.md --repo-root .`; attempted `corepack pnpm --dir cockpit-ui exec vitest ...`, `eslint ...`, and `tsc --noEmit` blocked because commands were unavailable. |
 | result | DATA_MISSING |
-| remaining blocker | No live browser/runtime proof and no local frontend dependency toolchain; wait for PR #447 CI and optional browser smoke before claiming working runtime behavior. |
+| remaining blocker | No live browser/runtime proof and no local frontend dependency toolchain; merge/issue close still requires review or merge approval plus canonical containment. |
 
 result: DATA_MISSING
 
@@ -67,7 +68,7 @@ result: DATA_MISSING
 
 ## Closeout
 
-Draft PR: https://github.com/0rl4nd0l/tenn/pull/447
+PR: https://github.com/0rl4nd0l/tenn/pull/447
 
 Issues #45, #47, and #49 must remain open until PR #447 is merged into
 canonical and merge containment is verified.
