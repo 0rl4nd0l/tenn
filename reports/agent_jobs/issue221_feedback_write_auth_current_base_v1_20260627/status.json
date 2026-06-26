@@ -1,0 +1,22 @@
+{
+  "agent": "Codex",
+  "branch": "safe/issue221-feedback-write-auth-current-base-v1-20260627",
+  "completed_at": "2026-06-26T18:57:20Z",
+  "head_before_edits": "7d6ab6c184332d5413700eb08e6790f530000942",
+  "issue": 221,
+  "job_id": "issue221_feedback_write_auth_current_base_v1_20260627",
+  "output_dir": "reports/agent_jobs/issue221_feedback_write_auth_current_base_v1_20260627",
+  "pr": null,
+  "result": "DONE_WITH_RISK",
+  "runtime_functionality_result": "PARTIAL",
+  "status": "validated_ready_for_pr",
+  "validation": {
+    "backend_pytest": "24 passed, 55 deselected, 1 warning",
+    "code_review": "no findings",
+    "frontend_vitest": "DATA_MISSING: vitest not found because cockpit-ui/node_modules is absent",
+    "git_diff_check": "passed",
+    "py_compile": "passed",
+    "ruff": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-issue221-feedback-write-auth-current-base-v1-20260627"
+}

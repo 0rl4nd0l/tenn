@@ -2076,7 +2076,7 @@ export function ChatScreen() {
     try {
       const response = await fetch('/api/cockpit/feedback/flag', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders('application/json'),
         body: JSON.stringify({
           session_id: sessionId,
           ticker: activeTicker,
@@ -2127,7 +2127,7 @@ export function ChatScreen() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast.error(`Failed to save feedback: ${errorMessage}`)
     }
-  }, [activeTicker, chatModel, feedbackStates, messages, preferences, sessionId])
+  }, [activeTicker, buildAuthHeaders, chatModel, feedbackStates, messages, preferences, sessionId])
 
   const handleFeedbackMessage = useCallback((message: ChatMessageType, kind: FeedbackKind) => {
     if (message.role !== 'assistant' || feedbackStates[message.id]) {

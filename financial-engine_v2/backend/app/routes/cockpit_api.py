@@ -9434,7 +9434,11 @@ async def cockpit_update_marketplace_alert(
     return MarketplaceAlertRecord(**alert)
 
 
-@router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)
+@router.post(
+    "/feedback/flag",
+    response_model=CockpitFeedbackFlagResponse,
+    dependencies=[Depends(require_api_key)],
+)
 async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
     """Persist a flagged cockpit chat turn with relevant backend diagnostics."""
     try:
@@ -9524,6 +9528,7 @@ async def cockpit_get_flagged_feedback(report_id: str):
 @router.post(
     "/feedback/flags/{report_id}/resolve",
     response_model=CockpitFlagResolutionResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_resolve_flagged_feedback(
     report_id: str,

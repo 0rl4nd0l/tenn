@@ -4,14 +4,17 @@ import asyncio
 import json
 import sys
 import threading
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from app.services.memory_events import emit_memory_read_event, suppress_memory_read_events
@@ -3512,6 +3515,100 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
     assert payload["resolution_commit_sha"] is None
 
 
+def _feedback_flag_request() -> dict:
+    return {
+        "session_id": "session-123",
+        "ticker": "BHP",
+        "flagged_message": {
+            "id": "assistant-1",
+            "role": "assistant",
+            "content": "Bad answer",
+        },
+        "transcript": [
+            {"id": "user-1", "role": "user", "content": "Tell me about BHP"},
+            {"id": "assistant-1", "role": "assistant", "content": "Bad answer"},
+        ],
+        "frontend_context": {"source": "cockpit-ui-chat"},
+    }
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+@pytest.mark.parametrize(
+    ("path", "json_body"),
+    [
+        ("/api/cockpit/feedback/flag", _feedback_flag_request()),
+        (
+            "/api/cockpit/feedback/flags/flag_20260409_abc123/resolve",
+            {
+                "commit_sha": "abc1234",
+                "resolved_by": "codex",
+                "note": "fixed prompt guard",
+            },
+        ),
+    ],
+)
+def test_cockpit_feedback_write_routes_require_api_key_before_service(
+    monkeypatch,
+    headers,
+    path,
+    json_body,
+) -> None:
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    get_instance = Mock(side_effect=AssertionError("service should not initialize"))
+    monkeypatch.setattr(
+        CockpitService,
+        "get_instance",
+        classmethod(lambda cls: get_instance()),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(path, headers=headers, json=json_body)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    get_instance.assert_not_called()
+
+
+def test_cockpit_feedback_flag_route_accepts_matching_api_key(monkeypatch) -> None:
+    class FakeService:
+        def flag_chat_feedback(self, **kwargs):
+            assert kwargs["session_id"] == "session-123"
+            return {
+                "ok": True,
+                "report_id": "flag_20260409_abc123",
+                "feedback_type": "poor",
+                "capture_kind": "chat_feedback",
+                "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123",
+                "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/bundle.json",
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "analysis_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/analysis.json",
+                "read_api_path": "/api/cockpit/feedback/flags/flag_20260409_abc123",
+                "codex_prompt": "Investigate this flagged cockpit response.",
+                "analysis_summary": None,
+            }
+
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flag",
+        headers={"X-API-Key": "local-secret"},
+        json=_feedback_flag_request(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["report_id"] == "flag_20260409_abc123"
+
+
 def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> None:
     class FakeService:
         def list_flagged_reports(self, limit, status):
@@ -3667,6 +3764,47 @@ def test_cockpit_feedback_flag_resolve_route_persists_commit_sha(monkeypatch) ->
     assert payload["resolution_status"] == "resolved"
     assert payload["resolution_commit_sha"] == "abc1234"
     assert payload["resolved_by"] == "codex"
+
+
+def test_cockpit_feedback_flag_resolve_route_accepts_matching_api_key(monkeypatch) -> None:
+    class FakeService:
+        def resolve_flagged_report(self, report_id, *, commit_sha, resolved_by, note):
+            return {
+                "ok": True,
+                "report_id": report_id,
+                "resolution_status": "resolved",
+                "resolved_at": "2026-04-22T10:00:00+00:00",
+                "resolution_commit_sha": commit_sha,
+                "resolved_by": resolved_by,
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "read_api_path": f"/api/cockpit/feedback/flags/{report_id}",
+            }
+
+    async def _fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+    monkeypatch.setattr(asyncio, "to_thread", _fake_to_thread)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flags/flag_20260409_abc123/resolve",
+        headers={"X-API-Key": "local-secret"},
+        json={
+            "commit_sha": "abc1234",
+            "resolved_by": "codex",
+            "note": "fixed prompt guard",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["resolution_commit_sha"] == "abc1234"
 
 
 def test_cockpit_feedback_flag_route_supports_good_feedback(monkeypatch) -> None:
