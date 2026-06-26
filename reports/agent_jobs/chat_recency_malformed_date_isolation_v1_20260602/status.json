@@ -83,5 +83,6 @@
       "result": "PASS"
     }
   ],
-  "verdict": "LOCAL_FIX_VALIDATED_READY_FOR_PR_LEFT_OPEN"
+    "published_pr": "https://github.com/0rl4nd0l/tenn/pull/419",
+    "verdict": "DRAFT_PR_OPENED_READY_FOR_REVIEW_LEFT_OPEN"
 }

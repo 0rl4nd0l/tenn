@@ -8,8 +8,8 @@ Malformed `published_at` values now use neutral recency at the source-weighting
 boundary and retain visible malformed-date status/warning metadata instead of
 crashing chat strategy weighting.
 
-Issue #261 remains open because this fix is local only; no commit, push, PR, or
-merge was performed in this lane.
+Issue #261 remains open, but the fix has now been published in draft PR #419.
+No merge or issue close was performed in this lane.
 
 ## Worktree
 
@@ -24,3 +24,9 @@ merge was performed in this lane.
 - `VALIDATION.md`
 - `status.json`
 - `diff-check.json`
+
+## Publication
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/419
+- Publish report:
+  `reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/`

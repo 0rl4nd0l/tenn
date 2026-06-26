@@ -1,6 +1,6 @@
 # Chat Recency Malformed Date Publish PR
 
-Status: validation passed; draft PR pending
+Status: draft PR opened; issue remains open
 
 ## Summary
 
@@ -13,6 +13,7 @@ not merge the PR or close the issue.
 - Branch: `safe/issue261-malformed-date-isolation-v1-20260626`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Initial HEAD: `857e76c3180cb0b1fb9fc360652d6a9b64543c86`
+- Published commit: `b0d3342a5b0ccc5a3a3cb60dbbf4f140f9edfb46`
 
 ## Validation
 
@@ -47,3 +48,14 @@ metadata.
 | remaining blocker | Draft PR publication, review, and merge are still pending; no live service smoke was run. |
 
 result: PARTIAL
+
+## PR
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/419
+- Issue status comment:
+  https://github.com/0rl4nd0l/tenn/issues/261#issuecomment-4809711450
+- Issue state: open pending review/merge of PR #419.
+- Registry state: active claim released.
+- Ledger state: `pr_opened`.
+- Integration note: adjacent open source-weighting PRs #416 and #418 should be
+  reviewed with #419 before merge ordering is chosen.

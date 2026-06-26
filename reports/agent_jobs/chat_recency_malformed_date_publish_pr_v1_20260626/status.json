@@ -3,28 +3,49 @@
   "issue": 261,
   "mode": "safe_extension",
   "primary_lane": "Query Orchestration",
-  "status": "validation_passed_pr_pending",
-  "updated_at": "2026-06-26T12:46:44Z",
+  "status": "draft_pr_opened_issue_left_open",
+  "updated_at": "2026-06-26T12:49:35Z",
   "worktree": "/home/l4nd0/tenn-issue261-malformed-date-isolation-v1-20260626",
   "branch": "safe/issue261-malformed-date-isolation-v1-20260626",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "initial_head": "857e76c3180cb0b1fb9fc360652d6a9b64543c86",
-  "pull_request": null,
-  "github_comments_posted": 0,
-  "github_comment_urls": [],
-  "registry_released": false,
-  "ledger_status": "claimed",
+  "published_commit": "b0d3342a5b0ccc5a3a3cb60dbbf4f140f9edfb46",
+  "pull_request": {
+    "number": 419,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/419",
+    "draft": true,
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/issue261-malformed-date-isolation-v1-20260626"
+  },
+  "github_comments_posted": 1,
+  "github_comment_urls": [
+    "https://github.com/0rl4nd0l/tenn/issues/261#issuecomment-4809711450"
+  ],
+  "registry_released": true,
+  "ledger_status": "pr_opened",
   "issue_closed": false,
   "forbidden_mutations": false,
   "production_data_access": false,
-  "integration_note": "Adjacent to open source-weighting PRs #416 and #418; publish as draft for deliberate integration order.",
+  "integration_note": "Adjacent to open source-weighting PRs #416 and #418; published as draft for deliberate integration order.",
+  "push_notes": [
+    "Push used TENN_ALLOW_MISSING_HOOK_TOOLS=1 because financial-engine_v2/.venv/bin/ruff and financial-engine_v2/.venv/bin/pytest are missing in this checkout.",
+    "Equivalent focused uv pytest, ruff check, py_compile, diff, and task gates passed before push."
+  ],
   "files_changed": [
     "docs/agent_tasks/chat_recency_malformed_date_isolation_v1_20260602.md",
     "docs/agent_tasks/chat_recency_malformed_date_publish_pr_v1_20260626.md",
     "financial-engine_v2/backend/app/services/source_weighting.py",
     "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
-    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/",
-    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/"
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/README.md",
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/STATE.md",
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/VALIDATION.md",
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/status.json",
+    "reports/agent_jobs/chat_recency_malformed_date_isolation_v1_20260602/diff-check.json",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/README.md",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/status.json",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/PR_BODY.md",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/REVIEW.md",
+    "reports/agent_jobs/chat_recency_malformed_date_publish_pr_v1_20260626/diff-check.json"
   ],
   "validation_summary": [
     {
@@ -58,8 +79,28 @@
     {
       "command": "code review",
       "result": "PASS_NO_BLOCKING_FINDINGS"
+    },
+    {
+      "command": "contract diff/report gates",
+      "result": "PASS"
+    },
+    {
+      "command": "draft PR create",
+      "result": "PASS_PR_419"
+    },
+    {
+      "command": "github issue comment",
+      "result": "POSTED_LEFT_OPEN"
+    },
+    {
+      "command": "registry release",
+      "result": "PASS"
+    },
+    {
+      "command": "ledger append",
+      "result": "PASS_PR_OPENED"
     }
   ],
   "runtime_functionality_result": "PARTIAL",
-  "remaining_blocker": "Draft PR publication, review, and merge are still pending; no live service smoke was run."
+  "remaining_blocker": "Draft PR #419 must be reviewed with adjacent PRs #416 and #418, then merged before issue #261 can close; no live service smoke was run."
 }
