@@ -108,6 +108,9 @@ The FastAPI app mounts routes in these groups:
   - lightweight queue status summary
 - `GET /api/cockpit/docs`
   - latest global document list for cockpit history views
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes global document provenance, source URLs, and local `pdf_path`
+    values
 - `GET /api/cockpit/news/status`
   - read-only A2M/news split-truth status contract
   - public response redacts operator-only diagnostics such as artifact roots,

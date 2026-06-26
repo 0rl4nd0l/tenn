@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Listener = (event: { data?: string }) => void
 
@@ -44,6 +44,11 @@ describe('streamChat', () => {
   beforeEach(() => {
     eventOrder.length = 0
     instances.length = 0
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
   })
 
   it('disables auto-start so listeners are attached before streaming begins', async () => {
@@ -100,5 +105,37 @@ describe('streamChat', () => {
     expect(onEnd).toHaveBeenCalledTimes(1)
     expect(onError).toHaveBeenCalledWith({ data: 'Connection lost' })
     expect(instance.close).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('listDocuments', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when listing documents', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { listDocuments } = await import('./api-client')
+
+    await listDocuments()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/docs',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
   })
 })

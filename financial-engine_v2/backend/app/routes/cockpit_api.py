@@ -4976,7 +4976,7 @@ def cockpit_queue_status() -> QueueStatusResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/docs")
+@router.get("/docs", dependencies=[Depends(require_api_key)])
 def cockpit_docs():
     """Return recent documents across all tickers for the cockpit history screen.
 

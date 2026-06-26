@@ -978,7 +978,7 @@ export async function fetchFinancials(ticker: string): Promise<unknown[]> {
 
 /** Documents list – GET /api/cockpit/docs */
 export async function listDocuments(): Promise<unknown[]> {
-  return apiFetch<unknown[]>("/api/cockpit/docs")
+  return apiFetch<unknown[]>("/api/cockpit/docs", { headers: withApiKey() })
 }
 
 export async function getTickerDocuments(ticker: string, docsLimit: number = 10): Promise<ContextDocument[]> {
