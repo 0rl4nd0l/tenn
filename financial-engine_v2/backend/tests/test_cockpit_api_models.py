@@ -3,14 +3,142 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from app.api import routes as api_routes
 from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from cockpit.storage.state import StateStore
+
+
+@pytest.fixture(autouse=True)
+def _no_local_api_key_by_default(monkeypatch) -> None:
+    monkeypatch.setattr(api_routes.settings, "local_api_key", "", raising=False)
+
+
+def _client(*, raise_server_exceptions: bool = True) -> TestClient:
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    return TestClient(app, raise_server_exceptions=raise_server_exceptions)
+
+
+def _route_dependencies(route_path: str):
+    for route in router.routes:
+        if getattr(route, "path", None) == route_path:
+            return getattr(route, "dependencies", [])
+    raise AssertionError(f"route not found: {route_path}")
+
+
+def _depends_on_require_api_key(dependency: object) -> bool:
+    return (
+        getattr(dependency, "dependency", None) is cockpit_api.require_api_key
+        or getattr(dependency, "call", None) is cockpit_api.require_api_key
+    )
+
+
+@pytest.mark.parametrize("route_path", ["/config", "/models", "/queue"])
+def test_cockpit_runtime_topology_routes_register_api_key_dependency(
+    route_path: str,
+) -> None:
+    assert any(
+        _depends_on_require_api_key(dependency)
+        for dependency in _route_dependencies(route_path)
+    )
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+@pytest.mark.parametrize(
+    ("path", "probe_name"),
+    [
+        ("/api/cockpit/config", "config"),
+        ("/api/cockpit/models", "models"),
+        ("/api/cockpit/queue", "queue"),
+    ],
+)
+def test_cockpit_runtime_topology_routes_require_api_key_before_probing(
+    monkeypatch,
+    path: str,
+    probe_name: str,
+    headers: dict[str, str],
+) -> None:
+    monkeypatch.setattr(
+        api_routes.settings, "local_api_key", "local-secret", raising=False
+    )
+    probe_calls: list[str] = []
+
+    def fail_probe(*_args, **_kwargs):
+        probe_calls.append(probe_name)
+        raise AssertionError(f"{probe_name} probe must not run before auth")
+
+    if probe_name in {"config", "models"}:
+        monkeypatch.setattr(cockpit_api, "_fetch_llama_server_models", fail_probe)
+    else:
+        import socket
+
+        monkeypatch.setattr(socket, "create_connection", fail_probe)
+
+    response = _client(raise_server_exceptions=False).get(path, headers=headers)
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API key"}
+    assert probe_calls == []
+
+
+def test_cockpit_runtime_topology_routes_accept_api_key_when_configured(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        api_routes.settings, "local_api_key", "local-secret", raising=False
+    )
+    monkeypatch.setattr(cockpit_api, "_fetch_llama_server_models", lambda: {})
+    monkeypatch.setattr(cockpit_api, "_scan_model_directory", lambda _dir: [])
+    monkeypatch.setattr(
+        cockpit_api,
+        "compute_effective_cockpit_config",
+        lambda *args, **kwargs: {
+            "cockpit_llm": {
+                "defaults": {"anthropic_api_key": ""},
+                "hybrid_router_policy": "local_preferred",
+            },
+            "memory": {},
+            "backend": {},
+            "runtime": {},
+        },
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "get_extraction_activity_snapshot",
+        lambda: {"active": False, "source": "none", "active_runs": []},
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_rented_gpu_runtime_snapshot",
+        lambda: {"configured": False, "healthy": False, "models": []},
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_runtime_targets_snapshot",
+        lambda: [
+            {
+                "id": "local",
+                "label": "Local workstation GPU",
+                "configured": True,
+                "healthy": False,
+                "endpoint": None,
+            }
+        ],
+    )
+
+    client = _client()
+    headers = {"X-API-Key": "local-secret"}
+
+    assert client.get("/api/cockpit/config", headers=headers).status_code == 200
+    assert client.get("/api/cockpit/models", headers=headers).status_code == 200
+    assert client.get("/api/cockpit/queue", headers=headers).status_code == 200
 
 
 def test_build_ui_sources_includes_rag_hit_metadata_and_doc_fallback() -> None:

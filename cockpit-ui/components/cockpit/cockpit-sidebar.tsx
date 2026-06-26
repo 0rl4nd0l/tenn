@@ -52,7 +52,12 @@ import {
   deleteChatSession,
   loadAllChatSessions, 
 } from '@/lib/chat-session-store'
-import { createChatSessionRemote, deleteChatSessionRemote, listChatSessions } from '@/lib/api-client'
+import {
+  createChatSessionRemote,
+  deleteChatSessionRemote,
+  listChatSessions,
+  withApiKey,
+} from '@/lib/api-client'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
@@ -221,7 +226,10 @@ export function CockpitSidebar({
 
     async function pollConfig() {
       try {
-        const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+        const response = await fetch('/api/cockpit/config', {
+          cache: 'no-store',
+          headers: withApiKey(),
+        })
         if (!response.ok) {
           if (!cancelled) {
             const isAuthFailure = response.status === 401 || response.status === 403

@@ -1,0 +1,22 @@
+{
+  "job_id": "issue230_runtime_topology_read_guard_current_base_v1_20260627",
+  "issue": 230,
+  "status": "DONE_WITH_RISK",
+  "branch": "safe/issue230-runtime-topology-read-guard-current-base-v1-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@7d6ab6c184332d5413700eb08e6790f530000942",
+  "pull_request": "https://github.com/0rl4nd0l/tenn/pull/440",
+  "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+  "registry_released": true,
+  "released_at": "2026-06-26T20:42:56.447683Z",
+  "runtime_mutation": false,
+  "production_data_access": false,
+  "validation": {
+    "backend_route_auth": "PASSED",
+    "api_client": "BLOCKED_LOCAL_MISSING_VITEST",
+    "ruff": "PASSED",
+    "py_compile": "PASSED",
+    "frontend_lint": "BLOCKED_LOCAL_MISSING_ESLINT",
+    "diff_check": "PASSED"
+  },
+  "remaining_blocker": "local cockpit-ui node_modules lacks vitest/eslint; no live runtime smoke approved"
+}

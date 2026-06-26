@@ -4187,7 +4187,11 @@ def _git_branch() -> str | None:
     return None
 
 
-@router.get("/config", response_model=CockpitConfigResponse)
+@router.get(
+    "/config",
+    response_model=CockpitConfigResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_config() -> CockpitConfigResponse:
     """Return system configuration for the cockpit settings screen."""
     from app.services.llamacpp_runtime import resolve_llm_runtime_config
@@ -4671,7 +4675,11 @@ def _find_matching_runtime_model(
     return preferred_match
 
 
-@router.get("/models", response_model=AvailableModelsResponse)
+@router.get(
+    "/models",
+    response_model=AvailableModelsResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_available_models() -> AvailableModelsResponse:
     """Return all discoverable GGUF models grouped by storage location.
 
@@ -4919,7 +4927,11 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/queue", response_model=QueueStatusResponse)
+@router.get(
+    "/queue",
+    response_model=QueueStatusResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_queue_status() -> QueueStatusResponse:
     """Return queue statistics in the shape the cockpit UI expects.
 

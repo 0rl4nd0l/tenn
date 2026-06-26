@@ -674,9 +674,12 @@ export function ChatScreen() {
     setActiveTicker,
   } = useCockpitStore()
   const { data: configData } = useQuery({
-    queryKey: ['cockpit-config-status'],
+    queryKey: ['cockpit-config-status', apiKey || 'anonymous'],
     queryFn: async () => {
-      const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+      const response = await fetch('/api/cockpit/config', {
+        cache: 'no-store',
+        headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      })
       if (!response.ok) {
         throw new Error(`Config unavailable (${response.status})`)
       }
