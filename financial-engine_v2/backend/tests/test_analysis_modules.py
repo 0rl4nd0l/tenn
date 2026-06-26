@@ -168,6 +168,51 @@ ALL_MODULES = [
 ]
 
 
+def test_analyse_ticker_uses_context_loader_instance(monkeypatch):
+    from app.modules import context_loader as context_loader_module
+    from app.modules import orchestrator as orchestrator_module
+
+    calls: dict[str, object] = {}
+
+    class FakeLoader:
+        def __init__(self, rag_fn=None) -> None:
+            calls["rag_fn"] = rag_fn
+
+        def load(self, ticker, request, *, db):
+            calls["ticker"] = ticker
+            calls["request"] = request
+            calls["db"] = db
+            return TickerContext(ticker=ticker, assembled_at=_NOW)
+
+    def fake_run_all(self, ticker, context):
+        calls["run_all"] = (ticker, context)
+        return [
+            ArtifactSet(
+                ticker=ticker,
+                module_name="fake",
+                structured={},
+                completeness=Completeness.COMPLETE,
+            )
+        ]
+
+    db = object()
+    monkeypatch.setattr(context_loader_module, "TickerContextLoader", FakeLoader)
+    monkeypatch.setattr(
+        orchestrator_module.AnalysisOrchestrator,
+        "run_all",
+        fake_run_all,
+    )
+
+    results = orchestrator_module.analyse_ticker("BHP", db=db)
+
+    assert calls["rag_fn"] is not None
+    assert calls["ticker"] == "BHP"
+    assert calls["request"] is not None
+    assert calls["db"] is db
+    assert calls["run_all"][0] == "BHP"
+    assert results[0].module_name == "fake"
+
+
 @pytest.mark.parametrize("module", ALL_MODULES, ids=lambda m: m.name)
 def test_protocol_compliance(module: object) -> None:
     assert isinstance(module, AnalysisModule)

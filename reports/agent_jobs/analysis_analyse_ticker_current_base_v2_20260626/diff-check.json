@@ -1,0 +1,80 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/analysis_analyse_ticker_current_base_v2_20260626.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/modules/orchestrator.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_analysis_modules.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/analysis_analyse_ticker_current_base_v2_20260626.md",
+        "financial-engine_v2/backend/app/modules/orchestrator.py",
+        "financial-engine_v2/backend/tests/test_analysis_modules.py",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/README.md",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/STATE.md",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/VALIDATION.md",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/status.json",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/diff-check.json",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/PR_BODY.md",
+        "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626/REVIEW.md"
+      ],
+      "approval_reference": "User requested safe issue fixing and closeout.",
+      "approval_required": true,
+      "github_mutation_allowed": "push_branch_open_pr_and_close_issue253_if_gated",
+      "job_id": "analysis_analyse_ticker_current_base_v2_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/analysis_analyse_ticker_current_base_v2_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}
