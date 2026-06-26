@@ -7725,6 +7725,43 @@ def _read_chart_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _build_candlestick_no_data_html(ticker: str, timeframe: str) -> str:
+    safe_ticker = html.escape(ticker)
+    safe_timeframe = html.escape(timeframe)
+    return (
+        '<section data-state="DATA_MISSING" '
+        'style="font-family: Inter, system-ui, sans-serif; padding: 24px; '
+        'border: 1px solid #d1d5db; border-radius: 8px; color: #111827;">'
+        f'<h2 style="margin: 0 0 8px; font-size: 18px;">{safe_ticker} '
+        "candlestick chart unavailable</h2>"
+        f'<p style="margin: 0;">No OHLC data available for {safe_ticker}. '
+        "Candlestick chart cannot be rendered from current OHLC evidence for "
+        f"{safe_timeframe}.</p>"
+        "</section>"
+    )
+
+
+def _build_candlestick_no_ohlc_response(
+    action_id: str,
+    ticker: str,
+    timeframe: str,
+) -> CockpitActionExecuteResponse:
+    return CockpitActionExecuteResponse(
+        ok=True,
+        action_id=action_id,
+        result=(
+            f"DATA_MISSING: No OHLC data available for {ticker}. "
+            "Candlestick chart cannot be rendered from current OHLC evidence."
+        ),
+        exit_code=0,
+        status="data_missing",
+        chart={
+            "title": f"{ticker} candlestick chart unavailable",
+            "html": _build_candlestick_no_data_html(ticker, timeframe),
+        },
+    )
+
+
 def _build_candlestick_chart_response(
     service: CockpitService,
     action_id: str,
@@ -7780,8 +7817,10 @@ def _build_candlestick_chart_response(
         if not recent_history:
             if csv_error is not None:
                 raise csv_error
-            raise HTTPException(
-                status_code=404, detail=f"No OHLC data available for {ticker}"
+            return _build_candlestick_no_ohlc_response(
+                action_id,
+                ticker,
+                timeframe,
             )
         price_state = (
             bundle.get("price_state")

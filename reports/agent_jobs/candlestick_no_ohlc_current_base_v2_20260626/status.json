@@ -1,0 +1,43 @@
+{
+  "job_id": "candlestick_no_ohlc_current_base_v2_20260626",
+  "issue": 275,
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "result": "PARTIAL",
+  "branch": "safe/issue275-candlestick-no-ohlc-current-base-v2-20260626",
+  "worktree": "/home/l4nd0/tenn-issue275-candlestick-no-ohlc-current-base-v2-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "13400a462ec18fa7117eb48b3d54b0ff8f4647fa",
+  "summary": "show_candlestick now returns a structured DATA_MISSING no-data response when backend OHLC history is empty instead of a raw 404 action failure.",
+  "validation": {
+    "guard_pre_edit": "PASS",
+    "task_card_validate": "PASS",
+    "registry_overlap": "PASS",
+    "registry_claim": "PASS",
+    "ledger_claim": "PASS",
+    "pytest_no_ohlc": "PASS_1",
+    "pytest_action_execute": "PASS_11",
+    "ruff_check": "PASS",
+    "ruff_format_check": "FAIL_LEGACY_BROAD_CHURN_NOT_APPLIED",
+    "py_compile": "PASS",
+    "git_diff_check": "PASS",
+    "code_review": "PASS_NO_FINDINGS",
+    "github_checks": "PENDING"
+  },
+  "docs_impact": {
+    "docs_impact": "DOCS_NOT_REQUIRED",
+    "docs_checked": [
+      "issue #275",
+      "old local fix evidence",
+      "cockpit_api.py",
+      "focused action-execute tests"
+    ],
+    "docs_changed": [],
+    "docs_followup": [],
+    "reason": "The fix aligns code with the existing issue contract and backend action response shape."
+  },
+  "runtime_functionality": {
+    "result": "PARTIAL",
+    "remaining_blocker": "No live runtime action execution was started or queried; publish requires green GitHub checks and canonical merge containment."
+  },
+  "next_action": "Commit, push PR, wait for GitHub checks, merge only when gated, then close issue #275 after containment."
+}
