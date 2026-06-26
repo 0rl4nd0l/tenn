@@ -12,7 +12,7 @@
     {
       "command": "uv run --with pytest pytest -q financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/test_backfill_missing_universe_announcements.py",
       "exit_code": 0,
-      "summary": "17 passed, 1 warning"
+      "summary": "18 passed, 1 warning"
     },
     {
       "command": "uv run --with ruff ruff check financial-engine_v2/scripts/full_history_ticker_sync.py financial-engine_v2/scripts/marketindex_recovery_reporting.py financial-engine_v2/scripts/resume_pending_downloads.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/backfill_missing_universe_announcements.py scripts/test_backfill_missing_universe_announcements.py",

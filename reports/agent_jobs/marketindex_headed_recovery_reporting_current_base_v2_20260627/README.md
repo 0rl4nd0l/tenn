@@ -18,7 +18,8 @@ proven.
 - Promoted child full-history report recovery metadata into the missing-universe
   wrapper execution payload.
 - Added focused regression coverage for the helper, resume report, full-history
-  summary, and wrapper promotion.
+  summary, existing resume blockers, and wrapper promotion.
+- Addressed both automated Codex review threads on PR #426.
 
 ## Prior Work
 

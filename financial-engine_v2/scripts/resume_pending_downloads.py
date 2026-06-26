@@ -23,6 +23,7 @@ from app.providers.universe import ASX20  # noqa: E402
 from app.services.announcement_importance import classify_documents_and_materialize  # noqa: E402
 from app.services.pipeline import download_pdf_for_document, process_document  # noqa: E402
 from marketindex_recovery_reporting import (  # noqa: E402
+    MARKETINDEX_HEADED_RECOVERY_MARKERS,
     add_marketindex_recovery_blocker,
     build_marketindex_recovery_summary,
 )
@@ -45,6 +46,36 @@ def _parse_tickers(values):
         seen.add(ticker)
         deduped.append(ticker)
     return deduped
+
+
+def _summarize_marketindex_headed_recovery_rows(rows, tickers) -> dict:
+    summary = build_marketindex_recovery_summary(tickers)
+    for row in rows or []:
+        add_marketindex_recovery_blocker(
+            summary,
+            ticker=getattr(row, "ticker", ""),
+            marker=getattr(row, "pdf_sha256", ""),
+            document_id=getattr(row, "document_id", ""),
+            source_url=getattr(row, "source_url", ""),
+            stage="existing_blocker",
+        )
+    return summary
+
+
+def _load_existing_marketindex_recovery_summary(db, tickers) -> dict:
+    summary = build_marketindex_recovery_summary(tickers)
+    try:
+        query = (
+            db.query(Document)
+            .filter(Document.ticker.in_(_parse_tickers(tickers)))
+            .filter(Document.pdf_sha256.in_(list(MARKETINDEX_HEADED_RECOVERY_MARKERS)))
+            .filter(Document.source_url.ilike("%marketindex.com.au%"))
+            .order_by(Document.published_at.desc().nullslast())
+        )
+        return _summarize_marketindex_headed_recovery_rows(query.all(), tickers)
+    except Exception as exc:
+        summary["query_error"] = str(exc)
+        return summary
 
 
 def parse_args():
@@ -102,6 +133,7 @@ def main():
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
     if getattr(args, "dry_run", False):
         pending_by_ticker: dict[str, int] = {}
+        marketindex_summary = build_marketindex_recovery_summary(tickers)
         db = SessionLocal()
         try:
             for ticker in tickers:
@@ -114,6 +146,7 @@ def main():
                 if args.limit_per_ticker and args.limit_per_ticker > 0:
                     query = query.limit(args.limit_per_ticker)
                 pending_by_ticker[ticker] = int(query.count())
+            marketindex_summary = _load_existing_marketindex_recovery_summary(db, tickers)
         finally:
             db.close()
 
@@ -137,7 +170,7 @@ def main():
             "notes": [
                 "Dry-run does not download PDFs, run extraction, classify docs, or write reports.",
             ],
-            "marketindex_headed_recovery": build_marketindex_recovery_summary(tickers),
+            "marketindex_headed_recovery": marketindex_summary,
         }
         print(json.dumps(plan, indent=2, default=str))
         return
@@ -163,7 +196,9 @@ def main():
 
     db = SessionLocal()
     try:
+        report["marketindex_headed_recovery"] = _load_existing_marketindex_recovery_summary(db, tickers)
         for ticker in tickers:
+            existing_marketindex_summary = _load_existing_marketindex_recovery_summary(db, [ticker])
             query = (
                 db.query(Document)
                 .filter(Document.ticker == ticker)
@@ -191,11 +226,13 @@ def main():
                 "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
                 "skipped_download": 0,
-                "requires_headed_recovery_count": 0,
+                "requires_headed_recovery_count": int(
+                    existing_marketindex_summary.get("requires_headed_recovery_count") or 0
+                ),
                 "extraction_failed_count": 0,
                 "errors": [],
                 "importance_classification": None,
-                "marketindex_headed_recovery": build_marketindex_recovery_summary([ticker]),
+                "marketindex_headed_recovery": existing_marketindex_summary,
             }
             processed_document_ids: list[str] = []
 

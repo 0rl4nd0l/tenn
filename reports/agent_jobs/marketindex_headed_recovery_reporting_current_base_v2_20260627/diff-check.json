@@ -1,10 +1,6 @@
 {
   "changed_files": [
     {
-      "path": "financial-engine_v2/scripts/full_history_ticker_sync.py",
-      "status": "M"
-    },
-    {
       "path": "financial-engine_v2/scripts/resume_pending_downloads.py",
       "status": "M"
     },
@@ -17,24 +13,28 @@
       "status": "M"
     },
     {
-      "path": "scripts/backfill_missing_universe_announcements.py",
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/PR_BODY.md",
       "status": "M"
     },
     {
-      "path": "scripts/test_backfill_missing_universe_announcements.py",
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/README.md",
       "status": "M"
     },
     {
-      "path": "docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
-      "status": "??"
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/REVIEW.md",
+      "status": "M"
     },
     {
-      "path": "financial-engine_v2/scripts/marketindex_recovery_reporting.py",
-      "status": "??"
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/STATE.md",
+      "status": "M"
     },
     {
-      "path": "financial-engine_v2/scripts/test_marketindex_recovery_reporting.py",
-      "status": "??"
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/marketindex_headed_recovery_reporting_current_base_v2_20260627/validation.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

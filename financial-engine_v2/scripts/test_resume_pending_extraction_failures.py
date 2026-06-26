@@ -46,6 +46,12 @@ class _Field:
     def nullslast(self):
         return self
 
+    def in_(self, other):  # noqa: ANN001
+        return self
+
+    def ilike(self, other):  # noqa: ANN001
+        return self
+
 
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
@@ -97,10 +103,17 @@ def _load_module():
 
 
 class _FakeRow:
-    def __init__(self, document_id: str, source_url: str = "https://example.com/doc.pdf") -> None:
+    def __init__(
+        self,
+        document_id: str,
+        source_url: str = "https://example.com/doc.pdf",
+        ticker: str = "BHP",
+        pdf_sha256: str = "",
+    ) -> None:
         self.document_id = document_id
         self.source_url = source_url
-        self.pdf_sha256 = ""
+        self.ticker = ticker
+        self.pdf_sha256 = pdf_sha256
 
 
 class _FakeQuery:
@@ -138,6 +151,40 @@ class _FakeDB:
 
 
 class ResumePendingExtractionFailureTests(unittest.TestCase):
+    def test_existing_marketindex_blockers_seed_resume_summary(self):
+        mod = _load_module()
+        document_stub = type(
+            "Document",
+            (),
+            {
+                "ticker": _Field(),
+                "pdf_sha256": _Field(),
+                "source_url": _Field(),
+                "published_at": _Field(),
+            },
+        )
+        fake_db = _FakeDB(
+            rows=[
+                _FakeRow(
+                    "44444444-4444-4444-4444-444444444444",
+                    source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000001",
+                    pdf_sha256="blocked_marketindex_403",
+                ),
+                _FakeRow(
+                    "55555555-5555-5555-5555-555555555555",
+                    source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000002",
+                    pdf_sha256="clean_pdf_hash",
+                ),
+            ]
+        )
+
+        with mock.patch.object(mod, "Document", document_stub):
+            summary = mod._load_existing_marketindex_recovery_summary(fake_db, ["BHP"])
+
+        self.assertEqual(summary["requires_headed_recovery_count"], 1)
+        self.assertEqual(summary["counts_by_marker"]["blocked_marketindex_403"], 1)
+        self.assertEqual(summary["samples"][0]["stage"], "existing_blocker")
+
     def test_marketindex_headed_required_is_reported_as_recovery_blocker(self):
         mod = _load_module()
         document_stub = type(

@@ -2,6 +2,7 @@
 
 - add shared MarketIndex headed-recovery report metadata helper
 - expose `marketindex_headed_recovery` and `requires_headed_recovery_count` in resume/full-history report surfaces
+- seed standalone resume reports from existing `blocked_marketindex_*` rows
 - promote fresh child full-history recovery metadata into the missing-universe wrapper report
 - add focused tests for the new report contract
 

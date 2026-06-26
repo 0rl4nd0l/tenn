@@ -50,9 +50,8 @@ if "app.providers.universe" not in sys.modules:
     universe_stub = types.ModuleType("app.providers.universe")
     universe_stub.ASX20 = ["BHP"]
     sys.modules["app.providers.universe"] = universe_stub
-pipeline_stub = sys.modules.get("app.services.pipeline") or types.ModuleType("app.services.pipeline")
-pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
-sys.modules["app.services.pipeline"] = pipeline_stub
+PIPELINE_STUB = types.ModuleType("app.services.pipeline")
+PIPELINE_STUB.backfill_ticker_sync = lambda *args, **kwargs: {}
 if "health_guard" not in sys.modules:
     health_stub = types.ModuleType("health_guard")
     health_stub.assert_healthy = lambda *args, **kwargs: None
@@ -71,7 +70,8 @@ def _load_module():
     if spec is None or spec.loader is None:
         raise RuntimeError(f"unable to load module: {path}")
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    with mock.patch.dict(sys.modules, {"app.services.pipeline": PIPELINE_STUB}):
+        spec.loader.exec_module(mod)
     return mod
 
 
