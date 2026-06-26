@@ -8584,6 +8584,7 @@ async def cockpit_marketplace_browser_health():
 @router.get(
     "/marketplace/missions",
     response_model=MarketplaceMissionListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_missions(status: str | None = None):
     try:
@@ -8614,6 +8615,7 @@ async def cockpit_list_marketplace_missions(status: str | None = None):
 @router.post(
     "/marketplace/missions",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRequest):
     try:
@@ -8714,6 +8716,7 @@ def _warm_up_marketplace_mission(
 @router.get(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_get_marketplace_mission(mission_id: str):
     try:
@@ -8741,6 +8744,7 @@ async def cockpit_get_marketplace_mission(mission_id: str):
 @router.patch(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_mission(
     mission_id: str,
@@ -8790,6 +8794,7 @@ async def cockpit_update_marketplace_mission(
 @router.post(
     "/marketplace/missions/{mission_id}/link-product",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_link_marketplace_mission_product(
     mission_id: str,
@@ -8837,6 +8842,7 @@ async def cockpit_link_marketplace_mission_product(
 @router.delete(
     "/marketplace/missions/{mission_id}/link-product",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_unlink_marketplace_mission_product(mission_id: str):
     try:
@@ -8867,6 +8873,7 @@ async def cockpit_unlink_marketplace_mission_product(mission_id: str):
 @router.delete(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionDeleteResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_delete_marketplace_mission(mission_id: str):
     try:
@@ -9018,6 +9025,7 @@ async def cockpit_get_marketplace_scan_job(job_id: str, tail: int = 0):
 @router.get(
     "/marketplace/matches",
     response_model=MarketplaceMatchListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_matches(
     mission_id: str | None = None,
@@ -9084,6 +9092,7 @@ async def cockpit_list_marketplace_matches(
 @router.get(
     "/marketplace/matches/{match_id}",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_get_marketplace_match(match_id: str):
     try:
@@ -9125,6 +9134,7 @@ async def cockpit_get_marketplace_match(match_id: str):
 @router.patch(
     "/marketplace/matches/{match_id}",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_match(
     match_id: str,
@@ -9176,6 +9186,7 @@ async def cockpit_update_marketplace_match(
 @router.patch(
     "/marketplace/matches/{match_id}/feedback",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_match_feedback(
     match_id: str,
@@ -9320,6 +9331,7 @@ async def cockpit_sync_marketplace_ebay_sold_data(tracked_product_id: str):
 @router.patch(
     "/marketplace/matches/{match_id}/benchmark-review",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_benchmark_review(
     match_id: str,
@@ -9381,6 +9393,7 @@ async def cockpit_update_marketplace_benchmark_review(
 @router.get(
     "/marketplace/alerts",
     response_model=MarketplaceAlertListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_alerts(
     mission_id: str | None = None,
@@ -9408,6 +9421,7 @@ async def cockpit_list_marketplace_alerts(
 @router.patch(
     "/marketplace/alerts/{alert_id}",
     response_model=MarketplaceAlertRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_alert(
     alert_id: str,

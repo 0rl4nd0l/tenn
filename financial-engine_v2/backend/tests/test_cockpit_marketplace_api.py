@@ -4,9 +4,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from app.services.marketplace_mission_service import MarketplaceMissionService
@@ -28,6 +30,326 @@ def _recent_observed_at(idx: int) -> str:
     return (
         datetime.now(timezone.utc) - timedelta(days=5 - idx)
     ).replace(microsecond=0).isoformat()
+
+
+def _marketplace_client(
+    tmp_path: Path,
+    monkeypatch,
+    *,
+    local_api_key: str = "",
+) -> tuple[TestClient, SimpleNamespace, MarketplaceMissionService, list[str]]:
+    fake_service = _fake_service(tmp_path)
+    mission_service = MarketplaceMissionService(fake_service.state_store)
+    warm_up_calls: list[str] = []
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", local_api_key, raising=False)
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._ensure_marketplace_scan_scheduler",
+        lambda service: None,
+    )
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._warm_up_marketplace_mission",
+        lambda service, mission_service, price_service, mission: warm_up_calls.append(
+            str(mission.get("mission_id") or "")
+        ),
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    return TestClient(app), fake_service, mission_service, warm_up_calls
+
+
+def _seed_marketplace_state(
+    mission_service: MarketplaceMissionService,
+) -> tuple[dict, dict, dict]:
+    mission = mission_service.create_mission(
+        {
+            "name": "Guarded mission",
+            "brief": "Find a reliable 4x4 dual cab under 25k.",
+            "hard_filters": {
+                "include_keywords": ["4x4", "dual cab"],
+                "location_names": ["Melbourne"],
+                "price_max": 25000,
+            },
+        }
+    )
+    match = mission_service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "guard-match-1",
+            "listing_url": "https://www.facebook.com/marketplace/item/guard-match-1/",
+            "title": "2014 Toyota Hilux SR5 4x4",
+            "price": "$22,500",
+            "captured_at": "2026-04-18T10:00:00Z",
+            "score": 89,
+            "decision_band": "strong_match",
+            "reasons_for": ["Below local median"],
+            "reasons_against": ["High kilometres"],
+            "raw_text_snapshot": "Visible listing text",
+        }
+    )
+    alert = mission_service.create_alert(
+        mission_id=mission["mission_id"],
+        match_id=match["match_id"],
+        trigger_reason="new_listing",
+    )
+    return mission, match, alert
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+@pytest.mark.parametrize(
+    ("method", "path_builder", "json_payload"),
+    [
+        ("GET", lambda mission, match, alert: "/api/cockpit/marketplace/missions", None),
+        ("POST", lambda mission, match, alert: "/api/cockpit/marketplace/missions", {
+            "name": "New guarded mission",
+            "brief": "Find a ute.",
+            "hard_filters": {"include_keywords": ["ute"], "location_names": ["Melbourne"]},
+        }),
+        (
+            "GET",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/missions/{mission['mission_id']}"
+            ),
+            None,
+        ),
+        (
+            "PATCH",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/missions/{mission['mission_id']}"
+            ),
+            {"status": "paused"},
+        ),
+        (
+            "DELETE",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/missions/{mission['mission_id']}"
+            ),
+            None,
+        ),
+        (
+            "POST",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/missions/{mission['mission_id']}/link-product"
+            ),
+            {"tracked_product_id": "missing-product"},
+        ),
+        (
+            "DELETE",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/missions/{mission['mission_id']}/link-product"
+            ),
+            None,
+        ),
+        (
+            "GET",
+            lambda mission, match, alert: "/api/cockpit/marketplace/matches",
+            None,
+        ),
+        (
+            "GET",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/matches/{match['match_id']}"
+            ),
+            None,
+        ),
+        (
+            "PATCH",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/matches/{match['match_id']}"
+            ),
+            {"status": "reviewed"},
+        ),
+        (
+            "PATCH",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/matches/{match['match_id']}/feedback"
+            ),
+            {"feedback": "interested", "note": "worth inspecting"},
+        ),
+        (
+            "PATCH",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/matches/{match['match_id']}/benchmark-review"
+            ),
+            {"review_status": "accepted", "note": "looks right"},
+        ),
+        ("GET", lambda mission, match, alert: "/api/cockpit/marketplace/alerts", None),
+        (
+            "PATCH",
+            lambda mission, match, alert: (
+                f"/api/cockpit/marketplace/alerts/{alert['alert_id']}"
+            ),
+            {"status": "acknowledged"},
+        ),
+    ],
+)
+def test_marketplace_state_routes_require_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+    headers,
+    method: str,
+    path_builder,
+    json_payload: dict | None,
+) -> None:
+    client, _fake_service, mission_service, _warm_up_calls = _marketplace_client(
+        tmp_path, monkeypatch, local_api_key="local-secret"
+    )
+    mission, match, alert = _seed_marketplace_state(mission_service)
+
+    response = client.request(
+        method,
+        path_builder(mission, match, alert),
+        headers=headers,
+        json=json_payload,
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+
+
+def test_marketplace_rejected_mutations_do_not_change_state_or_warm_up(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    client, fake_service, mission_service, warm_up_calls = _marketplace_client(
+        tmp_path, monkeypatch, local_api_key="local-secret"
+    )
+    mission, match, alert = _seed_marketplace_state(mission_service)
+    mission_id = mission["mission_id"]
+    match_id = match["match_id"]
+    alert_id = alert["alert_id"]
+
+    create_response = client.post(
+        "/api/cockpit/marketplace/missions",
+        json={
+            "name": "Should not exist",
+            "brief": "Unauthorized create",
+            "hard_filters": {
+                "include_keywords": ["nope"],
+                "location_names": ["Melbourne"],
+            },
+        },
+    )
+    patch_response = client.patch(
+        f"/api/cockpit/marketplace/missions/{mission_id}",
+        json={"status": "paused"},
+    )
+    match_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match_id}",
+        json={"status": "reviewed"},
+    )
+    feedback_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match_id}/feedback",
+        json={"feedback": "not_interested"},
+    )
+    benchmark_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match_id}/benchmark-review",
+        json={"review_status": "accepted"},
+    )
+    alert_response = client.patch(
+        f"/api/cockpit/marketplace/alerts/{alert_id}",
+        json={"status": "acknowledged"},
+    )
+
+    assert {
+        create_response.status_code,
+        patch_response.status_code,
+        match_response.status_code,
+        feedback_response.status_code,
+        benchmark_response.status_code,
+        alert_response.status_code,
+    } == {401}
+    assert [item["name"] for item in mission_service.list_missions()] == [
+        "Guarded mission"
+    ]
+    assert mission_service.get_mission(mission_id)["status"] == "active"
+    assert mission_service.get_match(match_id)["status"] == "new"
+    assert fake_service.state_store.get_marketplace_match_feedback(match_id) is None
+    assert mission_service.list_alerts()[0]["status"] == "new"
+    assert warm_up_calls == []
+
+
+def test_marketplace_state_routes_accept_matching_api_key_when_configured(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    client, fake_service, mission_service, warm_up_calls = _marketplace_client(
+        tmp_path, monkeypatch, local_api_key="local-secret"
+    )
+    headers = {"X-API-Key": "local-secret"}
+
+    create_response = client.post(
+        "/api/cockpit/marketplace/missions",
+        headers=headers,
+        json={
+            "name": "Authenticated mission",
+            "brief": "Find a reliable 4x4 dual cab under 25k.",
+            "hard_filters": {
+                "include_keywords": ["4x4", "dual cab"],
+                "location_names": ["Melbourne"],
+            },
+        },
+    )
+    assert create_response.status_code == 200
+    mission = create_response.json()
+    mission_id = mission["mission_id"]
+    assert warm_up_calls == [mission_id]
+
+    patch_response = client.patch(
+        f"/api/cockpit/marketplace/missions/{mission_id}",
+        headers=headers,
+        json={"status": "paused"},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["status"] == "paused"
+
+    match = mission_service.upsert_match(
+        {
+            "mission_id": mission_id,
+            "listing_id": "auth-match-1",
+            "listing_url": "https://www.facebook.com/marketplace/item/auth-match-1/",
+            "title": "2014 Toyota Hilux SR5 4x4",
+            "price": "$22,500",
+            "captured_at": "2026-04-18T10:00:00Z",
+            "score": 89,
+            "decision_band": "strong_match",
+            "reasons_for": ["Below local median"],
+            "reasons_against": ["High kilometres"],
+            "raw_text_snapshot": "Visible listing text",
+        }
+    )
+    alert = mission_service.create_alert(
+        mission_id=mission_id,
+        match_id=match["match_id"],
+        trigger_reason="new_listing",
+    )
+
+    match_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match['match_id']}",
+        headers=headers,
+        json={"status": "reviewed"},
+    )
+    assert match_response.status_code == 200
+    assert match_response.json()["status"] == "reviewed"
+
+    feedback_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match['match_id']}/feedback",
+        headers=headers,
+        json={"feedback": "interested", "note": "worth inspecting"},
+    )
+    assert feedback_response.status_code == 200
+    assert feedback_response.json()["user_feedback"]["feedback"] == "interested"
+
+    alert_response = client.patch(
+        f"/api/cockpit/marketplace/alerts/{alert['alert_id']}",
+        headers=headers,
+        json={"status": "acknowledged"},
+    )
+    assert alert_response.status_code == 200
+    assert alert_response.json()["status"] == "acknowledged"
+    assert fake_service.state_store.get_marketplace_match_feedback(match["match_id"])
 
 
 def test_marketplace_api_supports_missions_matches_and_alerts(tmp_path, monkeypatch) -> None:
