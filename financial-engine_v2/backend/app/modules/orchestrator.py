@@ -203,18 +203,21 @@ def analyse_ticker(
     # Load context (context_loader may not exist yet)
     try:
         from app.modules.context_loader import TickerContextLoader
+        from app.services.analysis_rag_adapter import analysis_rag_query
     except ImportError:
         logger.error(
-            "context_loader not available — cannot load TickerContext for %s. "
-            "Implement app.modules.context_loader.TickerContextLoader.",
+            "analysis context dependencies not available — cannot load "
+            "TickerContext for %s. Implement app.modules.context_loader."
+            "TickerContextLoader and app.services.analysis_rag_adapter."
+            "analysis_rag_query.",
             ticker,
         )
         raise ImportError(
-            "app.modules.context_loader.TickerContextLoader is required "
+            "app.modules.context_loader.TickerContextLoader and "
+            "app.services.analysis_rag_adapter.analysis_rag_query are required "
             "but not yet implemented."
         )
 
-    context = TickerContextLoader.load(
-        ticker=ticker, db=db, request=request,
-    )
+    loader = TickerContextLoader(rag_fn=analysis_rag_query)
+    context = loader.load(ticker=ticker, db=db, request=request)
     return orchestrator.run_all(ticker, context)
