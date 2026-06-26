@@ -117,6 +117,13 @@ The FastAPI app mounts routes in these groups:
     absolute projection paths, evidence report paths, and Qdrant collection identity
   - full path-bearing diagnostics are service-internal unless a future guarded
     caller explicitly requests them
+- `GET /api/cockpit/preferences`
+  - read-only Cockpit routing preference snapshot
+- `PATCH /api/cockpit/preferences`
+  - changes Cockpit routing preferences such as API-default mode, Marketplace
+    cloud preference, chat routing policy override, and chat runtime target
+  - requires `X-API-Key` when `settings.local_api_key` is configured because it
+    mutates local control-plane routing policy
 - `POST /api/cockpit/chat`
   - cockpit chat endpoint (blocking and SSE modes)
   - SSE emits status/chunk/tool/action-preview/done events

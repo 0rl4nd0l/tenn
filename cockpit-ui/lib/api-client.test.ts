@@ -139,3 +139,45 @@ describe('listDocuments', () => {
     )
   })
 })
+
+describe('patchCockpitPreferences', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when patching preferences', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          api_default_enabled: true,
+          marketplace_prefer_cloud_routing: false,
+          chat_routing_policy_override: 'config_default',
+          chat_runtime_target: 'local',
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { patchCockpitPreferences } = await import('./api-client')
+
+    await patchCockpitPreferences({ api_default_enabled: true })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/preferences',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ api_default_enabled: true }),
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
