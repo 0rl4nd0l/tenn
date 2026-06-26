@@ -1,0 +1,33 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Research synthesis is a server-side inference path and should share the local API-key boundary used by adjacent model/retrieval routes.",
+      "The existing Cockpit backend client already sends X-API-Key when configured, so no client change is required for this issue."
+    ],
+    "sources_used": [
+      "git diff",
+      "issue #244 body",
+      "financial-engine_v2/cockpit/integrations/backend_api.py"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/routes/research.py",
+      "financial-engine_v2/backend/tests/test_research_route_auth.py",
+      "financial-engine_v2/cockpit/integrations/backend_api.py",
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_research_route_auth.py -q",
+      "uv run --with ruff ruff check financial-engine_v2/backend/app/routes/research.py financial-engine_v2/backend/tests/test_research_route_auth.py",
+      "git diff --check",
+      "python3 scripts/agent_job_contract.py validate docs/agent_tasks/research_synthesis_route_guard_v1_20260626.md",
+      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/research_synthesis_route_guard_v1_20260626.md --repo-root ."
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "job_id": "research_synthesis_route_guard_v1_20260626",
+  "issue": 244,
+  "status": "DONE_WITH_RISK",
+  "functionality_result": "PARTIAL",
+  "issue_comment_url": "https://github.com/0rl4nd0l/tenn/issues/244#issuecomment-4809097952",
+  "notes": [
+    "Local research synthesis route guard implemented and backend validation passed.",
+    "Registry claim released and final active-job snapshot saved.",
+    "Issue remains open until the branch is published/merged."
+  ]
+}

@@ -296,6 +296,8 @@ Runtime note:
 - `POST /research/synthesize`
   - server-side synthesis of gathered research sources into a structured brief
   - used by cockpit deep research flows
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    synthesis is a server-side inference path, not a passive public read
 
 ## Notes on compatibility and drift
 
