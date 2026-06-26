@@ -146,6 +146,15 @@ The FastAPI app mounts routes in these groups:
   - lists recent cockpit feedback reports with `report_id`, `feedback_type`, excerpt, and read API path
 - `GET /api/cockpit/feedback/flags/{report_id}`
   - returns the saved feedback report bundle, markdown summary, and analysis payload by report ID
+- `POST /api/cockpit/tv/alert`
+  - TradingView Pine Script webhook ingestion
+  - fails closed with `503` unless `TV_WEBHOOK_TOKEN` is configured
+  - requires callers to send the matching token in `X-TradingView-Webhook-Token`
+  - does not use browser-exposed `X-API-Key` because the intended caller is the
+    external TradingView webhook integration
+- `GET /api/cockpit/tv/alerts?limit=...`
+  - returns recent locally persisted TradingView alert history
+  - guarded by `require_api_key()` when `settings.local_api_key` is configured
 
 ### Flagged chat references
 
