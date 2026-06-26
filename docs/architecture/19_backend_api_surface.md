@@ -28,6 +28,9 @@ The FastAPI app mounts routes in these groups:
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
   also require the dependency where declared.
+- Market-data GET routes remain public for non-staging reads, but require
+  `X-API-Key` before OpenBB sidecar refresh and staging persistence when
+  `openbb_sidecar_enable_staging_writes` is enabled.
 
 ## Route inventory
 
@@ -239,10 +242,14 @@ Runtime note:
 - `GET /api/price`
   - market price endpoint
   - routes through Yahoo or OpenBB sidecar depending on runtime config
+  - requires `X-API-Key` before OpenBB sidecar refresh and staging persistence
+    when OpenBB staging writes are enabled
 - `GET /api/fundamentals/profile`
 - `GET /api/fundamentals/summary`
 - `GET /api/fundamentals/statements`
   - fundamentals endpoints backed by the OpenBB sidecar provider
+  - require `X-API-Key` before sidecar refresh and staging persistence when
+    OpenBB staging writes are enabled
   - optional staging writes depend on runtime settings
 
 ### Backfill and document processing

@@ -90,6 +90,11 @@ def _staging_writes_enabled() -> bool:
     return bool(getattr(settings, "openbb_sidecar_enable_staging_writes", False))
 
 
+def _require_api_key_for_openbb_staging_writes(x_api_key: str | None) -> None:
+    if _staging_writes_enabled():
+        require_api_key(x_api_key)
+
+
 def _persist_openbb_price_snapshot(
     *,
     ticker: str,
@@ -273,11 +278,13 @@ def price(
     range_: str = Query("1mo", alias="range"),
     interval: str = Query("1d"),
     exchange: str = Query("ASX"),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     try:
         mode = _market_data_mode()
         if mode == "openbb_sidecar":
             try:
+                _require_api_key_for_openbb_staging_writes(x_api_key)
                 payload = _openbb_sidecar_provider().fetch_price(
                     ticker=ticker,
                     exchange=exchange,
@@ -318,8 +325,10 @@ def price(
 def fundamentals_profile(
     ticker: str,
     exchange: str = Query("ASX"),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     try:
+        _require_api_key_for_openbb_staging_writes(x_api_key)
         payload = _openbb_sidecar_provider().fetch_fundamentals_profile(
             ticker=ticker, exchange=exchange
         )
@@ -341,8 +350,10 @@ def fundamentals_profile(
 def fundamentals_summary(
     ticker: str,
     exchange: str = Query("ASX"),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     try:
+        _require_api_key_for_openbb_staging_writes(x_api_key)
         payload = _openbb_sidecar_provider().fetch_fundamentals_summary(
             ticker=ticker, exchange=exchange
         )
@@ -367,8 +378,10 @@ def fundamentals_statements(
     statement_type: str = Query("income"),
     period: str = Query("annual"),
     limit: int = Query(8, ge=1, le=40),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     try:
+        _require_api_key_for_openbb_staging_writes(x_api_key)
         payload = _openbb_sidecar_provider().fetch_fundamentals_statements(
             ticker=ticker,
             exchange=exchange,
