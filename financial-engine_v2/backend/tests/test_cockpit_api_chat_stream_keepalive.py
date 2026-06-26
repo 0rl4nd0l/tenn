@@ -39,6 +39,7 @@ def test_chat_stream_emits_sse_keepalive_during_silent_worker(
     # Shrink keepalive to 0.1s so we observe at least one comment in the
     # ~0.6s window the slow service takes to complete.
     monkeypatch.setattr(cockpit_api, "SSE_KEEPALIVE_INTERVAL_SECONDS", 0.1)
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
 
     worker_started = threading.Event()
 
@@ -73,6 +74,7 @@ def test_chat_stream_emits_sse_keepalive_during_silent_worker(
     with client.stream(
         "POST",
         "/api/cockpit/chat",
+        headers={"X-API-Key": "local-secret"},
         json={"message": "stall please", "stream": True},
     ) as response:
         assert response.status_code == 200
@@ -95,6 +97,8 @@ def test_chat_stream_keepalive_not_emitted_when_worker_is_fast(
     """A fast worker never trips the keepalive branch (no noise in normal flow)."""
 
     # Keep the default large interval; the fast worker finishes well inside it.
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+
     class FastService:
         def chat_stream(self, *args, **kwargs) -> SimpleNamespace:
             return SimpleNamespace(
@@ -121,6 +125,7 @@ def test_chat_stream_keepalive_not_emitted_when_worker_is_fast(
     with client.stream(
         "POST",
         "/api/cockpit/chat",
+        headers={"X-API-Key": "local-secret"},
         json={"message": "quick", "stream": True},
     ) as response:
         assert response.status_code == 200

@@ -34,6 +34,11 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
         ("/ingest/transcript", "POST"),
         ("/ingest/book", "POST"),
         ("/rag/query", "POST"),
+        ("/api/cockpit/chat/sessions", "GET"),
+        ("/api/cockpit/chat/sessions", "POST"),
+        ("/api/cockpit/chat/sessions/{session_id}", "GET"),
+        ("/api/cockpit/chat/sessions/{session_id}", "DELETE"),
+        ("/api/cockpit/chat", "POST"),
     ],
 )
 def test_protected_routes_register_api_key_dependency(path, method):

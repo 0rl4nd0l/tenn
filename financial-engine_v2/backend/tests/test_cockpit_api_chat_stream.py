@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from app.services.memory_events import emit_memory_read_event, suppress_memory_read_events
@@ -83,6 +84,58 @@ def test_cockpit_chat_stream_emits_only_status_plain_text_chunks_and_done(
     done_events = [event for event in data_events if event.get("type") == "done"]
     assert done_events, body
     assert done_events[-1]["data"]["text"] == "Hello there."
+
+
+def test_cockpit_chat_stream_accepts_matching_api_key_when_configured(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            if on_chunk is not None:
+                on_chunk("Hello")
+            return SimpleNamespace(
+                text="Hello",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 1234,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        headers={"X-API-Key": "local-secret"},
+        json={"message": "hello", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    assert '"type": "chunk"' in body
+    assert '"type": "done"' in body
 
 
 def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypatch) -> None:

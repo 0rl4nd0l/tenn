@@ -435,7 +435,10 @@ export async function fetchChatReadiness(ticker?: string | null): Promise<ChatRe
 /** Shared chat sessions – GET /api/cockpit/chat/sessions */
 export async function listChatSessions(limit: number = 100): Promise<ChatSessionSummary[]> {
   const safeLimit = Math.max(1, Math.min(limit, 500))
-  const response = await apiFetch<ChatSessionListResponse>(`/api/cockpit/chat/sessions?limit=${safeLimit}`)
+  const response = await apiFetch<ChatSessionListResponse>(
+    `/api/cockpit/chat/sessions?limit=${safeLimit}`,
+    { headers: withApiKey() },
+  )
   return Array.isArray(response.items) ? response.items : []
 }
 
@@ -464,6 +467,7 @@ export async function getChatSessionMessages(
   const safeLimit = Math.max(1, Math.min(limit, 2000))
   const response = await apiFetch<ChatSessionMessagesResponse>(
     `/api/cockpit/chat/sessions/${safeSessionId}?limit=${safeLimit}`,
+    { headers: withApiKey() },
   )
   return Array.isArray(response.items) ? response.items : []
 }
@@ -477,6 +481,7 @@ export async function createChatSessionRemote(sessionId?: string): Promise<ChatS
     '/api/cockpit/chat/sessions',
     {
       method: 'POST',
+      headers: withApiKey(),
       body: JSON.stringify(payload),
     },
   )
@@ -671,7 +676,7 @@ export async function deleteChatSessionRemote(sessionId: string): Promise<{ ok: 
   const safeSessionId = encodeURIComponent((sessionId || '').trim())
   const response = await apiFetch<{ ok: boolean; deleted_count: number }>(
     `/api/cockpit/chat/sessions/${safeSessionId}`,
-    { method: 'DELETE' },
+    { method: 'DELETE', headers: withApiKey() },
   )
   return response
 }
@@ -691,6 +696,7 @@ export async function sendChatMessage(params: {
 }): Promise<ChatResponse> {
   const raw = await apiFetch<any>("/api/cockpit/chat", {
     method: "POST",
+    headers: withApiKey(),
     body: JSON.stringify({
       message: params.message,
       mode: params.mode,
@@ -781,7 +787,7 @@ export async function streamChat(params: {
   const { SSE } = await import('sse.js')
   const source = new SSE("/api/cockpit/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withApiKey({ "Content-Type": "application/json" }),
     // sse.js starts streaming in the constructor by default. Disable that so
     // we can attach listeners before the first status event is emitted.
     start: false,

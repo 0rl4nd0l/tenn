@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "done_with_risk",
+  "issue": 229,
+  "base_head": "7d6ab6c184332d5413700eb08e6790f530000942",
+  "red": {
+    "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_api_chat_sessions.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream_keepalive.py financial-engine_v2/backend/tests/test_local_api_key.py -q",
+    "exit_code": 1,
+    "result": "16 failed, 89 passed, 5 warnings",
+    "worktree": "/tmp/tenn-issue229-red-current-base-20260627",
+    "worktree_removed": true
+  },
+  "green": {
+    "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_api_chat_sessions.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream_keepalive.py financial-engine_v2/backend/tests/test_local_api_key.py -q",
+    "exit_code": 0,
+    "result": "105 passed, 5 warnings"
+  },
+  "static_checks": [
+    {
+      "name": "ruff",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "name": "py_compile",
+      "exit_code": 0
+    },
+    {
+      "name": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "name": "task-card validate",
+      "exit_code": 0
+    },
+    {
+      "name": "ledger validate",
+      "exit_code": 0,
+      "result": "no DATA_MISSING"
+    }
+  ],
+  "frontend": {
+    "command": "npm test -- --run lib/api-client.test.ts",
+    "working_directory": "cockpit-ui",
+    "exit_code": 127,
+    "status": "DATA_MISSING",
+    "result": "vitest not found; node_modules/.bin/vitest absent"
+  },
+  "runtime_functionality_result": "PARTIAL",
+  "remaining_blocker": "Local frontend Vitest unavailable without dependency install approval; no live deployed backend/browser probe."
+}
