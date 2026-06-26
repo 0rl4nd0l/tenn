@@ -42,7 +42,12 @@ def test_compute_session_coherence_no_prior_turns():
     assert coherence == 1.0  # neutral for first turn
 
 
-def test_compute_session_coherence_rephrase():
+def test_compute_session_coherence_rephrase(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.llm.embed_texts",
+        lambda _texts: [[1.0, 0.0], [1.0, 0.0]],
+    )
+
     # Identical query = high similarity = low coherence
     coherence = compute_session_coherence(
         session_id="session-1",
@@ -52,7 +57,27 @@ def test_compute_session_coherence_rephrase():
     assert coherence < 0.2  # user is repeating = bad
 
 
-def test_compute_session_coherence_new_topic():
+def test_compute_session_coherence_negative_cosine_is_clamped(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.llm.embed_texts",
+        lambda _texts: [[1.0, 0.0], [-1.0, 0.0]],
+    )
+
+    coherence = compute_session_coherence(
+        session_id="session-1",
+        current_query="What is BHP's revenue?",
+        prev_query="What is RIO's debt level?",
+    )
+
+    assert coherence == 1.0
+
+
+def test_compute_session_coherence_new_topic(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.llm.embed_texts",
+        lambda _texts: [[1.0, 0.0], [0.5, 0.8660254]],
+    )
+
     # Different but related queries still show some similarity
     # The threshold should be moderate (not too high)
     coherence = compute_session_coherence(
