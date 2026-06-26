@@ -128,7 +128,7 @@ if ops_api_router is not None:
 
 class RagQueryRequest(BaseModel):
     query: str
-    source: Literal["asx_docs", "news", "commentary", "hybrid"] = "asx_docs"
+    source: Literal["asx_docs", "news"] = "asx_docs"
     ticker: Optional[str] = None
     top_k: int = 8
     debug: bool = False
@@ -1089,16 +1089,6 @@ def rag_query(body: RagQueryRequest):
                 date_from=body.date_from,
                 date_to=body.date_to,
                 top_k=body.top_k,
-            )
-        elif body.source == "commentary":
-            raise HTTPException(
-                status_code=501,
-                detail="commentary source not yet implemented via /rag/query — use /chat",
-            )
-        elif body.source == "hybrid":
-            raise HTTPException(
-                status_code=501,
-                detail="hybrid source not yet implemented via /rag/query — use /chat",
             )
         else:
             raise HTTPException(
