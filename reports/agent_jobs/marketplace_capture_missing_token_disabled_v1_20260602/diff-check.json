@@ -1,0 +1,61 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/app/marketplace-capture/page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/tests/marketplace-capture-helper.spec.ts",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+        "cockpit-ui/app/marketplace-capture/page.tsx",
+        "cockpit-ui/tests/marketplace-capture-helper.spec.ts",
+        "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/README.md",
+        "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/status.json",
+        "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/validation.json",
+        "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_issue": 52,
+      "job_id": "marketplace_capture_missing_token_disabled_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

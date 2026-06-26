@@ -1,0 +1,71 @@
+{
+  "job_id": "marketplace_capture_missing_token_disabled_v1_20260602",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+      "result": "PASS"
+    },
+    {
+      "command": "gh issue view 52 and gh pr duplicate search before implementation",
+      "result": "PASS",
+      "evidence": "issue #52 remained open and no current covering PR for the missing-token helper state was found"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui install --frozen-lockfile",
+      "result": "PASS",
+      "evidence": "created ignored node_modules from existing lockfile only"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint app/marketplace-capture/page.tsx tests/marketplace-capture-helper.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "COCKPIT_E2E_BASE_URL=http://127.0.0.1:3102 corepack pnpm --dir cockpit-ui exec playwright test tests/marketplace-capture-helper.spec.ts --project=chromium",
+      "result": "PASS",
+      "evidence": "2 passed"
+    },
+    {
+      "command": "rendered Playwright evidence with Cockpit BFF calls mocked",
+      "result": "PASS",
+      "evidence": "missing-token warning visible, capture disabled, dead capture links 0, valid token href prefix javascript:, console warnings/errors 0"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release marketplace_capture_missing_token_disabled_v1_20260602",
+      "result": "PASS"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/*.json after final report write",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md after staging",
+      "result": "PASS",
+      "evidence": "changed files were limited to the task card, Marketplace helper page, focused Playwright spec, and allowed report bundle; disallowed_files empty"
+    }
+  ],
+  "screenshots": [
+    "/tmp/tenn-marketplace-capture-missing-token-disabled-v1-20260602/missing-token-mocked.png",
+    "/tmp/tenn-marketplace-capture-missing-token-disabled-v1-20260602/valid-token-mocked.png"
+  ],
+  "post_commit_validation": [
+    "draft PR creation",
+    "GitHub check verification for this PR",
+    "issue #52 keep-open status comment after PR checks pass"
+  ]
+}
