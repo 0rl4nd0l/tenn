@@ -543,7 +543,10 @@ class TranscriptReviewUpdateRequest(BaseModel):
 # GET /api/commentary/transcripts/pending
 # ---------------------------------------------------------------------------
 
-@router.get("/transcripts/pending")
+@router.get(
+    "/transcripts/pending",
+    dependencies=[Depends(require_api_key)],
+)
 def get_pending_transcripts(
     include_takeaways: bool = False,
     takeaway_limit: int = 5,

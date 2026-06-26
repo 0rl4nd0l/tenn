@@ -356,6 +356,26 @@ class TestGetPendingTranscripts:
 
         assert result["count"] == 1
 
+    def test_sends_api_key_header(self):
+        client = BackendApiClient("http://localhost:8000", api_key="local-secret")
+        mock_response = MagicMock()
+        mock_response.content = b'{"pending": []}'
+        mock_response.json.return_value = {"pending": [], "count": 0}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            client.get_pending_transcripts()
+
+        mock_http.get.assert_called_once_with(
+            "http://localhost:8000/api/commentary/transcripts/pending",
+            headers={"X-API-Key": "local-secret"},
+        )
+
 
 class TestExtractionReviewMethods:
     def test_process_document(self, client):
