@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.routes import require_api_key
 from app.services.response_feedback import (
     MAX_REVIEW_LABEL_CHARS,
     MAX_REVIEW_LIST_ITEMS,
@@ -74,7 +75,11 @@ class ResponseFeedbackResponse(BaseModel):
     storage_path: str
 
 
-@router.post("/feedback", response_model=ResponseFeedbackResponse)
+@router.post(
+    "/feedback",
+    response_model=ResponseFeedbackResponse,
+    dependencies=[Depends(require_api_key)],
+)
 async def cockpit_response_feedback(payload: ResponseFeedbackRequest) -> ResponseFeedbackResponse:
     """Persist non-authoritative response review feedback in a dedicated local store."""
 

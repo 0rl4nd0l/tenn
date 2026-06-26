@@ -3,12 +3,15 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from unittest.mock import Mock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import app.core.config as config
 from app.routes import cockpit_feedback
 from app.routes.cockpit_feedback import router
 from app.services.response_feedback import (
@@ -26,6 +29,28 @@ def _client_with_store(store: ResponseFeedbackStore, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
+def _valid_feedback_payload() -> dict:
+    return {
+        "session_id": "session-a",
+        "message_id": "msg-a",
+        "parent_message_id": "msg-user-a",
+        "user_label": "evidence_check_issue",
+        "reason_code": "wrong_number",
+        "note": "Number does not match source.",
+        "query_text": "What did BHP report?",
+        "final_answer_text": "BHP revenue was $10m.",
+        "ticker": "bhp",
+        "route_type": "api",
+        "model_label": "model-a",
+        "sources_present": True,
+        "source_ids": ["doc-1:0"],
+        "source_summary": [{"source_id": "doc-1:0", "title": "BHP results"}],
+        "response_latency_ms": 1234,
+        "document_ids": ["doc-1"],
+        "verifier_result": {"ok": True, "evidence_count": 1},
+    }
+
+
 def test_response_feedback_endpoint_writes_to_separate_sqlite_store(tmp_path, monkeypatch) -> None:
     store_path = tmp_path / "review_feedback.sqlite"
     store = ResponseFeedbackStore(store_path)
@@ -33,25 +58,7 @@ def test_response_feedback_endpoint_writes_to_separate_sqlite_store(tmp_path, mo
 
     response = client.post(
         "/api/cockpit/feedback",
-        json={
-            "session_id": "session-a",
-            "message_id": "msg-a",
-            "parent_message_id": "msg-user-a",
-            "user_label": "evidence_check_issue",
-            "reason_code": "wrong_number",
-            "note": "Number does not match source.",
-            "query_text": "What did BHP report?",
-            "final_answer_text": "BHP revenue was $10m.",
-            "ticker": "bhp",
-            "route_type": "api",
-            "model_label": "model-a",
-            "sources_present": True,
-            "source_ids": ["doc-1:0"],
-            "source_summary": [{"source_id": "doc-1:0", "title": "BHP results"}],
-            "response_latency_ms": 1234,
-            "document_ids": ["doc-1"],
-            "verifier_result": {"ok": True, "evidence_count": 1},
-        },
+        json=_valid_feedback_payload(),
     )
 
     assert response.status_code == 200
@@ -70,6 +77,48 @@ def test_response_feedback_endpoint_writes_to_separate_sqlite_store(tmp_path, mo
     assert json.loads(row["source_ids_json"]) == ["doc-1:0"]
     assert json.loads(row["document_ids_json"]) == ["doc-1"]
     assert json.loads(row["verifier_result_json"])["evidence_count"] == 1
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_response_feedback_endpoint_requires_api_key_before_store(
+    monkeypatch,
+    headers,
+) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    store_factory = Mock(side_effect=AssertionError("store should not load"))
+    monkeypatch.setattr(cockpit_feedback, "get_response_feedback_store", store_factory)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback",
+        headers=headers,
+        json=_valid_feedback_payload(),
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    store_factory.assert_not_called()
+
+
+def test_response_feedback_endpoint_accepts_matching_api_key(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    store_path = tmp_path / "review_feedback.sqlite"
+    store = ResponseFeedbackStore(store_path)
+    client = _client_with_store(store, monkeypatch)
+
+    response = client.post(
+        "/api/cockpit/feedback",
+        headers={"X-API-Key": "local-secret"},
+        json=_valid_feedback_payload(),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert store.get(payload["feedback_id"]) is not None
 
 
 def test_response_feedback_endpoint_rejects_invalid_reason_code(tmp_path, monkeypatch) -> None:
