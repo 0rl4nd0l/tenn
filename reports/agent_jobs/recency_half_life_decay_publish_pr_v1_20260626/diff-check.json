@@ -1,0 +1,75 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": false,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/recency_half_life_decay_publish_pr_v1_20260626.md",
+        "docs/agent_tasks/recency_half_life_decay_contract_v1_20260602.md",
+        "financial-engine_v2/backend/app/services/commentary_decay.py",
+        "financial-engine_v2/backend/app/services/marketplace_price_intelligence.py",
+        "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+        "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/README.md",
+        "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/STATE.md",
+        "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/VALIDATION.md",
+        "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/status.json",
+        "reports/agent_jobs/recency_half_life_decay_contract_v1_20260602/diff-check.json",
+        "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/README.md",
+        "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/status.json",
+        "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/PR_BODY.md",
+        "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/REVIEW.md",
+        "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626/diff-check.json"
+      ],
+      "approval_required": false,
+      "forbidden_actions": [
+        "merge PR",
+        "close issue 260",
+        "change labels, milestones, projects, assignees, or issue title",
+        "mutate DB, Qdrant, Redis, news stores, memory, source PDFs, extraction prompts, gold labels, runtime state, model/GPU/service config, or production data",
+        "dependency install or dependency file edits",
+        "destructive git operations"
+      ],
+      "github_writes_allowed": [
+        "push branch safe/issue260-recency-half-life-decay-v1-20260626 to origin",
+        "open one draft PR targeting migration/clean-runtime-baseline-reconstruct-v1",
+        "post one issue status comment on issue 260"
+      ],
+      "issue": 260,
+      "job_id": "recency_half_life_decay_publish_pr_v1_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/recency_half_life_decay_publish_pr_v1_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

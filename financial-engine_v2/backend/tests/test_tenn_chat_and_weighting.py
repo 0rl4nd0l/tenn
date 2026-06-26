@@ -1,8 +1,10 @@
 """Tests for tenn_chat helpers and source_weighting news_article configuration."""
+
 from __future__ import annotations
 
 import pytest
 
+from app.services.commentary_decay import compute_recency_decay
 from app.services.source_weighting import (
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_SOURCE_WEIGHTS,
@@ -41,6 +43,7 @@ class TestSourceWeightingNewsArticle:
     def test_apply_weighting_news_chunk_fresh(self):
         """Fresh news (today) should not be heavily decayed."""
         from datetime import datetime, timezone
+
         now = datetime.now(tz=timezone.utc)
         chunk = {
             "source_type": "news_article",
@@ -55,6 +58,7 @@ class TestSourceWeightingNewsArticle:
     def test_apply_weighting_news_chunk_stale(self):
         """Old news (90 days) should decay significantly with 1-day half-life."""
         import datetime as dt
+
         ninety_days_ago = (
             dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(days=90)
         ).isoformat()
@@ -66,6 +70,49 @@ class TestSourceWeightingNewsArticle:
         result = apply_weighting_to_chunk(chunk)
         # 90 days / 1-day half-life = 90 half-lives → decay effectively 0
         assert result["recency_decay"] < 0.02
+
+    def test_recency_decay_matches_true_half_life_contract(self):
+        now = "2026-06-02T00:00:00Z"
+
+        one_half_life = compute_recency_decay(
+            published_at="2026-06-01T00:00:00Z",
+            half_life_days=1.0,
+            now=now,
+        )
+        two_half_lives = compute_recency_decay(
+            published_at="2026-05-31T00:00:00Z",
+            half_life_days=1.0,
+            now=now,
+        )
+
+        assert one_half_life == pytest.approx(0.5)
+        assert two_half_lives == pytest.approx(0.25)
+
+    def test_apply_weighting_news_article_one_half_life(self):
+        result = apply_weighting_to_chunk(
+            {
+                "source_type": "news_article",
+                "vector_score": 0.8,
+                "published_at": "2026-06-01T00:00:00Z",
+            },
+            now="2026-06-02T00:00:00Z",
+        )
+
+        assert result["decay_half_life"] == 1.0
+        assert result["recency_decay"] == pytest.approx(0.5)
+
+    def test_apply_weighting_market_commentary_one_half_life(self):
+        result = apply_weighting_to_chunk(
+            {
+                "source_type": "market_commentary",
+                "vector_score": 0.8,
+                "published_at": "2026-05-26T00:00:00Z",
+            },
+            now="2026-06-02T00:00:00Z",
+        )
+
+        assert result["decay_half_life"] == 7.0
+        assert result["recency_decay"] == pytest.approx(0.5)
 
 
 class TestNormalizeNewsChunk:
@@ -153,7 +200,9 @@ class TestRetrieveChatContext:
             "query_rag",
             lambda **_: {"hits": [], "research_context": {"evidence_chunks": []}},
         )
-        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+        monkeypatch.setattr(
+            tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks)
+        )
 
         class FakeRetriever:
             def __init__(self, *, collection_name):
@@ -208,7 +257,9 @@ class TestRetrieveChatContext:
             "query_rag",
             lambda **_: {"hits": [], "research_context": {"evidence_chunks": []}},
         )
-        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+        monkeypatch.setattr(
+            tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks)
+        )
 
         class FakeRetriever:
             def __init__(self, *, collection_name):
@@ -238,7 +289,9 @@ class TestRetrieveChatContext:
         assert bundle.news_retrieval_failed is True
         assert [row["source_name"] for row in bundle.context_rows] == ["Analyst note"]
 
-    def test_rag_evidence_rows_are_used_when_chunk_retrieval_is_empty(self, monkeypatch):
+    def test_rag_evidence_rows_are_used_when_chunk_retrieval_is_empty(
+        self, monkeypatch
+    ):
         monkeypatch.setattr(
             tenn_chat,
             "query_rag",
@@ -256,7 +309,9 @@ class TestRetrieveChatContext:
                 },
             },
         )
-        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+        monkeypatch.setattr(
+            tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks)
+        )
 
         class FakeRetriever:
             def __init__(self, *, collection_name):
