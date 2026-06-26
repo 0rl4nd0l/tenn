@@ -1,0 +1,12 @@
+{
+  "task_id": "scribe_mode_control_plane_capture_v1_20260626",
+  "status": "claimed",
+  "timestamp_utc": "2026-06-26T06:43:11Z",
+  "worktree": "/home/l4nd0/tenn-scribe-mode-control-plane-v1-20260626",
+  "branch": "safe/scribe-mode-control-plane-v1-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "head_at_claim": "857e76c3180cb0b1fb9fc360652d6a9b64543c86",
+  "task_card": "docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md",
+  "live_ledger_append": "skipped",
+  "reason": "Task card and owner request require ledger validate/search only; live ledger mutation was not approved."
+}

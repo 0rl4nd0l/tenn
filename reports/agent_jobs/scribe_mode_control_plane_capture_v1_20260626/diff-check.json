@@ -1,0 +1,75 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/DECISIONS.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/PR_REVIEW.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/VALIDATION.md",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": false,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md",
+        ".agents/skills/tenn-goal-report/SKILL.md",
+        ".agents/skills/tenn-fix/SKILL.md",
+        "docs/dev_flow/templates/OPERATOR_NOTES.md",
+        "docs/dev_flow/templates/DECISIONS.md",
+        "docs/dev_flow/templates/STATE.md",
+        "docs/dev_flow/SKILLS_SURFACE.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/README.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/STATE.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/DECISIONS.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/VALIDATION.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/PR_REVIEW.md",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_portable.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_repo.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/registry_readonly.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_validate.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_search_scribe.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/scribe_grep_current.txt",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_claimed.json",
+        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_done.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "github_writes_allowed": [
+        "push branch safe/scribe-mode-control-plane-v1-20260626",
+        "open draft PR against migration/clean-runtime-baseline-reconstruct-v1"
+      ],
+      "job_id": "scribe_mode_control_plane_capture_v1_20260626",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
