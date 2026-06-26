@@ -1,20 +1,17 @@
 import base64
 import logging
 import uuid
-from typing import Optional
-
-logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.db import SessionLocal, get_db
-from app.models.documents import Document
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.documents import Document
 from app.models.extractions import ExtractionRun
-from app.providers.universe import ASX20
 from app.providers.market_price_provider import (
     MarketPriceProvider,
     MarketPriceProviderError,
@@ -23,17 +20,19 @@ from app.providers.openbb_sidecar_provider import (
     OpenBBSidecarProvider,
     OpenBBSidecarProviderError,
 )
+from app.providers.universe import ASX20
 from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
+from app.services.extraction_run_observability import initialize_run_status
+from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
     persist_fundamental_snapshot,
     persist_price_snapshot,
 )
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
-from app.services.extraction_run_observability import initialize_run_status
-from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.source_registry import ingest_book
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -144,7 +143,9 @@ def _persist_openbb_fundamental_snapshot(
 
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+    }
 
 
 @router.post("/ingest/transcript", dependencies=[Depends(require_api_key)])
@@ -251,7 +252,11 @@ def financials(ticker: str, db: Session = Depends(get_db)):
 def risk(document_id: str, db: Session = Depends(get_db)):
     r = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == document_id).first()
     if not r:
-        return {"document_id": document_id, "risk_summary": None, "risk_bullets": None}
+        return {
+            "document_id": document_id,
+            "risk_summary": None,
+            "risk_bullets": None,
+        }
     return {
         "document_id": str(r.document_id),
         "risk_summary": r.risk_summary,
@@ -401,7 +406,11 @@ def backfill_asx20(years: int = 1, process_documents: bool = False):
             )
             for t in ASX20
         ]
-        return {"mode": "sync", "processed": len(results), "results": results}
+        return {
+            "mode": "sync",
+            "processed": len(results),
+            "results": results,
+        }
     for t in ASX20:
         celery.send_task(
             "backfill_ticker",
@@ -410,7 +419,11 @@ def backfill_asx20(years: int = 1, process_documents: bool = False):
             queue="ingest",
             routing_key="ingest",
         )
-    return {"mode": "celery", "enqueued": len(ASX20), "tickers": ASX20}
+    return {
+        "mode": "celery",
+        "enqueued": len(ASX20),
+        "tickers": ASX20,
+    }
 
 
 @router.post("/backfill/ticker/{ticker}", dependencies=[Depends(require_api_key)])
@@ -424,7 +437,10 @@ def backfill_ticker(ticker: str, years: int = 1, process_documents: bool = False
                 mode="sync",
             )
         )
-        return {"mode": "sync", **result}
+        return {
+            "mode": "sync",
+            **result,
+        }
     celery.send_task(
         "backfill_ticker",
         args=[ticker.upper()],
@@ -432,7 +448,11 @@ def backfill_ticker(ticker: str, years: int = 1, process_documents: bool = False
         queue="ingest",
         routing_key="ingest",
     )
-    return {"mode": "celery", "enqueued": 1, "ticker": ticker.upper()}
+    return {
+        "mode": "celery",
+        "enqueued": 1,
+        "ticker": ticker.upper(),
+    }
 
 
 @router.post("/process/document/{document_id}", dependencies=[Depends(require_api_key)])
@@ -466,7 +486,11 @@ def process_single_document(
             requested_method=requested_method,
             strict_method=strict_method,
         )
-        return {"mode": "sync", "document_id": document_id, **(result or {})}
+        return {
+            "mode": "sync",
+            "document_id": document_id,
+            **(result or {}),
+        }
     task = celery.send_task(
         "process_document",
         args=[{"document_id": document_id}, document_id],
@@ -547,7 +571,11 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
                 queue="llm_gpu",
                 routing_key="llm_gpu",
             )
-        return {"mode": "celery", "ticker": ticker.upper(), "queued": len(unextracted)}
+        return {
+            "mode": "celery",
+            "ticker": ticker.upper(),
+            "queued": len(unextracted),
+        }
     finally:
         db.close()
 
