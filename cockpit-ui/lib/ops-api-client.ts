@@ -1,5 +1,6 @@
 // API client for /api/ops/ endpoints
 
+import { SSE } from 'sse.js'
 import { apiFetch } from './api-client'
 import type {
   OpsJobListResponse,
@@ -7,6 +8,18 @@ import type {
   OpsJobEventListResponse,
   OpsJobArtifactListResponse,
 } from './ops-types'
+
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
+
+function withOpsApiKey(headers?: Record<string, string>): Record<string, string> {
+  const merged = {
+    ...(headers ?? {}),
+  }
+  if (API_KEY) {
+    merged['X-API-Key'] = API_KEY
+  }
+  return merged
+}
 
 export async function listOpsJobs(params?: {
   status?: string
@@ -22,15 +35,24 @@ export async function listOpsJobs(params?: {
   if (params?.limit) searchParams.set('limit', String(params.limit))
   if (params?.offset) searchParams.set('offset', String(params.offset))
   const qs = searchParams.toString()
-  return apiFetch<OpsJobListResponse>(`/api/ops/jobs${qs ? `?${qs}` : ''}`)
+  return apiFetch<OpsJobListResponse>(
+    `/api/ops/jobs${qs ? `?${qs}` : ''}`,
+    { headers: withOpsApiKey() },
+  )
 }
 
 export async function listActiveOpsJobs(): Promise<OpsJobListResponse> {
-  return apiFetch<OpsJobListResponse>('/api/ops/jobs/active')
+  return apiFetch<OpsJobListResponse>(
+    '/api/ops/jobs/active',
+    { headers: withOpsApiKey() },
+  )
 }
 
 export async function getOpsJob(jobId: string): Promise<OpsJobRun> {
-  return apiFetch<OpsJobRun>(`/api/ops/jobs/${jobId}`)
+  return apiFetch<OpsJobRun>(
+    `/api/ops/jobs/${jobId}`,
+    { headers: withOpsApiKey() },
+  )
 }
 
 export async function getOpsJobEvents(
@@ -38,11 +60,27 @@ export async function getOpsJobEvents(
   limit?: number,
 ): Promise<OpsJobEventListResponse> {
   const qs = limit ? `?limit=${limit}` : ''
-  return apiFetch<OpsJobEventListResponse>(`/api/ops/jobs/${jobId}/events${qs}`)
+  return apiFetch<OpsJobEventListResponse>(
+    `/api/ops/jobs/${jobId}/events${qs}`,
+    { headers: withOpsApiKey() },
+  )
 }
 
 export async function getOpsJobArtifacts(
   jobId: string,
 ): Promise<OpsJobArtifactListResponse> {
-  return apiFetch<OpsJobArtifactListResponse>(`/api/ops/jobs/${jobId}/artifacts`)
+  return apiFetch<OpsJobArtifactListResponse>(
+    `/api/ops/jobs/${jobId}/artifacts`,
+    { headers: withOpsApiKey() },
+  )
+}
+
+export function createOpsJobStream(jobId?: string): SSE {
+  const url = jobId
+    ? `/api/ops/stream?job_id=${encodeURIComponent(jobId)}`
+    : '/api/ops/stream'
+  return new SSE(url, {
+    headers: withOpsApiKey(),
+    start: false,
+  })
 }

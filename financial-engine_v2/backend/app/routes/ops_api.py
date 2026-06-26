@@ -442,7 +442,11 @@ def cancel_external_job(job_id: str, body: ExternalJobCancellationRequest):
     return updated
 
 
-@router.get("/jobs", response_model=JobListResponse)
+@router.get(
+    "/jobs",
+    response_model=JobListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def list_jobs(
     status: str | None = Query(None, description="Filter by status (comma-separated)"),
     job_type: str | None = Query(None, description="Filter by job type"),
@@ -475,7 +479,11 @@ def list_jobs(
     }
 
 
-@router.get("/jobs/active", response_model=JobListResponse)
+@router.get(
+    "/jobs/active",
+    response_model=JobListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def list_active_jobs():
     tracker = _require_tracker()
     synthetic_jobs = _list_synthetic_extraction_jobs(status="pending,running")
@@ -492,7 +500,11 @@ def list_active_jobs():
     return {"items": merged_items[:100], "total": persisted_total + synthetic_total}
 
 
-@router.get("/jobs/{job_id}", response_model=JobRunResponse)
+@router.get(
+    "/jobs/{job_id}",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def get_job(job_id: str):
     tracker = _require_tracker()
     synthetic_jobs = _list_synthetic_extraction_jobs()
@@ -502,7 +514,11 @@ def get_job(job_id: str):
     return run
 
 
-@router.get("/jobs/{job_id}/events", response_model=JobEventListResponse)
+@router.get(
+    "/jobs/{job_id}/events",
+    response_model=JobEventListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def get_job_events(
     job_id: str,
     limit: int = Query(200, ge=1, le=1000),
@@ -518,7 +534,11 @@ def get_job_events(
     return {"items": events}
 
 
-@router.get("/jobs/{job_id}/artifacts", response_model=JobArtifactListResponse)
+@router.get(
+    "/jobs/{job_id}/artifacts",
+    response_model=JobArtifactListResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def get_job_artifacts(job_id: str):
     tracker = _require_tracker()
     synthetic_jobs = _list_synthetic_extraction_jobs()
@@ -531,7 +551,7 @@ def get_job_artifacts(job_id: str):
     return {"items": artifacts}
 
 
-@router.get("/stream")
+@router.get("/stream", dependencies=[Depends(require_api_key)])
 async def stream_events(
     request: Request,
     job_id: str | None = Query(None, description="Filter to a specific job"),
