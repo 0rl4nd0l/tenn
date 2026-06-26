@@ -1,0 +1,75 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue235_memory_read_route_guard_current_base_v1_20260627.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "financial-engine_v2/backend/app/api/context.py",
+        "financial-engine_v2/backend/tests/test_memory_read_route_auth.py",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/README.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/status.json",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/VALIDATION.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/REVIEW.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/architecture/22_memory_ownership_map.md",
+        "docs/architecture/21_cockpit_client_contract.md",
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "issue235_memory_read_route_guard_current_base_v1_20260627",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v1_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #235 reports unguarded backend memory read routes exposing durable qualitative memory and user thesis state.",
+      "recommended_model": "standard coding model",
+      "related_issue": 235,
+      "supporting_lanes": [
+        "Provenance",
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "title": "Gate backend memory read routes before exposing thesis and qualitative memory",
+      "why_this_model": "The change is a focused backend route guard plus narrow route-auth tests.",
+      "worker_decision_limit": "main orchestrator only; no subagent needed for this narrow memory read-route guard.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}
