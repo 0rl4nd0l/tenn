@@ -1,0 +1,70 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue240_intel_pulse_route_guard_current_base_v1_20260627.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_local_api_key.py",
+        "financial-engine_v2/backend/tests/test_cockpit_intel_pulse_route_auth.py",
+        "cockpit-ui/lib/api-client.ts",
+        "cockpit-ui/lib/api-client.test.ts",
+        "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/README.md",
+        "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/status.json",
+        "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/VALIDATION.md",
+        "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/REVIEW.md",
+        "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "issue #240"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "issue240_intel_pulse_route_guard_current_base_v1_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/issue240_intel_pulse_route_guard_current_base_v1_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "recommended_model": "standard coding model",
+      "related_issue": 240,
+      "supersedes": [
+        "cockpit_intel_pulse_route_guard_v1_20260626"
+      ],
+      "supporting_lanes": [
+        "Evaluation",
+        "Financial Truth",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "why_this_model": "Small backend/frontend route-auth repair with existing local evidence, current-base adoption, focused tests, review, and PR handling.",
+      "worker_decision_limit": "No workers used; prior local patch and affected route/client files are narrow enough to inspect directly.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

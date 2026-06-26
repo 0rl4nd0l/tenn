@@ -1107,7 +1107,7 @@ export async function getIntelPulse(ticker?: string): Promise<IntelPulseResponse
   const url = normalizedTicker
     ? `/api/cockpit/pulse?ticker=${encodeURIComponent(normalizedTicker)}`
     : "/api/cockpit/pulse"
-  return apiFetch<IntelPulseResponse>(url)
+  return apiFetch<IntelPulseResponse>(url, { headers: withApiKey() })
 }
 
 /** Diagnostic Matrix – GET /api/cockpit/matrix */
@@ -1115,5 +1115,5 @@ export async function getDiagnosticMatrix(stage: string, ticker?: string): Promi
   const base = `/api/cockpit/matrix?stage=${encodeURIComponent(stage)}`
   const normalizedTicker = ticker?.trim().toUpperCase()
   const url = normalizedTicker ? `${base}&ticker=${encodeURIComponent(normalizedTicker)}` : base
-  return apiFetch<IntelPulseMatrixResponse>(url)
+  return apiFetch<IntelPulseMatrixResponse>(url, { headers: withApiKey() })
 }

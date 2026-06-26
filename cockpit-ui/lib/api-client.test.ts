@@ -139,3 +139,60 @@ describe('listDocuments', () => {
     )
   })
 })
+
+describe('Intel Ops API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when fetching Intel Pulse', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ stats: {}, pipeline: [], failures: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getIntelPulse } = await import('./api-client')
+
+    await getIntelPulse('bhp')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/pulse?ticker=BHP',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+
+  it('sends the configured API key when fetching the diagnostic matrix', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ stage: 'extraction', entities: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getDiagnosticMatrix } = await import('./api-client')
+
+    await getDiagnosticMatrix('extraction', 'bhp')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/matrix?stage=extraction&ticker=BHP',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
