@@ -4,8 +4,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
+import pytest
 
+from app.api import routes
+from app.core import config
 from app.routes.marketplace_price_intelligence import router
 from app.routes import marketplace_price_intelligence as price_intelligence_routes
 from app.services.marketplace_price_intelligence import (
@@ -42,6 +46,65 @@ def _recent_observed_at(idx: int) -> str:
     return (
         datetime.now(timezone.utc) - timedelta(days=5 - idx)
     ).replace(microsecond=0).isoformat()
+
+
+PRICE_INTELLIGENCE_PREFIX = "/api/cockpit/marketplace/price-intelligence"
+
+
+def _price_intelligence_client(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    local_api_key: str = "",
+) -> TestClient:
+    monkeypatch.setenv("COCKPIT_STATE_DB", str(tmp_path / "state.db"))
+    monkeypatch.setattr(config.settings, "local_api_key", local_api_key, raising=False)
+    price_intelligence_routes._STATE_STORES.clear()
+
+    app = FastAPI()
+    app.include_router(router, prefix=PRICE_INTELLIGENCE_PREFIX)
+    return TestClient(app)
+
+
+def _route(path: str, method: str) -> APIRoute:
+    for candidate in router.routes:
+        if (
+            isinstance(candidate, APIRoute)
+            and candidate.path == path
+            and method in candidate.methods
+        ):
+            return candidate
+    raise AssertionError(f"route not found: {method} {path}")
+
+
+def _has_api_key_dependency(route: APIRoute) -> bool:
+    return any(
+        dependency.call is routes.require_api_key
+        for dependency in route.dependant.dependencies
+    )
+
+
+def _tracked_product_payload() -> dict:
+    return {
+        "category": "gpu",
+        "brand": "NVIDIA",
+        "model_family": "RTX 4070",
+        "variant": "SUPER 12GB",
+        "canonical_key": "gpu:nvidia:rtx-4070-super-12gb",
+        "aliases": ["4070 super"],
+    }
+
+
+def _observation_payload(tracked_product_id: str = "tp_unauthorized") -> dict:
+    return {
+        "tracked_product_id": tracked_product_id,
+        "source": "manual",
+        "observed_at": "2026-04-20T10:00:00+00:00",
+        "source_listing_id": "gpu-1",
+        "title": "RTX 4070 Super 12GB",
+        "price": 620,
+        "review_state": "accepted",
+    }
 
 
 def test_price_observation_schema_adds_transactional_column_to_existing_table(
@@ -830,12 +893,7 @@ def test_value_assessment_reports_ambiguous_variant_and_retail_anchor_only(
 
 
 def test_standalone_api_supports_foundation_flow(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("COCKPIT_STATE_DB", str(tmp_path / "state.db"))
-    price_intelligence_routes._STATE_STORES.clear()
-
-    app = FastAPI()
-    app.include_router(router, prefix="/api/cockpit/marketplace/price-intelligence")
-    client = TestClient(app)
+    client = _price_intelligence_client(tmp_path, monkeypatch, local_api_key="")
 
     create_product = client.post(
         "/api/cockpit/marketplace/price-intelligence/tracked-products",
@@ -900,3 +958,154 @@ def test_standalone_api_supports_foundation_flow(tmp_path: Path, monkeypatch) ->
     )
     assert snapshots.status_code == 200
     assert snapshots.json()["items"][0]["snapshot_id"] == snapshot.json()["snapshot_id"]
+
+
+@pytest.mark.parametrize(
+    ("path", "method"),
+    [
+        ("/normalize", "GET"),
+        ("/tracked-products", "GET"),
+        ("/tracked-products", "POST"),
+        ("/tracked-products/{tracked_product_id}", "GET"),
+        ("/observations", "POST"),
+        ("/observations", "GET"),
+        ("/tracked-products/{tracked_product_id}/timelines", "GET"),
+        ("/tracked-products/{tracked_product_id}/benchmark-snapshots", "POST"),
+        ("/tracked-products/{tracked_product_id}/benchmark-snapshots", "GET"),
+        ("/tracked-products/{tracked_product_id}/ebay-sync", "POST"),
+    ],
+)
+def test_price_intelligence_auth_routes_register_api_key_dependency(
+    path: str,
+    method: str,
+) -> None:
+    assert _has_api_key_dependency(_route(path, method))
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_price_intelligence_auth_rejects_configured_missing_or_wrong_key_before_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    headers: dict[str, str],
+) -> None:
+    client = _price_intelligence_client(
+        tmp_path,
+        monkeypatch,
+        local_api_key="local-secret",
+    )
+
+    def fail_if_called():
+        raise AssertionError("price-intelligence service should not be reached")
+
+    monkeypatch.setattr(price_intelligence_routes, "_service", fail_if_called)
+
+    cases = [
+        (
+            "post",
+            f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products",
+            _tracked_product_payload(),
+        ),
+        (
+            "post",
+            f"{PRICE_INTELLIGENCE_PREFIX}/observations",
+            _observation_payload(),
+        ),
+        (
+            "post",
+            f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products/tp_unauthorized/benchmark-snapshots",
+            {},
+        ),
+        (
+            "post",
+            f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products/tp_unauthorized/ebay-sync",
+            {},
+        ),
+    ]
+
+    for method, url, payload in cases:
+        response = getattr(client, method)(url, json=payload, headers=headers)
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Invalid or missing API key"}
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_price_intelligence_auth_guards_read_routes_when_key_configured(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    headers: dict[str, str],
+) -> None:
+    client = _price_intelligence_client(
+        tmp_path,
+        monkeypatch,
+        local_api_key="local-secret",
+    )
+
+    response = client.get(
+        f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products",
+        headers=headers,
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API key"}
+
+
+def test_price_intelligence_auth_accepts_matching_key_for_mutation_flows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _price_intelligence_client(
+        tmp_path,
+        monkeypatch,
+        local_api_key="local-secret",
+    )
+    headers = {"X-API-Key": "local-secret"}
+
+    class FakeEbaySoldScanner:
+        def __init__(self, service):
+            self.service = service
+
+        async def scrape_sold_items(self, tracked_product_id: str, query: str) -> dict:
+            return {
+                "tracked_product_id": tracked_product_id,
+                "query": query,
+                "observations_ingested": 0,
+            }
+
+    monkeypatch.setattr(price_intelligence_routes, "EbaySoldScanner", FakeEbaySoldScanner)
+
+    create_product = client.post(
+        f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products",
+        json=_tracked_product_payload(),
+        headers=headers,
+    )
+    assert create_product.status_code == 200
+    product = create_product.json()
+
+    create_observation = client.post(
+        f"{PRICE_INTELLIGENCE_PREFIX}/observations",
+        json=_observation_payload(product["tracked_product_id"]),
+        headers=headers,
+    )
+    assert create_observation.status_code == 200
+
+    snapshot = client.post(
+        f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products/"
+        f"{product['tracked_product_id']}/benchmark-snapshots",
+        json={},
+        headers=headers,
+    )
+    assert snapshot.status_code == 200
+    assert snapshot.json()["total_sample_size"] == 1
+
+    ebay_sync = client.post(
+        f"{PRICE_INTELLIGENCE_PREFIX}/tracked-products/"
+        f"{product['tracked_product_id']}/ebay-sync",
+        json={},
+        headers=headers,
+    )
+    assert ebay_sync.status_code == 200
+    assert ebay_sync.json() == {
+        "tracked_product_id": product["tracked_product_id"],
+        "query": "gpu:nvidia:rtx-4070-super-12gb",
+        "observations_ingested": 0,
+    }

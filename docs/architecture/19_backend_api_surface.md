@@ -146,6 +146,14 @@ The FastAPI app mounts routes in these groups:
   - lists recent cockpit feedback reports with `report_id`, `feedback_type`, excerpt, and read API path
 - `GET /api/cockpit/feedback/flags/{report_id}`
   - returns the saved feedback report bundle, markdown summary, and analysis payload by report ID
+- `/api/cockpit/marketplace/price-intelligence/*`
+  - standalone Marketplace price-intelligence route family mounted before the
+    larger Cockpit router
+  - includes tracked-product reads and creation, price-observation reads and
+    ingestion, timelines, benchmark snapshots, and eBay sold-data sync
+  - guarded by `require_api_key()` when `settings.local_api_key` is configured
+  - Cockpit BFF/client callers must forward `X-API-Key` for guarded reads and
+    mutations
 
 ### Flagged chat references
 
