@@ -33,6 +33,53 @@ def test_compute_retrieval_precision_empty_chunks():
     assert precision == 0.0
 
 
+def test_compute_retrieval_precision_treats_zero_final_score_as_real_score():
+    chunks = [
+        {"final_score": 0.0, "relevance_score": 0.9},
+        {"final_score": 0.0, "relevance_score": 0.8},
+    ]
+
+    precision = compute_retrieval_precision(chunks)
+
+    assert precision == 0.0
+
+
+def test_compute_retrieval_precision_falls_back_when_final_score_missing():
+    chunks = [
+        {"relevance_score": 0.7},
+        {"final_score": None, "relevance_score": 0.5},
+    ]
+
+    precision = compute_retrieval_precision(chunks)
+
+    assert precision == pytest.approx(0.6)
+
+
+def test_compute_retrieval_precision_falls_back_when_final_score_invalid():
+    chunks = [
+        {"final_score": "not-a-score", "relevance_score": 0.6},
+        {"final_score": "", "relevance_score": 0.4},
+    ]
+
+    precision = compute_retrieval_precision(chunks)
+
+    assert precision == pytest.approx(0.5)
+
+
+def test_compute_retrieval_precision_excludes_ephemeral_and_concat_chunks():
+    chunks = [
+        {"final_score": 0.5, "source_kind": "primary"},
+        {"final_score": 1.0, "source_kind": "ephemeral"},
+        {"final_score": 1.0, "source_kind": "concat"},
+        {"final_score": 0.7, "source_kind": "news"},
+        {"final_score": 0.3},
+    ]
+
+    precision = compute_retrieval_precision(chunks)
+
+    assert precision == pytest.approx(0.5)
+
+
 def test_compute_session_coherence_no_prior_turns():
     coherence = compute_session_coherence(
         session_id="new-session",

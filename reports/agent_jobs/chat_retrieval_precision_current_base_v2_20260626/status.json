@@ -1,0 +1,42 @@
+{
+  "job_id": "chat_retrieval_precision_current_base_v2_20260626",
+  "issue": 257,
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "result": "PARTIAL",
+  "branch": "safe/issue257-retrieval-precision-current-base-v2-20260626",
+  "worktree": "/home/l4nd0/tenn-issue257-retrieval-precision-current-base-v2-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "659c5a507aaf9fa03e46021495d8ad998ba8ba46",
+  "summary": "compute_retrieval_precision now preserves explicit zero final_score, falls back only for invalid or missing final_score, and excludes ephemeral/concat source_kind chunks.",
+  "validation": {
+    "guard_pre_edit": "PASS",
+    "task_card_validate": "PASS",
+    "registry_overlap": "PASS",
+    "registry_claim": "PASS",
+    "ledger_validate": "PASS_PENDING_FINAL",
+    "pytest_chat_quality_scorer": "PASS_12",
+    "ruff_check": "PASS",
+    "ruff_format_check": "PASS",
+    "py_compile": "PASS",
+    "git_diff_check": "PASS",
+    "code_review": "PASS_NO_FINDINGS",
+    "github_checks": "PENDING"
+  },
+  "docs_impact": {
+    "docs_impact": "DOCS_NOT_REQUIRED",
+    "docs_checked": [
+      "issue #257",
+      "old local fix evidence",
+      "chat_quality_scorer.py",
+      "focused scorer tests"
+    ],
+    "docs_changed": [],
+    "docs_followup": [],
+    "reason": "The fix aligns code with the existing documented metric contract."
+  },
+  "runtime_functionality": {
+    "result": "PARTIAL",
+    "remaining_blocker": "No live app/API/telemetry process was started or queried; publish requires green GitHub checks and canonical merge containment."
+  },
+  "next_action": "Commit, push PR, wait for GitHub checks, merge only when gated, then close issue #257 after containment."
+}
