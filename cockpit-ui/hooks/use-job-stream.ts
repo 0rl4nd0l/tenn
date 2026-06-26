@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { OpsJobRun, OpsSSEEvent } from '@/lib/ops-types'
-import { listActiveOpsJobs } from '@/lib/ops-api-client'
+import { createOpsJobStream, listActiveOpsJobs } from '@/lib/ops-api-client'
 
 interface UseJobStreamOptions {
   jobId?: string
@@ -27,7 +27,7 @@ export function useJobStream(options?: UseJobStreamOptions): UseJobStreamReturn 
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reconnectDelay = useRef(BASE_RECONNECT_MS)
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const eventSourceRef = useRef<ReturnType<typeof createOpsJobStream> | null>(null)
 
   const fetchActiveJobs = useCallback(async () => {
     try {
@@ -50,22 +50,25 @@ export function useJobStream(options?: UseJobStreamOptions): UseJobStreamReturn 
     const connect = () => {
       if (cancelled) return
 
-      const url = jobId
-        ? `/api/ops/stream?job_id=${encodeURIComponent(jobId)}`
-        : '/api/ops/stream'
-
-      const source = new EventSource(url)
+      const source = createOpsJobStream(jobId)
       eventSourceRef.current = source
 
-      source.onopen = () => {
+      const markConnected = () => {
         setConnected(true)
         setError(null)
         reconnectDelay.current = BASE_RECONNECT_MS
+      }
+
+      const handleOpen = () => {
+        markConnected()
         // Fetch current state on connect/reconnect
         fetchActiveJobs()
       }
 
-      source.onmessage = (e) => {
+      source.addEventListener('open', handleOpen)
+
+      source.addEventListener('message', (e: any) => {
+        markConnected()
         try {
           const event: OpsSSEEvent = JSON.parse(e.data)
           setRecentEvents((prev) => [...prev.slice(-(MAX_RECENT_EVENTS - 1)), event])
@@ -91,9 +94,9 @@ export function useJobStream(options?: UseJobStreamOptions): UseJobStreamReturn 
         } catch {
           // Ignore unparseable messages (e.g. keepalive comments)
         }
-      }
+      })
 
-      source.onerror = () => {
+      source.addEventListener('error', () => {
         source.close()
         setConnected(false)
         if (!cancelled) {
@@ -101,6 +104,17 @@ export function useJobStream(options?: UseJobStreamOptions): UseJobStreamReturn 
           reconnectDelay.current = Math.min(delay * 2, MAX_RECONNECT_MS)
           setError(`Disconnected. Reconnecting in ${Math.round(delay / 1000)}s...`)
           setTimeout(connect, delay)
+        }
+      })
+
+      try {
+        source.stream()
+      } catch {
+        source.close()
+        setConnected(false)
+        if (!cancelled) {
+          setError('Disconnected. Reconnecting in 1s...')
+          setTimeout(connect, BASE_RECONNECT_MS)
         }
       }
     }

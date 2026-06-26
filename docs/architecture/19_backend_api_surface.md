@@ -28,6 +28,8 @@ The FastAPI app mounts routes in these groups:
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
   also require the dependency where declared.
+- Operational job-state reads and streams under `/api/ops/*` require the
+  dependency where declared because they expose run metadata and artifact paths.
 
 ## Route inventory
 
@@ -233,6 +235,26 @@ Runtime note:
   - current supported runtime proposal:
     - `start_extraction_runtime`
 
+### Ops job state (`/api/ops/*`)
+
+The Ops job-state surface is intended for Cockpit operator views. These routes
+require `X-API-Key` when `settings.local_api_key` is configured:
+
+- `GET /api/ops/jobs`
+  - list persisted and synthetic operational jobs
+- `GET /api/ops/jobs/active`
+  - list pending/running operational jobs
+- `GET /api/ops/jobs/{job_id}`
+  - read one job run
+- `GET /api/ops/jobs/{job_id}/events`
+  - read job event history
+- `GET /api/ops/jobs/{job_id}/artifacts`
+  - read job artifact metadata
+- `GET /api/ops/stream`
+  - stream job events via SSE
+  - clients must send credentials as headers through a header-capable SSE
+    mechanism; durable API keys must not be embedded in browser URLs
+
 ### Commentary and framework ingestion
 
 - `POST /api/ingest/transcript`
@@ -328,4 +350,5 @@ Runtime note:
 - `financial-engine_v2/backend/app/api/analysis.py`
 - `financial-engine_v2/backend/app/routes/chat.py`
 - `financial-engine_v2/backend/app/routes/cockpit_api.py`
+- `financial-engine_v2/backend/app/routes/ops_api.py`
 - `financial-engine_v2/backend/app/routes/research.py`
