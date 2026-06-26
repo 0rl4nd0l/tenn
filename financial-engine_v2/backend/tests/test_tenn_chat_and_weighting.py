@@ -6,6 +6,7 @@ import pytest
 from app.services.source_weighting import (
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_SOURCE_WEIGHTS,
+    apply_source_weighting,
     apply_weighting_to_chunk,
     half_life_for_type,
     source_weight_for_type,
@@ -38,6 +39,40 @@ class TestSourceWeightingNewsArticle:
     def test_half_life_for_type_news_article(self):
         assert half_life_for_type("news_article") == 1.0
 
+    @pytest.mark.parametrize(
+        ("source_type", "expected_weight"),
+        [
+            ("news_article", 0.5),
+            ("youtube_transcript", 0.55),
+            ("framework_pdf", 1.0),
+        ],
+    )
+    def test_default_final_score_uses_single_resolved_credibility(
+        self, source_type, expected_weight
+    ):
+        result = apply_source_weighting(
+            relevance_score=1.0,
+            source_type=source_type,
+            credibility_weight=None,
+            recency_decay=1.0,
+        )
+
+        assert result["source_weight"] == expected_weight
+        assert result["credibility_weight"] == expected_weight
+        assert result["final_score"] == pytest.approx(expected_weight)
+
+    def test_explicit_credibility_overrides_default_source_weight(self):
+        result = apply_source_weighting(
+            relevance_score=0.8,
+            source_type="news_article",
+            credibility_weight=0.75,
+            recency_decay=0.5,
+        )
+
+        assert result["source_weight"] == 0.5
+        assert result["credibility_weight"] == 0.75
+        assert result["final_score"] == pytest.approx(0.3)
+
     def test_apply_weighting_news_chunk_fresh(self):
         """Fresh news (today) should not be heavily decayed."""
         from datetime import datetime, timezone
@@ -51,6 +86,9 @@ class TestSourceWeightingNewsArticle:
         # recency_decay near 1.0 for fresh content
         assert result["recency_decay"] > 0.95
         assert result["source_weight"] == 0.5
+        assert result["final_score"] == pytest.approx(
+            0.8 * result["source_weight"] * result["recency_decay"]
+        )
 
     def test_apply_weighting_news_chunk_stale(self):
         """Old news (90 days) should decay significantly with 1-day half-life."""

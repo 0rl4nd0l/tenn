@@ -51,7 +51,6 @@ def apply_source_weighting(
     )
     final_score = (
         float(relevance_score)
-        * float(source_weight)
         * resolved_credibility
         * float(recency_decay)
     )
