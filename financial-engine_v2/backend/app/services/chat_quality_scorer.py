@@ -57,7 +57,7 @@ def compute_session_coherence(
         similarity = _cosine_similarity(embeddings[0], embeddings[1])
         # High similarity = low coherence (user is repeating)
         # Invert: coherence = 1 - similarity
-        return max(0.0, 1.0 - similarity)
+        return max(0.0, min(1.0, 1.0 - similarity))
     except Exception as exc:
         logger.warning("compute_session_coherence failed: %s", exc)
         return 1.0  # neutral on error
