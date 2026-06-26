@@ -22,6 +22,23 @@ import {
 import { cn } from '@/lib/utils'
 import { Field, FieldLabel } from '@/components/ui/field'
 
+type NewsLookback = '24h' | '7d' | '30d' | 'all'
+
+const LOOKBACK_DURATION_MS: Record<Exclude<NewsLookback, 'all'>, number> = {
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+}
+
+export function resolveNewsLookbackDateFrom(lookback: NewsLookback, now = new Date()): string | undefined {
+  if (lookback === 'all') return undefined
+  return new Date(now.getTime() - LOOKBACK_DURATION_MS[lookback]).toISOString()
+}
+
+function isNewsLookback(value: string): value is NewsLookback {
+  return value === '24h' || value === '7d' || value === '30d' || value === 'all'
+}
+
 function formatTimeAgo(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -255,7 +272,7 @@ export function NewsScreen() {
   
   const [query, setQuery] = useState('')
   const [ticker, setTicker] = useState('')
-  const [lookback, setLookback] = useState('7d')
+  const [lookback, setLookback] = useState<NewsLookback>('7d')
   const [isSearching, setIsSearching] = useState(false)
   const [results, setResults] = useState<NewsActionabilityResult[] | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
@@ -321,6 +338,7 @@ export function NewsScreen() {
     setSearchError(null)
 
     try {
+      const dateFrom = resolveNewsLookbackDateFrom(lookback)
       const res = await fetch('/rag/query', {
         method: 'POST',
         headers: {
@@ -332,6 +350,7 @@ export function NewsScreen() {
           source: 'news',
           ticker: ticker || undefined,
           top_k: 20,
+          date_from: dateFrom,
         }),
       })
 
@@ -400,7 +419,7 @@ export function NewsScreen() {
 
               <Field className="w-[150px]">
                 <FieldLabel htmlFor="news-lookback-select">Lookback</FieldLabel>
-                <Select value={lookback} onValueChange={setLookback}>
+                <Select value={lookback} onValueChange={(value) => isNewsLookback(value) && setLookback(value)}>
                   <SelectTrigger id="news-lookback-select" aria-label="News lookback">
                     <SelectValue />
                   </SelectTrigger>
