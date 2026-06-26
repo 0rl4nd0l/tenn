@@ -2512,8 +2512,8 @@ export function ChatScreen() {
         open={sourcesOpen}
         apiKey={apiKey}
         onClose={() => setSourcesOpen(false)}
-        onReattach={({ sourceId, title }) => {
-          attached.attach({ sourceId, sourceKind: 'ephemeral', title })
+        onReattach={({ sourceId, sourceKind, title }) => {
+          attached.attach({ sourceId, sourceKind, title })
           setSourcesOpen(false)
         }}
       />

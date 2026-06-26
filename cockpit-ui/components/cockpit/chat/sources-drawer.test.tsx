@@ -18,6 +18,7 @@ describe('SourcesDrawer', () => {
             source_id: 'yt_a',
             source_name: 'Video A',
             source_type: 'youtube',
+            source_kind: 'ephemeral',
             approved_at: '2026-04-18T10:00:00Z',
           },
         ],
@@ -46,7 +47,8 @@ describe('SourcesDrawer', () => {
             {
               source_id: 'yt_a',
               source_name: 'Video A',
-              source_type: 'youtube',
+              source_type: 'market_commentary',
+              source_kind: 'concat',
               approved_at: '2026-04-18T10:00:00Z',
             },
           ],
@@ -60,6 +62,10 @@ describe('SourcesDrawer', () => {
     await waitFor(() => screen.getByText('Video A'))
     await userEvent.click(screen.getByRole('button', { name: /re-?attach video a/i }))
 
-    expect(onReattach).toHaveBeenCalledWith({ sourceId: 'yt_a', title: 'Video A' })
+    expect(onReattach).toHaveBeenCalledWith({
+      sourceId: 'yt_a',
+      sourceKind: 'concat',
+      title: 'Video A',
+    })
   })
 })

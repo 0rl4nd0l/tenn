@@ -4,11 +4,19 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import type { AttachedSourceKind } from '@/lib/hooks/use-attached-sources'
+
+const RECENT_SOURCE_KIND_BY_TYPE: Record<string, AttachedSourceKind> = {
+  market_commentary: 'concat',
+  podcast_transcript: 'ephemeral',
+  youtube_transcript: 'ephemeral',
+}
 
 interface RecentItem {
   source_id: string
   source_name: string
   source_type: string
+  source_kind?: AttachedSourceKind | null
   approved_at: string
 }
 
@@ -16,7 +24,11 @@ interface SourcesDrawerProps {
   open: boolean
   apiKey: string
   onClose: () => void
-  onReattach: (input: { sourceId: string; title: string }) => void
+  onReattach: (input: {
+    sourceId: string
+    sourceKind: AttachedSourceKind
+    title: string
+  }) => void
 }
 
 export function SourcesDrawer({
@@ -90,7 +102,13 @@ export function SourcesDrawer({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onReattach({ sourceId: item.source_id, title: item.source_name })}
+                onClick={() =>
+                  onReattach({
+                    sourceId: item.source_id,
+                    sourceKind: sourceKindForRecentItem(item),
+                    title: item.source_name,
+                  })
+                }
                 aria-label={`re-attach ${item.source_name}`}
               >
                 Attach
@@ -101,4 +119,15 @@ export function SourcesDrawer({
       </SheetContent>
     </Sheet>
   )
+}
+
+function sourceKindForRecentItem(item: RecentItem): AttachedSourceKind {
+  if (
+    item.source_kind === 'ephemeral' ||
+    item.source_kind === 'concat' ||
+    item.source_kind === 'primary'
+  ) {
+    return item.source_kind
+  }
+  return RECENT_SOURCE_KIND_BY_TYPE[item.source_type] ?? 'ephemeral'
 }
