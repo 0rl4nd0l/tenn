@@ -1,0 +1,118 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/operations/gpu-workload-card.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/settings/settings-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/verification/verification-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/api-client.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/api-client.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/architecture/19_backend_api_surface.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_models.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/issue230_runtime_topology_read_guard_current_base_v1_20260627.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue230_runtime_topology_read_guard_current_base_v1_20260627.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_models.py",
+        "cockpit-ui/lib/api-client.ts",
+        "cockpit-ui/lib/api-client.test.ts",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+        "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
+        "cockpit-ui/components/cockpit/settings/settings-screen.tsx",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+        "cockpit-ui/components/cockpit/verification/verification-screen.tsx",
+        "cockpit-ui/components/cockpit/operations/gpu-workload-card.tsx",
+        "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/README.md",
+        "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/status.json",
+        "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/VALIDATION.md",
+        "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/REVIEW.md",
+        "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+        "docs/architecture/19_backend_api_surface.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "issue230_runtime_topology_read_guard_current_base_v1_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v1_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #230 reports unguarded Cockpit runtime topology read routes exposing model, runtime config, and queue state.",
+      "recommended_model": "standard coding model",
+      "related_issue": 230,
+      "supporting_lanes": [
+        "Runtime",
+        "Query Orchestration",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "title": "Gate Cockpit runtime topology read routes before exposing config, models, and queue state",
+      "why_this_model": "The change is a focused backend route guard plus narrow client header continuity tests.",
+      "worker_decision_limit": "main orchestrator only; no subagent needed for this narrow route guard.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

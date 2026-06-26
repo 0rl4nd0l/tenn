@@ -8,6 +8,7 @@ import { Flame, MemoryStick, FileSearch, ArrowRight, Loader2 } from 'lucide-reac
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import type { OpsJobRun } from '@/lib/ops-types'
 import type { GpuRecord } from '@/components/cockpit/gpu-activity-dialog'
+import { withApiKey } from '@/lib/api-client'
 import { listActiveOpsJobs } from '@/lib/ops-api-client'
 import { cn } from '@/lib/utils'
 
@@ -59,7 +60,10 @@ export function GpuWorkloadCard({ gpuHealth, gpuProcesses }: GpuWorkloadCardProp
     // Fetch both active ops jobs and extraction activity in parallel
     const [opsResult, configResult] = await Promise.allSettled([
       listActiveOpsJobs(),
-      fetch('/api/cockpit/config', { cache: 'no-store' }).then((r) =>
+      fetch('/api/cockpit/config', {
+        cache: 'no-store',
+        headers: withApiKey(),
+      }).then((r) =>
         r.ok ? (r.json() as Promise<Record<string, unknown>>) : null,
       ),
     ])
