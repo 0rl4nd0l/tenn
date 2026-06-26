@@ -6,6 +6,7 @@
 - Branch: `safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Base HEAD: `eb4a42910fd71077af4a389bd4a9f4400796921b`
+- PR: `https://github.com/0rl4nd0l/tenn/pull/448`
 - Root checkout `/home/l4nd0/tenn` remained untouched and clean.
 
 ## Guard And Registry
@@ -13,7 +14,8 @@
 - Portable guard: `PASS`, `VALID_TASK_WORKTREE`.
 - Registry: `PASS`, no active jobs.
 - Task ledger validation: `PASS`.
-- Live ledger entries appended: `claimed`, `implementation_started`.
+- Live ledger entries appended: `claimed`, `implementation_started`,
+  `pr_opened`.
 
 ## Duplicate Work
 

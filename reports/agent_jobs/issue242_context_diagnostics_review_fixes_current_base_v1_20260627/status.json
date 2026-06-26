@@ -1,7 +1,7 @@
 {
   "schema_version": "tenn_fix_status_v1",
   "job_id": "issue242_context_diagnostics_review_fixes_current_base_v1_20260627",
-  "status": "LOCAL_FIX_VALIDATED_READY_FOR_PR",
+  "status": "PR_OPENED",
   "timestamp": "2026-06-27T09:45:00+10:00",
   "repo": "0rl4nd0l/tenn",
   "worktree": "/home/l4nd0/tenn-issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
@@ -9,6 +9,8 @@
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "base_head": "eb4a42910fd71077af4a389bd4a9f4400796921b",
   "issue": 242,
+  "pr": 448,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/448",
   "supersedes_pr": 438,
   "forbidden_mutations": false,
   "production_data_access": false,
@@ -36,12 +38,22 @@
       "command": "pnpm --dir cockpit-ui exec vitest run lib/api-client.test.ts",
       "result": "BLOCKED",
       "summary": "Command \"vitest\" not found"
+    },
+    {
+      "command": "TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Bypassed missing repo-venv hook tools after equivalent uv validation passed; markdown hygiene passed"
+    },
+    {
+      "command": "gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Opened PR #448"
     }
   ],
   "data_missing": [
     "live_backend_browser_route_proof",
     "local_frontend_vitest",
-    "github_checks_until_pr_opened"
+    "github_checks_until_pr448_checked"
   ],
   "docs_impact": {
     "status": "DOCS_UPDATED",
@@ -56,5 +68,5 @@
     "docs_followup": [],
     "reason": "Context diagnostic auth/redaction contract changed."
   },
-  "verdict": "PARTIAL_LOCAL_VALIDATED"
+  "verdict": "PR_OPENED_LEFT_ISSUE_OPEN"
 }

@@ -1,12 +1,14 @@
 # Issue 242 Context Diagnostics Review Fixes
 
-Status: `LOCAL_FIX_VALIDATED_READY_FOR_PR`
+Status: `PR_OPENED`
 
 Date: 2026-06-27T09:45:00+10:00
 
 Branch: `safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627`
 
 Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@eb4a42910fd71077af4a389bd4a9f4400796921b`
+
+PR: `https://github.com/0rl4nd0l/tenn/pull/448`
 
 ## Summary
 
@@ -51,16 +53,18 @@ fresh current-base worktree and tightened.
 - `PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt ruff check financial-engine_v2/backend/app/api/context.py financial-engine_v2/cockpit/integrations/backend_api.py financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py financial-engine_v2/backend/tests/test_backend_api_client_context.py` - PASS
 - `python3 -m py_compile financial-engine_v2/backend/app/api/context.py financial-engine_v2/cockpit/integrations/backend_api.py financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py financial-engine_v2/backend/tests/test_backend_api_client_context.py` - PASS
 - `pnpm --dir cockpit-ui exec vitest run lib/api-client.test.ts` - BLOCKED, `Command "vitest" not found`
+- First `git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627` - BLOCKED by missing repo-venv `ruff` and `pytest`
+- `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627` - PASS; hook ran markdown hygiene and pushed branch
+- `gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627 ...` - PASS, opened PR #448
 
 ## DATA_MISSING
 
 - Live backend/browser route proof was not run.
 - Local frontend Vitest remains unavailable because `cockpit-ui` has no local
   `vitest` executable in this checkout.
-- GitHub checks are not available until the branch is pushed and a PR is opened.
+- GitHub checks for PR #448 are pending or must be checked live before merge.
 
 ## Next Action
 
-Run final contract checks, commit, push, and open a replacement PR for #242.
-Close issue #242 only after PR merge evidence, green GitHub checks, and
-canonical containment are verified.
+Monitor PR #448 checks and review. Close issue #242 only after PR merge
+evidence, green GitHub checks, and canonical containment are verified.

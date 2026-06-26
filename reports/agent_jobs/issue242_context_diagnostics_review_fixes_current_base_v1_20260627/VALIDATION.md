@@ -41,9 +41,31 @@ undefined
 ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL Command "vitest" not found
 ```
 
+## GitHub
+
+```bash
+git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627
+```
+
+Result: `BLOCKED`
+
+Reason: local hook required repo-venv `ruff` and `pytest`, which are absent.
+Focused equivalent validation had already passed through `uv`.
+
+```bash
+TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627
+```
+
+Result: `PASS`
+
+The hook skipped missing local lint/test tools and still ran markdown hygiene.
+
+```bash
+gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627
+```
+
+Result: `PASS`, opened PR #448.
+
 ## Pending Final Checks
 
-- `python3 -m json.tool reports/agent_jobs/issue242_context_diagnostics_review_fixes_current_base_v1_20260627/status.json`
-- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/issue242_context_diagnostics_review_fixes_current_base_v1_20260627.md --repo-root .`
-- `git diff --check`
-- `python3 scripts/agent_task_ledger.py --repo-root . validate`
+- Live PR #448 GitHub checks.
