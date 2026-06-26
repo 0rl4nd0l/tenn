@@ -19,6 +19,9 @@
 - `python3 scripts/agent_job_registry.py claim docs/agent_tasks/reporting_console_verification_news_current_base_v1_20260627.md --repo-root .`
   - exit 0
   - `ok=true`
+- `python3 scripts/agent_job_registry.py release reporting_console_verification_news_current_base_v1_20260627 --repo-root .`
+  - exit 0
+  - `ok=true`
 - `python3 scripts/agent_task_ledger.py --repo-root . validate`
   - exit 0
   - `ok=true`
@@ -54,3 +57,13 @@
 `test -d cockpit-ui/node_modules` returned `node_modules_missing`. Searches for
 existing nearby `cockpit-ui/node_modules/.bin/vitest` and `.bin/eslint` returned
 no reusable local toolchain. No dependency install was run.
+
+## GitHub
+
+- Draft PR #447 opened:
+  https://github.com/0rl4nd0l/tenn/pull/447
+- Initial PR state:
+  - `isDraft=true`
+  - `mergeStateStatus=UNSTABLE`
+  - `lint-and-test=pending`
+  - `scan=pending`

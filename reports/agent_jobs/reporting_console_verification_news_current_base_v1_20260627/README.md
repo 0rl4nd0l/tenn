@@ -1,6 +1,6 @@
 # Reporting Console, Verification, And News Current-Base Replacement
 
-Status: `PARTIAL_READY_FOR_DRAFT_PR`
+Status: `DRAFT_PR_OPENED_CI_PENDING`
 
 ## Summary
 
@@ -42,6 +42,22 @@ The first push attempt was blocked by missing local pre-push hook tools
 The task card allows a missing-hook bypass only for draft-PR publication with
 the blocker recorded.
 
+## Runtime Functionality Proof
+
+| Field | Required evidence |
+| --- | --- |
+| intended output | Local Cockpit browser/runtime omits Vercel Analytics by default, Verification review selectors avoid controlled/uncontrolled warnings, and News search requests include `date_from` for bounded lookbacks. |
+| live output location | Browser console and network requests for `/`, `/verification`, and `/news`; `/rag/query` request payload. |
+| pre-run max timestamp or count | DATA_MISSING; no live Cockpit runtime/browser smoke was started in this task. |
+| post-run max timestamp or count | DATA_MISSING; no live Cockpit runtime/browser smoke was started in this task. |
+| rows/files inserted or updated after run start | 0 live runtime rows/files; repository files changed only. |
+| readiness/gate status | Draft PR #447 opened; GitHub checks pending at publication; local frontend executable validation DATA_MISSING due absent dependencies. |
+| exact command/query used | `git diff --check`; `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/reporting_console_verification_news_current_base_v1_20260627.md --repo-root .`; attempted `corepack pnpm --dir cockpit-ui exec vitest ...`, `eslint ...`, and `tsc --noEmit` blocked because commands were unavailable. |
+| result | DATA_MISSING |
+| remaining blocker | No live browser/runtime proof and no local frontend dependency toolchain; wait for PR #447 CI and optional browser smoke before claiming working runtime behavior. |
+
+result: DATA_MISSING
+
 ## Files Intentionally Not Touched
 
 - Backend API/RAG/storage/runtime files.
@@ -51,5 +67,7 @@ the blocker recorded.
 
 ## Closeout
 
-Issues #45, #47, and #49 must remain open until the replacement PR is merged
-into canonical and merge containment is verified.
+Draft PR: https://github.com/0rl4nd0l/tenn/pull/447
+
+Issues #45, #47, and #49 must remain open until PR #447 is merged into
+canonical and merge containment is verified.

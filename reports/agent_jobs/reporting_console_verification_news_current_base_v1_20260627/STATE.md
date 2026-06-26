@@ -1,6 +1,6 @@
 # State
 
-status: `PARTIAL_READY_FOR_DRAFT_PR`
+status: `DRAFT_PR_OPENED_CI_PENDING`
 
 ## Current State
 
@@ -9,6 +9,9 @@ status: `PARTIAL_READY_FOR_DRAFT_PR`
 - Branch: `safe/issues45-47-49-reporting-cleanliness-current-base-v1-20260627`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@7d6ab6c184332d5413700eb08e6790f530000942`
 - Registry: claimed
+- Registry release: complete
+- Draft PR: #447
+- GitHub checks at PR creation: pending
 - Issues: #45, #47, #49
 - Prior PR: #133, superseded because it is now conflicting
 
@@ -26,5 +29,5 @@ status: `PARTIAL_READY_FOR_DRAFT_PR`
 
 ## Next Safe Action
 
-Open a draft PR against `migration/clean-runtime-baseline-reconstruct-v1`, wait
-for GitHub CI, and only mark ready/merge/close issues after green checks.
+Wait for PR #447 GitHub CI, then only mark ready/merge/close issues after
+green checks and canonical merge containment.
