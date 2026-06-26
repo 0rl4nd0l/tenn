@@ -24,6 +24,10 @@
       "exit_code": 0
     },
     {
+      "command": "bash -n financial-engine_v2/scripts/build_production_bundle.sh",
+      "exit_code": 0
+    },
+    {
       "command": "git diff --check",
       "exit_code": 0
     },

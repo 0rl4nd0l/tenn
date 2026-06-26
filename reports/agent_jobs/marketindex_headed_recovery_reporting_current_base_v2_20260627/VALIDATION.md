@@ -9,6 +9,7 @@
   - Warning: pytest config option `asyncio_default_fixture_loop_scope` unknown in the ephemeral pytest environment
 - `uv run --with ruff ruff check financial-engine_v2/scripts/full_history_ticker_sync.py financial-engine_v2/scripts/marketindex_recovery_reporting.py financial-engine_v2/scripts/resume_pending_downloads.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/backfill_missing_universe_announcements.py scripts/test_backfill_missing_universe_announcements.py`
 - `python3 -m py_compile financial-engine_v2/scripts/full_history_ticker_sync.py financial-engine_v2/scripts/marketindex_recovery_reporting.py financial-engine_v2/scripts/resume_pending_downloads.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/backfill_missing_universe_announcements.py scripts/test_backfill_missing_universe_announcements.py`
+- `bash -n financial-engine_v2/scripts/build_production_bundle.sh`
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md`
 - `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md`

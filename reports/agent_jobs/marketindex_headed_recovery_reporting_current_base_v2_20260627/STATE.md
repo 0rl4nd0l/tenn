@@ -10,7 +10,7 @@
 - Registry claim: active for `marketindex_headed_recovery_reporting_current_base_v2_20260627`
 - Ledger: live and committed sources validated; claim and implementation-start entries appended
 - Duplicate-work classification: `SUPERSEDE` for stale dirty v1 worktree, no open PR found for #279
-- PR review response: both automated Codex review threads addressed in a follow-up commit
+- PR review response: automated Codex review threads addressed in follow-up commits
 
 ## Docs Impact
 

@@ -1,15 +1,11 @@
 {
   "changed_files": [
     {
-      "path": "financial-engine_v2/scripts/resume_pending_downloads.py",
+      "path": "docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/scripts/test_full_history_ticker_sync_env.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/scripts/test_resume_pending_extraction_failures.py",
+      "path": "financial-engine_v2/scripts/build_production_bundle.sh",
       "status": "M"
     },
     {
@@ -49,6 +45,7 @@
       "allowed_files": [
         "docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
         "financial-engine_v2/scripts/full_history_ticker_sync.py",
+        "financial-engine_v2/scripts/build_production_bundle.sh",
         "financial-engine_v2/scripts/marketindex_recovery_reporting.py",
         "financial-engine_v2/scripts/resume_pending_downloads.py",
         "financial-engine_v2/scripts/test_full_history_ticker_sync_env.py",

@@ -28,12 +28,14 @@
     "files_modified": [
       "financial-engine_v2/scripts/resume_pending_downloads.py",
       "financial-engine_v2/scripts/test_resume_pending_extraction_failures.py",
-      "financial-engine_v2/scripts/test_full_history_ticker_sync_env.py"
+      "financial-engine_v2/scripts/test_full_history_ticker_sync_env.py",
+      "financial-engine_v2/scripts/build_production_bundle.sh"
     ],
     "validation_checks": [
       "uv run --with pytest pytest -q financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/test_backfill_missing_universe_announcements.py",
       "uv run --with ruff ruff check <touched python files>",
       "python3 -m py_compile <touched python files>",
+      "bash -n financial-engine_v2/scripts/build_production_bundle.sh",
       "git diff --check"
     ]
   },
@@ -58,6 +60,12 @@
         "location": "Pipeline service test stub",
         "issue": "The test stub should not overwrite an already-imported real app.services.pipeline module for the rest of the pytest process.",
         "fix_example": "Patch sys.modules with a local pipeline stub only while loading full_history_ticker_sync.py."
+      },
+      {
+        "file": "financial-engine_v2/scripts/build_production_bundle.sh",
+        "location": "script copy list",
+        "issue": "The production bundle must include marketindex_recovery_reporting.py because full_history_ticker_sync.py and resume_pending_downloads.py import it.",
+        "fix_example": "Copy ROOT_DIR/scripts/marketindex_recovery_reporting.py into APP_DIR/scripts/marketindex_recovery_reporting.py."
       }
     ]
   }

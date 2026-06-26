@@ -19,7 +19,9 @@ proven.
   wrapper execution payload.
 - Added focused regression coverage for the helper, resume report, full-history
   summary, existing resume blockers, and wrapper promotion.
-- Addressed both automated Codex review threads on PR #426.
+- Updated the production bundle script so the new helper is packaged with the
+  scripts that import it.
+- Addressed automated Codex review threads on PR #426.
 
 ## Prior Work
 
@@ -38,5 +40,5 @@ implementation.
 
 ## Next
 
-Open a PR for this branch. Merge and close #279 only after live PR checks are
-green and the head SHA is unchanged from review.
+Merge and close #279 only after live PR checks are green, review threads are
+resolved, and the head SHA is unchanged from review.

@@ -8,6 +8,7 @@ owner: Codex
 allowed_files:
   - docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md
   - financial-engine_v2/scripts/full_history_ticker_sync.py
+  - financial-engine_v2/scripts/build_production_bundle.sh
   - financial-engine_v2/scripts/marketindex_recovery_reporting.py
   - financial-engine_v2/scripts/resume_pending_downloads.py
   - financial-engine_v2/scripts/test_full_history_ticker_sync_env.py
@@ -66,6 +67,7 @@ MarketIndex documents are blocked pending headed recovery.
 - Surface child-report metadata in the missing-universe wrapper when it embeds a
   fresh full-history report.
 - Add focused unit tests for the helper and report contracts.
+- Keep the production bundle script in sync with any newly imported helper.
 
 ## Hard Stops
 
@@ -86,6 +88,7 @@ MarketIndex documents are blocked pending headed recovery.
 - Focused resume/full-history/wrapper unit tests.
 - Targeted Ruff check when available through `uv`.
 - `python3 -m py_compile` on touched Python files.
+- `bash -n` on touched shell bundle script.
 - `git diff --check`.
 - Task-card `check-diff`.
 - Task-card `check-report-artifacts`.
