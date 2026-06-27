@@ -1,5 +1,5 @@
 # Next Goal
 
-Validate the issue #240 current-base replacement, push the task branch, open a
-replacement PR for #435, request review, and close issue #240 only after live
-checks and review blockers are clear.
+Monitor PR #450, request/inspect review, wait for green checks, then merge and
+close issue #240 only if there are no unresolved review blockers and canonical
+containment is verified after merge.

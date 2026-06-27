@@ -1,15 +1,22 @@
 {
   "job_id": "issue240_intel_pulse_api_key_current_base_v1_20260627",
-  "status": "local_validated_pending_push",
+  "status": "pr_opened_checks_pending",
   "issue": 240,
   "supersedes_pr": 435,
+  "replacement_pr": 450,
+  "replacement_pr_url": "https://github.com/0rl4nd0l/tenn/pull/450",
+  "head_sha": "b370abef8d6a6e31654eaee3b4a4bd7ba9757046",
   "branch": "safe/issue240-intel-pulse-api-key-current-base-v1-20260627",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "mergeable": "MERGEABLE",
+  "merge_state_status": "UNSTABLE",
   "runtime_functionality_result": "PARTIAL",
   "notes": [
     "Route and client changes implemented locally.",
     "Focused backend validation passed.",
     "Frontend Vitest is blocked locally because the command is unavailable.",
-    "Live runtime/browser functionality not proven."
+    "Live runtime/browser functionality not proven.",
+    "PR #450 opened; scan passed and lint-and-test is pending at last read.",
+    "Issue #240 remains open until checks and review blockers clear."
   ]
 }
