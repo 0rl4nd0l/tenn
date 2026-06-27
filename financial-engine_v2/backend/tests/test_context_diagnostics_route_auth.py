@@ -174,20 +174,13 @@ def test_ticker_context_keeps_diagnostics_when_local_api_key_unconfigured(monkey
     assert payload["low_confidence_financials"]
 
 
-def test_company_dump_redacts_diagnostics_without_api_key_when_configured(monkeypatch):
+def test_company_dump_requires_api_key_when_configured(monkeypatch):
     monkeypatch.setattr(context_api.settings, "local_api_key", "local-secret", raising=False)
 
     response = _client(_diagnostic_db()).get("/api/context/company_dump?ticker=BHP")
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["summary"]["extraction_failure_count"] == 0
-    assert payload["summary"]["low_confidence_financial_count"] == 0
-    assert payload["docs"][0]["pdf_path"] is None
-    assert payload["announcement_context"][0]["pdf_path"] is None
-    assert payload["announcement_context"][0]["excerpt"] is None
-    assert payload["extraction_failures"] == []
-    assert payload["low_confidence_financials"] == []
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API key"}
 
 
 def test_company_dump_preserves_diagnostics_with_matching_api_key(monkeypatch):

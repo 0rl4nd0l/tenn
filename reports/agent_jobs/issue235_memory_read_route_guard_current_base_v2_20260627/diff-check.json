@@ -1,0 +1,83 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/DECISIONS.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/REVIEW.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md",
+        "financial-engine_v2/backend/app/api/context.py",
+        "financial-engine_v2/backend/tests/test_memory_read_route_auth.py",
+        "financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py",
+        "financial-engine_v2/backend/tests/test_backend_api_client_context.py",
+        "financial-engine_v2/cockpit/integrations/backend_api.py",
+        "docs/architecture/19_backend_api_surface.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/README.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/STATE.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/DECISIONS.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/VALIDATION.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/REVIEW.md",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/status.json",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/diff-check.json",
+        "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/NEXT_GOAL.md"
+      ],
+      "approval_required": false,
+      "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "branch": "safe/issue235-memory-read-route-guard-current-base-v2-20260627",
+      "issue_refs": [
+        235
+      ],
+      "job_id": "issue235_memory_read_route_guard_current_base_v2_20260627",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627",
+      "owner": "Codex",
+      "pr_refs": [
+        439
+      ],
+      "production_data_access": false,
+      "status": "approved",
+      "supporting_lanes": [
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200,
+      "worktree": "/home/l4nd0/tenn-issue235-memory-read-route-guard-current-base-v2-20260627"
+    },
+    "ok": true
+  }
+}

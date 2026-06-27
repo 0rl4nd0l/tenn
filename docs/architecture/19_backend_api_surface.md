@@ -33,6 +33,10 @@ The FastAPI app mounts routes in these groups:
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
   also require the dependency where declared.
+- Memory/thesis read routes under `/api/context/memory`,
+  `/api/context/memory/index`, `/api/context/thesis`, and
+  `/api/context/company_dump` require `X-API-Key` when
+  `settings.local_api_key` is configured.
 - Operational job-state reads and streams under `/api/ops/*` require the
   dependency where declared because they expose run metadata and artifact paths.
 - Intel Pulse diagnostic routes under `/api/cockpit/pulse` and
@@ -74,13 +78,16 @@ The FastAPI app mounts routes in these groups:
     ordinary context fields remain available
 - `GET /api/context/company_dump?ticker=...`
   - expanded ticker dump including context + risk notes + price history + memory surfaces
-  - inherits `/api/context/ticker` diagnostic/path redaction unless a matching
-    `X-API-Key` is supplied when `settings.local_api_key` is configured
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/context/memory?ticker=...`
   - combined memory view for one ticker:
     - company memory
     - market memory
     - user thesis memory
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/context/memory/index`
+  - cross-ticker index for company, market, and user thesis memory
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/context/memory/company/add`
   - manual qualitative company-memory insert
 - `POST /api/context/memory/company/expire`
@@ -91,6 +98,7 @@ The FastAPI app mounts routes in these groups:
   - manual market-memory soft-expire
 - `GET /api/context/thesis?ticker=...`
   - user thesis memory view for one ticker (entries + proposals)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/context/thesis/proposals`
   - create user thesis proposal (`create_thesis`, `add_evidence`, `invalidate`)
 - `POST /api/context/thesis/proposals/{proposal_id}/confirm`

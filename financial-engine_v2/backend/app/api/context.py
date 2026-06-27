@@ -1020,7 +1020,7 @@ def _resolve_user_thesis_proposal_payload(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/memory")
+@router.get("/memory", dependencies=[Depends(require_api_key)])
 def get_memory_context(
     ticker: str,
     company_memory_entries_limit: int = Query(default=400, ge=1, le=2000),
@@ -1101,7 +1101,7 @@ def get_memory_context(
     }
 
 
-@router.get("/memory/index")
+@router.get("/memory/index", dependencies=[Depends(require_api_key)])
 def get_memory_index_context(
     company_memory_entries_limit: int = Query(default=5000, ge=1, le=20000),
     company_memory_change_limit: int = Query(default=2000, ge=1, le=20000),
@@ -1319,7 +1319,7 @@ def expire_market_memory_note(request: MarketMemoryExpireRequest) -> dict[str, A
 # ---------------------------------------------------------------------------
 
 
-@router.get("/thesis")
+@router.get("/thesis", dependencies=[Depends(require_api_key)])
 def get_user_thesis_context(
     ticker: str,
     entries_limit: int = Query(default=200, ge=1, le=2000),
@@ -1604,7 +1604,7 @@ def get_ticker_context(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/company_dump")
+@router.get("/company_dump", dependencies=[Depends(require_api_key)])
 def get_company_dump(
     ticker: str,
     docs_limit: int = Query(default=200, ge=1, le=1000),
