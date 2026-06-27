@@ -1,6 +1,6 @@
 # Issue 246 TradingView Webhook Env Token Guard
 
-Status: `LOCAL_VALIDATED`
+Status: `PR_OPENED`
 
 ## Summary
 
@@ -16,6 +16,11 @@ The implementation:
 - Rejects missing/wrong `X-TradingView-Webhook-Token` before alert persistence.
 - Guards `GET /api/cockpit/tv/alerts` with `require_api_key`.
 - Documents the TradingView webhook/read auth contract.
+
+## PR
+
+- Replacement PR: https://github.com/0rl4nd0l/tenn/pull/449
+- Superseded stale/conflicting PR: #433
 
 ## Prior Work
 
@@ -40,7 +45,7 @@ production alert store was exercised.
 | pre-run max timestamp or count | `DATA_MISSING` |
 | post-run max timestamp or count | `DATA_MISSING` |
 | rows/files inserted or updated after run start | 0 production rows/files; tmp test alert files only. |
-| readiness/gate status | Local focused tests pass; PR not opened yet in this report state. |
+| readiness/gate status | Local focused tests pass; PR #449 opened; GitHub checks pending. |
 | exact command/query used | See `VALIDATION.md`. |
 | result: WORKING / PARTIAL / BROKEN / DATA_MISSING | `PARTIAL` |
-| remaining blocker | GitHub PR/check/review/merge/closeout gates not yet complete. |
+| remaining blocker | GitHub check/review/merge/closeout gates not yet complete. |

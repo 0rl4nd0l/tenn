@@ -44,7 +44,22 @@ python3 scripts/agent_task_ledger.py validate
 
 Result: `PASS`
 
+```bash
+TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627
+```
+
+Result: `PASS`
+
+The local pre-push hook skipped missing repo-venv `ruff`/`pytest` only after
+explicit `uv` validation had passed. Markdown hygiene passed.
+
+```bash
+gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627
+```
+
+Result: `PASS`, opened PR #449.
+
 ## Pending
 
-- PR publication/checks/review are pending.
+- GitHub checks/review/merge/closeout are pending for PR #449.
 - No live backend/browser smoke was run; runtime proof is `PARTIAL`.

@@ -6,6 +6,7 @@
 - Branch: `safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Base HEAD: `eb4a42910fd71077af4a389bd4a9f4400796921b`
+- PR: `https://github.com/0rl4nd0l/tenn/pull/449`
 - Supersedes stale PR #433 by replacement branch only; no stale branch cleanup
   is authorized.
 

@@ -1,14 +1,16 @@
 {
   "schema_version": "tenn_fix_status_v1",
   "job_id": "issue246_tradingview_webhook_env_token_current_base_v1_20260627",
-  "status": "LOCAL_VALIDATED",
-  "timestamp": "2026-06-27T10:04:30+10:00",
+  "status": "PR_OPENED",
+  "timestamp": "2026-06-27T10:07:31+10:00",
   "repo": "0rl4nd0l/tenn",
   "worktree": "/home/l4nd0/tenn-issue246-tradingview-webhook-env-token-current-base-v1-20260627",
   "branch": "safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "base_head": "eb4a42910fd71077af4a389bd4a9f4400796921b",
   "issue": 246,
+  "pr": 449,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/449",
   "supersedes_pr": 433,
   "forbidden_mutations": false,
   "production_data_access": false,
@@ -43,11 +45,21 @@
     {
       "command": "python3 scripts/agent_task_ledger.py validate",
       "result": "PASS"
+    },
+    {
+      "command": "TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Bypassed missing repo-venv hook tools after equivalent uv validation passed; markdown hygiene passed"
+    },
+    {
+      "command": "gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
+      "result": "PASS",
+      "summary": "Opened PR #449"
     }
   ],
   "data_missing": [
     "live_backend_browser_route_proof",
-    "github_pr_checks_until_pr_opened"
+    "github_checks_until_pr449_checked"
   ],
   "docs_impact": {
     "status": "DOCS_UPDATED",
@@ -62,5 +74,5 @@
     "docs_followup": [],
     "reason": "TradingView webhook and alert-history auth contract changed."
   },
-  "verdict": "LOCAL_VALIDATED_PR_PENDING"
+  "verdict": "PR_OPENED_LEFT_ISSUE_OPEN"
 }

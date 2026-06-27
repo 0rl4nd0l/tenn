@@ -1,24 +1,24 @@
 {
   "changed_files": [
     {
-      "path": "docs/architecture/19_backend_api_surface.md",
+      "path": "reports/agent_jobs/issue246_tradingview_webhook_env_token_current_base_v1_20260627/NEXT_GOAL.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/app/core/config.py",
+      "path": "reports/agent_jobs/issue246_tradingview_webhook_env_token_current_base_v1_20260627/README.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "path": "reports/agent_jobs/issue246_tradingview_webhook_env_token_current_base_v1_20260627/STATE.md",
       "status": "M"
     },
     {
-      "path": "docs/agent_tasks/issue246_tradingview_webhook_env_token_current_base_v1_20260627.md",
-      "status": "??"
+      "path": "reports/agent_jobs/issue246_tradingview_webhook_env_token_current_base_v1_20260627/VALIDATION.md",
+      "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py",
-      "status": "??"
+      "path": "reports/agent_jobs/issue246_tradingview_webhook_env_token_current_base_v1_20260627/status.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],
