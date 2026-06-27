@@ -10436,17 +10436,29 @@ def _save_tv_alerts(alerts: list[dict]) -> None:
     tmp.replace(p)
 
 
+def _tv_webhook_token() -> str:
+    return str(
+        os.environ.get("TV_WEBHOOK_TOKEN")
+        or getattr(settings, "tv_webhook_token", "")
+        or ""
+    ).strip()
+
+
 @router.post("/tv/alert", tags=["tradingview"])
 async def receive_tv_alert(
     payload: TvAlertPayload,
     request: Request,
 ) -> dict:
     """Receive a Pine Script webhook alert from TradingView."""
-    token = os.environ.get("TV_WEBHOOK_TOKEN", "")
-    if token:
-        incoming = request.headers.get("X-TradingView-Webhook-Token", "")
-        if incoming != token:
-            raise HTTPException(status_code=403, detail="Invalid webhook token")
+    token = _tv_webhook_token()
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail="TradingView webhook token is not configured",
+        )
+    incoming = request.headers.get("X-TradingView-Webhook-Token", "")
+    if incoming != token:
+        raise HTTPException(status_code=403, detail="Invalid webhook token")
 
     entry: dict = {
         "received_at": datetime.now(timezone.utc).isoformat(),
@@ -10463,7 +10475,11 @@ async def receive_tv_alert(
     return {"ok": True, "received": entry}
 
 
-@router.get("/tv/alerts", tags=["tradingview"])
+@router.get(
+    "/tv/alerts",
+    tags=["tradingview"],
+    dependencies=[Depends(require_api_key)],
+)
 async def get_tv_alerts(limit: int = 50) -> dict:
     """Return recent TradingView Pine Script alerts."""
     limit = max(1, min(limit, 200))
