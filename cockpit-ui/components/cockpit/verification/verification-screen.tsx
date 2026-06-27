@@ -606,8 +606,16 @@ export function VerificationScreen() {
     }
   }, [reviewItems, selectedReviewItemId])
 
+  const handleReviewSessionRefresh = useCallback((session: ExtractionReviewSession, itemId: string | null) => {
+    setReviewSession(session)
+    setSelectedReviewItemId((current) => (
+      itemId && session.items.some((item) => item.item_id === itemId) ? itemId : current
+    ))
+  }, [])
+
   const {
     snippetImageState,
+    snippetImageUrl,
     beginSessionSwap,
     handleSnippetImageLoad,
     handleSnippetImageError,
@@ -619,12 +627,7 @@ export function VerificationScreen() {
     currentEvidenceQuality,
     reviewSessionId: reviewSession?.session_id || null,
     getReviewSession: getExtractionReviewSession,
-    onSessionRefresh: (session, itemId) => {
-      setReviewSession(session)
-      setSelectedReviewItemId((current) => (
-        itemId && session.items.some((item) => item.item_id === itemId) ? itemId : current
-      ))
-    },
+    onSessionRefresh: handleReviewSessionRefresh,
   })
 
   const currentSnippetRenderKey = `${currentEvidenceKey || 'no-evidence'}:${snippetImageState.retryAttempted ? 'retry' : 'initial'}`
@@ -1821,6 +1824,7 @@ export function VerificationScreen() {
                   matchedEvidenceText={matchedEvidenceText}
                   currentSnippetPath={currentSnippetPath}
                   currentSnippetUrl={currentSnippetUrl}
+                  currentSnippetImageSrc={snippetImageUrl}
                   currentSnippetRenderKey={currentSnippetRenderKey}
                   currentRowRef={currentRowRef}
                   reviewItems={reviewItems}
@@ -1896,6 +1900,7 @@ export function VerificationScreen() {
                       matchedEvidenceText={matchedEvidenceText}
                       currentSnippetPath={currentSnippetPath}
                       currentSnippetUrl={currentSnippetUrl}
+                      currentSnippetImageSrc={snippetImageUrl}
                       currentSnippetRenderKey={currentSnippetRenderKey}
                       currentRowRef={currentRowRef}
                       reviewItems={reviewItems}

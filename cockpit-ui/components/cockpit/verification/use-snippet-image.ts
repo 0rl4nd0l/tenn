@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { getExtractionReviewSnippetObjectUrl } from '@/lib/api-client'
 import type {
   ExtractionEvidenceQuality,
   ExtractionReviewItem,
@@ -40,7 +41,18 @@ export function useSnippetImage({
   onSessionRefresh,
 }: UseSnippetImageArgs) {
   const [snippetImageState, setSnippetImageState] = useState<SnippetImageState>(IDLE_STATE)
+  const [snippetImageUrl, setSnippetImageUrl] = useState<string | null>(null)
+  const [snippetFetchAttempt, setSnippetFetchAttempt] = useState(0)
   const latestEvidenceKeyRef = useRef<string | null>(null)
+  const objectUrlRef = useRef<string | null>(null)
+
+  const revokeSnippetImageUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
+    setSnippetImageUrl(null)
+  }, [])
 
   useEffect(() => {
     latestEvidenceKeyRef.current = currentEvidenceKey
@@ -117,6 +129,7 @@ export function useSnippetImage({
           if (previous.key !== currentEvidenceKey) return previous
           return { ...previous, status: 'loading', message: null }
         })
+        setSnippetFetchAttempt((attempt) => attempt + 1)
       })
       .catch(() => {
         if (latestEvidenceKeyRef.current !== currentEvidenceKey) return
@@ -134,17 +147,60 @@ export function useSnippetImage({
     reviewSessionId,
   ])
 
+  useEffect(() => {
+    if (evidenceSuspendMessage || !currentEvidenceKey || !currentSnippetUrl) {
+      revokeSnippetImageUrl()
+      return
+    }
+
+    let cancelled = false
+    revokeSnippetImageUrl()
+
+    void getExtractionReviewSnippetObjectUrl(currentSnippetUrl)
+      .then((objectUrl) => {
+        if (cancelled || latestEvidenceKeyRef.current !== currentEvidenceKey) {
+          URL.revokeObjectURL(objectUrl)
+          return
+        }
+        objectUrlRef.current = objectUrl
+        setSnippetImageUrl(objectUrl)
+      })
+      .catch(() => {
+        if (cancelled || latestEvidenceKeyRef.current !== currentEvidenceKey) return
+        handleSnippetImageError()
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    currentEvidenceKey,
+    currentSnippetUrl,
+    evidenceSuspendMessage,
+    handleSnippetImageError,
+    revokeSnippetImageUrl,
+    snippetFetchAttempt,
+  ])
+
+  useEffect(() => () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+    }
+  }, [])
+
   const beginSessionSwap = useCallback((message: string) => {
+    revokeSnippetImageUrl()
     setSnippetImageState({
       key: null,
       status: 'idle',
       retryAttempted: false,
       message,
     })
-  }, [])
+  }, [revokeSnippetImageUrl])
 
   return {
     snippetImageState,
+    snippetImageUrl,
     setSnippetImageState,
     beginSessionSwap,
     handleSnippetImageLoad,

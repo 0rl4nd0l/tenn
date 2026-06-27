@@ -30,6 +30,9 @@ The FastAPI app mounts routes in these groups:
   also require the dependency where declared.
 - Operational job-state reads and streams under `/api/ops/*` require the
   dependency where declared because they expose run metadata and artifact paths.
+- Extraction-review read routes under `/api/extraction-review/*` expose
+  operator review state, run diagnostics, and snippet images; they require the
+  dependency where declared.
 
 ## Route inventory
 
@@ -308,14 +311,29 @@ require `X-API-Key` when `settings.local_api_key` is configured:
   - CLI client: `scripts/run_real_extraction_eval.py` always uses `?background=true` + poll, capping each HTTP call at 60 s while honoring the CLI-level `--timeout-seconds` as the overall deadline via `time.monotonic()`
 - `POST /api/extraction-review/session`
   - builds a manual metric-review session from the latest extracted run(s) for selected document IDs
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/runs?ticker=...&limit=...`
+  - returns recent manual review extraction runs
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/sessions?ticker=...&limit=...`
+  - returns saved manual review session summaries
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/session/{session_id}`
   - loads one saved manual review session snapshot
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/extraction-review/session/{session_id}/decision`
   - persists one manual reviewer decision (`approved`, `wrong`, `abstain`)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/errors?limit=...`
   - returns the structured wrong-metric queue accumulated from manual review decisions
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/run/{run_id}?limit=...`
+  - returns run-status diagnostics for one extraction review run
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/snippets/{image_name}`
   - serves generated evidence snippet PNGs for manual extraction review
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+  - preserves image-name and resolved-path traversal checks before serving files
 
 ### Analysis modules
 
