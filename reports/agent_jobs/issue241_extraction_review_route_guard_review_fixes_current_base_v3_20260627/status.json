@@ -1,0 +1,31 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@968a613b24783e1929a893ff1f098d8ff63a8ef5",
+  "branch": "safe/issue241-extraction-review-route-guard-review-fixes-current-base-v3-20260627",
+  "evidence_grade": "VERIFIED",
+  "issue_refs": [
+    241
+  ],
+  "job_id": "issue241_extraction_review_route_guard_review_fixes_current_base_v3_20260627",
+  "pr_refs": [
+    451
+  ],
+  "result": "PARTIAL",
+  "runtime_functionality_proven": false,
+  "status": "implementation_validated",
+  "supersedes": [
+    "PR #451 conflicting head c7e88d0f928ce18b6db335760beb1ec6f559a1a3",
+    "PR #436 stale/conflicting earlier replacement",
+    "safe/issue241-extraction-review-route-guard-review-fixes-current-base-v2-20260627"
+  ],
+  "validation": {
+    "backend_pytest": "55 passed",
+    "diff_check": "passed",
+    "frontend_vitest": "blocked: Command \"vitest\" not found",
+    "git_diff_check": "passed",
+    "ledger_validate": "passed",
+    "py_compile": "passed",
+    "ruff": "passed",
+    "task_card_validate": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-issue241-extraction-review-route-guard-review-fixes-current-base-v3-20260627"
+}

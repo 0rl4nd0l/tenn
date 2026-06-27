@@ -223,3 +223,93 @@ describe('Intel Ops API client', () => {
     )
   })
 })
+
+describe('extraction review API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  it('sends the API key for guarded extraction review read routes', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      items: [],
+      session_id: 'session-1',
+      run_id: 'run-1',
+      events: [],
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const {
+      getExtractionReviewErrors,
+      getExtractionReviewRuns,
+      getExtractionReviewRunStatus,
+      getExtractionReviewSessions,
+      getExtractionReviewSession,
+    } = await import('./api-client')
+
+    await getExtractionReviewRuns('bhp', 20)
+    await getExtractionReviewSessions('bhp', 20)
+    await getExtractionReviewSession('session-1')
+    await getExtractionReviewErrors(25)
+    await getExtractionReviewRunStatus('run-1', 30)
+
+    expect(fetchMock).toHaveBeenCalledTimes(5)
+    const expectedPaths = [
+      '/api/extraction-review/runs?limit=20&ticker=BHP',
+      '/api/extraction-review/sessions?limit=20&ticker=BHP',
+      '/api/extraction-review/session/session-1',
+      '/api/extraction-review/errors?limit=25',
+      '/api/extraction-review/run/run-1?limit=30',
+    ]
+    expectedPaths.forEach((path, index) => {
+      expect(fetchMock.mock.calls[index][0]).toBe(path)
+      expect(fetchMock.mock.calls[index][1]?.headers).toMatchObject({
+        'X-API-Key': 'local-secret',
+      })
+    })
+  })
+
+  it('fetches extraction review snippet blobs with the API key', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const createObjectURL = vi.fn(() => 'blob:snippet')
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() })
+    const fetchMock = vi.fn(async () => new Response(new Blob(['png'], { type: 'image/png' }), {
+      status: 200,
+      statusText: 'OK',
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getExtractionReviewSnippetObjectUrl } = await import('./api-client')
+
+    await expect(getExtractionReviewSnippetObjectUrl('/api/extraction-review/snippets/revenue.png')).resolves.toBe('blob:snippet')
+    expect(fetchMock).toHaveBeenCalledWith('/api/extraction-review/snippets/revenue.png', {
+      headers: { 'X-API-Key': 'local-secret' },
+    })
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not send the API key to invalid extraction review snippet URLs', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getExtractionReviewSnippetObjectUrl } = await import('./api-client')
+
+    await expect(getExtractionReviewSnippetObjectUrl('https://example.invalid/snippet.png')).rejects.toThrow(
+      'Invalid extraction review snippet URL',
+    )
+    await expect(getExtractionReviewSnippetObjectUrl('/api/extraction-review/snippets/../secret.png')).rejects.toThrow(
+      'Invalid extraction review snippet URL',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
