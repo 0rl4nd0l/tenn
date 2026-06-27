@@ -10,6 +10,9 @@
 - The PR #439 review finding is satisfied by current canonical code:
   `BackendApiClient.get_company_dump()` sends `_api_key_headers()` and
   `test_backend_api_client_context.py` asserts the header.
+- The older context-diagnostics test expectation for unauthenticated
+  company-dump redaction is superseded by the memory-read guard: company-dump
+  now fails closed with `401`, while ticker context continues to redact.
 - No durable memory stores are touched by validation.
 
 ## Open Risk

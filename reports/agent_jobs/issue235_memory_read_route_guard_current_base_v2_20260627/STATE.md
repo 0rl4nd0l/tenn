@@ -11,6 +11,11 @@
 - Current canonical already contains `BackendApiClient.get_company_dump()`
   header forwarding and a focused assertion in
   `financial-engine_v2/backend/tests/test_backend_api_client_context.py`.
+- GitHub PR #455 first `lint-and-test` run failed because
+  `test_context_diagnostics_route_auth.py` still expected unauthenticated
+  company-dump reads to return redacted `200` responses. That expectation is
+  superseded by issue #235: company-dump is memory-inclusive and now fails
+  closed without `X-API-Key`.
 
 ## Runtime Functionality Proof
 

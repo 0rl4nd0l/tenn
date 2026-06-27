@@ -2,51 +2,31 @@
   "changed_files": [
     {
       "path": "docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/architecture/19_backend_api_surface.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/app/api/context.py",
+      "path": "financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py",
       "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_memory_read_route_auth.py",
-      "status": "A"
     },
     {
       "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/DECISIONS.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/NEXT_GOAL.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/STATE.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue235_memory_read_route_guard_current_base_v2_20260627/status.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
@@ -62,6 +42,7 @@
         "docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md",
         "financial-engine_v2/backend/app/api/context.py",
         "financial-engine_v2/backend/tests/test_memory_read_route_auth.py",
+        "financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py",
         "financial-engine_v2/backend/tests/test_backend_api_client_context.py",
         "financial-engine_v2/cockpit/integrations/backend_api.py",
         "docs/architecture/19_backend_api_surface.md",

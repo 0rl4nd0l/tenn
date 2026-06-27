@@ -23,6 +23,7 @@ allowed_files:
   - docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md
   - financial-engine_v2/backend/app/api/context.py
   - financial-engine_v2/backend/tests/test_memory_read_route_auth.py
+  - financial-engine_v2/backend/tests/test_context_diagnostics_route_auth.py
   - financial-engine_v2/backend/tests/test_backend_api_client_context.py
   - financial-engine_v2/cockpit/integrations/backend_api.py
   - docs/architecture/19_backend_api_surface.md
@@ -101,6 +102,8 @@ edits, stale-branch mutation, and cleanup are not authorized.
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/issue235_memory_read_route_guard_current_base_v2_20260627.md`
 - Focused backend auth tests for memory read routes.
+- Focused diagnostics-route compatibility test proving company dump now fails
+  closed without `X-API-Key`.
 - Focused Python client test proving `BackendApiClient.get_company_dump()` sends
   configured API-key headers.
 - `ruff` on touched backend route/client/tests.
