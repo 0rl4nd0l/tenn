@@ -25,6 +25,8 @@ allowed_files:
   - docs/architecture/19_backend_api_surface.md
   - financial-engine_v2/backend/app/api/extraction_review.py
   - financial-engine_v2/backend/tests/test_extraction_review_route_auth.py
+  - financial-engine_v2/backend/tests/test_backend_api_client_context.py
+  - financial-engine_v2/cockpit/integrations/backend_api.py
   - cockpit-ui/lib/api-client.ts
   - cockpit-ui/lib/api-client.test.ts
   - cockpit-ui/components/cockpit/verification/verification-screen.tsx

@@ -466,6 +466,26 @@ class TestExtractionReviewMethods:
         called_params = mock_http.get.call_args.kwargs["params"]
         assert called_params == {"ticker": "BHP", "limit": 20}
 
+    def test_review_read_routes_send_api_key_header(self):
+        client = BackendApiClient("http://localhost:8000", api_key="local-secret")
+        mock_response = MagicMock()
+        mock_response.content = b'{"count":0}'
+        mock_response.json.return_value = {"count": 0, "items": []}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            client.list_extraction_review_runs(ticker="bhp", limit=20)
+            client.get_extraction_review_session("manual-review-1")
+            client.get_extraction_review_errors(limit=25)
+
+        for get_call in mock_http.get.call_args_list:
+            assert get_call.kwargs["headers"] == {"X-API-Key": "local-secret"}
+
     def test_submit_review_decision_and_error_queue(self, client):
         decision_response = MagicMock()
         decision_response.content = b'{"session_id":"manual-review-1"}'

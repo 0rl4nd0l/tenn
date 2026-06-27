@@ -27,3 +27,15 @@
   avoid the PR #436 repeated-refetch loop.
 - Added focused backend and API-client regressions.
 - Updated backend API-surface docs.
+
+## Review Fix
+
+- PR #451 automated review raised a P1: the Python/Textual
+  `BackendApiClient` still called the newly guarded extraction-review read
+  routes without `X-API-Key`.
+- Fixed `list_extraction_review_runs`, `get_extraction_review_session`, and
+  `get_extraction_review_errors` to send `_api_key_headers()`.
+- Added a backend client regression asserting all three read helpers send
+  `X-API-Key` when configured.
+- Expanded the task-card `allowed_files` list for the review-fix client and
+  test files; `check-diff` is clean again.
