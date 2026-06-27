@@ -33,6 +33,11 @@ The FastAPI app mounts routes in these groups:
 - Intel Pulse diagnostic routes under `/api/cockpit/pulse` and
   `/api/cockpit/matrix` require the dependency where declared because they
   expose extraction-health, population, and failure-density diagnostics.
+- TradingView webhook writes under `/api/cockpit/tv/alert` require a
+  `webhook_token` JSON field or `X-TradingView-Webhook-Token` header matching
+  `TV_WEBHOOK_TOKEN` / `settings.tv_webhook_token` and fail closed when no token
+  is configured. The token is not persisted in alert history. TradingView alert
+  history reads use `X-API-Key` when `settings.local_api_key` is configured.
 
 ## Route inventory
 
@@ -150,6 +155,16 @@ The FastAPI app mounts routes in these groups:
     - `create_thesis`
     - `add_thesis_evidence`
   - these actions write to `user_thesis_memory` through backend-owned store logic
+- `POST /api/cockpit/tv/alert`
+  - receives TradingView Pine Script webhook alerts
+  - requires `webhook_token` in the JSON alert body, or
+    `X-TradingView-Webhook-Token` for relay/manual callers, matching the
+    configured webhook token
+  - strips `webhook_token` before alert persistence
+  - fails closed with `503` when no webhook token is configured
+- `GET /api/cockpit/tv/alerts`
+  - returns recent TradingView alerts from the local alert history file
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/cockpit/feedback/flag`
   - persists a cockpit assistant turn plus user feedback with `feedback_type: "poor" | "good"`, transcript, and backend diagnostics
   - accepts `capture_kind: "chat_feedback" | "ui_issue" | "auto_diagnostic"`; `auto_diagnostic` is reserved for deterministic backend-observed issues such as tool failures, missing visible sources, truncation markers, timeouts, and latency/tool-count inefficiencies
