@@ -30,6 +30,9 @@ The FastAPI app mounts routes in these groups:
   also require the dependency where declared.
 - Operational job-state reads and streams under `/api/ops/*` require the
   dependency where declared because they expose run metadata and artifact paths.
+- Intel Pulse diagnostic routes under `/api/cockpit/pulse` and
+  `/api/cockpit/matrix` require the dependency where declared because they
+  expose extraction-health, population, and failure-density diagnostics.
 
 ## Route inventory
 
@@ -119,6 +122,15 @@ The FastAPI app mounts routes in these groups:
     absolute projection paths, evidence report paths, and Qdrant collection identity
   - full path-bearing diagnostics are service-internal unless a future guarded
     caller explicitly requests them
+- `GET /api/cockpit/pulse?ticker=...`
+  - Intel Pulse population and quality metrics, optionally ticker-scoped
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes extraction-health and failure diagnostics
+- `GET /api/cockpit/matrix?stage=...&ticker=...`
+  - Intel Pulse diagnostic density matrix for one pipeline stage, optionally
+    ticker-scoped
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes entity-level extraction-state diagnostics
 - `POST /api/cockpit/chat`
   - cockpit chat endpoint (blocking and SSE modes)
   - SSE emits status/chunk/tool/action-preview/done events

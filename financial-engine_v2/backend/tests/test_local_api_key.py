@@ -33,6 +33,8 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
         ("/api/system/proposals/apply", "POST"),
         ("/api/system/status", "GET"),
         ("/api/cockpit/docs", "GET"),
+        ("/api/cockpit/pulse", "GET"),
+        ("/api/cockpit/matrix", "GET"),
         ("/api/commentary/transcripts/pending", "GET"),
         ("/api/ingest/transcript", "POST"),
         ("/api/ingest/book", "POST"),
