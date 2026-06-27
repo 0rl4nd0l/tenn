@@ -1,0 +1,18 @@
+{
+  "job_id": "issue241_extraction_review_route_guard_review_fixes_current_base_v2_20260627",
+  "status": "local_validated_pending_push",
+  "issue": 241,
+  "supersedes_pr": 436,
+  "branch": "safe/issue241-extraction-review-route-guard-review-fixes-current-base-v2-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "eb4a42910fd71077af4a389bd4a9f4400796921b",
+  "runtime_functionality_result": "PARTIAL",
+  "notes": [
+    "Fresh current-base replacement worktree created.",
+    "PR #436 source patch ported onto current base.",
+    "PR #436 repeated snippet-refetch review finding addressed.",
+    "Focused backend validation passed.",
+    "Frontend Vitest is blocked locally because the command is unavailable.",
+    "Live runtime/browser functionality not proven."
+  ]
+}
