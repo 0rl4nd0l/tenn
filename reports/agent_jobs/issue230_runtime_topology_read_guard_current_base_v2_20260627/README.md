@@ -17,6 +17,9 @@ Changes:
   configured-key behavior, and authenticated success.
 - Exported `withApiKey()` from the Cockpit API client and sent `X-API-Key` for
   guarded runtime-topology helper calls and direct config fetches.
+- Added `--api-key` / `COCKPIT_API_KEY` / `LOCAL_API_KEY` support to
+  `scripts/cockpit_routing_smoke.py` so protected deployments can authenticate
+  guarded config, preference, and chat smoke calls.
 - Added API-client test coverage for runtime-topology helper headers.
 - Updated the backend API surface documentation.
 
@@ -33,7 +36,7 @@ production data surface was mutated.
 | pre-run max timestamp or count | DATA_MISSING; no live backend/browser baseline was captured because this lane used current-base route/test evidence only. |
 | post-run max timestamp or count | DATA_MISSING; no live backend/browser post-run baseline was captured. |
 | rows/files inserted or updated after run start | 0 runtime rows/files; source/tests/docs/report artifacts only. |
-| readiness/gate status | Local backend tests, ruff, py_compile, task-card validate passed. Frontend Vitest/eslint are blocked locally by missing tools. GitHub checks pending until PR open. |
+| readiness/gate status | Local backend tests, smoke script tests, ruff, py_compile, task-card validate passed. Frontend Vitest/eslint are blocked locally by missing tools. GitHub checks pending after review-fix push. |
 | exact command/query used | `PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_api_models.py -q` |
 | result: WORKING / PARTIAL / BROKEN / DATA_MISSING | PARTIAL |
 | remaining blocker | No live backend/browser runtime was exercised; local frontend test/lint tools are missing. |

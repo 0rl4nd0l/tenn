@@ -1,72 +1,32 @@
 {
   "changed_files": [
     {
-      "path": "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/operations/gpu-workload-card.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/settings/settings-screen.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/verification/verification-screen.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/api-client.test.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/api-client.ts",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/issue230_runtime_topology_read_guard_current_base_v2_20260627.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/architecture/19_backend_api_surface.md",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_cockpit_api_models.py",
       "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/status.json",
-      "status": "A"
+      "status": "M"
+    },
+    {
+      "path": "scripts/cockpit_routing_smoke.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_cockpit_routing_smoke.py",
+      "status": "M"
     }
   ],
   "disallowed_files": [],
@@ -92,6 +52,8 @@
         "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
         "cockpit-ui/components/cockpit/verification/verification-screen.tsx",
         "cockpit-ui/components/cockpit/operations/gpu-workload-card.tsx",
+        "scripts/cockpit_routing_smoke.py",
+        "scripts/test_cockpit_routing_smoke.py",
         "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/README.md",
         "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/status.json",
         "reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/VALIDATION.md",

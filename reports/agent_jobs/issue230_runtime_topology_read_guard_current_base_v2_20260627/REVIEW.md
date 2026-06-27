@@ -22,6 +22,9 @@ Touched files are limited to the task-card allowlist:
 - Local code review found one env-only API-key forwarding gap in
   `chat-screen.tsx`; it was fixed by switching that direct config fetch to
   `withApiKey()`.
+- Codex PR review found one P2: `scripts/cockpit_routing_smoke.py` could not
+  authenticate the newly guarded config read. It was fixed by adding API-key
+  CLI/env plumbing and focused smoke-script tests.
 
 ## Residual Risk
 

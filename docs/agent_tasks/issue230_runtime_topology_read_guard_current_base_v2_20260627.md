@@ -29,6 +29,8 @@ allowed_files:
   - cockpit-ui/components/cockpit/chat/chat-screen.tsx
   - cockpit-ui/components/cockpit/verification/verification-screen.tsx
   - cockpit-ui/components/cockpit/operations/gpu-workload-card.tsx
+  - scripts/cockpit_routing_smoke.py
+  - scripts/test_cockpit_routing_smoke.py
   - reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/README.md
   - reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/status.json
   - reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/VALIDATION.md
@@ -87,6 +89,8 @@ Allowed:
   for config, model inventory, and queue reads.
 - Add `X-API-Key` continuity to direct Cockpit browser config fetches that
   cannot go through `apiFetch`.
+- Add API-key CLI/env plumbing to `scripts/cockpit_routing_smoke.py` so the
+  smoke can authenticate guarded config reads in configured-key environments.
 - Document the runtime-topology read auth contract in the backend API surface
   doc.
 - Write closeout evidence under the v2 report directory.
@@ -113,6 +117,8 @@ Forbidden:
 - `PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_cockpit_api_models.py -q`
 - `uv run --with ruff ruff check financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_api_models.py`
 - `python3 -m py_compile financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_api_models.py`
+- `uv run --with pytest python -m pytest scripts/test_cockpit_routing_smoke.py -q`
+- `python3 -m py_compile scripts/cockpit_routing_smoke.py scripts/test_cockpit_routing_smoke.py`
 - `cd cockpit-ui && npm test -- --run lib/api-client.test.ts`
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/issue230_runtime_topology_read_guard_current_base_v2_20260627.md --repo-root .`

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -16,6 +17,48 @@ spec.loader.exec_module(SMOKE)
 
 def _result():
     return SMOKE.SmokeResult()
+
+
+def test_request_json_sends_api_key_header(monkeypatch) -> None:
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps({"ok": True}).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["headers"] = {
+            key.lower(): value for key, value in request.header_items()
+        }
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr(SMOKE.urllib.request, "urlopen", fake_urlopen)
+
+    data = SMOKE._request_json(
+        "GET",
+        "http://127.0.0.1:8000/api/cockpit/config",
+        api_key=" local-secret ",
+        timeout=3.0,
+    )
+
+    assert data == {"ok": True}
+    assert captured["headers"]["x-api-key"] == "local-secret"
+    assert captured["timeout"] == 3.0
+
+
+def test_parser_api_key_defaults_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_API_KEY", "env-secret")
+
+    args = SMOKE.build_parser().parse_args([])
+
+    assert args.api_key == "env-secret"
 
 
 def test_validate_generic_prompt_response_accepts_api_with_no_sources() -> None:

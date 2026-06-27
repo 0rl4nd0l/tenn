@@ -9,6 +9,12 @@
   - Result: passed
 - `python3 -m py_compile financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_api_models.py`
   - Result: passed
+- `uv run --with pytest python -m pytest scripts/test_cockpit_routing_smoke.py -q`
+  - Result: `6 passed`, 1 pytest config warning
+- `uv run --with ruff ruff check scripts/cockpit_routing_smoke.py scripts/test_cockpit_routing_smoke.py`
+  - Result: passed
+- `python3 -m py_compile scripts/cockpit_routing_smoke.py scripts/test_cockpit_routing_smoke.py`
+  - Result: passed
 - `python3 -m json.tool reports/agent_jobs/issue230_runtime_topology_read_guard_current_base_v2_20260627/status.json`
   - Result: passed
 - `git diff --check`
@@ -28,6 +34,8 @@
   - Result: blocked, `vitest: not found`
 - `npm run lint -- lib/api-client.ts lib/api-client.test.ts components/cockpit/cockpit-sidebar.tsx components/cockpit/cockpit-status-bar.tsx components/cockpit/settings/settings-screen.tsx components/cockpit/chat/chat-screen.tsx components/cockpit/verification/verification-screen.tsx components/cockpit/operations/gpu-workload-card.tsx`
   - Result: blocked, `eslint: not found`
+- `python3 -m pytest scripts/test_cockpit_routing_smoke.py -q`
+  - Result: blocked, system Python lacks pytest; rerun with `uv run --with pytest`
 
 ## Pending
 

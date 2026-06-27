@@ -10,6 +10,7 @@
   "production_data_access": false,
   "validation": {
     "backend_route_auth": "PASSED",
+    "routing_smoke_script": "PASSED",
     "api_client": "BLOCKED_LOCAL_MISSING_VITEST",
     "ruff": "PASSED",
     "py_compile": "PASSED",
@@ -17,7 +18,7 @@
     "diff_check": "PASSED",
     "report_artifacts": "PASSED",
     "ledger": "PASSED",
-    "github_checks": "PENDING"
+    "github_checks": "PENDING_REVIEW_FIX_PUSH"
   },
   "runtime_functionality_result": "PARTIAL",
   "remaining_blocker": "No live backend/browser runtime was exercised; local cockpit-ui node_modules lacks vitest/eslint."
