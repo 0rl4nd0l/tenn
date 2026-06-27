@@ -1,0 +1,30 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@c84ad58911ee7d68143396d9545913fa7eb54b98",
+  "branch": "safe/issue242-context-diagnostics-review-fixes-current-base-v2-20260627",
+  "evidence_grade": "VERIFIED",
+  "issue_refs": [
+    242
+  ],
+  "job_id": "issue242_context_diagnostics_review_fixes_current_base_v2_20260627",
+  "pr_refs": [
+    448
+  ],
+  "result": "PARTIAL",
+  "runtime_functionality_proven": false,
+  "status": "implementation_validated",
+  "supersedes": [
+    "PR #448 head 59eed0582831cf5de229772c1b8a273c7e2715cb",
+    "safe/issue242-context-diagnostics-review-fixes-current-base-v1-20260627"
+  ],
+  "validation": {
+    "backend_pytest": "70 passed",
+    "diff_check": "passed",
+    "frontend_vitest": "blocked: Command \"vitest\" not found",
+    "git_diff_check": "passed",
+    "ledger_validate": "passed",
+    "py_compile": "passed",
+    "ruff": "passed",
+    "task_card_validate": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-issue242-context-diagnostics-review-fixes-current-base-v2-20260627"
+}
