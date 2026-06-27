@@ -1,8 +1,8 @@
 {
   "schema_version": "tenn_fix_status_v1",
   "job_id": "issue246_tradingview_webhook_env_token_current_base_v1_20260627",
-  "status": "PR_OPENED",
-  "timestamp": "2026-06-27T10:07:31+10:00",
+  "status": "PR_REVIEW_FIX_LOCAL_VALIDATED",
+  "timestamp": "2026-06-27T10:12:29+10:00",
   "repo": "0rl4nd0l/tenn",
   "worktree": "/home/l4nd0/tenn-issue246-tradingview-webhook-env-token-current-base-v1-20260627",
   "branch": "safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
@@ -24,7 +24,7 @@
     {
       "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py",
       "result": "PASS",
-      "summary": "10 passed"
+      "summary": "12 passed"
     },
     {
       "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt ruff check financial-engine_v2/backend/app/core/config.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py",
@@ -55,6 +55,11 @@
       "command": "gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
       "result": "PASS",
       "summary": "Opened PR #449"
+    },
+    {
+      "command": "PR #449 automated review follow-up",
+      "result": "PASS",
+      "summary": "Added TradingView-sendable JSON webhook_token support and token redaction from persisted alert history; focused pytest and ruff passed"
     }
   ],
   "data_missing": [
@@ -74,5 +79,5 @@
     "docs_followup": [],
     "reason": "TradingView webhook and alert-history auth contract changed."
   },
-  "verdict": "PR_OPENED_LEFT_ISSUE_OPEN"
+  "verdict": "PR_REVIEW_FIX_LOCAL_VALIDATED_PENDING_PUSH"
 }

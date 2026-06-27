@@ -56,6 +56,13 @@ def _payload() -> dict[str, Any]:
     }
 
 
+def _payload_with_token(token: str) -> dict[str, Any]:
+    return {
+        **_payload(),
+        "webhook_token": token,
+    }
+
+
 def _alerts_path(tmp_path: Path) -> Path:
     return tmp_path / "tv_alerts.json"
 
@@ -108,6 +115,44 @@ def test_receive_tv_alert_accepts_matching_webhook_token(
     alerts = json.loads(_alerts_path(tmp_path).read_text())
     assert len(alerts) == 1
     assert alerts[0]["ticker"] == "BHP"
+    assert "webhook_token" not in alerts[0]
+
+
+def test_receive_tv_alert_accepts_body_webhook_token(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TV_WEBHOOK_TOKEN", "tv-secret")
+
+    response = client.post(
+        "/api/cockpit/tv/alert",
+        json=_payload_with_token("tv-secret"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    alerts = json.loads(_alerts_path(tmp_path).read_text())
+    assert len(alerts) == 1
+    assert alerts[0]["ticker"] == "BHP"
+    assert "webhook_token" not in alerts[0]
+
+
+def test_receive_tv_alert_rejects_wrong_body_webhook_token_before_persistence(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TV_WEBHOOK_TOKEN", "tv-secret")
+
+    response = client.post(
+        "/api/cockpit/tv/alert",
+        json=_payload_with_token("wrong-secret"),
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Invalid webhook token"}
+    assert not _alerts_path(tmp_path).exists()
 
 
 def test_receive_tv_alert_accepts_settings_webhook_token(
@@ -134,6 +179,7 @@ def test_receive_tv_alert_accepts_settings_webhook_token(
     alerts = json.loads(_alerts_path(tmp_path).read_text())
     assert len(alerts) == 1
     assert alerts[0]["ticker"] == "BHP"
+    assert "webhook_token" not in alerts[0]
 
 
 def test_settings_loads_tv_webhook_token_from_env_file(tmp_path: Path) -> None:

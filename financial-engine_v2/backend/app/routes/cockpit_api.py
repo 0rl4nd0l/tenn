@@ -10408,6 +10408,7 @@ class TvAlertPayload(BaseModel):
     price: float | None = None
     message: str | None = None
     timestamp: str | None = None
+    webhook_token: str | None = None
 
 
 _TV_ALERTS_LOCK = threading.Lock()
@@ -10444,6 +10445,14 @@ def _tv_webhook_token() -> str:
     ).strip()
 
 
+def _incoming_tv_webhook_token(payload: TvAlertPayload, request: Request) -> str:
+    return str(
+        request.headers.get("X-TradingView-Webhook-Token")
+        or payload.webhook_token
+        or ""
+    ).strip()
+
+
 @router.post("/tv/alert", tags=["tradingview"])
 async def receive_tv_alert(
     payload: TvAlertPayload,
@@ -10456,13 +10465,13 @@ async def receive_tv_alert(
             status_code=503,
             detail="TradingView webhook token is not configured",
         )
-    incoming = request.headers.get("X-TradingView-Webhook-Token", "")
+    incoming = _incoming_tv_webhook_token(payload, request)
     if incoming != token:
         raise HTTPException(status_code=403, detail="Invalid webhook token")
 
     entry: dict = {
         "received_at": datetime.now(timezone.utc).isoformat(),
-        **payload.model_dump(),
+        **payload.model_dump(exclude={"webhook_token"}),
     }
     with _TV_ALERTS_LOCK:
         alerts = _load_tv_alerts()

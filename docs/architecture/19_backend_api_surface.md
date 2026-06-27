@@ -30,11 +30,11 @@ The FastAPI app mounts routes in these groups:
   also require the dependency where declared.
 - Operational job-state reads and streams under `/api/ops/*` require the
   dependency where declared because they expose run metadata and artifact paths.
-- TradingView webhook writes under `/api/cockpit/tv/alert` require
-  `X-TradingView-Webhook-Token` matching `TV_WEBHOOK_TOKEN` /
-  `settings.tv_webhook_token` and fail closed when no token is configured.
-  TradingView alert history reads use `X-API-Key` when `settings.local_api_key`
-  is configured.
+- TradingView webhook writes under `/api/cockpit/tv/alert` require a
+  `webhook_token` JSON field or `X-TradingView-Webhook-Token` header matching
+  `TV_WEBHOOK_TOKEN` / `settings.tv_webhook_token` and fail closed when no token
+  is configured. The token is not persisted in alert history. TradingView alert
+  history reads use `X-API-Key` when `settings.local_api_key` is configured.
 
 ## Route inventory
 
@@ -145,7 +145,10 @@ The FastAPI app mounts routes in these groups:
   - these actions write to `user_thesis_memory` through backend-owned store logic
 - `POST /api/cockpit/tv/alert`
   - receives TradingView Pine Script webhook alerts
-  - requires `X-TradingView-Webhook-Token` matching the configured webhook token
+  - requires `webhook_token` in the JSON alert body, or
+    `X-TradingView-Webhook-Token` for relay/manual callers, matching the
+    configured webhook token
+  - strips `webhook_token` before alert persistence
   - fails closed with `503` when no webhook token is configured
 - `GET /api/cockpit/tv/alerts`
   - returns recent TradingView alerts from the local alert history file

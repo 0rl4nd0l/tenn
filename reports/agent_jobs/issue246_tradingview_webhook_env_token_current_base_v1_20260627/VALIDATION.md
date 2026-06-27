@@ -12,13 +12,17 @@ Result: `PASS`
 PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py
 ```
 
-Result: `PASS`, 10 passed.
+Result: `PASS`, 12 passed after PR #449 review follow-up.
 
 ```bash
 PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt ruff check financial-engine_v2/backend/app/core/config.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py
 ```
 
 Result: `PASS`
+
+The same focused pytest and ruff commands were rerun after addressing PR #449
+automated review feedback about TradingView-sendable tokens. Result: `12
+passed` and `All checks passed!`.
 
 ```bash
 python3 -m py_compile financial-engine_v2/backend/app/core/config.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py

@@ -1,6 +1,6 @@
 # Issue 246 TradingView Webhook Env Token Guard
 
-Status: `PR_OPENED`
+Status: `PR_REVIEW_FIX_LOCAL_VALIDATED`
 
 ## Summary
 
@@ -13,7 +13,10 @@ The implementation:
 - Keeps support for process-level `TV_WEBHOOK_TOKEN`.
 - Makes `POST /api/cockpit/tv/alert` fail closed with `503` when no webhook
   token is configured.
-- Rejects missing/wrong `X-TradingView-Webhook-Token` before alert persistence.
+- Accepts a TradingView-sendable JSON `webhook_token` or relay/manual
+  `X-TradingView-Webhook-Token`, and rejects missing/wrong tokens before alert
+  persistence.
+- Excludes `webhook_token` from persisted alert history.
 - Guards `GET /api/cockpit/tv/alerts` with `require_api_key`.
 - Documents the TradingView webhook/read auth contract.
 
