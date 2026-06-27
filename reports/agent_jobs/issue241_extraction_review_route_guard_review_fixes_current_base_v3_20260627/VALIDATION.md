@@ -25,6 +25,20 @@
   - exit 127
   - `Command "vitest" not found`
 
+## Post-Review Fix
+
+Codex review on PR #453 flagged a P2 loading-state collapse in the snippet
+image panel. The follow-up fix adds a stable minimum height and in-flow
+placeholder for pending guarded blob fetches.
+
+- `git diff --check`
+  - exit 0
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/issue241_extraction_review_route_guard_review_fixes_current_base_v3_20260627.md --repo-root .`
+  - exit 0
+- `vitest run cockpit-ui/lib/api-client.test.ts`
+  - exit 127
+  - `Command "vitest" not found`
+
 ## Not Run
 
 - Live backend/API smoke.

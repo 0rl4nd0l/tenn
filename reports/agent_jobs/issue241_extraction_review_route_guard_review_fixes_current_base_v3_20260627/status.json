@@ -1,6 +1,7 @@
 {
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@968a613b24783e1929a893ff1f098d8ff63a8ef5",
   "branch": "safe/issue241-extraction-review-route-guard-review-fixes-current-base-v3-20260627",
+  "codex_review": "P2 snippet loading frame collapse fixed with a stable min-height and in-flow placeholder",
   "evidence_grade": "VERIFIED",
   "issue_refs": [
     241

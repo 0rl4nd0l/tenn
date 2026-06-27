@@ -14,9 +14,20 @@
   - `financial-engine_v2/cockpit/integrations/backend_api.py`
 - Snippet object URL lifecycle in verification UI hook/panel.
 
-## Findings
+## Findings Before PR Review
 
-No blocker findings.
+No blocker findings in the local review pass.
+
+## PR Review Finding
+
+Codex review on PR #453 found one P2 issue: when a review item has a snippet URL
+but the guarded blob fetch is still pending or fails, the image frame could
+collapse because the image child is absent and the status overlay is absolutely
+positioned.
+
+Resolution: `review-tab-panel.tsx` now gives the snippet frame a stable minimum
+height and renders an in-flow placeholder while `currentSnippetImageSrc` is not
+ready, keeping loading and failure messages visible.
 
 ## Residual Risk
 
