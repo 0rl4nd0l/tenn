@@ -5768,7 +5768,11 @@ def cockpit_upload_chat_attachment(
     )
 
 
-@router.get("/pulse", response_model=IntelPulseResponse)
+@router.get(
+    "/pulse",
+    response_model=IntelPulseResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
     """Return system population and quality metrics for Intel Pulse."""
     try:
@@ -5779,7 +5783,11 @@ def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/matrix", response_model=IntelPulseMatrixResponse)
+@router.get(
+    "/matrix",
+    response_model=IntelPulseMatrixResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_intel_matrix(
     stage: str, ticker: str | None = None
 ) -> IntelPulseMatrixResponse:

@@ -34,12 +34,28 @@ import type {
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
 
+function browserApiKey(): string {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+  try {
+    return window.localStorage.getItem('cockpit.apiKey')?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function configuredApiKey(): string {
+  return browserApiKey() || API_KEY
+}
+
 function withApiKey(headers?: HeadersInit): HeadersInit {
   const merged: Record<string, string> = {
     ...(headers as Record<string, string> | undefined),
   }
-  if (API_KEY) {
-    merged['X-API-Key'] = API_KEY
+  const apiKey = configuredApiKey()
+  if (apiKey) {
+    merged['X-API-Key'] = apiKey
   }
   return merged
 }
@@ -1107,7 +1123,7 @@ export async function getIntelPulse(ticker?: string): Promise<IntelPulseResponse
   const url = normalizedTicker
     ? `/api/cockpit/pulse?ticker=${encodeURIComponent(normalizedTicker)}`
     : "/api/cockpit/pulse"
-  return apiFetch<IntelPulseResponse>(url)
+  return apiFetch<IntelPulseResponse>(url, { headers: withApiKey() })
 }
 
 /** Diagnostic Matrix – GET /api/cockpit/matrix */
@@ -1115,5 +1131,5 @@ export async function getDiagnosticMatrix(stage: string, ticker?: string): Promi
   const base = `/api/cockpit/matrix?stage=${encodeURIComponent(stage)}`
   const normalizedTicker = ticker?.trim().toUpperCase()
   const url = normalizedTicker ? `${base}&ticker=${encodeURIComponent(normalizedTicker)}` : base
-  return apiFetch<IntelPulseMatrixResponse>(url)
+  return apiFetch<IntelPulseMatrixResponse>(url, { headers: withApiKey() })
 }
