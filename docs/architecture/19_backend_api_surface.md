@@ -37,6 +37,9 @@ The FastAPI app mounts routes in these groups:
   `/api/context/memory/index`, `/api/context/thesis`, and
   `/api/context/company_dump` require `X-API-Key` when
   `settings.local_api_key` is configured.
+- Cockpit runtime-topology read routes under `/api/cockpit/config`,
+  `/api/cockpit/models`, and `/api/cockpit/queue` require the dependency where
+  declared because they expose operator runtime state.
 - Operational job-state reads and streams under `/api/ops/*` require the
   dependency where declared because they expose run metadata and artifact paths.
 - Intel Pulse diagnostic routes under `/api/cockpit/pulse` and
@@ -138,8 +141,16 @@ The FastAPI app mounts routes in these groups:
   - aggregated cockpit-facing health for backend, llama.cpp, Ollama, Qdrant, Redis, and GPU snapshot
 - `GET /api/cockpit/config`
   - cockpit runtime config snapshot (llm model/endpoint, profile, feature flags)
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes runtime topology and operator configuration
+- `GET /api/cockpit/models`
+  - discoverable model inventory plus runtime target state
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes model and runtime endpoint availability
 - `GET /api/cockpit/queue`
   - lightweight queue status summary
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it probes queue/runtime activity
 - `GET /api/cockpit/docs`
   - latest global document list for cockpit history views
   - requires `X-API-Key` when `settings.local_api_key` is configured because

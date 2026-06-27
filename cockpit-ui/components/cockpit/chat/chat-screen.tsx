@@ -39,6 +39,7 @@ import {
   getChatSessionMessages,
   deleteChatSessionRemote,
   fetchChatReadiness,
+  withApiKey,
   type ActionJobStatus,
 } from '@/lib/api-client'
 import { deleteChatSession, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
@@ -674,9 +675,12 @@ export function ChatScreen() {
     setActiveTicker,
   } = useCockpitStore()
   const { data: configData } = useQuery({
-    queryKey: ['cockpit-config-status'],
+    queryKey: ['cockpit-config-status', apiKey || 'anonymous'],
     queryFn: async () => {
-      const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+      const response = await fetch('/api/cockpit/config', {
+        cache: 'no-store',
+        headers: withApiKey(),
+      })
       if (!response.ok) {
         throw new Error(`Config unavailable (${response.status})`)
       }

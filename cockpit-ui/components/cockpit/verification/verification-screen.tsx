@@ -20,6 +20,7 @@ import {
   processDocument,
   runVerificationContext,
   submitExtractionReviewDecision,
+  withApiKey,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
@@ -685,7 +686,10 @@ export function VerificationScreen() {
     const attachMonitor = async () => {
       try {
         appendProgress({ scope: 'monitor', message: 'Loading active extraction run metadata from backend config' })
-        const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+        const response = await fetch('/api/cockpit/config', {
+          cache: 'no-store',
+          headers: withApiKey(),
+        })
         if (!response.ok) {
           throw new Error(`Failed to load active extraction runs (HTTP ${response.status})`)
         }

@@ -49,7 +49,7 @@ function configuredApiKey(): string {
   return browserApiKey() || API_KEY
 }
 
-function withApiKey(headers?: HeadersInit): HeadersInit {
+export function withApiKey(headers?: HeadersInit): HeadersInit {
   const merged: Record<string, string> = {
     ...(headers as Record<string, string> | undefined),
   }
@@ -854,7 +854,9 @@ export async function streamChat(params: {
 
 /** Available models – GET /api/cockpit/models */
 export async function fetchAvailableModels(): Promise<AvailableModelsResponse> {
-  return apiFetch<AvailableModelsResponse>("/api/cockpit/models")
+  return apiFetch<AvailableModelsResponse>("/api/cockpit/models", {
+    headers: withApiKey(),
+  })
 }
 
 export async function loadCockpitModel(modelId?: string, runtimeTarget?: ChatRuntimeTarget): Promise<ModelLoadResponse> {
@@ -891,12 +893,12 @@ export async function dryRunPromptLabRoute(
 
 /** System config – GET /api/cockpit/config */
 export async function getSystemStatus(): Promise<SystemStatus> {
-  return apiFetch<SystemStatus>("/api/cockpit/config")
+  return apiFetch<SystemStatus>("/api/cockpit/config", { headers: withApiKey() })
 }
 
 /** Queue status – GET /api/cockpit/queue */
 export async function getQueueStatus(): Promise<QueueStatus> {
-  return apiFetch<QueueStatus>("/api/cockpit/queue")
+  return apiFetch<QueueStatus>("/api/cockpit/queue", { headers: withApiKey() })
 }
 
 /** Restart backend – POST /api/cockpit/restart */

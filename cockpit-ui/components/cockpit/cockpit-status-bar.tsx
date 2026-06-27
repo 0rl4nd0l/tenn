@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { withApiKey } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
 import { cn } from '@/lib/utils'
@@ -43,7 +44,10 @@ export function CockpitStatusBar({
   const { data: configData, error: configError } = useQuery({
     queryKey: ['cockpit-config-status'],
     queryFn: async () => {
-      const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+      const response = await fetch('/api/cockpit/config', {
+        cache: 'no-store',
+        headers: withApiKey(),
+      })
       if (!response.ok) {
         throw new Error(`Config unavailable (${response.status})`)
       }

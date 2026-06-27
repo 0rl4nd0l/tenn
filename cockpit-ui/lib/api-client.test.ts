@@ -140,6 +140,57 @@ describe('listDocuments', () => {
   })
 })
 
+describe('runtime topology helpers', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when reading config, models, and queue status', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({}), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchAvailableModels, getQueueStatus, getSystemStatus } =
+      await import('./api-client')
+
+    await getSystemStatus()
+    await fetchAvailableModels()
+    await getQueueStatus()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/config',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/models',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/queue',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
+
 describe('context diagnostics API client', () => {
   afterEach(() => {
     vi.unstubAllEnvs()

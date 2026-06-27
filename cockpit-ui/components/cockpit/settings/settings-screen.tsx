@@ -12,7 +12,11 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store, FileCode2 } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
-import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
+import {
+  fetchAvailableModels,
+  loadCockpitModel,
+  withApiKey,
+} from '@/lib/api-client'
 import type { ChatRuntimeTarget, ModelGroup } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
 import { PromptLabPanel } from './prompt-lab-panel'
@@ -165,9 +169,11 @@ export function SettingsScreen() {
         // backend unreachable
       }
 
-      // 2. Fetch cockpit config (no API key required)
+      // 2. Fetch guarded cockpit config.
       try {
-        const statusRes = await fetch('/api/cockpit/config')
+        const statusRes = await fetch('/api/cockpit/config', {
+          headers: withApiKey(),
+        })
 
         if (statusRes.ok) {
           const status = await statusRes.json()
