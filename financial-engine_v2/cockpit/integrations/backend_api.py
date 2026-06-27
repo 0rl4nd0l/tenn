@@ -348,7 +348,11 @@ class BackendApiClient:
         if low_confidence_limit is not None:
             params["low_confidence_limit"] = low_confidence_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -372,7 +376,11 @@ class BackendApiClient:
         if low_confidence_limit is not None:
             params["low_confidence_limit"] = low_confidence_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -415,7 +423,11 @@ class BackendApiClient:
         if market_memory_limit is not None:
             params["market_memory_limit"] = market_memory_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 

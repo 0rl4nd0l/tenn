@@ -70,6 +70,25 @@ class TestGetTickerContext:
             with pytest.raises(httpx.HTTPStatusError):
                 client.get_ticker_context("BHP")
 
+    def test_sends_api_key_header(self):
+        client = BackendApiClient("http://localhost:8000", api_key="local-secret")
+        mock_response = MagicMock()
+        mock_response.content = b'{"ticker":"BHP"}'
+        mock_response.json.return_value = {"ticker": "BHP"}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            client.get_ticker_context("BHP")
+
+        assert mock_http.get.call_args.kwargs["headers"] == {
+            "X-API-Key": "local-secret"
+        }
+
 
 class TestGetCompanyDump:
     def test_success(self, client):
@@ -120,6 +139,46 @@ class TestGetCompanyDump:
 
             with pytest.raises(httpx.HTTPStatusError):
                 client.get_company_dump("BHP")
+
+    def test_sends_api_key_header(self):
+        client = BackendApiClient("http://localhost:8000", api_key="local-secret")
+        mock_response = MagicMock()
+        mock_response.content = b'{"ticker":"BHP"}'
+        mock_response.json.return_value = {"ticker": "BHP"}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            client.get_company_dump("BHP")
+
+        assert mock_http.get.call_args.kwargs["headers"] == {
+            "X-API-Key": "local-secret"
+        }
+
+
+class TestGetVerificationContext:
+    def test_sends_api_key_header(self):
+        client = BackendApiClient("http://localhost:8000", api_key="local-secret")
+        mock_response = MagicMock()
+        mock_response.content = b'{"extraction_failures":[]}'
+        mock_response.json.return_value = {"extraction_failures": []}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            client.get_verification_context("BHP")
+
+        called = mock_http.get.call_args
+        assert called.kwargs["headers"] == {"X-API-Key": "local-secret"}
+        assert called.kwargs["params"]["ticker"] == "BHP"
 
 
 class TestMemoryMethods:
