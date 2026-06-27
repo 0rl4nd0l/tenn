@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle, Maximize2, Minimize2, Brain, Code, TrendingUp, HelpCircle } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -62,6 +61,7 @@ type ReviewTabPanelProps = {
   matchedEvidenceText: string | null
   currentSnippetPath: string | null
   currentSnippetUrl: string | null
+  currentSnippetImageSrc: string | null
   currentSnippetRenderKey: string
   currentRowRef: string | null
   reviewItems: ExtractionReviewItem[]
@@ -116,6 +116,7 @@ export function ReviewTabPanel({
   matchedEvidenceText,
   currentSnippetPath,
   currentSnippetUrl,
+  currentSnippetImageSrc,
   currentSnippetRenderKey,
   reviewItems,
   evidenceSuspendMessage,
@@ -609,19 +610,21 @@ export function ReviewTabPanel({
                         </div>
                       ) : currentSnippetUrl ? (
                         <div className="space-y-3">
-                          <div className={`relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
+                          <div className={`relative min-h-[360px] overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
                               onClick={() => setIsZoomed(!isZoomed)}>
-                            <Image
-                              key={currentSnippetRenderKey}
-                              src={currentSnippetUrl}
-                              alt={`Evidence for ${currentReviewItem.metric_name}`}
-                              width={1200}
-                              height={1600}
-                              unoptimized
-                              onLoad={onSnippetImageLoad}
-                              onError={onSnippetImageError}
-                              className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
-                            />
+                            {currentSnippetImageSrc ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={currentSnippetRenderKey}
+                                src={currentSnippetImageSrc}
+                                alt={`Evidence for ${currentReviewItem.metric_name}`}
+                                onLoad={onSnippetImageLoad}
+                                onError={onSnippetImageError}
+                                className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                              />
+                            ) : (
+                              <div aria-hidden="true" className="min-h-[360px]" />
+                            )}
                             
                             <div className="absolute right-4 top-4 z-10">
                               <Button

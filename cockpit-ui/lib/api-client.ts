@@ -1044,6 +1044,7 @@ export async function createExtractionReviewSession(params: {
 export async function getExtractionReviewSession(sessionId: string): Promise<ExtractionReviewSession> {
   return apiFetch<ExtractionReviewSession>(
     `/api/extraction-review/session/${encodeURIComponent(sessionId)}`,
+    { headers: withApiKey() },
   )
 }
 
@@ -1071,7 +1072,10 @@ export async function submitExtractionReviewDecision(params: {
 }
 
 export async function getExtractionReviewErrors(limit: number = 200): Promise<ExtractionReviewErrorQueue> {
-  return apiFetch<ExtractionReviewErrorQueue>(`/api/extraction-review/errors?limit=${limit}`)
+  return apiFetch<ExtractionReviewErrorQueue>(
+    `/api/extraction-review/errors?limit=${limit}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewRuns(ticker?: string, limit: number = 50): Promise<ExtractionReviewRunListResponse> {
@@ -1079,7 +1083,10 @@ export async function getExtractionReviewRuns(ticker?: string, limit: number = 5
   if (ticker?.trim()) {
     params.set('ticker', ticker.trim().toUpperCase())
   }
-  return apiFetch<ExtractionReviewRunListResponse>(`/api/extraction-review/runs?${params.toString()}`)
+  return apiFetch<ExtractionReviewRunListResponse>(
+    `/api/extraction-review/runs?${params.toString()}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewSessions(ticker?: string, limit: number = 50): Promise<ExtractionReviewSessionListResponse> {
@@ -1087,13 +1094,49 @@ export async function getExtractionReviewSessions(ticker?: string, limit: number
   if (ticker?.trim()) {
     params.set('ticker', ticker.trim().toUpperCase())
   }
-  return apiFetch<ExtractionReviewSessionListResponse>(`/api/extraction-review/sessions?${params.toString()}`)
+  return apiFetch<ExtractionReviewSessionListResponse>(
+    `/api/extraction-review/sessions?${params.toString()}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewRunStatus(runId: string, limit: number = 200): Promise<ExtractionReviewRunStatusResponse> {
   return apiFetch<ExtractionReviewRunStatusResponse>(
-    `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`
+    `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`,
+    { headers: withApiKey() },
   )
+}
+
+function extractionReviewSnippetPath(imageUrl: string): string {
+  const prefix = '/api/extraction-review/snippets/'
+  const path = imageUrl.trim()
+  const imageName = path.startsWith(prefix) ? path.slice(prefix.length) : ''
+  if (!imageName || imageName.includes('/') || imageName.includes('\\')) {
+    throw new Error('Invalid extraction review snippet URL')
+  }
+  return path
+}
+
+export async function getExtractionReviewSnippetObjectUrl(imageUrl: string): Promise<string> {
+  const snippetPath = extractionReviewSnippetPath(imageUrl)
+  const response = await fetch(snippetPath, { headers: withApiKey() })
+
+  if (!response.ok) {
+    let body: unknown = `HTTP ${response.status}`
+    try {
+      body = await response.json()
+    } catch {
+      try {
+        body = await response.text()
+      } catch {
+        body = `HTTP ${response.status}`
+      }
+    }
+    throw new ApiError(response.status, response.statusText, body)
+  }
+
+  const blob = await response.blob()
+  return URL.createObjectURL(blob)
 }
 
 export async function runVerificationContext(params: {
