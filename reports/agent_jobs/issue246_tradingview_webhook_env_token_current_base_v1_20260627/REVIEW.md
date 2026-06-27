@@ -15,6 +15,9 @@ Manual review result: no blocking findings in the local diff.
 - `webhook_token` is excluded from persisted alert history.
 - `GET /api/cockpit/tv/alerts` registers `require_api_key`.
 - Tests use `tmp_path` for alert persistence and do not touch production data.
+- The env-file settings regression clears process `TV_WEBHOOK_TOKEN` before
+  constructing `Settings`, so a developer/CI secret cannot override the fixture
+  value or appear in assertion output.
 - Docs describe both the webhook token and read-history API-key guard.
 
 ## Residual Risk

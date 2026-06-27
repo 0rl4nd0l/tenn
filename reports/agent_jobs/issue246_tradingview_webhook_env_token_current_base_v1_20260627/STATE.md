@@ -7,6 +7,8 @@
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Base HEAD: `eb4a42910fd71077af4a389bd4a9f4400796921b`
 - PR: `https://github.com/0rl4nd0l/tenn/pull/449`
+- Latest local review-fix: process `TV_WEBHOOK_TOKEN` is cleared before the
+  env-file settings regression constructs `Settings`.
 - Supersedes stale PR #433 by replacement branch only; no stale branch cleanup
   is authorized.
 
@@ -15,7 +17,8 @@
 - Portable guard: `PASS`, `VALID_TASK_WORKTREE`
 - Registry: `PASS`, no active jobs
 - Task ledger validation: `PASS`
-- Live ledger entries appended: `claimed`, `implementation_started`
+- Live ledger entries appended: `claimed`, `implementation_started`,
+  `pr_opened`, `implementation_started` review-fix checkpoints
 
 ## Docs Impact
 

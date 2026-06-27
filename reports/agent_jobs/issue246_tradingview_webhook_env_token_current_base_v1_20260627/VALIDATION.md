@@ -24,6 +24,10 @@ The same focused pytest and ruff commands were rerun after addressing PR #449
 automated review feedback about TradingView-sendable tokens. Result: `12
 passed` and `All checks passed!`.
 
+The focused pytest and ruff commands were rerun again after addressing PR #449
+automated review feedback about process-env leakage in the env-file settings
+test. Result: `12 passed` and `All checks passed!`.
+
 ```bash
 python3 -m py_compile financial-engine_v2/backend/app/core/config.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_tv_alert_auth.py
 ```
@@ -65,5 +69,6 @@ Result: `PASS`, opened PR #449.
 
 ## Pending
 
-- GitHub checks/review/merge/closeout are pending for PR #449.
+- GitHub checks/review/merge/closeout are pending after the latest PR #449
+  review-fix push.
 - No live backend/browser smoke was run; runtime proof is `PARTIAL`.

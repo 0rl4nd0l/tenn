@@ -1,8 +1,8 @@
 {
   "schema_version": "tenn_fix_status_v1",
   "job_id": "issue246_tradingview_webhook_env_token_current_base_v1_20260627",
-  "status": "PR_REVIEW_FIX_LOCAL_VALIDATED",
-  "timestamp": "2026-06-27T10:12:29+10:00",
+  "status": "PR_REVIEW_FIX2_LOCAL_VALIDATED",
+  "timestamp": "2026-06-27T10:29:40+10:00",
   "repo": "0rl4nd0l/tenn",
   "worktree": "/home/l4nd0/tenn-issue246-tradingview-webhook-env-token-current-base-v1-20260627",
   "branch": "safe/issue246-tradingview-webhook-env-token-current-base-v1-20260627",
@@ -60,11 +60,16 @@
       "command": "PR #449 automated review follow-up",
       "result": "PASS",
       "summary": "Added TradingView-sendable JSON webhook_token support and token redaction from persisted alert history; focused pytest and ruff passed"
+    },
+    {
+      "command": "PR #449 automated review follow-up 2",
+      "result": "PASS",
+      "summary": "Cleared process TV_WEBHOOK_TOKEN before env-file Settings regression; focused pytest, ruff, py_compile, check-diff, git diff --check, and ledger validate passed"
     }
   ],
   "data_missing": [
     "live_backend_browser_route_proof",
-    "github_checks_until_pr449_checked"
+    "github_checks_after_latest_pr449_review_fix"
   ],
   "docs_impact": {
     "status": "DOCS_UPDATED",
@@ -79,5 +84,5 @@
     "docs_followup": [],
     "reason": "TradingView webhook and alert-history auth contract changed."
   },
-  "verdict": "PR_REVIEW_FIX_LOCAL_VALIDATED_PENDING_PUSH"
+  "verdict": "PR_REVIEW_FIX2_LOCAL_VALIDATED_PENDING_PUSH"
 }

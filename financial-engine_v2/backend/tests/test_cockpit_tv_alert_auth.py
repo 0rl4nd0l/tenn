@@ -182,7 +182,11 @@ def test_receive_tv_alert_accepts_settings_webhook_token(
     assert "webhook_token" not in alerts[0]
 
 
-def test_settings_loads_tv_webhook_token_from_env_file(tmp_path: Path) -> None:
+def test_settings_loads_tv_webhook_token_from_env_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("TV_WEBHOOK_TOKEN", raising=False)
     env_file = tmp_path / ".env"
     env_file.write_text("TV_WEBHOOK_TOKEN=env-file-secret\n")
 
