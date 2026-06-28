@@ -13,6 +13,12 @@ Current Focus: <one line>
 ## Decisions
 - <decision and evidence>
 
+## Scribe Capture
+- Active user steering:
+- Hard constraints:
+- Conflicts or owner-boundary questions:
+- Superseded or reversed guidance:
+
 ## Task Ledger
 - Sources checked:
 - Duplicate-work classification:

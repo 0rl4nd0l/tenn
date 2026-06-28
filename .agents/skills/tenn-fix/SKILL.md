@@ -98,6 +98,29 @@ batch.
     approval, unsafe path expansion, GitHub mutation not covered by the task
     card, product/runtime/data/extraction access, or unresolved `DATA_MISSING`.
 
+## Scribe Capture Mode
+
+Use Scribe capture during long, risky, owner-steered, or conflict-prone
+implementation runs. It is a mode of the orchestrator, not a new visible skill,
+worker, reviewer, or executor.
+
+Scribe capture records:
+
+- user corrections, hard constraints, preferences, permission boundaries, and
+  conflicts in `OPERATOR_NOTES.md`;
+- owner decisions, agent decisions, reversals, superseded guidance, and the
+  evidence for each decision in `DECISIONS.md`;
+- the current active constraints, duplicate-work status, ledger status,
+  blockers, validation state, and next safe action in `STATE.md`.
+
+Update Scribe capture when Orlando corrects the premise, changes scope, grants
+or denies approval, flags a surprising number, identifies a conflict, reverses a
+decision, or adds a do-not-touch boundary. Scribe must not mutate product,
+runtime, extraction, data, source documents, gold labels, DBs, services,
+host-global config, GitHub, or Git history. Do not create `SCRIBE.md` or a
+`.agents/skills/scribe/SKILL.md` entrypoint unless the task card explicitly
+allows it and explains why the existing report artifacts are insufficient.
+
 ## Docs Impact Check
 
 Every implementation-capable run must perform a Docs Impact Check before
@@ -220,7 +243,9 @@ a report-only artifact unless it directly unlocks one of those outcomes.
 
 For long or risky runs, fold Frame Design into `STATE.md` and `DECISIONS.md`:
 current state, evidence, non-negotiables, stop states, owner decisions, and next
-safe action.
+safe action. When Scribe capture is active, also write the steering,
+corrections, conflicts, and superseded guidance to `OPERATOR_NOTES.md`,
+`DECISIONS.md`, and `STATE.md` instead of creating a separate Scribe artifact.
 
 ## Hard Stops
 

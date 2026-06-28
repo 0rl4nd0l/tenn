@@ -19,6 +19,30 @@ work that would otherwise create many small approval loops, prefer two-shot mode
 Shot 1 produces the report-local evidence, approval manifest, and Shot 2 plan;
 Shot 2 executes approved groups mechanically and closes out.
 
+Use Scribe mode inside long `/goal` or frame-mode runs when user steering,
+corrections, hard constraints, conflicts, or owner decisions may be lost across
+context breaks. Scribe is capture-only: it does not execute work, review diffs,
+delegate workers, mutate Git/GitHub/runtime/data surfaces, or create a new
+visible skill.
+
+## Scribe Mode
+
+Scribe mode records steering in the existing report artifacts:
+
+- `OPERATOR_NOTES.md`: user corrections, non-negotiables, preferences,
+  permission boundaries, and conflict triggers.
+- `DECISIONS.md`: owner decisions, agent decisions, reversals, superseded
+  guidance, and their evidence.
+- `STATE.md`: current constraints, active conflicts, blockers, validation
+  state, and next safe action.
+
+Turn Scribe mode on for long, risky, or multi-turn `/goal` work; for short
+tasks, the normal report is enough. Update Scribe capture when the user corrects
+a premise, changes scope, grants or denies approval, identifies a conflict,
+reverses a prior decision, or adds a hard boundary. Do not create a separate
+`SCRIBE.md` artifact unless a task card proves the existing report artifacts are
+too cramped and explicitly allows that new file.
+
 ## State Machine
 
 Maintain one visible state:
@@ -53,9 +77,9 @@ Required frame-mode artifacts:
 - `FRAME.md`: objective, non-negotiables, scope, evidence, success shape, stop
   states, and steering log.
 - `STATE.md`: current state, completed work, blockers, next safe action, and
-  validation.
+  validation, including active Scribe constraints when used.
 - `OPERATOR_NOTES.md`: concise user steering, corrections, preferences, and
-  decisions.
+  decisions captured by Scribe mode when used.
 
 ## Required Report Contents
 

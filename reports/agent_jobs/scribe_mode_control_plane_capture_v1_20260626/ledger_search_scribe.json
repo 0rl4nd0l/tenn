@@ -1,0 +1,21 @@
+{
+  "data_missing": [],
+  "duplicate_work_classification": "UNKNOWN_ASK",
+  "issues": [],
+  "matches": [],
+  "ok": true,
+  "sources_checked": [
+    {
+      "entry_count": 32,
+      "exists": true,
+      "kind": "live",
+      "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+    },
+    {
+      "entry_count": 2,
+      "exists": true,
+      "kind": "committed",
+      "path": "/home/l4nd0/tenn-scribe-mode-control-plane-v1-20260626/docs/agent_registry/task_ledger/LEDGER.jsonl"
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+scripts/load_news_to_qdrant.py:46:    describe_news_artifact_paths,
+scripts/load_news_to_qdrant.py:1935:        "paths": describe_news_artifact_paths(
+scripts/run_news_pipeline.py:33:    describe_news_artifact_paths,
+scripts/run_news_pipeline.py:358:        "paths": describe_news_artifact_paths(
+scripts/backfill_news.py:20:    describe_news_artifact_paths,
+scripts/backfill_news.py:109:            "paths": describe_news_artifact_paths(
+scripts/backfill_news.py:173:            "paths": describe_news_artifact_paths(
+scripts/test_news_pipeline_paths.py:46:        assert module.describe_news_artifact_paths()["news_artifact_root_source"] == (
+scripts/fetch_daily_news.py:21:    describe_news_artifact_paths,
+scripts/fetch_daily_news.py:120:            "paths": describe_news_artifact_paths(
+scripts/fetch_daily_news.py:212:            "paths": describe_news_artifact_paths(
+docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md:33:| P2 | `tenn-goal-report` has no report-state validator | PARTIAL | Skill describes state conventions; no dedicated validator was found. | Long-goal reports can become incomplete or stale. | Decide whether to enforce report fields. | Add report validator for long-goal README/state files only if omissions recur. |
+.agents/skills/tenn-git-guard/SKILL.md:61:repo-local Tenn scripts alone is not a blocker and should not be described as
+scripts/news_pipeline/cli_common.py:44:def describe_news_artifact_paths(
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:2:job_id: scribe_mode_control_plane_capture_v1_20260626
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:11:output_dir: reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:16:  - docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:23:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/README.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:24:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/STATE.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:25:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/DECISIONS.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:26:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/VALIDATION.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:27:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/PR_REVIEW.md
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:28:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:29:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_portable.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:30:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_repo.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:31:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/registry_readonly.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:32:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_validate.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:33:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_search_scribe.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:34:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/scribe_grep_current.txt
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:35:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_claimed.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:36:  - reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_done.json
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:40:# Scribe Mode Control Plane Capture V1
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:44:Implement Scribe as a compact control-plane mode inside existing Tenn operator
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:49:- Define Scribe mode in `tenn-goal-report` for long `/goal` and frame-mode runs.
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:54:  compact Scribe fields or update triggers.
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:55:- Update `SKILLS_SURFACE.md` only for routing text needed to show Scribe as a
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:68:- Do not create `.agents/skills/scribe/SKILL.md`, `.codex/skills/scribe`, or
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:69:  any other new visible Scribe skill.
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:79:- `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "scribe mode control-plane capture" --json`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:80:- `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "scribe mode control-plane capture" --json`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:83:- `python3 scripts/agent_task_ledger.py --repo-root . search --text scribe`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:84:- `rg -n "scribe|Scribe" docs/agent_tasks reports/agent_jobs .agents/skills docs/dev_flow scripts --hidden --glob '!**/.git/**'`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:85:- `python3 scripts/agent_job_contract.py validate docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:89:- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md --repo-root .`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:90:- `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md --repo-root .`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:91:- `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md --repo-root .`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:97:- Scribe is documented as a report-local capture mode, not an executor, worker,
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:101:- Templates provide compact Scribe slots without creating a new `SCRIBE.md`
+docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md:104:  always-visible skills and records Scribe's home if routing text changed.
+docs/agent_tasks/portable_guard_first_guidance_v1_20260623.md:81:- Repo-local Tenn scripts are described as Tenn-control-plane-local checks or
+docs/agent_tasks/tenn_frame_design_skill_v1_20260607.md:68:- `tenn-frame-design` exists and defines the compact Frame and optional Scribe
+docs/agent_tasks/tenn_frame_design_skill_v1_20260607.md:72:  Frame schema, Scribe boundaries, validation commands with exit status, unsafe
+docs/agent_tasks/tenn_git_hygiene_skill_v1_20260607.md:58:- Scribe/Watcher report-only pattern
+docs/agent_tasks/tenn_git_hygiene_skill_v1_20260607.md:99:- Skill explicitly keeps Scribe/Watcher behavior report-only.
+docs/agent_tasks/tenn_git_hygiene_skill_v1_20260607.md:105:  tiers, Scribe boundaries, approval gates, validation commands and exit status,
+reports/agent_jobs/registry_readonly_list_active_v1_20260606/README.md:45:- updated stale `AGENTS.md` and repo skill guidance that still described
+reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/DATA_MISSING.md:33:- Cockpit route prompt/token amplification and auto-diagnostic side effects are described in Markdown and code inspection, not a normalized runtime-smoke artifact.
+reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/DATA_MISSING.md:40:- Several source-label reports describe behavior in Markdown; future ingestion needs source-label check rows or a manifest sidecar.
+reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/no_regression_gate_plan.md:45:- Do not describe expanded-required success as broad financial metric accuracy.
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:7:capture, and an optional Scribe pattern.
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:79:## Scribe Boundaries
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:81:- Scribe is optional and used only when requested or when live steering may be
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:83:- Scribe monitors user corrections, guardrails, invariants, preferences, and
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:85:- Scribe writes compact notes to `OPERATOR_NOTES.md` or `FRAME.md` steering log.
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:86:- Scribe interrupts only for conflicts, safety issues, ambiguous permission, or
+reports/agent_jobs/tenn_frame_design_skill_v1_20260607/README.md:88:- Scribe never implements code and never mutates product, runtime, data,
+reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/README.md:98:Some documentation and UI surfaces can overclaim if read casually. `gold-eval-tab-panel.tsx` displays metric/context/trust accuracy for the real-gold runner without front-loading that the score is narrow. `docs/architecture/12_evaluation_and_drift_monitoring.md` still says the fixture pool is 13 JSON fixtures while the current repo has 15. `financial-engine_v2/backend/tests/eval_config.json` still describes a 6-fixture regression gate. These are wording/staleness risks, not evidence of broad coverage.
+reports/agent_jobs/tenn_git_hygiene_skill_v1_20260607/README.md:48:and a report-only Scribe/Watcher pattern.
+reports/agent_jobs/tenn_git_hygiene_skill_v1_20260607/README.md:64:## Scribe Boundaries
+reports/agent_jobs/tenn_git_hygiene_skill_v1_20260607/README.md:66:The skill allows a Scribe/Watcher to maintain:
+reports/agent_jobs/tenn_git_hygiene_skill_v1_20260607/README.md:73:The Scribe/Watcher must not mutate Git state, GitHub, registry, product files,
+reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/smoke_results.json:87:      "final_text_alignment": "Displayed evidence gap prefix, then still described tariff and buy-back filings as local news."
+reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/smoke_results.json:117:      "final_text_alignment": "No local_news_context, but final text described dividend and substantial holder filings as local news."
+reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/blast_radius_matrix.json:147:        "text_head": "DATA_MISSING / evidence gaps prefix was present, then answer described U.S. trade policy and share buy-back filings as local news."
+reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/root_cause_trace.json:34:      "evidence": "A2M, BHP, CSL, NST, and COH final text described filings, financial statements, dividend notices, holder notices, or price trend as latest local news despite zero claim_verified sources."
+reports/agent_jobs/reporting_task_cards_cleanup_20260508/README.md:24:- `docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md`: Evaluation lane, safe-extension blocker reconciliation card. It explicitly describes an add-path blocker for `cockpit_home_news_snapshot_v1_20260508.md`. Left unstaged as a separate-lane unresolved hold/blocker card.
+reports/agent_jobs/agent_flow_cleanup_execution_v1_20260616/SELF_REVIEW.md:72:        "fix_example": "Add docs/claude/hooks.md to a narrow follow-up task card and update it to describe only SessionStart, PreToolUse warning/hint hooks, and the repo-relative Stop wrapper."
+reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/DECISIONS.md:40:approved-15 #97 gate remains blocked, so this branch must not be described as a
+reports/agent_jobs/control_plane_docs_skills_surface_stale_report_cleanup_v1_20260623/stale_reference_matrix.json:10:      "correction_needed": "Update freshness metadata, identify DATA_MISSING host picker visibility, and describe refresh procedure.",
+reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/CODE_REVIEW.md:9:- Fixed during review: `VALIDATION.md` described the pre-commit git status as
+reports/agent_jobs/task_ledger_current_state_refresh_v1_20260623/PR_REVIEW.md:8:entry, and updates ledger/status docs so they describe the actual live-derived
+reports/agent_jobs/docs_current_state_consolidation_v1_20260623/doc_conflict_matrix.json:17:    "summary": "README and entrypoints identify run_local_backend.sh as canonical for agent backend bootstrap; startup described full-stack Docker as backend-only. Added scope note to docs/startup.md.",
+docs/agent_tasks/strategy_lab_mocked_adapter_design_phase3_v1_20260520.md:119:Define the mocked adapter contract only. Describe future client/wrapper boundaries, strict tool allowlist, blocked tool surfaces, request/response envelopes, artifact normalization mapping, error and quarantine policy, mock-only future test plan, and Phase 3B go/no-go.
+reports/agent_jobs/control_plane_runtime_proof_closeout_self_consistency_v1_20260623/STATE.md:32:- reason: Existing docs already describe explicit closeout-scope metadata; this
+docs/agent_tasks/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622.md:44:- Update control-plane docs to describe the new enforcement surface.
+docs/agent_tasks/task_ledger_current_state_refresh_v1_20260623.md:89:- `CONTROL_PLANE_STATUS.md` and `CONTROL_PLANE_OPEN_WORK.md` no longer describe
+docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md:81:- The refresh procedure describes the ancestor-plus-stale-file rule.
+reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json:52:      "impact": "The news substrate doc still describes Cockpit as reading only reports/qual_context/news.sqlite, while current Cockpit backend-api news context reads backend /rag/query.",
+docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md:33:`diff-check.json` dirt described by issue #234 and produce an approval packet.
+docs/agent_tasks/dev_flow_reset_shot1_native_wrappers_v1_20260616.md:48:the hands-off development workflow described in the dev-flow ground-up reset
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:4:      "path": "docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:11:  "report_path": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:18:        "docs/agent_tasks/scribe_mode_control_plane_capture_v1_20260626.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:25:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/README.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:26:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/STATE.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:27:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/DECISIONS.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:28:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/VALIDATION.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:29:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/PR_REVIEW.md",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:30:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:31:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_portable.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:32:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/guard_repo.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:33:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/registry_readonly.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:34:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_validate.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:35:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_search_scribe.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:36:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/scribe_grep_current.txt",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:37:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_claimed.json",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:38:        "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_entry_done.json"
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:43:      "job_id": "scribe_mode_control_plane_capture_v1_20260626",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/diff-check.json:46:      "output_dir": "reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626",
+reports/agent_jobs/scribe_mode_control_plane_capture_v1_20260626/ledger_validate.json:17:      "path": "/home/l4nd0/tenn-scribe-mode-control-plane-v1-20260626/docs/agent_registry/task_ledger/LEDGER.jsonl"
+reports/agent_jobs/control_plane_orlando_audit_v1_20260622/PR_REVIEW.md:28:No code behavior was intentionally changed. The main risk is documentation drift: the audit describes control-plane state as observed from current commands and safe reads, while host-only Codex behavior can change outside the repo.
+reports/agent_jobs/control_plane_orlando_audit_v1_20260622/PR_REVIEW.md:35:- Confirm OpenCode is not described as final authority.
+docs/agent_tasks/dev_flow_ground_up_reset_audit_v1_20260616.md:83:  hooks, rules, Git Hygiene, Frame/Scribe/Watcher/Goal Report, auto-progress,
+docs/agent_tasks/dev_flow_ground_up_reset_audit_v1_20260616.md:102:- Rule, hook, `AGENTS.md`, registry, task-card, report, Frame/Scribe/Watcher,
+reports/agent_jobs/codex_agent_setup_audit_v1_20260606/README.md:419:- The older fast-dev tree has a tracked `.codex/skills/cockpit-flag-orchestrator`, plus `AGENTS.md` text that explicitly describes `.codex/skills` as Codex-only. That is local legacy/custom evidence, but not enough to keep new repo skills there.
+reports/agent_jobs/codex_agent_setup_audit_v1_20260606/README.md:524:- RTK's own README describes command rewriting, compact `git`/file/log commands, and a tee mode that can save raw output on failures.
+reports/agent_jobs/control_plane_board_decision_closeout_gate_v1_20260623/STATE.md:30:- Updated operator/status docs to describe automatic closeout validation.
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/README.md:36:- Scribe is useful as a capture role, but should not remain a separate
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/OWNER_DECISIONS.md:11:| Scribe | Keep separate or fold into state/decisions. | Fold into `STATE.md`, `DECISIONS.md`, and operator notes. |
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/SKILLS_MATRIX.md:9:| `tenn-frame-design` | `.agents/skills/tenn-frame-design/SKILL.md` | Creates Frame, State, operator notes, optional Scribe. | Long or risky goals. | `FRAME.md`, `STATE.md`, `OPERATOR_NOTES.md`, optional `SCRIBE.md`. | Report-local. | Safe as template. | Overlaps goal report. | `MERGE_INTO_NEW_WORKFLOW` |
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/SKILLS_MATRIX.md:37:5. Scribe should fold into `STATE.md`, `DECISIONS.md`, and operator notes.
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/COMPILED_AUDIT.md:62:- Scribe is useful as a capture role, but should not remain a separate
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/COMPILED_AUDIT.md:205:| `tenn-frame-design` | `.agents/skills/tenn-frame-design/SKILL.md` | Creates Frame, State, operator notes, optional Scribe. | Long or risky goals. | `FRAME.md`, `STATE.md`, `OPERATOR_NOTES.md`, optional `SCRIBE.md`. | Report-local. | Safe as template. | Overlaps goal report. | `MERGE_INTO_NEW_WORKFLOW` |
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/COMPILED_AUDIT.md:233:5. Scribe should fold into `STATE.md`, `DECISIONS.md`, and operator notes.
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/COMPILED_AUDIT.md:592:| Scribe vs `OPERATOR_NOTES.md`/`DECISIONS.md` | Scribe as a standalone concept adds vocabulary. | Fold Scribe into durable notes and decisions. | `MERGE_INTO_NEW_WORKFLOW` |
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/COMPILED_AUDIT.md:779:| Scribe | Keep separate or fold into state/decisions. | Fold into `STATE.md`, `DECISIONS.md`, and operator notes. |
+reports/agent_jobs/dev_flow_ground_up_reset_audit_v1_20260616/OVERLAPS_AND_CONFLICTS.md:8:| Scribe vs `OPERATOR_NOTES.md`/`DECISIONS.md` | Scribe as a standalone concept adds vocabulary. | Fold Scribe into durable notes and decisions. | `MERGE_INTO_NEW_WORKFLOW` |
+reports/agent_jobs/dev_flow_skills_bloat_audit_v1_20260617/SKILL_RECOMMENDATIONS.md:72:All other repo and host skills should be described as backend helpers selected
+reports/agent_jobs/tenn_agent_setup_docs_v1_20260608/README.md:18:- Public skill documentation describes the setup as prompt-driven and focused on
+reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/DATA_MISSING.md:12:artifact state described by issue #234 is absent from current
+reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/README.md:15:The stale dirty rewrite described in issue #234 is not present on current
+reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/CLASSIFICATION.md:16:`changed_files: []` version described by issue #234.
+reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/ISSUE_REFRESH.md:18:Issue #234 describes a dirty generated artifact in a shared migration worktree:
+reports/agent_jobs/dev_flow_dirty_branch_classification_v1_20260618/DIRTY_FILES.md:59:- Describes the same validation-environment guidance as the dirty skill patch.
+reports/agent_jobs/dev_flow_reset_shot1_native_wrappers_v1_20260616/AUDIT_INPUTS.md:23:- Fold Scribe into `STATE.md`, `DECISIONS.md`, and operator notes.
+reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/DATA_MISSING.md:47:- `docs/architecture/12_evaluation_and_drift_monitoring.md` describes an older fixture pool of 13 fixtures, while current fixture and real-gold directories each contain 15 JSON files.
+reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/README.md:119:- Current docs have fixture-count drift: one architecture doc describes 13 fixtures while current fixture directories contain 15 JSON files.
+reports/agent_jobs/issue_281_lint_gate_resolution_review_v1_20260611/EVIDENCE.md:90:describes type/import checking as optional later work, so this does not block
+reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/file_classification.json:312:        "frontmatter describes read-only sidecar online audit and approval gate",
+reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/phase3g_recommendation.md:11:The next safe step is therefore a draft-only Phase 3G task card that describes
+reports/agent_jobs/tenn_git_guard_global_runner_preservation_v1_20260623/handoff/HANDOFF.md:58:lane. This packet was updated before commit so it no longer describes the older
+reports/agent_jobs/runtime_topology_nvme_consolidation_v1_20260513/README.md:72:These probes were run before any restart decision. They describe the existing HDD-backed runtime.
+reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/dirty_file_matrix.md:5:| File | State | Lane | Purpose | Root-cause category | Safety category | Risk if lost | Risk if committed | Prescribe decision |
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_03_artifact_contract.md:28:| Risk report | Describe drawdown, concentration, liquidity, and fragility risks. | Evaluation/Reporting | no |
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_01_tenn_surface_map.md:61:- `docs/architecture/17_analysis_modules.md` describes deterministic D1 analysis modules, optional D2 narrative, evidence chains, and portfolio-stage analysis.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:34:- Public docs describe AI market analysis, watchlists, charting, regime detection, market data, and multi-provider LLM analysis.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:52:- Docs describe autonomous trading bots, quick trade, live operations, broker accounts, exchange keys, and execution adapters.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:58:- Public docs describe agent token scopes: Read, Workspace, Backtest, Notify, Credentials, Trading.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:59:- Public docs describe audit logs, token scoping, rate limits, idempotency, and paper-only defaults.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:61:- Hosted path is described as paper-only and rejecting trading scope issuance.
+reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md:67:- Public docs describe a Docker Compose stack with Flask API, PostgreSQL 16, Redis 7, Nginx-served Vue frontend, exchange/broker adapters, LLM adapters, notifications, OAuth, billing, and optional mobile/web clients.
+reports/agent_jobs/portable_guard_first_guidance_v1_20260623/README.md:43:Repo-local `scripts/agent_*` commands are now described as

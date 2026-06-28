@@ -100,6 +100,7 @@ These behaviors are modes inside existing commands, not new visible skills:
 | --- | --- | --- |
 | Fresh-session orchestrator | `tenn-fix` plus `WORKER_TASK.md` and `WORKER_RESULT.md` | A handoff, problem statement, board decision, or long repair needs lane splitting, bounded workers, review, integration, validation, and closeout. |
 | Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `HANDOFF_NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
+| Scribe / steering capture | `tenn-goal-report`, `tenn-fix`, `OPERATOR_NOTES.md`, `DECISIONS.md`, and `STATE.md` | A long `/goal` or risky `/fix` run needs durable user corrections, hard constraints, conflicts, owner decisions, or superseded guidance without adding another visible skill. |
 | Zoom-out / contrarian check | `zoom-out`, `tenn-explain`, `tenn-review-board`, `EXPLAIN.md`, and board templates | The workflow may be solving the wrong problem, overfitting, looping on reports, or missing broader production-readiness value. |
 
 Handoff owns fresh-session continuation. Its report-local `NEXT_GOAL.md` should
@@ -114,6 +115,12 @@ discipline: split independent lanes, give each worker exact allowed files,
 decision limit, result path, and stop condition, then review outputs before
 integrating one coherent change at a time. Small workers do not make final
 high-risk decisions.
+
+Scribe is also a mode, not a separate visible skill. Use it to capture user
+steering, corrections, constraints, conflicts, owner decisions, and superseded
+guidance in `OPERATOR_NOTES.md`, `DECISIONS.md`, and `STATE.md`. Scribe does
+not execute work, review diffs, delegate workers, mutate runtime/data/GitHub/Git
+state, or require a standalone `SCRIBE.md` artifact.
 
 Zoom-out is also a mode, not a separate always-visible command. Use it inside
 `tenn-explain` or `tenn-review-board` to ask whether the real root problem is
