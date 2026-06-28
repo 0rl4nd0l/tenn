@@ -8,6 +8,11 @@ key/narrative skill surface trim.
 
 Use repo-backed Tenn skills by path and require evidence before claims. Autocomplete is not authority. Host/global skills are not substitutes for Tenn control-plane skills.
 
+`AGENTS.md` is the always-loaded constitution: source-of-truth hierarchy,
+safety boundaries, evidence labels, runtime proof, task-card discipline, and
+done criteria. This guide and the repo-backed skills hold repeatable procedure,
+prompt patterns, and exact operating commands so the root file stays concise.
+
 For serious Tenn work, start with:
 
 ```text

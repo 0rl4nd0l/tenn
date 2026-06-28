@@ -65,6 +65,11 @@ Visible skills are intentionally few. Add modes, sections, templates, or backend
 scripts to an existing key command before adding another always-visible
 `SKILL.md`.
 
+`AGENTS.md` should stay constitutional: load-bearing safety rules, evidence
+labels, source-of-truth order, runtime proof, and done criteria. Repeatable
+procedure belongs in the relevant skill or in `docs/dev_flow`, especially
+`CODEX_OPERATOR_GUIDE.md`, instead of expanding the root instruction file.
+
 ## Operator-Facing Repo Commands
 
 Use these as the normal user-facing entrypoints:
