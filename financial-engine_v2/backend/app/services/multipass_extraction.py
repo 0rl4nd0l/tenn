@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from dateutil import parser as dtparser
 
@@ -1922,6 +1922,11 @@ def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
     compact = _normalize_filter_text(str(row_ref or ""))
     if not compact:
         return True
+    if (
+        len(_re.findall(r"payments?for", compact)) > 1
+        or len(_re.findall(r"purchases?of", compact)) > 1
+    ):
+        return True
     if any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS):
         return False
     return any(marker in compact for marker in _CASHFLOW_WEAK_CAPEX_ROW_MARKERS)
@@ -2058,6 +2063,79 @@ def _parse_cashflow_capex_row_amount(row: list[Any], scale: str) -> float | None
 
 def _parse_cashflow_cash_end_row_amount(row: list[Any], scale: str) -> float | None:
     return _parse_current_period_metric_cell(row, scale)
+
+
+def _normalise_cashflow_row_ref(value: Any) -> str:
+    return _normalise_fragmented_pdf_text(str(value or "")).lower()
+
+
+def _cashflow_row_ref_matches(row_label: Any, row_ref: Any) -> bool:
+    label = _normalise_cashflow_row_ref(row_label)
+    ref = _normalise_cashflow_row_ref(row_ref)
+    if not label or not ref:
+        return False
+    return label == ref or label in ref or ref in label
+
+
+def _coerce_cashflow_metric_float(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    parsed_value = _parse_accounting_metric_number(value)
+    if parsed_value is None:
+        return None
+    return parsed_value[0]
+
+
+def _parse_cashflow_row_ref_current_period_amount(
+    row: Sequence[Any],
+    scale: str,
+) -> float | None:
+    multiplier = SCALE_MULTIPLIERS.get(scale, 1)
+    for cell in list(row)[1:]:
+        parsed_value = _parse_accounting_metric_number(cell)
+        if parsed_value is None:
+            continue
+        raw_float, has_explicit_unit = parsed_value
+        return raw_float if has_explicit_unit else raw_float * multiplier
+    return None
+
+
+def _recover_cashflow_row_ref_amount(
+    rows: Sequence[Sequence[Any]] | None,
+    row_ref: Any,
+    scale: str,
+) -> float | None:
+    if not rows or not row_ref:
+        return None
+
+    for row in rows:
+        if not row or not _cashflow_row_ref_matches(row[0], row_ref):
+            continue
+        return _parse_cashflow_row_ref_current_period_amount(row, scale)
+
+    return None
+
+
+def _replace_cashflow_metric_if_over_scaled_from_row_ref(
+    extracted: dict[str, Any],
+    rows: Sequence[Sequence[Any]] | None,
+    metric_name: str,
+    scale: str,
+) -> None:
+    row_refs = extracted.get("row_refs")
+    if not isinstance(row_refs, dict):
+        return
+
+    extracted_value = _coerce_cashflow_metric_float(extracted.get(metric_name))
+    source_value = _recover_cashflow_row_ref_amount(rows, row_refs.get(metric_name), scale)
+    if extracted_value is None or source_value is None or source_value == 0:
+        return
+
+    ratio = abs(extracted_value / source_value)
+    if 999.0 <= ratio <= 1001.0:
+        extracted[metric_name] = source_value
 
 
 def _cell_lines(value: Any) -> list[str]:
@@ -2331,6 +2409,7 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
         or "statutoryebit" in compact
         or "operatingincome" in compact
         or "profitbeforeincometax" in compact
+        or "profitbeforetax" in compact
         or "profitfortheperiodbeforetax" in compact
         or "lossprofitfortheperiodbeforetax" in compact
         or "cashprofitbeforetax" in compact
@@ -3034,6 +3113,29 @@ def _extract_single_table(
                     "Recovered cashflow cash_end from preferred cash-equivalents row on page %s",
                     getattr(table, "page_number", "?"),
                 )
+        if table_type == "cashflow_statement":
+            cashflow_source_rows = (
+                rows_override if rows_override is not None else getattr(table, "rows", None)
+            )
+            for metric_name in (
+                "operating_cf",
+                "investing_cf",
+                "financing_cf",
+                "cash_end",
+            ):
+                before_value = extracted.get(metric_name)
+                _replace_cashflow_metric_if_over_scaled_from_row_ref(
+                    extracted,
+                    cashflow_source_rows,
+                    metric_name,
+                    scale_for_table,
+                )
+                if extracted.get(metric_name) != before_value:
+                    logger.info(
+                        "Corrected cashflow %s from row-ref source amount on page %s",
+                        metric_name,
+                        getattr(table, "page_number", "?"),
+                    )
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -4910,6 +5012,20 @@ _ACCEPTED_OUTPUT_REVENUE_RATIO_RISK_FIELDS = (
     "net_debt",
 )
 _ACCEPTED_OUTPUT_REVENUE_RATIO_REVIEW_THRESHOLD = 10.0
+_REAL_ESTATE_NET_DEBT_RATIO_CONTEXT_MARKERS = (
+    "dexus",
+    "reit",
+    "realestate",
+    "investmentproperty",
+    "investmentproperties",
+    "stapledsecurity",
+    "stapledsecurities",
+)
+_SOURCE_BOUND_NET_DEBT_MARKERS = (
+    "derivedbalancesheet",
+    "netdebt",
+    "totaldebt",
+)
 
 # Over-scale threshold: values above $500B are almost certainly over-multiplied
 # for AUD-like currencies. High-denomination native currencies need explicit
@@ -5017,6 +5133,44 @@ def _coerce_metric_number(value: Any) -> float | None:
         return None
 
 
+def _source_bound_real_estate_net_debt_ratio_is_expected(payload: dict) -> bool:
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    net_debt_source = _normalize_filter_text(
+        _combined_source_text(
+            row_refs.get("net_debt"),
+            provenance.get("net_debt"),
+            field_provenance.get("net_debt"),
+        )
+    )
+    if not any(marker in net_debt_source for marker in _SOURCE_BOUND_NET_DEBT_MARKERS):
+        return False
+
+    context_values = [
+        payload.get("document_title"),
+        payload.get("document_subtype"),
+        payload.get("source_bound"),
+        payload.get("source_document_classification"),
+        payload.get("source_period_end_evidence"),
+        payload.get("wrapper_disclosures"),
+        row_refs,
+        provenance,
+        field_provenance,
+    ]
+    context = _normalize_filter_text(_combined_source_text(*context_values))
+    return any(
+        marker in context
+        for marker in _REAL_ESTATE_NET_DEBT_RATIO_CONTEXT_MARKERS
+    )
+
+
 def _accepted_output_scale_magnitude_risk_error(
     payload: dict,
     canonical_metrics: dict[str, Any],
@@ -5052,6 +5206,11 @@ def _accepted_output_scale_magnitude_risk_error(
                 continue
             ratio = abs(value) / abs(revenue)
             if ratio >= _ACCEPTED_OUTPUT_REVENUE_RATIO_REVIEW_THRESHOLD:
+                if (
+                    metric_name == "net_debt"
+                    and _source_bound_real_estate_net_debt_ratio_is_expected(payload)
+                ):
+                    continue
                 codes.append("metric_revenue_ratio_high")
                 break
 
@@ -5599,6 +5758,14 @@ def _apply_preferred_income_statement_source_payload(
         else {}
     )
 
+    def _existing_income_statement_metric_is_rejected(metric_name: str) -> bool:
+        if metric_name != "ebit":
+            return False
+        compact = _normalize_filter_text(
+            _combined_source_text(row_refs.get(metric_name), provenance.get(metric_name))
+        )
+        return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
+
     for table in _preferred_statement_tables(tables):
         if not _table_has_income_statement_source_rows(table):
             continue
@@ -5617,8 +5784,13 @@ def _apply_preferred_income_statement_source_payload(
             existing_is_appendix_wrapper = _source_text_is_appendix_wrapper(
                 row_refs.get(metric_name)
             ) or _source_text_is_appendix_wrapper(provenance.get(metric_name))
+            existing_is_rejected = _existing_income_statement_metric_is_rejected(
+                metric_name
+            )
             if metrics.get(metric_name) is not None and not (
-                existing_is_weak_wrapper or existing_is_appendix_wrapper
+                existing_is_weak_wrapper
+                or existing_is_appendix_wrapper
+                or existing_is_rejected
             ):
                 continue
             metrics[metric_name] = recovered_value
@@ -5674,6 +5846,37 @@ def _statement_text_value_after_label(
     return _parse_current_period_metric_cell(row, scale)
 
 
+_STATEMENT_INLINE_NUMBER_RE = re.compile(r"\(?-?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?")
+
+
+def _statement_text_inline_value(label: str, scale: str) -> float | None:
+    parsed_values: list[tuple[float, bool]] = []
+    for match in _STATEMENT_INLINE_NUMBER_RE.finditer(label):
+        parsed = _parse_accounting_metric_number(match.group(0))
+        if parsed is not None:
+            parsed_values.append(parsed)
+    if not parsed_values:
+        return None
+
+    raw_float, has_explicit_unit = parsed_values[0]
+    if (
+        len(parsed_values) >= 2
+        and not has_explicit_unit
+        and 0 < abs(raw_float) < 20
+        and abs(parsed_values[1][0]) >= 100
+    ):
+        raw_float, has_explicit_unit = parsed_values[1]
+    return (
+        raw_float
+        if has_explicit_unit
+        else raw_float * SCALE_MULTIPLIERS.get(scale, 1)
+    )
+
+
+def _statement_text_label_without_inline_values(label: str) -> str:
+    return _STATEMENT_INLINE_NUMBER_RE.sub("", label).strip()
+
+
 def _combined_statement_text_label(lines: list[str], index: int) -> tuple[str, int]:
     label = lines[index]
     if index + 1 >= len(lines):
@@ -5721,6 +5924,11 @@ def _recover_income_statement_metrics_from_statement_text(
                 scale,
                 label_width=label_width,
             )
+            recovered_row_ref = label
+            if value is None:
+                value = _statement_text_inline_value(label, scale)
+                if value is not None:
+                    recovered_row_ref = _statement_text_label_without_inline_values(label)
             if value is not None:
                 priority = _income_metric_priority_for_row_label(
                     label,
@@ -5729,12 +5937,316 @@ def _recover_income_statement_metrics_from_statement_text(
                 )
                 existing = recovered.get(metric_name)
                 if existing is None or priority > existing[0]:
-                    recovered[metric_name] = (priority, value, label)
+                    recovered[metric_name] = (priority, value, recovered_row_ref)
         previous_labels.append(label)
     return {
         metric_name: (value, row_ref)
         for metric_name, (_priority, value, row_ref) in recovered.items()
     }
+
+
+def _payload_ebit_source_is_rejected(payload: dict[str, Any]) -> bool:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    if metrics.get("ebit") is None:
+        return False
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    compact = _normalize_filter_text(
+        _combined_source_text(row_refs.get("ebit"), provenance.get("ebit"))
+    )
+    return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
+
+
+def _read_pdf_pages_for_statement_text(source_path: Any) -> list[tuple[int, list[str]]]:
+    path = Path(str(source_path or ""))
+    if not path.is_file() or path.suffix.lower() != ".pdf":
+        return []
+    try:
+        result = subprocess.run(
+            ["pdftotext", "-layout", str(path), "-"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        logger.debug("statement pdf text unavailable: path=%s", path)
+        return []
+    if result.returncode != 0:
+        logger.debug(
+            "statement pdf text unavailable: path=%s returncode=%s",
+            path,
+            result.returncode,
+        )
+        return []
+
+    pages: list[tuple[int, list[str]]] = []
+    for page_index, page_text in enumerate(result.stdout.split("\f"), start=1):
+        lines = [
+            line
+            for line in (
+                _normalise_fragmented_pdf_text(raw_line)
+                for raw_line in page_text.splitlines()
+            )
+            if line
+        ]
+        if lines:
+            pages.append((page_index, lines))
+    return pages
+
+
+def _apply_rejected_ebit_from_pdf_statement_text(
+    payload: dict[str, Any],
+    source_path: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    if not _payload_ebit_source_is_rejected(payload):
+        return
+
+    scale_for_text = str(scale or "unknown")
+    for page, lines in _statement_text_pages(
+        [
+            {"page": page, "text": line}
+            for page, page_lines in _read_pdf_pages_for_statement_text(source_path)
+            for line in page_lines
+        ],
+        (
+            "consolidatedincomestatement",
+            "consolidatedstatementofcomprehensiveincome",
+            "consolidatedstatementofprofitorloss",
+        ),
+    ):
+        recovered = _recover_income_statement_metrics_from_statement_text(
+            lines,
+            scale_for_text,
+        )
+        value_and_ref = recovered.get("ebit")
+        if value_and_ref is None:
+            continue
+        value, row_ref = value_and_ref
+        if any(
+            blocker in _normalize_filter_text(row_ref)
+            for blocker, _source_label in _EBIT_LABEL_BLOCKERS
+        ):
+            continue
+
+        metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+        row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+        provenance = (
+            payload.get("provenance")
+            if isinstance(payload.get("provenance"), dict)
+            else {}
+        )
+        field_provenance = (
+            payload.get("field_provenance")
+            if isinstance(payload.get("field_provenance"), dict)
+            else {}
+        )
+        metric_source_scales = (
+            payload.get("metric_source_scales")
+            if isinstance(payload.get("metric_source_scales"), dict)
+            else {}
+        )
+        metric_scale_sources = (
+            payload.get("metric_scale_sources")
+            if isinstance(payload.get("metric_scale_sources"), dict)
+            else {}
+        )
+
+        metrics["ebit"] = value
+        payload["ebit"] = value
+        row_refs["ebit"] = row_ref
+        provenance["ebit"] = f"income_statement:page_{page}:{row_ref}"
+        if scale_for_text and scale_for_text != "unknown":
+            metric_source_scales["ebit"] = scale_for_text
+            metric_scale_sources["ebit"] = "source_text"
+        field_provenance["ebit"] = _build_field_provenance_entry(
+            metric_name="ebit",
+            source="income_statement",
+            page=page,
+            row_ref=row_ref,
+            scale=scale_for_text,
+            scale_source="source_text",
+            pass1_result=pass1_result,
+        )
+
+        payload["metrics"] = metrics
+        payload["row_refs"] = row_refs
+        payload["provenance"] = provenance
+        payload["field_provenance"] = field_provenance
+        payload["metric_source_scales"] = metric_source_scales
+        payload["metric_scale_sources"] = metric_scale_sources
+        logger.info(
+            "Recovered rejected EBIT from source PDF statement text page %s row=%r",
+            page,
+            row_ref,
+        )
+        return
+
+
+_APPENDIX5B_SOURCE_TEXT_LABELS = {
+    "1.9": "Net cash from / (used in) operating activities",
+    "2.6": "Net cash from / (used in) investing activities",
+    "3.10": "Net cash from / (used in) financing activities",
+    "4.6": "Cash and cash equivalents at end of period",
+}
+
+
+def _appendix5b_source_text_page_is_candidate(lines: Sequence[str]) -> bool:
+    compact = _normalize_filter_text(" ".join(lines[:40]))
+    return (
+        "appendix5b" in compact
+        and "quarterlycashflowreport" in compact
+        and "consolidatedstatementofcashflows" in compact
+    )
+
+
+def _appendix5b_source_text_value_after_section(
+    lines: Sequence[str],
+    index: int,
+    section: str,
+    scale: str,
+) -> float | None:
+    section_re = re.compile(rf"^\s*{re.escape(section)}\b")
+    for line in lines[index : index + 5]:
+        text = section_re.sub("", line, count=1)
+        for match in _STATEMENT_INLINE_NUMBER_RE.finditer(text):
+            parsed = _parse_accounting_metric_number(match.group(0))
+            if parsed is None:
+                continue
+            raw_float, has_explicit_unit = parsed
+            return (
+                raw_float
+                if has_explicit_unit
+                else raw_float * SCALE_MULTIPLIERS.get(scale, 1)
+            )
+    return None
+
+
+def _recover_appendix5b_metrics_from_source_text_pages(
+    pages: Sequence[tuple[int, list[str]]],
+    scale: str,
+) -> dict[str, tuple[float, str, int]]:
+    recovered: dict[str, tuple[float, str, int]] = {}
+    for page, lines in pages:
+        if not _appendix5b_source_text_page_is_candidate(lines):
+            continue
+        for index, line in enumerate(lines):
+            for section, metric_name in _APPENDIX5B_SECTION_TOTALS.items():
+                if section not in _APPENDIX5B_SOURCE_TEXT_LABELS:
+                    continue
+                if metric_name in recovered:
+                    continue
+                if not re.match(rf"^\s*{re.escape(section)}\b", line):
+                    continue
+                value = _appendix5b_source_text_value_after_section(
+                    lines,
+                    index,
+                    section,
+                    scale,
+                )
+                if value is None:
+                    continue
+                recovered[metric_name] = (
+                    value,
+                    _APPENDIX5B_SOURCE_TEXT_LABELS[section],
+                    page,
+                )
+    return recovered
+
+
+def _apply_appendix5b_source_text_payload(
+    payload: dict[str, Any],
+    source_path: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    scale_for_text = str(scale or "unknown")
+    if scale_for_text == "unknown":
+        return
+
+    recovered = _recover_appendix5b_metrics_from_source_text_pages(
+        _read_pdf_pages_for_statement_text(source_path),
+        scale_for_text,
+    )
+    if not recovered:
+        return
+
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+
+    for metric_name, (value, row_ref, page) in recovered.items():
+        current_row_ref = row_refs.get(metric_name)
+        if (
+            metrics.get(metric_name) is not None
+            and metric_name != "cash_end"
+            and current_row_ref
+        ):
+            continue
+        if (
+            metric_name == "cash_end"
+            and metrics.get(metric_name) is not None
+            and not _cashflow_cash_end_row_is_weak(current_row_ref)
+        ):
+            continue
+
+        metrics[metric_name] = value
+        payload[metric_name] = value
+        row_refs[metric_name] = row_ref
+        provenance[metric_name] = f"cashflow_statement:page_{page}:{row_ref}"
+        metric_source_scales[metric_name] = scale_for_text
+        metric_scale_sources[metric_name] = "source_text"
+        field_provenance[metric_name] = _build_field_provenance_entry(
+            metric_name=metric_name,
+            source="cashflow_statement",
+            page=page,
+            row_ref=row_ref,
+            scale=scale_for_text,
+            scale_source="source_text",
+            pass1_result=pass1_result,
+        )
+
+    appendix5b_core_metrics = (
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "cash_end",
+    )
+    if all(metrics.get(metric_name) is not None for metric_name in appendix5b_core_metrics):
+        payload["confidence_metrics"] = max(
+            _coerce_confidence(payload.get("confidence_metrics", 0.0)),
+            0.85,
+        )
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
 
 
 def _cashflow_metric_for_statement_text_label(label: str) -> str | None:
@@ -5816,9 +6328,18 @@ def _apply_preferred_statement_text_source_payload(
     )
     scale_for_text = str(scale or "unknown")
 
+    def _existing_statement_text_metric_is_rejected(metric_name: str) -> bool:
+        if metric_name != "ebit":
+            return False
+        compact = _normalize_filter_text(
+            _combined_source_text(row_refs.get(metric_name), provenance.get(metric_name))
+        )
+        return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
+
     for page, lines in _statement_text_pages(
         sections,
         (
+            "consolidatedincomestatement",
             "consolidatedstatementofcomprehensiveincome",
             "consolidatedstatementofprofitorloss",
         ),
@@ -5833,7 +6354,12 @@ def _apply_preferred_statement_text_source_payload(
             existing_is_appendix_wrapper = _source_text_is_appendix_wrapper(
                 row_refs.get(metric_name)
             ) or _source_text_is_appendix_wrapper(provenance.get(metric_name))
-            if metrics.get(metric_name) is not None and not existing_is_appendix_wrapper:
+            existing_is_rejected = _existing_statement_text_metric_is_rejected(
+                metric_name
+            )
+            if metrics.get(metric_name) is not None and not (
+                existing_is_appendix_wrapper or existing_is_rejected
+            ):
                 continue
             metrics[metric_name] = value
             payload[metric_name] = value
@@ -7297,6 +7823,18 @@ def run_multipass_extraction(
     _apply_preferred_statement_text_source_payload(
         payload,
         structured_doc.sections,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
+    )
+    _apply_rejected_ebit_from_pdf_statement_text(
+        payload,
+        pdf_path,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
+    )
+    _apply_appendix5b_source_text_payload(
+        payload,
+        pdf_path,
         scale=payload.get("scale") or pass1.get("scale", "unknown"),
         pass1_result=pass1,
     )
