@@ -28,6 +28,7 @@ vi.mock('@/lib/api-client', () => ({
   sendChatMessage: vi.fn(),
   startActionJob: vi.fn(),
   streamChat: vi.fn(),
+  withApiKey: vi.fn(() => ({ 'X-API-Key': 'test-key' })),
   submitResponseFeedback: vi.fn(async () => ({
     ok: true,
     feedback_id: 'fb-1',

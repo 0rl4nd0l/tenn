@@ -1,0 +1,91 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/chat/chat-screen.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/code_review_withapikey_test_mocks_v1_20260628.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/code_review_withapikey_test_mocks_v1_20260628.md",
+        "cockpit-ui/components/cockpit/chat/chat-screen.test.tsx",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/README.md",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/VALIDATION.md",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/REVIEW.md",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/PR_BODY.md",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/status.json",
+        "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "code_review_withapikey_test_mocks_v1_20260628",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Code-review follow-up: component tests that mock @/lib/api-client must export withApiKey after Cockpit components import the helper for guarded config reads.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "task_tier": "small",
+      "timeout_seconds": 1800,
+      "title": "Restore component-test API client mocks after withApiKey import",
+      "why_this_model": "The fix is a two-test-file mock update plus focused validation.",
+      "worker_decision_limit": "no worker; main orchestrator only",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}
