@@ -1,0 +1,23 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "view",
+    "206",
+    "--json",
+    "number,title,state,headRefName,baseRefName,updatedAt,url,mergeCommit"
+  ],
+  "json": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "headRefName": "audit/issue98-current-branch-status-v1-20260602",
+    "mergeCommit": null,
+    "number": 206,
+    "state": "OPEN",
+    "title": "[Financial Truth] Close metric contract alignment",
+    "updatedAt": "2026-06-01T17:17:08Z",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/206"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"baseRefName\":\"migration/clean-runtime-baseline-reconstruct-v1\",\"headRefName\":\"audit/issue98-current-branch-status-v1-20260602\",\"mergeCommit\":null,\"number\":206,\"state\":\"OPEN\",\"title\":\"[Financial Truth] Close metric contract alignment\",\"updatedAt\":\"2026-06-01T17:17:08Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/pull/206\"}\n"
+}

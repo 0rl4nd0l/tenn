@@ -3812,20 +3812,27 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
     Returns (None, "") if no match found.
     """
     # Filter to sections likely to mention share capital
+    indexed_sections = [
+        (index, s) for index, s in enumerate(sections) if s.get("text")
+    ]
     candidates = [
-        s for s in sections if s.get("text") and _SHARE_NOTE_RE.search(s["text"])
+        (index, s)
+        for index, s in indexed_sections
+        if _SHARE_NOTE_RE.search(s["text"])
     ]
     # Also scan all sections if no note-specific candidates found
     if not candidates:
-        candidates = [s for s in sections if s.get("text")]
+        candidates = indexed_sections
 
     candidate_texts: list[tuple[Any, str]] = []
-    for index, section in enumerate(candidates):
+    for source_index, section in candidates:
         text = section["text"]
         page = section.get("page", "?")
         candidate_texts.append((page, text))
         window_parts = [text]
-        for follower in candidates[index + 1 : index + 3]:
+        for _follower_index, follower in indexed_sections[
+            source_index + 1 : source_index + 3
+        ]:
             if follower.get("page") != page:
                 break
             window_parts.append(follower.get("text") or "")
@@ -5959,6 +5966,60 @@ def _payload_ebit_source_is_rejected(payload: dict[str, Any]) -> bool:
     return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
 
 
+_REVENUE_NARRATIVE_REJECT_MARKERS = (
+    "futuresalesrevenue",
+    "materialdeclineinfuturesalesrevenue",
+    "managementexpects",
+    "scheduledtoexpire",
+)
+
+
+def _payload_revenue_source_is_rejected(payload: dict[str, Any]) -> bool:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    if metrics.get("revenue") is None:
+        return False
+    compact = _normalize_filter_text(_payload_metric_source_text(payload, "revenue"))
+    return "revenue" in compact and any(
+        marker in compact for marker in _REVENUE_NARRATIVE_REJECT_MARKERS
+    )
+
+
+def _clear_payload_metric(payload: dict[str, Any], metric_name: str) -> None:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+    metrics[metric_name] = None
+    payload[metric_name] = None
+    row_refs.pop(metric_name, None)
+    provenance.pop(metric_name, None)
+    field_provenance.pop(metric_name, None)
+    metric_source_scales.pop(metric_name, None)
+    metric_scale_sources.pop(metric_name, None)
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
+
+
 def _read_pdf_pages_for_statement_text(source_path: Any) -> list[tuple[int, list[str]]]:
     path = Path(str(source_path or ""))
     if not path.is_file() or path.suffix.lower() != ".pdf":
@@ -6329,12 +6390,18 @@ def _apply_preferred_statement_text_source_payload(
     scale_for_text = str(scale or "unknown")
 
     def _existing_statement_text_metric_is_rejected(metric_name: str) -> bool:
-        if metric_name != "ebit":
-            return False
-        compact = _normalize_filter_text(
-            _combined_source_text(row_refs.get(metric_name), provenance.get(metric_name))
-        )
-        return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
+        if metric_name == "ebit":
+            compact = _normalize_filter_text(
+                _combined_source_text(
+                    row_refs.get(metric_name), provenance.get(metric_name)
+                )
+            )
+            return any(
+                blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS
+            )
+        if metric_name == "revenue":
+            return _payload_revenue_source_is_rejected(payload)
+        return False
 
     for page, lines in _statement_text_pages(
         sections,
@@ -6378,6 +6445,9 @@ def _apply_preferred_statement_text_source_payload(
                 pass1_result=pass1_result,
             )
         break
+
+    if _payload_revenue_source_is_rejected(payload):
+        _clear_payload_metric(payload, "revenue")
 
     for page, lines in _statement_text_pages(
         sections,

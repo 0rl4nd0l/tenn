@@ -1,0 +1,27 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "list",
+    "--state",
+    "all",
+    "--search",
+    "approved-15 extracted payload scorecard issue 97",
+    "--json",
+    "number,title,state,headRefName,baseRefName,updatedAt,url"
+  ],
+  "json": [
+    {
+      "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+      "headRefName": "safe/extraction-approved-15-fixture-replay-scorecard-v1-20260623",
+      "number": 405,
+      "state": "MERGED",
+      "title": "[codex] Harden statement-page scale fallback",
+      "updatedAt": "2026-06-24T01:40:58Z",
+      "url": "https://github.com/0rl4nd0l/tenn/pull/405"
+    }
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "[{\"baseRefName\":\"migration/clean-runtime-baseline-reconstruct-v1\",\"headRefName\":\"safe/extraction-approved-15-fixture-replay-scorecard-v1-20260623\",\"number\":405,\"state\":\"MERGED\",\"title\":\"[codex] Harden statement-page scale fallback\",\"updatedAt\":\"2026-06-24T01:40:58Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/pull/405\"}]\n"
+}

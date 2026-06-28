@@ -1,0 +1,43 @@
+{
+  "accepted_case_ids": [
+    "AZJ_H_2025-12-31",
+    "BHP_A_2021-06-30",
+    "EQR_Q_2025-12-31",
+    "FMG_H_2025-12-31",
+    "GRE_Q_2024-12-31",
+    "MIN_H_2025-12-31",
+    "RMS_H_2025-12-31",
+    "SEG_H_2025-12-31",
+    "TCL_H_2025-12-31",
+    "TLS_H_2025-12-31",
+    "WOW_H_2026-01-04"
+  ],
+  "accepted_payload_count": 11,
+  "artifact_type": "approved_15_after_seg_full_replay_validation_v1",
+  "case_count": 15,
+  "elapsed_s": 1803.19,
+  "fail_closed_case_ids": [
+    "ANZ_H_2025-03-31",
+    "CSL_H_2025-12-31",
+    "DXS_H_2025-12-31",
+    "QBE_H_2025-06-30"
+  ],
+  "fail_closed_payload_count": 4,
+  "failed_case_ids": [],
+  "failed_payload_count": 0,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782629440, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782629440, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "policy": "accepted ok/ok_low_confidence payloads feed the #97 scorecard; validation-gate failures are fail-closed no-actual-payload cases",
+  "side_effect_pass": true,
+  "status": "PARTIAL"
+}

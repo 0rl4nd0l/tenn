@@ -1,0 +1,11 @@
+{
+  "artifact_type": "intended_task_ledger_entry_v1",
+  "branch": "safe/extraction-broad-approved15-current-canonical-v1-20260628",
+  "head": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d",
+  "job_id": "extraction_broad_approved15_current_canonical_v1_20260628",
+  "live_ledger_mutated": false,
+  "reason_live_ledger_not_mutated": "No explicit approval for live ledger write; report-local intended entry only.",
+  "report": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/handoff/HANDOFF.md",
+  "status": "PARTIAL",
+  "summary": "Full post-SEG approved-15 no-write replay produced 11 accepted and 4 fail-closed payloads; one narrow CSL revenue narrative false-positive fix was implemented and focused-replayed; scorecard gate remains blocked with 97 blocking rows."
+}

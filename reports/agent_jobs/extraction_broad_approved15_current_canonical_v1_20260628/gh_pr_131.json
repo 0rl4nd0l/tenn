@@ -1,0 +1,23 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "view",
+    "131",
+    "--json",
+    "number,title,state,headRefName,baseRefName,updatedAt,url,mergeCommit"
+  ],
+  "json": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "headRefName": "integrate/extraction-metric-ontology-gate-v1-20260531",
+    "mergeCommit": null,
+    "number": 131,
+    "state": "OPEN",
+    "title": "[codex] prepare integration-ready metric gate branch",
+    "updatedAt": "2026-05-31T07:14:58Z",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/131"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"baseRefName\":\"migration/clean-runtime-baseline-reconstruct-v1\",\"headRefName\":\"integrate/extraction-metric-ontology-gate-v1-20260531\",\"mergeCommit\":null,\"number\":131,\"state\":\"OPEN\",\"title\":\"[codex] prepare integration-ready metric gate branch\",\"updatedAt\":\"2026-05-31T07:14:58Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/pull/131\"}\n"
+}

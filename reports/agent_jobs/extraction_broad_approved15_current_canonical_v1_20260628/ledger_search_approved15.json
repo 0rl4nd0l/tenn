@@ -1,0 +1,96 @@
+{
+  "command": [
+    "python3",
+    "scripts/agent_task_ledger.py",
+    "--repo-root",
+    ".",
+    "search",
+    "--text",
+    "approved-15"
+  ],
+  "json": {
+    "data_missing": [],
+    "duplicate_work_classification": "MERGED_USE_CANONICAL",
+    "issues": [],
+    "matches": [
+      {
+        "entry": {
+          "artifacts": [
+            "https://github.com/0rl4nd0l/tenn/pull/412",
+            "dddc6f9bcc812b09d585b4590da21f4ecbd6b4ac",
+            "e7518b22ff749d05e95f99c175ee036c8f2d1b43"
+          ],
+          "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+          "branch": "control-plane/skill-surface-freshness-semantics-v1-20260626",
+          "codex_goal_id": "529b8126-69bb-4ba0-af67-1f6ea2cdc760",
+          "evidence_grade": "VERIFIED",
+          "files_touched": [
+            "docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md",
+            "docs/dev_flow/SKILLS_SURFACE.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/README.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/STATE.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/DECISIONS.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/VALIDATION.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/PR_REVIEW.md",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/diff-check.json",
+            "reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/ledger_entry_claimed.json"
+          ],
+          "issue_refs": [],
+          "next_action": "return to extraction work from fresh current canonical; do not continue from stale safe/extraction-approved-15-fixture-replay-scorecard-v1-20260623",
+          "owner": "Codex",
+          "owner_boundary": false,
+          "parent_task_id": "skill_surface_freshness_pr409_v1_20260625",
+          "pr_refs": [
+            412
+          ],
+          "session_id": "DATA_MISSING",
+          "source_session_ref": "codex:thread:019efd4e-8a7a-7261-a8d8-9e0745d0a223",
+          "started_at": "2026-06-26T05:30:36Z",
+          "status": "merged",
+          "summary": "PR #412 was marked ready and merged after code-reviewer pass, green GitHub checks, and ancestry verification.",
+          "superseded_by": [],
+          "supersedes": [],
+          "task_id": "skill_surface_freshness_semantics_v1_20260626",
+          "thread_id": "019efd4e-8a7a-7261-a8d8-9e0745d0a223",
+          "updated_at": "2026-06-26T05:54:01Z",
+          "validation": {
+            "commands": [
+              "code-reviewer review of PR #412 diff: no critical findings, warnings, or suggestions",
+              "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626 --topic PR 412 merge readiness --json",
+              "gh pr checks 412",
+              "gh pr ready 412",
+              "gh pr merge 412 --merge --subject Merge PR #412: Define skill surface freshness semantics --body <empty>",
+              "gh pr view 412 --json number,url,state,mergedAt,mergedBy,mergeCommit,headRefName,baseRefName,title",
+              "git fetch origin migration/clean-runtime-baseline-reconstruct-v1",
+              "git merge-base --is-ancestor dddc6f9bcc812b09d585b4590da21f4ecbd6b4ac origin/migration/clean-runtime-baseline-reconstruct-v1"
+            ],
+            "status": "passed"
+          },
+          "workflow": "github:merge",
+          "worktree": "/home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626"
+        },
+        "line": 32,
+        "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl",
+        "source": "live"
+      }
+    ],
+    "ok": true,
+    "sources_checked": [
+      {
+        "entry_count": 268,
+        "exists": true,
+        "kind": "live",
+        "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+      },
+      {
+        "entry_count": 2,
+        "exists": true,
+        "kind": "committed",
+        "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_registry/task_ledger/LEDGER.jsonl"
+      }
+    ]
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\n  \"data_missing\": [],\n  \"duplicate_work_classification\": \"MERGED_USE_CANONICAL\",\n  \"issues\": [],\n  \"matches\": [\n    {\n      \"entry\": {\n        \"artifacts\": [\n          \"https://github.com/0rl4nd0l/tenn/pull/412\",\n          \"dddc6f9bcc812b09d585b4590da21f4ecbd6b4ac\",\n          \"e7518b22ff749d05e95f99c175ee036c8f2d1b43\"\n        ],\n        \"base\": \"origin/migration/clean-runtime-baseline-reconstruct-v1\",\n        \"branch\": \"control-plane/skill-surface-freshness-semantics-v1-20260626\",\n        \"codex_goal_id\": \"529b8126-69bb-4ba0-af67-1f6ea2cdc760\",\n        \"evidence_grade\": \"VERIFIED\",\n        \"files_touched\": [\n          \"docs/agent_tasks/skill_surface_freshness_semantics_v1_20260626.md\",\n          \"docs/dev_flow/SKILLS_SURFACE.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/README.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/STATE.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/DECISIONS.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/VALIDATION.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/PR_REVIEW.md\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/diff-check.json\",\n          \"reports/agent_jobs/skill_surface_freshness_semantics_v1_20260626/ledger_entry_claimed.json\"\n        ],\n        \"issue_refs\": [],\n        \"next_action\": \"return to extraction work from fresh current canonical; do not continue from stale safe/extraction-approved-15-fixture-replay-scorecard-v1-20260623\",\n        \"owner\": \"Codex\",\n        \"owner_boundary\": false,\n        \"parent_task_id\": \"skill_surface_freshness_pr409_v1_20260625\",\n        \"pr_refs\": [\n          412\n        ],\n        \"session_id\": \"DATA_MISSING\",\n        \"source_session_ref\": \"codex:thread:019efd4e-8a7a-7261-a8d8-9e0745d0a223\",\n        \"started_at\": \"2026-06-26T05:30:36Z\",\n        \"status\": \"merged\",\n        \"summary\": \"PR #412 was marked ready and merged after code-reviewer pass, green GitHub checks, and ancestry verification.\",\n        \"superseded_by\": [],\n        \"supersedes\": [],\n        \"task_id\": \"skill_surface_freshness_semantics_v1_20260626\",\n        \"thread_id\": \"019efd4e-8a7a-7261-a8d8-9e0745d0a223\",\n        \"updated_at\": \"2026-06-26T05:54:01Z\",\n        \"validation\": {\n          \"commands\": [\n            \"code-reviewer review of PR #412 diff: no critical findings, warnings, or suggestions\",\n            \"python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626 --topic PR 412 merge readiness --json\",\n            \"gh pr checks 412\",\n            \"gh pr ready 412\",\n            \"gh pr merge 412 --merge --subject Merge PR #412: Define skill surface freshness semantics --body <empty>\",\n            \"gh pr view 412 --json number,url,state,mergedAt,mergedBy,mergeCommit,headRefName,baseRefName,title\",\n            \"git fetch origin migration/clean-runtime-baseline-reconstruct-v1\",\n            \"git merge-base --is-ancestor dddc6f9bcc812b09d585b4590da21f4ecbd6b4ac origin/migration/clean-runtime-baseline-reconstruct-v1\"\n          ],\n          \"status\": \"passed\"\n        },\n        \"workflow\": \"github:merge\",\n        \"worktree\": \"/home/l4nd0/tenn-skill-surface-freshness-semantics-v1-20260626\"\n      },\n      \"line\": 32,\n      \"path\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl\",\n      \"source\": \"live\"\n    }\n  ],\n  \"ok\": true,\n  \"sources_checked\": [\n    {\n      \"entry_count\": 268,\n      \"exists\": true,\n      \"kind\": \"live\",\n      \"path\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl\"\n    },\n    {\n      \"entry_count\": 2,\n      \"exists\": true,\n      \"kind\": \"committed\",\n      \"path\": \"/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_registry/task_ledger/LEDGER.jsonl\"\n    }\n  ]\n}\n"
+}
