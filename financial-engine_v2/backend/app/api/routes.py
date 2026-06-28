@@ -2,10 +2,11 @@ import base64
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_api_key
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.db import SessionLocal, get_db
@@ -62,16 +63,6 @@ class BookIngestRequest(BaseModel):
 class ProcessDocumentRequest(BaseModel):
     method: str = "auto"
     strict_method: bool = False
-
-
-def require_api_key(
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
-) -> None:
-    configured_key = str(getattr(settings, "local_api_key", "") or "").strip()
-    if not configured_key:
-        return
-    if x_api_key != configured_key:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 def _market_data_mode() -> str:
