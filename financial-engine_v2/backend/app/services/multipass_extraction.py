@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from dateutil import parser as dtparser
 
