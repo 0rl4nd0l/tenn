@@ -2845,6 +2845,125 @@ def test_validate_gate_blocks_extreme_metric_revenue_ratio_for_accepted_output()
     assert "metric_revenue_ratio_high" in error
 
 
+def test_validate_gate_allows_source_bound_reit_net_debt_revenue_ratio():
+    """DXS-style source-bound REIT/stapled net debt may exceed revenue."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["period_end"] = "2025-12-31"
+    payload["metrics"].update(
+        {
+            "revenue": 360_000_000,
+            "ebit": 347_600_000,
+            "np_attributable": 348_500_000,
+            "operating_cf": 168_500_000,
+            "cash_end": 74_700_000,
+            "net_debt": 4_516_700_000,
+            "shares_outstanding": 1_075_565_246,
+        }
+    )
+    payload["metric_source_scales"] = {
+        metric_name: "millions"
+        for metric_name, value in payload["metrics"].items()
+        if metric_name != "shares_outstanding" and value is not None
+    }
+    payload["row_refs"] = {
+        "revenue": "Revenue from ordinary activities",
+        "np_attributable": (
+            "Statutory net profit/(loss) attributable to security holders after tax"
+        ),
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "net_debt": "total_debt(4591400000)-cash_end(74700000)",
+        "shares_outstanding": "Securities on issue",
+    }
+    payload["provenance"] = {
+        "revenue": "income_statement:page_1:Revenue from ordinary activities",
+        "net_debt": "derived:balance_sheet:total_debt(4591400000)-cash_end(74700000)",
+        "shares_outstanding": "balance_sheet:page_1:Securities on issue",
+    }
+    payload["field_provenance"] = {
+        "net_debt": {
+            "metric": "net_debt",
+            "source": "derived:balance_sheet",
+            "row_ref": "total_debt(4591400000)-cash_end(74700000)",
+            "scale": "millions",
+            "scale_source": "table",
+        }
+    }
+    payload["source_bound"] = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "scale": "millions",
+        "currency": "AUD",
+        "document_title": "Appendix 4D and HY26 financial statements",
+    }
+    payload["source_period_end_evidence"] = {
+        "hits": [
+            {
+                "context": (
+                    "Dexus ARSN 648 526 470 Financial reporting for the half year "
+                    "ended 31 December 2025"
+                ),
+                "evidence": "for the half year ended 31 December 2025",
+                "source": "source_text",
+            }
+        ],
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+
+def test_validate_gate_still_blocks_non_reit_net_debt_revenue_ratio():
+    """The net-debt exception must not become a generic balance-sheet bypass."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["metrics"].update(
+        {
+            "revenue": 360_000_000,
+            "net_debt": 4_516_700_000,
+        }
+    )
+    payload["metric_source_scales"] = {
+        metric_name: "millions"
+        for metric_name, value in payload["metrics"].items()
+        if metric_name != "shares_outstanding" and value is not None
+    }
+    payload["row_refs"] = {
+        "revenue": "Revenue",
+        "np_attributable": "Profit attributable to security holders",
+        "net_debt": "total_debt(4591400000)-cash_end(74700000)",
+        "shares_outstanding": "Securities on issue",
+    }
+    payload["provenance"] = {
+        "revenue": "income_statement:page_1:Revenue",
+        "np_attributable": (
+            "income_statement:page_1:Profit attributable to security holders"
+        ),
+        "net_debt": "derived:balance_sheet:total_debt(4591400000)-cash_end(74700000)",
+        "shares_outstanding": "share_capital:page_1:Securities on issue",
+    }
+    payload["field_provenance"] = {
+        "net_debt": {
+            "metric": "net_debt",
+            "source": "derived:balance_sheet",
+            "row_ref": "total_debt(4591400000)-cash_end(74700000)",
+            "scale": "millions",
+            "scale_source": "table",
+        }
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error is not None
+    assert error.startswith("validation_gate:accepted_output_scale_magnitude_risk:")
+    assert "metric_revenue_ratio_high" in error
+
+
 def test_validate_gate_does_not_count_wrapper_disclosures_as_canonical_metrics():
     """NTA/dividend/record-date disclosures must not satisfy canonical minimums."""
     from app.services.multipass_extraction import _validate_gate
@@ -3505,6 +3624,72 @@ def test_cashflow_capex_prefers_ppe_row_over_acquisition_outflow():
     assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
 
 
+def test_cashflow_capex_prefers_ppe_row_over_multirow_investing_aggregate():
+    """DXS capex should not sum every investing-payment row when PP&E is present."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=20,
+        caption="Consolidated statement of cash flows",
+        headers=["", "31 Dec 2025 $m", "31 Dec 2024 $m"],
+        rows=[
+            ["Cash flows from investing activities", "", ""],
+            ["Payments for capital expenditure on investment properties", "(15.5)", "(21.4)"],
+            ["Payments for investments accounted for using the equity method", "(150.2)", "(35.0)"],
+            ["Payments for investments accounted for at fair value", "(198.2)", "(14.1)"],
+            ["Payments for property, plant and equipment", "(27.2)", "(9.3)"],
+            ["Payments for intangibles", "(95.9)", "(7.1)"],
+            ["Payment for acquisition of subsidiary, net of cash acquired", "(121.7)", "-"],
+            ["Net cash inflow/(outflow) from investing activities", "83.9", "(112.0)"],
+        ],
+    )
+
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "83.9",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(608.7)",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "investing_cf": "Net cash inflow/(outflow) from investing activities",
+            "capex": (
+                "Payments for capital expenditure on investment properties, "
+                "Payments for investments accounted for using the equity method, "
+                "Payments for investments accounted for at fair value, "
+                "Payments for property, plant and equipment, "
+                "Payments for intangibles, "
+                "Payment for acquisition of subsidiary, net of cash acquired"
+            ),
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["investing_cf"] == 83_900_000
+    assert result["capex"] == -27_200_000
+    assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
+
+
 def test_cashflow_cash_end_prefers_cash_equivalents_over_cash_and_gold():
     """RMS cash_end should bind to cash equivalents, not the broader cash-and-gold row."""
     from unittest.mock import patch
@@ -3836,6 +4021,66 @@ def test_cashflow_capex_recovers_small_millions_ppe_row():
         result["row_refs"]["capex"]
         == "Payments for purchase of property, plant and equipment"
     )
+
+
+def test_cashflow_row_ref_over_scaled_millions_values_recover_from_source_rows():
+    """DXS-style $m cash-flow rows must beat 1000x over-scaled LLM outputs."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=20,
+        caption="Consolidated Statement of Cash Flows",
+        headers=["", "31 Dec 2025 $m", "31 Dec 2024 $m"],
+        rows=[
+            ["Cash flows from operating activities", "", ""],
+            ["Net cash inflow/(outflow) from operating activities", "168.5", "264.1"],
+            ["Cash flows from investing activities", "", ""],
+            ["Net cash inflow/(outflow) from investing activities", "83.9", "123.6"],
+            ["Cash flows from financing activities", "", ""],
+            ["Net cash inflow/(outflow) from financing activities", "(243.0)", "(386.2)"],
+            ["Cash and cash equivalents at the end of the period", "74.7", "55.5"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": "168,500",
+        "investing_cf": "83,900",
+        "financing_cf": "(243,000)",
+        "cash_end": "74,700",
+        "capex": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "operating_cf": "Net cash inflow/(outflow) from operating activities",
+            "investing_cf": "Net cash inflow/(outflow) from investing activities",
+            "financing_cf": "Net cash inflow/(outflow) from financing activities",
+            "cash_end": "Cash and cash equivalents at the end of the period",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["operating_cf"] == 168_500_000
+    assert result["investing_cf"] == 83_900_000
+    assert result["financing_cf"] == -243_000_000
+    assert result["cash_end"] == 74_700_000
 
 
 def test_cashflow_capex_recovers_grouped_multiline_ppe_row():
@@ -4385,6 +4630,58 @@ def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
     assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
+def test_income_source_overlay_replaces_ebitda_with_profit_before_tax_row():
+    """FMG-style EBITDA should yield to formal profit-before-tax evidence."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated Income Statement",
+        headers=["", "H1 FY26 US$m", "H1 FY25 US$m"],
+        rows=[
+            ["Underlying EBITDA", "4,486", "3,641"],
+            ["Depreciation and amortisation", "(1,450)", "(1,216)"],
+            ["Exploration, development and other expenses", "(131)", "(40)"],
+            ["Profit before tax", "2,808", "2,288"],
+            ["Income tax expense", "(898)", "(741)"],
+            ["Net profit after tax", "1,910", "1,547"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 8_439_000_000,
+            "ebit": 4_486_000_000,
+            "np_attributable": 1_914_000_000,
+        },
+        "ebit": 4_486_000_000,
+        "row_refs": {"ebit": "Underlying EBITDA"},
+        "provenance": {"ebit": "income_statement:page_14:Underlying EBITDA"},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["ebit"] == 2_808_000_000
+    assert payload["ebit"] == 2_808_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before tax"
+    assert payload["provenance"]["ebit"] == "income_statement:page_21:Profit before tax"
+
+
 def test_income_source_overlay_prefers_full_statement_over_appendix_wrapper():
     """SEG-style full financial statements outrank Appendix 4D wrapper rows."""
     from app.services.docling_extract import DoclingTable
@@ -4578,6 +4875,224 @@ def test_statement_text_overlay_recovers_fragmented_full_statements_over_wrapper
     assert payload["metrics"]["cash_end"] == 26_716_000
     assert payload["provenance"]["np_attributable"].startswith("income_statement:")
     assert payload["provenance"]["operating_cf"].startswith("cashflow_statement:")
+
+
+def test_statement_text_overlay_replaces_ebitda_with_income_statement_profit_before_tax():
+    """FMG-style source text should use profit before tax instead of EBITDA."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 8_439_000_000,
+            "ebit": 4_486_000_000,
+            "np_attributable": 1_914_000_000,
+        },
+        "ebit": 4_486_000_000,
+        "row_refs": {"ebit": "Underlying EBITDA"},
+        "provenance": {"ebit": "income_statement:page_14:Underlying EBITDA"},
+    }
+    sections = [
+        {"page": 21, "text": "CONSOLIDATED INCOME STATEMENT"},
+        {"page": 21, "text": "For the half year ended 31 December 2025"},
+        {"page": 21, "text": "31 December"},
+        {"page": 21, "text": "2025"},
+        {"page": 21, "text": "US$m"},
+        {"page": 21, "text": "Operating sales revenue"},
+        {"page": 21, "text": "3"},
+        {"page": 21, "text": "8,439"},
+        {"page": 21, "text": "7,638"},
+        {"page": 21, "text": "Operating profit"},
+        {"page": 21, "text": "2,908"},
+        {"page": 21, "text": "2,398"},
+        {"page": 21, "text": "Profit before tax"},
+        {"page": 21, "text": "2,808"},
+        {"page": 21, "text": "2,288"},
+        {"page": 21, "text": "Income tax expense"},
+        {"page": 21, "text": "(898)"},
+        {"page": 21, "text": "(741)"},
+        {"page": 21, "text": "Net profit after tax"},
+        {"page": 21, "text": "1,910"},
+        {"page": 21, "text": "1,547"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["ebit"] == 2_808_000_000
+    assert payload["ebit"] == 2_808_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before tax"
+    assert payload["provenance"]["ebit"] == "income_statement:page_21:Profit before tax"
+
+
+def test_pdf_text_fallback_replaces_rejected_ebitda_with_profit_before_tax(
+    monkeypatch, tmp_path
+):
+    """Formal source-PDF text can correct an EBITDA-sourced EBIT gate blocker."""
+    import subprocess
+
+    from app.services.multipass_extraction import (
+        _apply_rejected_ebit_from_pdf_statement_text,
+    )
+
+    source_pdf = tmp_path / "fmg.pdf"
+    source_pdf.write_bytes(b"%PDF-1.4\n")
+
+    class Completed:
+        returncode = 0
+        stdout = "\f".join(
+            [
+                "Cover page",
+                "\n".join(
+                    [
+                        "CONSOLIDATED INCOME STATEMENT",
+                        "For the half year ended 31 December 2025",
+                        "31 December 2025",
+                        "US$m",
+                        "Operating profit 2,908 2,398",
+                        "Profit before tax 2,808 2,288",
+                    ]
+                ),
+            ]
+        )
+
+    def fake_run(*args, **kwargs):
+        return Completed()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"ebit": 4_486_000_000},
+        "ebit": 4_486_000_000,
+        "row_refs": {"ebit": "Underlying EBITDA"},
+        "provenance": {"ebit": "income_statement:page_14:Underlying EBITDA"},
+    }
+
+    _apply_rejected_ebit_from_pdf_statement_text(
+        payload,
+        source_pdf,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["ebit"] == 2_808_000_000
+    assert payload["ebit"] == 2_808_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before tax"
+    assert payload["provenance"]["ebit"] == "income_statement:page_2:Profit before tax"
+
+
+def test_appendix5b_source_text_recovers_core_cashflow_totals_and_confidence(
+    monkeypatch, tmp_path
+):
+    """GRE-style Appendix 5B source text can recover section totals deterministically."""
+    import subprocess
+
+    from app.services.multipass_extraction import _apply_appendix5b_source_text_payload
+
+    source_pdf = tmp_path / "gre.pdf"
+    source_pdf.write_bytes(b"%PDF-1.4\n")
+
+    class Completed:
+        returncode = 0
+        stdout = "\f".join(
+            [
+                "\n".join(
+                    [
+                        "Appendix 5B",
+                        "Mining exploration entity or oil and gas exploration entity quarterly cash flow report",
+                        "Consolidated statement of cash flows Current quarter Year to date",
+                        "$A'000 $A'000",
+                        "1.9 Net cash from / (used in) operating",
+                        "(450) (796)",
+                        "activities",
+                    ]
+                ),
+                "\n".join(
+                    [
+                        "Appendix 5B",
+                        "Mining exploration entity or oil and gas exploration entity quarterly cash flow report",
+                        "Consolidated statement of cash flows Current quarter Year to date",
+                        "$A'000 $A'000",
+                        "2.6 Net cash from / (used in) investing (624) (1,193)",
+                        "activities",
+                        "3.10 Net cash from / (used in) financing 869 869",
+                        "activities",
+                    ]
+                ),
+                "\n".join(
+                    [
+                        "Appendix 5B",
+                        "Mining exploration entity or oil and gas exploration entity quarterly cash flow report",
+                        "Consolidated statement of cash flows Current quarter Year to date",
+                        "$A'000 $A'000",
+                        "4.6 Cash and cash equivalents at end of",
+                        "702 702",
+                        "period",
+                    ]
+                ),
+            ]
+        )
+
+    def fake_run(*args, **kwargs):
+        return Completed()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    payload = {
+        "period_type": "Q",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "confidence_metrics": 0.2,
+        "metrics": {"operating_cf": -450_000},
+        "operating_cf": -450_000,
+        "row_refs": {"operating_cf": "Net cash from / (used in) operating activities"},
+        "provenance": {
+            "operating_cf": "cashflow_statement:page_11:Net cash from / (used in) operating activities"
+        },
+        "metric_source_scales": {"operating_cf": "thousands"},
+        "metric_scale_sources": {"operating_cf": "table"},
+    }
+
+    _apply_appendix5b_source_text_payload(
+        payload,
+        source_pdf,
+        scale="thousands",
+        pass1_result={
+            "report_type": "Q",
+            "period_end": "2024-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["operating_cf"] == -450_000
+    assert payload["metrics"]["investing_cf"] == -624_000
+    assert payload["metrics"]["financing_cf"] == 869_000
+    assert payload["metrics"]["cash_end"] == 702_000
+    assert payload["confidence_metrics"] == 0.85
+    assert payload["row_refs"]["cash_end"] == "Cash and cash equivalents at end of period"
+    assert payload["metric_scale_sources"]["cash_end"] == "source_text"
 
 
 def test_income_source_overlay_keeps_appendix_wrapper_when_no_full_statement_exists():
