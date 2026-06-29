@@ -1,10 +1,10 @@
 # State
 
-Generated: 2026-06-29T20:03:39+1000
+Generated: 2026-06-29T20:28:37+1000
 
 ## Result
 
-Status: `DRAFT_PR_OPEN`
+Status: `DRAFT_PR_OPEN_REFRESHED`
 
 The Tenn agent docs update is implemented in a fresh task worktree:
 
@@ -12,22 +12,33 @@ The Tenn agent docs update is implemented in a fresh task worktree:
   `/home/l4nd0/tenn-agent-docs-project-boundary-routing-v1-20260629`
 - Branch: `control-plane/agent-docs-project-boundary-routing-v1-20260629`
 - Base HEAD: `ca424a2835094de40c366a36d4bb0bf04cd8246a`
-- Refreshed canonical parent: `a299ce45e42f50c23321733082c7d5bbe8dfb88a`
-- Branch refresh merge commit: `ba261c9bbad02ade4486dd712c420606a940cb70`
-- Published head: `6f84950757305c6864d0018948563cf8a3a1ec97`
+- First refreshed canonical parent:
+  `a299ce45e42f50c23321733082c7d5bbe8dfb88a`
+- First branch refresh merge commit:
+  `ba261c9bbad02ade4486dd712c420606a940cb70`
+- Draft PR head checked during review:
+  `6c015da99f3d52f507cdc81f500a27803a095843`
+- Current canonical parent for this fix:
+  `105b174ba723b978d486e9eebaf10c6ee6bce242`
+- Current branch refresh merge commit:
+  `95677604e1660abc7de62120a3e51b084a8f7c5e`
+- Current PR head:
+  use `gh pr view 476 --json commits` or `git rev-parse HEAD` after push;
+  this report does not hard-code the hash of the commit that contains itself.
 - Draft PR: `https://github.com/0rl4nd0l/tenn/pull/476`
 - Scope: docs-only control-plane routing
 
 `AGENTS.md` now routes project ownership and external-sibling boundary
 questions to `docs/dev_flow/PROJECT_BOUNDARIES.md`.
 
-After owner approval, the branch was refreshed against current canonical with a
-normal merge commit. The PR-owned diff against
-`origin/migration/clean-runtime-baseline-reconstruct-v1` remains limited to the
-task-card allowed files.
+After owner approval, the branch was refreshed against current canonical with
+normal merge commits. The PR-owned diff against
+`origin/migration/clean-runtime-baseline-reconstruct-v1` remained limited to the
+task-card allowed files after each refresh.
 
-After owner approval, the branch was pushed and opened as draft PR #476. No
-merge was performed.
+After owner approval, the branch was pushed and opened as draft PR #476. Review
+then found stale report metadata and a newer canonical parent, so this closeout
+was refreshed. No merge was performed.
 
 ## Source Worktree Note
 
