@@ -23,6 +23,7 @@ jobs:
     env:
       SLOPPY_SCAN_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_provider || 'github-models' }}
       CODEX_MODEL: gpt-5.2-codex
+      GITHUB_MODELS_MODEL: openai/gpt-4o-mini
     steps:
       - uses: actions/checkout@v4
 
@@ -139,5 +140,14 @@ jobs:
           scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
           agent: codex
           model: ${{ env.CODEX_MODEL }}
+          github-models-model: ${{ env.GITHUB_MODELS_MODEL }}
+          output-file: /tmp/sloppy-scan-issues.json
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
+
+      - name: Upload Sloppy scan issues
+        uses: actions/upload-artifact@v4
+        with:
+          name: sloppy-scan-issues
+          path: /tmp/sloppy-scan-issues.json
+          if-no-files-found: error
