@@ -87,6 +87,12 @@ services:
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
       TENN_NEWS_ARTIFACT_ROOT: /reports/qual_context
+      TENN_GIT_HEAD: ${TENN_GIT_HEAD:-}
+      TENN_GIT_HEAD_SHORT: ${TENN_GIT_HEAD_SHORT:-}
+      TENN_GIT_BRANCH: ${TENN_GIT_BRANCH:-}
+      TENN_GIT_DIRTY: ${TENN_GIT_DIRTY:-}
+      TENN_GIT_STATUS_LINE_COUNT: ${TENN_GIT_STATUS_LINE_COUNT:-}
+      TENN_BUILD_TIME: ${TENN_BUILD_TIME:-}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
@@ -118,6 +124,12 @@ services:
       - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      TENN_GIT_HEAD: ${TENN_GIT_HEAD:-}
+      TENN_GIT_HEAD_SHORT: ${TENN_GIT_HEAD_SHORT:-}
+      TENN_GIT_BRANCH: ${TENN_GIT_BRANCH:-}
+      TENN_GIT_DIRTY: ${TENN_GIT_DIRTY:-}
+      TENN_GIT_STATUS_LINE_COUNT: ${TENN_GIT_STATUS_LINE_COUNT:-}
+      TENN_BUILD_TIME: ${TENN_BUILD_TIME:-}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1

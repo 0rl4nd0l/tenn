@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/worker_gpu_worker_git_provenance_env_parity_v1_20260531.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/worker_gpu_worker_git_provenance_env_parity_v1_20260531.md",
+    "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531",
+    "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531/README.md",
+    "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531/status.json",
+    "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531/validation.json",
+    "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531/diff-check.json",
+    "financial-engine_v2/docker-compose.yml"
+  ],
+  "branch": "safe/provenance-worker-git-env-parity-v1-20260531",
+  "claimed_at": "2026-05-31T12:40:07.169396Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-31T12:40:07.169396Z",
+  "job_id": "worker_gpu_worker_git_provenance_env_parity_v1_20260531",
+  "lane": "Provenance",
+  "last_seen_at": "2026-05-31T12:41:31.732987Z",
+  "output_dir": "reports/agent_jobs/worker_gpu_worker_git_provenance_env_parity_v1_20260531",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-31T12:41:31.732987Z",
+  "repo_root": "/home/l4nd0/tenn-provenance-worker-git-env-parity-v1-20260531",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1894219:worker_gpu_worker_git_provenance_env_parity_v1_20260531",
+  "started_at": "2026-05-31T12:40:07.169396Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/worker_gpu_worker_git_provenance_env_parity_v1_20260531.md",
+  "updated_at": "2026-05-31T12:41:31.732987Z",
+  "worktree": "/home/l4nd0/tenn-provenance-worker-git-env-parity-v1-20260531"
+}
