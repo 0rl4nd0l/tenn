@@ -4795,6 +4795,121 @@ def test_income_source_overlay_prefers_total_rows_in_full_statement():
     assert payload["row_refs"]["revenue"] == "Total revenue from ordinary activities"
 
 
+def test_income_source_overlay_rejects_financial_report_contents_page():
+    """QBE-style contents pages must not turn note page numbers into revenue."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    contents_page = DoclingTable(
+        page_number=17,
+        caption="",
+        headers=["", ""],
+        rows=[
+            ["Financial statements", ""],
+            ["Consolidated statement of comprehensive income", "14"],
+            ["Consolidated balance sheet", "15"],
+            ["Consolidated statement of changes in equity", "16"],
+            ["Consolidated statement of cash flows", "17"],
+            ["Notes to the financial statements", ""],
+            ["1. Overview", "18"],
+            ["2.1 Insurance revenue", "22"],
+        ],
+    )
+    formal_statement = DoclingTable(
+        page_number=18,
+        caption="Consolidated statement of comprehensive income",
+        headers=["", "NOTE", "30 JUNE 2025 US$M", "30 JUNE 2024 US$M"],
+        rows=[
+            ["Insurance revenue", "2.1", "10,875", "10,436"],
+            ["Profit before income tax", "", "1,334", "1,051"],
+            ["Ordinary equity holders of the Company", "", "1,022", "802"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"revenue": None, "ebit": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [contents_page, formal_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 10_875_000_000
+    assert payload["row_refs"]["revenue"] == "Insurance revenue"
+    assert payload["provenance"]["revenue"] == (
+        "income_statement:page_18:Insurance revenue"
+    )
+
+
+def test_statement_text_overlay_rejects_financial_report_contents_page():
+    """QBE-style contents page source text must not supply revenue."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"revenue": None, "ebit": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+    sections = [
+        {"page": 17, "text": "Financial Report contents"},
+        {"page": 17, "text": "Financial statements"},
+        {"page": 17, "text": "Consolidated statement of comprehensive income 14"},
+        {"page": 17, "text": "Consolidated balance sheet 15"},
+        {"page": 17, "text": "Consolidated statement of cash flows 17"},
+        {"page": 17, "text": "Notes to the financial statements"},
+        {"page": 17, "text": "1. Overview 18"},
+        {"page": 17, "text": "2.1 Insurance revenue 22"},
+        {"page": 18, "text": "Consolidated statement of comprehensive income"},
+        {"page": 18, "text": "Insurance revenue"},
+        {"page": 18, "text": "2.1"},
+        {"page": 18, "text": "10,875"},
+        {"page": 18, "text": "10,436"},
+        {"page": 18, "text": "Profit before income tax"},
+        {"page": 18, "text": "1,334"},
+        {"page": 18, "text": "1,051"},
+        {"page": 18, "text": "Ordinary equity holders of the Company"},
+        {"page": 18, "text": "1,022"},
+        {"page": 18, "text": "802"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 10_875_000_000
+    assert payload["row_refs"]["revenue"] == "Insurance revenue"
+    assert payload["provenance"]["revenue"] == (
+        "income_statement:page_18:Insurance revenue"
+    )
+
+
 def test_statement_text_overlay_recovers_fragmented_full_statements_over_wrapper():
     """SEG-style fragmented statement pages should override Appendix wrapper rows."""
     from app.services.multipass_extraction import (

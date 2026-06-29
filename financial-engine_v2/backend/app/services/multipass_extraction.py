@@ -813,6 +813,7 @@ _INCOME_STATEMENT_DISQUALIFY_PHRASES = [
     "deed of cross guarantee",
     "closed group",
     "retained earnings",
+    "financial report contents",
 ]
 
 
@@ -5676,6 +5677,21 @@ def _apply_appendix_wrapper_source_payload(
         )
 
 
+def _is_financial_report_contents_index_text(normalized_text: str) -> bool:
+    return (
+        "notestothefinancialstatements" in normalized_text
+        and "consolidatedstatementofcashflows" in normalized_text
+        and any(
+            marker in normalized_text
+            for marker in (
+                "consolidatedstatementofcomprehensiveincome",
+                "consolidatedincomestatement",
+                "consolidatedstatementofprofitorloss",
+            )
+        )
+    )
+
+
 def _table_has_income_statement_source_rows(table: Any) -> bool:
     text = _normalize_filter_text(
         " ".join(
@@ -5690,6 +5706,8 @@ def _table_has_income_statement_source_rows(table: Any) -> bool:
             ]
         )
     )
+    if _is_financial_report_contents_index_text(text):
+        return False
     if any(
         marker in text
         for marker in (
@@ -6355,7 +6373,11 @@ def _statement_text_pages(
     selected: list[tuple[int, list[str]]] = []
     for page, lines in pages.items():
         compact = _normalize_filter_text(" ".join(lines[:40]))
-        if any(marker in compact for marker in markers) and "resultsforannouncement" not in compact:
+        if (
+            any(marker in compact for marker in markers)
+            and "resultsforannouncement" not in compact
+            and not _is_financial_report_contents_index_text(compact)
+        ):
             selected.append((page, lines))
     return sorted(selected, key=lambda item: item[0])
 
