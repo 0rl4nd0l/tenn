@@ -54,3 +54,16 @@ The branch was rebased onto current canonical
 
 No merge, ready-for-review, issue close, live Qdrant proof, runtime/data
 mutation, or production operation is included in this refresh.
+
+## Second PR Refresh After Review
+
+Owner approval on 2026-06-29 permits a second refresh of draft PR #473 after
+canonical advanced again and Tenn guard classified the reviewed branch as
+stale.
+
+The branch was rebased onto current canonical
+`origin/migration/clean-runtime-baseline-reconstruct-v1` at
+`cc750c836aa77a22675dccc26f51bf5a8700224f`.
+
+No merge, ready-for-review, issue close, live Qdrant proof, runtime/data
+mutation, or production operation is included in this refresh.

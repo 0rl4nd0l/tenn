@@ -31,12 +31,12 @@ Not changed:
 
 - No live Qdrant, DB, Redis, news, memory, source PDF, gold label, service,
   runtime, model, GPU, or production data mutation.
-- No rebuild, reindex, backfill, service restart, issue mutation, merge, or
-  force push.
+- No rebuild, reindex, backfill, service restart, issue mutation,
+  ready-for-review action, or merge.
 
-Follow-up owner approval permits rebasing this task branch onto current
-canonical, rerunning focused validation, pushing the branch, and opening a
-draft PR.
+Follow-up owner approvals permit rebasing this task branch onto current
+canonical, rerunning focused validation, pushing/updating the branch, and
+opening or maintaining draft PR #473.
 
 ## Result
 
@@ -44,5 +44,5 @@ result: DONE_WITH_RISK
 
 Reason: implementation and focused validation passed, but no live Qdrant runtime
 output was mutated or proven. This is code/docs/test completion only. Draft PR
-#473 is open and was refreshed onto canonical `2a4a1c1` after review found no
-code-level blockers but guard classified the older PR branch as stale.
+#473 is open and was refreshed onto canonical `cc750c83` after review found no
+code-level blockers but guard classified the older PR branch as stale again.

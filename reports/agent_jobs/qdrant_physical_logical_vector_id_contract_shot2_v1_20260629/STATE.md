@@ -32,6 +32,12 @@ result: DONE_WITH_RISK
 - Follow-up owner approval was received as `proceed`; the branch was rebased
   onto canonical `2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4` without conflicts
   and focused local validation passed again.
+- Review later found no code-level blockers, but Tenn guard classified the PR
+  branch as stale again after canonical advanced to
+  `cc750c836aa77a22675dccc26f51bf5a8700224f`.
+- Follow-up owner approval was received as `proceed`; the branch was rebased
+  onto canonical `cc750c836aa77a22675dccc26f51bf5a8700224f` without conflicts
+  and focused local validation passed again.
 
 ## Implementation
 
@@ -58,7 +64,7 @@ result: DATA_MISSING
 | pre-run max timestamp or count | `DATA_MISSING`; no live Qdrant baseline was captured. |
 | post-run max timestamp or count | `DATA_MISSING`; no live Qdrant mutation was performed. |
 | rows/files inserted or updated after run start | zero runtime rows/points; code/docs/report files only. |
-| readiness/gate status | Focused local validation passed; live runtime readiness not proven. |
+| readiness/gate status | Focused local validation passed after refresh onto `cc750c836aa77a22675dccc26f51bf5a8700224f`; live runtime readiness not proven. |
 | exact command/query used | See `VALIDATION.md`; no live Qdrant query was required for this code/docs task. |
 | result: WORKING / PARTIAL / BROKEN / DATA_MISSING | DATA_MISSING |
 | remaining blocker | Live Qdrant/backfill proof would require separate runtime/data approval. |
@@ -68,8 +74,8 @@ result: DATA_MISSING
 - No production Qdrant or DB mutation.
 - No live reindex/rebuild/backfill.
 - No service restart.
-- No issue comment, issue closure, merge, force push, live runtime write, or
-  production data mutation.
+- No issue comment, issue closure, merge, ready-for-review, live runtime write,
+  or production data mutation.
 - PR was left draft; no ready-for-review or merge action was performed.
 - Refresh did not run live Qdrant/runtime/data proof; runtime result remains
   `DATA_MISSING`.

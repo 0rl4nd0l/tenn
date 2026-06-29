@@ -3,7 +3,7 @@
   "branch": "safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629",
   "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
   "canonical_branch_ref": "refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
-  "canonical_head": "2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4",
+  "canonical_head": "cc750c836aa77a22675dccc26f51bf5a8700224f",
   "comparison_base_checked": [
     "upstream=origin/safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629"
   ],
@@ -109,6 +109,7 @@
       "+ audit/news-ingestion-throughput-profile-v1-20260601",
       "+ audit/news-projection-materialization-parity-repair-planning-v1-20260602",
       "+ audit/non-sloppy-codeql-audit-v1-20260629",
+      "+ audit/non-sloppy-memory-drift-audit-v1-20260629",
       "+ audit/process-document-rag-guardrails-v1-20260514",
       "+ audit/query-eval-integration-readiness-v1-20260516",
       "+ audit/query-inference-engine-phase1-closeout-v1-20260601",
@@ -270,6 +271,7 @@
       "+ integration/memory-contamination-root-cause-v1-20260516",
       "  integration/verification-source-page-viewer-import-valid-v1",
       "+ local/approved15-pr465-closeout-v1-20260629",
+      "+ local/fresh-canonical-continuation-v1-20260629",
       "  local/home-tenn-canonical-current-v1-20260629",
       "  local/home-tenn-canonical-current-v2-20260629",
       "+ local/home-tenn-canonical-current-v3-20260629",
@@ -1079,11 +1081,11 @@
       "path": "reports/agent_jobs"
     },
     "task_cards": {
-      "count": 486,
+      "count": 487,
       "exists": true,
       "path": "docs/agent_tasks"
     },
-    "topic": "PR #473 issue #266 rebased onto canonical 2a4a1c1",
+    "topic": "issue266 qdrant physical logical vector id contract pr473 post rebase",
     "worktrees": [
       "worktree /mnt/sdb2/home/l4nd0/tenn",
       "HEAD c102f3f21505a01a8333b2f442dc2403cf67b509",
@@ -2133,6 +2135,10 @@
       "HEAD 6df3b29783dffe625f74dfbb4870667a4c57b750",
       "branch refs/heads/safe/fixture-payload-coverage-root-cause-v1-20260623",
       "",
+      "worktree /home/l4nd0/tenn-fresh-canonical-continuation-v1-20260629",
+      "HEAD cc750c836aa77a22675dccc26f51bf5a8700224f",
+      "branch refs/heads/local/fresh-canonical-continuation-v1-20260629",
+      "",
       "worktree /home/l4nd0/tenn-git-hygiene-skill-v1-20260607",
       "HEAD f8d4b1e507ce4eab1d176c13295369e47ff8f92f",
       "branch refs/heads/safe/tenn-git-hygiene-skill-v1-20260607",
@@ -2470,7 +2476,7 @@
       "branch refs/heads/safe/issue265-chat-context-only-local-news-current-base-v1-20260629",
       "",
       "worktree /home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629",
-      "HEAD 1ad5634059c8559a9a343e1be8afa1c92cf436a5",
+      "HEAD 318223e7bab32f2311b6a41f8174a3e120e6236f",
       "branch refs/heads/safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629",
       "",
       "worktree /home/l4nd0/tenn-issue266-qdrant-vector-id-policy-v1-20260629",
@@ -2840,6 +2846,10 @@
       "worktree /home/l4nd0/tenn-non-sloppy-codeql-audit-v1-20260629",
       "HEAD 2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4",
       "branch refs/heads/audit/non-sloppy-codeql-audit-v1-20260629",
+      "",
+      "worktree /home/l4nd0/tenn-non-sloppy-memory-drift-audit-v1-20260629",
+      "HEAD cc750c836aa77a22675dccc26f51bf5a8700224f",
+      "branch refs/heads/audit/non-sloppy-memory-drift-audit-v1-20260629",
       "",
       "worktree /home/l4nd0/tenn-null-merge-base-stale-path-guard-v1-20260623",
       "HEAD b7905afd483539a83298961aca7e34ebe5bc2715",
@@ -3719,7 +3729,7 @@
   "git_root": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629",
   "guard_runner_path": "/home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
   "guard_support_status": "PASS",
-  "head": "1ad5634059c8559a9a343e1be8afa1c92cf436a5",
+  "head": "318223e7bab32f2311b6a41f8174a3e120e6236f",
   "ledger": {
     "resolve_path": {
       "command": [
@@ -3740,7 +3750,7 @@
       "ok": true,
       "sources_checked": [
         {
-          "entry_count": 283,
+          "entry_count": 284,
           "exists": true,
           "kind": "live",
           "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
@@ -3755,12 +3765,12 @@
     },
     "validate": {
       "data_missing": [],
-      "entry_count": 285,
+      "entry_count": 286,
       "issues": [],
       "ok": true,
       "sources_checked": [
         {
-          "entry_count": 283,
+          "entry_count": 284,
           "exists": true,
           "kind": "live",
           "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
@@ -3775,7 +3785,7 @@
     }
   },
   "ledger_status": "PASS",
-  "merge_base": "6c486d07743d3483d05fa163dc5c02fd66b68863",
+  "merge_base": "2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4",
   "path_classifications": [
     "DATA_MISSING",
     "DIRTY_RELATED_WORKTREE",
@@ -3790,14 +3800,14 @@
   "path_ownership": {
     "branch": "safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629",
     "canonical_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
-    "canonical_head": "2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4",
+    "canonical_head": "cc750c836aa77a22675dccc26f51bf5a8700224f",
     "classification": "VALID_TASK_WORKTREE",
     "dirty_status": [],
     "exists": true,
     "git_root": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629",
-    "head": "1ad5634059c8559a9a343e1be8afa1c92cf436a5",
+    "head": "318223e7bab32f2311b6a41f8174a3e120e6236f",
     "is_git_worktree": true,
-    "merge_base_with_canonical": "2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4",
+    "merge_base_with_canonical": "cc750c836aa77a22675dccc26f51bf5a8700224f",
     "path": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629",
     "reasons": [
       "valid git worktree; use only if branch/task ownership is correct"

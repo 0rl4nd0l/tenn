@@ -44,6 +44,7 @@ approval_required: true
 owner_approval: USER_APPROVED_PROCEED_RETAIN_UUIDV5_PHYSICAL_MAPPING_2026-06-29
 publish_approval: USER_APPROVED_REBASE_PUSH_OPEN_DRAFT_PR_2026-06-29
 refresh_approval: USER_APPROVED_REFRESH_PR473_ON_CANONICAL_2A4A1C1_2026-06-29
+refresh_approval_2: USER_APPROVED_REFRESH_PR473_ON_CANONICAL_CC750C83_2026-06-29
 allow_unapproved_safe_extension: false
 timeout_seconds: 7200
 output_dir: reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629
@@ -72,7 +73,7 @@ docs_changed:
   - docs/architecture/11_rebuild_and_recovery.md
   - docs/architecture/22_memory_ownership_map.md
 docs_followup: "none"
-reason: "Issue #266 has owner approval to retain deterministic UUIDv5 physical Qdrant point IDs while preserving logical vector IDs in payload, docs, and tests; follow-up approvals permit rebasing onto current canonical, pushing the branch, opening draft PR #473, and refreshing that PR onto canonical 2a4a1c1."
+reason: "Issue #266 has owner approval to retain deterministic UUIDv5 physical Qdrant point IDs while preserving logical vector IDs in payload, docs, and tests; follow-up approvals permit rebasing onto current canonical, pushing the branch, opening draft PR #473, and refreshing that PR onto canonical 2a4a1c1 and cc750c83."
 task_tier: large
 recommended_model: "high reasoning"
 actual_model: "Codex GPT-5"
@@ -113,8 +114,8 @@ point ID required by the adapter/storage boundary.
   parser prompt, source PDF, or gold-label changes.
 - No random UUID vector/chunk IDs.
 - No frontend/Cockpit bypass of backend vector-store authority.
-- No GitHub writes except pushing this task branch and opening a draft PR under
-  the 2026-06-29 follow-up approval.
+- No GitHub writes except pushing/updating this task branch and opening or
+  maintaining the draft PR under the 2026-06-29 follow-up approvals.
 
 ## Validation
 
