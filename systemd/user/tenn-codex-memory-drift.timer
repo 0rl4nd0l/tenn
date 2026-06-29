@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex project memory drift scanner weekly
+
+[Timer]
+OnCalendar=Fri *-*-* 11:00:00
+Persistent=false
+Unit=tenn-codex-memory-drift.service
+
+[Install]
+WantedBy=timers.target

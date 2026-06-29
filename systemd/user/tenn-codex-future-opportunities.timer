@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex future opportunity scout weekly
+
+[Timer]
+OnCalendar=Tue *-*-* 15:00:00
+Persistent=false
+Unit=tenn-codex-future-opportunities.service
+
+[Install]
+WantedBy=timers.target
