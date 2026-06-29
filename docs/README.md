@@ -68,6 +68,7 @@ operator manual.
 | `docs/architecture/00_README.md` | Active architecture index | Product architecture work | `SYSTEM_CONTRACT.md` wins on invariants. |
 | `docs/architecture/SYSTEM_CONTRACT.md` | Active architecture contract | Backend, data, RAG, extraction, memory, or financial-truth changes | Policy source, not proof that a runtime currently conforms. |
 | `docs/dev_flow/*` | Active agent-ops docs | Control-plane, task-card, registry, worker, handoff, and review workflows | Prefer the most recent validated report when status docs conflict. |
+| `docs/dev_flow/PROJECT_BOUNDARIES.md` | Active project-boundary guide | Deciding whether work belongs to Tenn or an external sibling project such as Greyhound | Current-turn repo, task-card, board, and runtime-owner evidence win; physical relocation needs separate approval and runtime proof. |
 | `.agents/skills/*/SKILL.md` | Active repo-backed skills | Tenn-specific Codex procedures | Use over host/global skills unless unavailable. |
 | `docs/agent_registry/task_ledger/*` | Active registry design/snapshot | Duplicate-work and ledger preflight | Live ledger may be absent; record `DATA_MISSING` and run fallback searches. |
 | `docs/agent_registry/merge_parking/*` | Active merge-parking reference | Parked branch visibility and merge-review routing | Inventory only; never merge/unpark without explicit approval. |
