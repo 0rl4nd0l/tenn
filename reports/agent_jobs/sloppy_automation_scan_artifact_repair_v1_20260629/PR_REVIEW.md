@@ -6,8 +6,11 @@
 - The patch addresses the observed failure chain directly: model/config values
   are comment-free, scan writes an explicit artifact, and fix downloads that
   artifact before attempting Claude remediation.
-- GitHub automation functionality remains `DATA_MISSING` until a real pushed
-  workflow run proves the artifact handoff.
+- GitHub automation functionality is `WORKING` for the artifact handoff:
+  Sloppy Scan run `28356577058` uploaded `sloppy-scan-issues`, and Sloppy Fix
+  run `28356591800` downloaded that artifact from the triggering run.
+- The live proof hit the zero-issue path, so nonzero Claude remediation remains
+  unexercised by this PR run.
 
 ## Files Touched
 
@@ -31,5 +34,6 @@
 
 ## Review Result
 
-`APPROVE_WITH_RISK`: local validation is focused and clean, but live GitHub
-workflow proof requires a pushed branch/PR run.
+`APPROVE_WITH_RISK`: focused validation and the live artifact handoff proof
+passed; remaining risk is limited to missing `actionlint` and nonzero Sloppy
+issue remediation not being exercised by the clean scan.

@@ -4,14 +4,16 @@
   "workflow": "tenn-fix",
   "status": "done",
   "started_at": "2026-06-29T17:36:56+10:00",
-  "updated_at": "2026-06-29T17:36:56+10:00",
+  "updated_at": "2026-06-29T17:46:53+10:00",
   "owner": "Codex",
   "session_id": "DATA_MISSING",
   "thread_id": "DATA_MISSING",
   "codex_goal_id": "DATA_MISSING",
   "source_session_ref": "codex:current-thread",
   "issue_refs": [],
-  "pr_refs": [],
+  "pr_refs": [
+    "#469"
+  ],
   "branch": "control-plane/sloppy-automation-repair-v1-20260629",
   "worktree": "/home/l4nd0/tenn-sloppy-automation-repair-v1-20260629",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
@@ -37,9 +39,9 @@
     "reports/agent_jobs/sloppy_automation_scan_artifact_repair_v1_20260629/NEXT_GOAL.md",
     "reports/agent_jobs/sloppy_automation_scan_artifact_repair_v1_20260629/TASK_LEDGER_ENTRY.json"
   ],
-  "summary": "Repaired Sloppy scan/fix config locally so scan writes a usable issues artifact and fix follows the workflow-run Claude/comment path; live GitHub proof remains pending.",
+  "summary": "Repaired Sloppy scan/fix config so scan writes a usable issues artifact and fix consumes it from the triggering workflow_run; PR #469 live proof passed for the artifact handoff and zero-issue skip path.",
   "validation": {
-    "status": "partial",
+    "status": "passed",
     "commands": [
       "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-sloppy-automation-repair-v1-20260629 --topic \"sloppy automation scan artifact and model config\" --json",
       "python3 scripts/tenn_dev_status.py",
@@ -49,10 +51,15 @@
       "python3 - <<'PY' ... workflow/config sanity checks ... PY",
       "bash -n extracted workflow run bodies",
       "git diff --check",
-      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/sloppy_automation_scan_artifact_repair_v1_20260629.md --repo-root . --no-write-report"
+      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/sloppy_automation_scan_artifact_repair_v1_20260629.md --repo-root . --no-write-report",
+      "gh api -X GET repos/0rl4nd0l/tenn/actions/runs/28356577058",
+      "gh api -X GET repos/0rl4nd0l/tenn/actions/runs/28356577058/artifacts",
+      "gh run download 28356577058 --repo 0rl4nd0l/tenn --name sloppy-scan-issues --dir /tmp/sloppy-scan-proof-28356577058",
+      "gh run view 28356591800 --repo 0rl4nd0l/tenn --log",
+      "gh api -X GET repos/0rl4nd0l/tenn/issues/469/comments"
     ]
   },
-  "next_action": "await_push_or_pr_approval_for_live_github_proof",
+  "next_action": "monitor_remaining_pr_checks_then_merge_readiness_review",
   "owner_boundary": true,
   "supersedes": [],
   "superseded_by": []
