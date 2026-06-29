@@ -55,6 +55,9 @@ Allowed:
 - Run read-only guard, registry, ledger, grep, diff, and contract validation.
 - After explicit owner approval, publish this Tenn docs-only branch by local
   commit, rebase onto canonical, branch push, and draft PR creation.
+- After explicit owner approval, refresh the PR branch against current canonical
+  and mark PR #472 ready for review, while keeping the PR-owned diff limited to
+  this task's docs/report files.
 
 Forbidden:
 
@@ -66,8 +69,8 @@ Forbidden:
   GitHub writes.
 - Tenn merges, resets, stashes, branch deletion, worktree deletion, pruning,
   parked-work changes, or unrelated GitHub writes. Any Tenn commit, rebase,
-  branch push, or draft PR creation must stay limited to this docs-only branch
-  and require explicit owner approval.
+  branch refresh, branch push, draft PR creation, or mark-ready action must stay
+  limited to this docs-only branch/PR and require explicit owner approval.
 - Broad repo cleanup or moving filesystem paths.
 
 ## Required Behavior

@@ -62,6 +62,26 @@ publication state before this PR can be treated as review-ready. The correction
 does not change Tenn runtime/product/extraction code or Greyhound-owned
 surfaces.
 
+## PR Readiness And Branch Refresh Decision
+
+Decision: after owner approval, mark PR #472 ready for review and refresh the
+PR branch against current canonical using a normal merge commit instead of a
+history rewrite.
+
+Evidence: before the refresh, PR #472 was open, not draft, `MERGEABLE`,
+`CLEAN`, and green at head
+`42ef44b01e1f2d70a4d0c2610b3340bcbf28a6bb`, while Tenn guard reported
+`STALE_PATH` because canonical had advanced to
+`cc750c836aa77a22675dccc26f51bf5a8700224f`. A read-only overlap check from the
+old publish parent to current canonical showed no changes to this task's
+allowed files. After the branch refresh, the PR diff against
+`migration/clean-runtime-baseline-reconstruct-v1` still contained only the
+seven docs/report files allowed by the task card.
+
+Rationale: the branch refresh clears the stale-base process warning without
+force-pushing and without making Tenn runtime/product/extraction or
+Greyhound-owned files part of the PR-owned diff.
+
 ## Docs Impact Check
 
 - `docs_impact`: `DOCS_UPDATED`

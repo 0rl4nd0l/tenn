@@ -1,9 +1,9 @@
 # Next Goal
 
-Recommended next prompt for owner-approved PR readiness or merge:
+Recommended next prompt for owner-approved merge:
 
 ```text
-/goal Review PR #472 for the Tenn docs-only Greyhound project-boundary change from /home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629. Verify the latest PR head, checks, mergeability, task-card allowlist, focused docs grep, and final git status. If explicitly approved and still green, mark the draft ready or merge according to owner direction. Do not touch Tenn product/runtime/extraction code. Do not touch Greyhound repo files, DBs, systemd units, services, runtime artifacts, branches, worktrees, or GitHub beyond the approved Tenn PR action.
+/goal Review PR #472 for the Tenn docs-only Greyhound project-boundary change from /home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629. Verify the latest PR head, checks, mergeability, task-card allowlist, focused docs grep, current canonical overlap, and final git status. If explicitly approved and still green, merge PR #472 according to owner direction. Do not touch Tenn product/runtime/extraction code. Do not touch Greyhound repo files, DBs, systemd units, services, runtime artifacts, branches, worktrees, or GitHub beyond the approved Tenn PR merge.
 ```
 
 Separate Greyhound relocation prompt, only if physical filesystem cleanup is

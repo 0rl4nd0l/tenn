@@ -44,6 +44,11 @@
 | `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --no-write-report` after closeout fix | 0 | `ok=true`, `disallowed_files=[]` |
 | `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --repo-root .` after closeout fix | 0 | `ok=true`, four report artifacts present and non-empty |
 | `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --repo-root .` after closeout fix | 0 | `ok=true` |
+| `gh pr ready 472` | 0 | PR #472 marked ready for review after owner approval |
+| `git diff --name-only 6c486d07743d3483d05fa163dc5c02fd66b68863..origin/migration/clean-runtime-baseline-reconstruct-v1 -- <task allowed files>` before branch refresh | 0 | no output; no canonical overlap in task allowed files |
+| `git merge-tree $(git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1) HEAD origin/migration/clean-runtime-baseline-reconstruct-v1 \| rg -n '<<<<<<<\|changed in both\|CONFLICT\|removed in'` | 1 | no conflict markers or conflict lines found before branch refresh |
+| `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | normal branch refresh merge from current canonical `cc750c836aa77a22675dccc26f51bf5a8700224f`; no force-push |
+| `git diff --name-status origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD` after branch refresh | 0 | PR-owned diff remained limited to `docs/README.md`, the Greyhound task card, `docs/dev_flow/PROJECT_BOUNDARIES.md`, and this task's report files |
 
 ## Guard Notes
 
@@ -58,6 +63,11 @@ The closeout-fix dirty guard also returned a dirty-worktree block before the
 follow-up commit because the intended report/doc files were modified. The
 task-card diff contract again confirmed `disallowed_files=[]`.
 
+After PR readiness review, Tenn guard reported `STALE_PATH` because canonical
+advanced beyond the PR branch. The branch was refreshed with a normal merge
+commit after owner approval, and the PR-owned diff was rechecked against the
+current base.
+
 ## Validation Status
 
 All required docs/control-plane validation completed. Runtime functionality was
@@ -67,3 +77,7 @@ Publication reached draft PR #472 after owner approval for the one-shot missing
 local hook tool bypass. At closeout-fix start, the PR was open, draft,
 mergeable, and green. No merge, mark-ready action, runtime validation, or
 Greyhound mutation was performed.
+
+After later owner approval, PR #472 was marked ready for review and the branch
+was refreshed onto current canonical by merge commit. Runtime functionality was
+still not tested or proven because this task did not touch runtime systems.

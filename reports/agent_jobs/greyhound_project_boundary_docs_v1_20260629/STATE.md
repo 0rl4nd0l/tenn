@@ -1,13 +1,13 @@
 # State
 
-Generated: 2026-06-29T18:35:22+1000
+Generated: 2026-06-29T19:31:41+1000
 
 ## Result
 
-Status: `PR_OPEN_DRAFT_CLOSEOUT_CORRECTED`
+Status: `PR_READY_CANONICAL_REFRESHED`
 
 The docs-only Tenn / Greyhound boundary change is implemented locally in a
-fresh Tenn task worktree and published as draft PR #472. No runtime mutation,
+fresh Tenn task worktree and published as PR #472, now ready for review. No runtime mutation,
 service action, Greyhound repo edit, or Greyhound cleanup was performed.
 
 Publish update: after owner approval on 2026-06-29T18:11:12+1000, the local
@@ -31,6 +31,13 @@ PR evidence captured before this closeout correction from `gh pr view 472` at
 
 Live PR status must be rechecked after any follow-up push.
 
+PR readiness update: after owner approval on 2026-06-29, PR #472 was marked
+ready for review. A later owner-approved branch refresh merged current
+canonical `cc750c836aa77a22675dccc26f51bf5a8700224f` into the PR branch using
+a normal merge commit, not a force-push. The PR-owned diff against
+`migration/clean-runtime-baseline-reconstruct-v1` remained limited to the seven
+docs/report files in this task card.
+
 Residual history note: while validation was running,
 `origin/migration/clean-runtime-baseline-reconstruct-v1`
 advanced from `3b32b8b3be8b04bb5a198c71ec928db182438f17` to
@@ -46,6 +53,8 @@ was then rebased cleanly onto `6c486d07743d3483d05fa163dc5c02fd66b68863`.
   `3b32b8b3be8b04bb5a198c71ec928db182438f17`
 - Publish refresh canonical parent:
   `6c486d07743d3483d05fa163dc5c02fd66b68863`
+- Branch refresh canonical parent:
+  `cc750c836aa77a22675dccc26f51bf5a8700224f`
 - PR base: `migration/clean-runtime-baseline-reconstruct-v1`
 - Upstream: `origin/docs/greyhound-project-boundary-v1-20260629`
 - Task card:
@@ -88,15 +97,16 @@ was then rebased cleanly onto `6c486d07743d3483d05fa163dc5c02fd66b68863`.
 - Ledger validation: `ok=true`, live entries `279`, committed entries `2`.
 - Ledger update result: live ledger append skipped; the task card does not
   allow registry/ledger mutation, so state is recorded in this report bundle.
-- Publish status: draft PR #472 is open. No merge was performed.
+- Publish status: PR #472 is open and ready for review. The PR branch was
+  refreshed with current canonical by merge commit. The PR itself was not
+  merged.
 
 ## Wait State
 
 No current wait state for this docs-only publication step.
 
-Next owner action, if desired: review PR #472, then explicitly approve marking
-it ready for review or merging. Those are separate GitHub mutations and were not
-performed in this task.
+Next owner action, if desired: explicitly approve merging PR #472. That is a
+separate GitHub mutation and was not performed in this task.
 
 ## Functionality Proof
 
@@ -112,7 +122,9 @@ runtime functionality were not proven.
   runtime artifact mutation.
 - No service start, stop, restart, or unit rewrite.
 - No Greyhound repo mutation.
-- Tenn GitHub mutation was limited to the owner-approved branch push and draft
-  PR creation for PR #472.
-- No merge, reset, stash, prune, branch deletion, worktree deletion, service
-  mutation, Greyhound mutation, or runtime mutation.
+- Tenn GitHub mutation was limited to the owner-approved branch push, draft PR
+  creation, follow-up branch push, and mark-ready action for PR #472.
+- A normal branch refresh merge from current canonical was performed after owner
+  approval; no force-push, reset, stash, prune, branch deletion, worktree
+  deletion, service mutation, Greyhound mutation, or runtime mutation was
+  performed.
