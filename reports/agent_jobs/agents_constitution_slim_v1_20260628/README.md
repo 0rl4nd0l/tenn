@@ -1,6 +1,6 @@
 # Agents Constitution Slim V1
 
-status: DONE
+status: PR_OPENED
 scope: docs_only
 
 ## Objective
@@ -29,6 +29,10 @@ manual, while preserving the hard Tenn guardrails.
   `docs/dev_flow/SKILLS_SURFACE.md`.
 - Added short routing notes to `CODEX_OPERATOR_GUIDE.md` and
   `SKILLS_SURFACE.md`.
+- Committed local cleanup as
+  `d07fc0f3633395fb727a556bce5b6f25d3af27dc`.
+- Opened draft PR #462:
+  `https://github.com/0rl4nd0l/tenn/pull/462`.
 
 ## Runtime Functionality Proof
 
@@ -54,6 +58,15 @@ runtime state, access production data, or claim runtime functionality.
 
 All required docs/control-plane checks passed. See `VALIDATION.md`.
 
+Live PR state at 2026-06-29T06:09Z:
+
+- PR #462: open draft.
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`.
+- Head: `control-plane/agents-constitution-slim-v1-20260628`.
+- Mergeable: `MERGEABLE`.
+- Merge state: `UNSTABLE`.
+- Checks: `scan` success; `lint-and-test` in progress.
+
 ## Unsafe Actions Avoided
 
 - No service starts.
@@ -65,6 +78,6 @@ All required docs/control-plane checks passed. See `VALIDATION.md`.
 
 ## Next Recommended Prompt
 
-Review the `AGENTS.md` slimming diff on
-`control-plane/agents-constitution-slim-v1-20260628`; if it preserves the
-guardrails, commit it locally or open a PR.
+Review PR #462 after `lint-and-test` finishes. If checks are green and the
+shorter `AGENTS.md` preserves the intended guardrails, mark the PR ready for
+review or merge under the normal Tenn merge gate.

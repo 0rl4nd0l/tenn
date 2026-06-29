@@ -1,40 +1,20 @@
 {
   "changed_files": [
     {
-      "path": "AGENTS.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/agents_constitution_slim_v1_20260628.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/SKILLS_SURFACE.md",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/PR_REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/STATE.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/diff-check.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],

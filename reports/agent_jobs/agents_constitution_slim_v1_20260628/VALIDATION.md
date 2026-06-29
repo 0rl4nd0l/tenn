@@ -14,6 +14,9 @@
 | `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | PASS | Docs-only closeout accepted. |
 | `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | PASS | Listed report artifacts exist and are non-empty. |
 | `git status --short --untracked-files=all` | PASS | Only allowed tracked docs and the new task card are visible; report artifacts are ignored by repo policy. |
+| `git push -u origin control-plane/agents-constitution-slim-v1-20260628` | BLOCKED_THEN_PASS | First blocked by missing local `ruff`/`pytest`; pushed with documented `TENN_ALLOW_MISSING_HOOK_TOOLS=1` after docs-only validation passed. |
+| `gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/agents-constitution-slim-v1-20260628` | PASS | Opened PR #462. |
+| `gh pr view 462 --json number,title,state,isDraft,url,baseRefName,headRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,commits` | PASS | PR open draft; mergeable; `scan` success; `lint-and-test` in progress. |
 
 ## Runtime Validation
 

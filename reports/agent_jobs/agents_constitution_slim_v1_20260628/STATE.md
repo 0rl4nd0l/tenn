@@ -1,6 +1,6 @@
 # State
 
-state: DONE
+state: PR_OPENED
 
 ## Evidence Used
 
@@ -20,6 +20,7 @@ state: DONE
 - Ledger validation passed with no issues.
 - Ledger entry appended for `implementation_started`.
 - Final ledger entry appended for `done`.
+- PR #462 opened as draft and branch pushed to origin.
 - Duplicate-work classification: `NO_MATCHING_ACTIVE_WORK_FOUND`.
 
 ## Docs Impact Check
@@ -62,6 +63,17 @@ not_applicable: docs-only task.
 
 ## Closeout
 
-- closeout_status: DONE
+- closeout_status: PR_OPENED
 - system_functionality_proven: no
 - reason: docs-only constitution cleanup; no runtime behavior claimed.
+
+## PR State
+
+- pr: `https://github.com/0rl4nd0l/tenn/pull/462`
+- state: OPEN
+- draft: true
+- mergeable: MERGEABLE
+- merge_state_status: UNSTABLE
+- checks: `scan` success; `lint-and-test` in progress
+- note: connector PR creation failed with expired app token, so `gh pr create`
+  was used as the authenticated fallback.

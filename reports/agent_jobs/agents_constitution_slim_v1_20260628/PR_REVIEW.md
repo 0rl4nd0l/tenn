@@ -22,3 +22,12 @@
 No blocking findings in the current diff. Residual risk is documentation
 interpretation: reviewers should confirm that the shorter `AGENTS.md` still
 feels strict enough for always-loaded policy.
+
+## Publication State
+
+- PR: `https://github.com/0rl4nd0l/tenn/pull/462`
+- State: open draft
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `control-plane/agents-constitution-slim-v1-20260628`
+- Mergeability: `MERGEABLE`
+- Current checks: `scan` success; `lint-and-test` in progress
