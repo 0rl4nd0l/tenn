@@ -1,10 +1,10 @@
 # State
 
-Generated: 2026-06-29T19:57:12+1000
+Generated: 2026-06-29T20:01:52+1000
 
 ## Result
 
-Status: `IMPLEMENTED_LOCAL`
+Status: `IMPLEMENTED_LOCAL_CANONICAL_REFRESHED`
 
 The Tenn agent docs update is implemented in a fresh task worktree:
 
@@ -12,10 +12,17 @@ The Tenn agent docs update is implemented in a fresh task worktree:
   `/home/l4nd0/tenn-agent-docs-project-boundary-routing-v1-20260629`
 - Branch: `control-plane/agent-docs-project-boundary-routing-v1-20260629`
 - Base HEAD: `ca424a2835094de40c366a36d4bb0bf04cd8246a`
+- Refreshed canonical parent: `a299ce45e42f50c23321733082c7d5bbe8dfb88a`
+- Branch refresh merge commit: `ba261c9bbad02ade4486dd712c420606a940cb70`
 - Scope: docs-only control-plane routing
 
 `AGENTS.md` now routes project ownership and external-sibling boundary
 questions to `docs/dev_flow/PROJECT_BOUNDARIES.md`.
+
+After owner approval, the branch was refreshed against current canonical with a
+normal merge commit. The PR-owned diff against
+`origin/migration/clean-runtime-baseline-reconstruct-v1` remains limited to the
+task-card allowed files.
 
 ## Source Worktree Note
 
@@ -68,5 +75,8 @@ runtime functionality were not tested or proven.
 - No runtime, DB, data, source-PDF, gold-label, prompt, Docker, dependency, or
   model mutation.
 - No Greyhound repo mutation.
-- No GitHub write, push, merge, rebase, reset, stash, branch deletion, worktree
-  deletion, pruning, or parked-work action.
+- No service, runtime, data, Greyhound, cleanup, branch deletion, worktree
+  deletion, pruning, parked-work, reset, stash, force-push, or rebase action.
+- A normal branch refresh merge from canonical was performed after owner
+  approval; branch push and draft PR creation are the only approved GitHub
+  follow-up actions for this docs-only branch.

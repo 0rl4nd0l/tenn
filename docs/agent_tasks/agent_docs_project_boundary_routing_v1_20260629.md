@@ -51,6 +51,8 @@ Allowed:
 - Write report-local closeout files under this task `output_dir`.
 - Run read-only guard, registry, ledger, grep, diff, and contract validation.
 - Commit locally on this task branch.
+- After explicit owner approval, refresh this branch against current canonical,
+  push this docs-only branch, and open a draft PR.
 
 Forbidden:
 
@@ -61,7 +63,9 @@ Forbidden:
   restarts, stops, runtime artifact edits, branch/worktree changes, cleanup, or
   GitHub writes.
 - GitHub writes, branch push, merge, reset, stash, rebase, branch deletion,
-  worktree deletion, pruning, parked-work changes, or unrelated cleanup.
+  worktree deletion, pruning, parked-work changes, or unrelated cleanup, except
+  the owner-approved branch refresh, branch push, and draft PR creation for
+  this docs-only task.
 - Editing unrelated dirty files in `/home/l4nd0/tenn`.
 
 ## Required Validation

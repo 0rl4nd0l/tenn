@@ -13,6 +13,10 @@
 | `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md --repo-root .` | 0 | `ok=true`, three report artifacts present and non-empty |
 | `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md --repo-root .` | 0 | `ok=true` |
 | `git status --short --untracked-files=all` before commit | 0 | `M AGENTS.md`; task card untracked; report files ignored until explicitly added |
+| `git fetch origin migration/clean-runtime-baseline-reconstruct-v1` after owner approval | 0 | canonical refreshed to `a299ce45e42f50c23321733082c7d5bbe8dfb88a` |
+| `git merge-tree $(git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1) HEAD origin/migration/clean-runtime-baseline-reconstruct-v1 \| rg -n '<<<<<<<\|changed in both\|CONFLICT\|removed in'` | 1 | no conflict markers or conflict lines found before branch refresh |
+| `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | normal branch refresh merge from current canonical; no force-push or rebase |
+| `git diff --name-status origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD` after branch refresh | 0 | PR-owned diff remained limited to `AGENTS.md`, task card, and this report bundle |
 
 ## Guard Notes
 
@@ -21,7 +25,12 @@ This task did not edit that worktree. A fresh sibling worktree was created from
 canonical head `ca424a2835094de40c366a36d4bb0bf04cd8246a`, and guard passed
 there before mutation.
 
+After the local docs commit, canonical advanced to
+`a299ce45e42f50c23321733082c7d5bbe8dfb88a`. Owner approval was received to
+refresh and publish, so the branch was updated with a normal merge commit.
+
 ## Validation Status
 
-Required docs/control-plane validation passed before local commit. Runtime
-functionality is out of scope and was not tested.
+Required docs/control-plane validation passed before local commit and was rerun
+after the canonical branch refresh. Runtime functionality is out of scope and
+was not tested.
