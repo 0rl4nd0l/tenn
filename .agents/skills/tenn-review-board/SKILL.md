@@ -30,6 +30,16 @@ The board must not recommend another board or report as the next step unless
 the next meaningful action is genuinely blocked on owner input or unavailable
 evidence.
 
+When the topic is a resurfacing bug or the user says or implies "we fixed this
+already", "broken again", "regressed", "same bug", or equivalent, the board must
+use `docs/dev_flow/REGRESSION_ADJUDICATION.md`. It must either consume an
+existing adjudication packet or produce one before deciding. The chair must
+classify the case as `STALE_BRANCH`, `FIX_NOT_IN_CANONICAL`,
+`NARROW_FIX_ONLY`, `RUNTIME_NOT_PROVEN`, `TEST_GAP`, `NEW_FAILURE_CLASS`,
+`TRUE_REGRESSION`, or `DATA_MISSING`; a `proceed` decision is valid only when
+the classification's required next action is implementation and the permanent
+gate or runtime proof path is explicit.
+
 ## Model And Risk Routing
 
 Use the board when model/subagent routing shows that final decision authority
@@ -142,6 +152,10 @@ blocker.
 For zoom-out / contrarian mode, it must also include root-problem,
 overfitting, report-loop, broad-progress, class-based approach, and
 production-readiness-value fields.
+For resurfacing bug decisions, it must also include
+`regression_adjudication_classification`, `alleged_old_fix`,
+`canonical_lineage`, `current_repro`, `permanent_gate`, and
+`regression_next_action`.
 
 For `large` and `critical` decisions, `BOARD_DECISION.json` must also identify
 final decision authority and explain why lower-tier decision making was
