@@ -128,8 +128,8 @@ python financial-engine_v2/scripts/inspect_qdrant_collection.py
    - Number of points per `ticker` payload (and `<no ticker>` if any).  
    - **Interpretation:** Use to see distribution and spot missing tickers or one ticker dominating due to misconfiguration.
 
-3. **Duplicate point IDs**  
-   - Point IDs that appear more than once.  
+3. **Duplicate physical point IDs**
+   - Qdrant point IDs that appear more than once.
    - **Interpretation:** Duplicates indicate a bug (e.g. double upsert). Ideally zero; non-zero suggests inconsistent indexing and possible rebuild.
 
 4. **Missing chunk_index sequences (per document)**  
@@ -140,11 +140,20 @@ python financial-engine_v2/scripts/inspect_qdrant_collection.py
    - Points whose payload `document_id` is not a canonical UUID string.  
    - **Interpretation:** Schema/ingestion bug; such points may break joins or deduplication. Fix ingestion and consider rebuilding.
 
-6. **point.id prefix mismatch**  
-   - Points whose ID does not start with `document_id + ":"`.  
-   - **Interpretation:** Invariant violation; can affect retrieval and updates. Fix pipeline and consider rebuild.
+6. **logical_vector_id missing or mismatch**
+   - Points whose payload `logical_vector_id` is missing or does not equal
+     `document_id:chunk_index`.
+   - **Interpretation:** Payload provenance gap. The logical ID should be
+     recoverable from document/chunk fields, but future writes should preserve it
+     explicitly.
 
-7. **Summary**  
+7. **physical point ID mismatch**
+   - Points whose physical Qdrant ID is neither the literal logical vector ID nor
+     the deterministic UUIDv5 mapping of that logical ID.
+   - **Interpretation:** Invariant violation; can affect retrieval, rebuild, and
+     delete/update semantics. Fix pipeline and consider rebuild.
+
+8. **Summary**
    - Totals: unique IDs, duplicate count, documents with gaps, payload/id violations, number of tickers.  
    - **Interpretation:** Use as a single-page health check. Any non-zero duplicates or violations warrant investigation and possibly rebuild.
 

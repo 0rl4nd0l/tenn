@@ -19,7 +19,7 @@ This document defines the contract for backfill endpoints and pipeline parameter
 
 ### Parameters
 
-- **`years`** (int, default: API 1, worker 5): Lookback window in years from **now** (request time or pipeline run time). Discovery considers documents published between `now - years` and `now`. Changing `years` only changes which documents are discovered (and thus downloaded/processed); it does not alter or delete existing document rows or vector IDs. Existing document rows are deduplicated by `source_url`; re-running with the same or different `years` does not create duplicate document rows.
+- **`years`** (int, default: API 1, worker 5): Lookback window in years from **now** (request time or pipeline run time). Discovery considers documents published between `now - years` and `now`. Changing `years` only changes which documents are discovered (and thus downloaded/processed); it does not alter or delete existing document rows, logical vector IDs, or their deterministic physical Qdrant point-ID mapping. Existing document rows are deduplicated by `source_url`; re-running with the same or different `years` does not create duplicate document rows.
 - **`process_documents`** (bool): When true, after downloading each new PDF the pipeline runs extraction, chunking, embedding, and Qdrant upsert (and optional financial/risk DB writes). When false, only discovery and download run; existing documents are not reprocessed.
 - **Single-document `process_document` behavior:** The dedicated single-document path is still intended for re-processing downloaded documents, but it now self-heals one narrow state: if the local PDF is missing and the row still shows `pdf_sha256` empty, the backend first runs `download_pdf_for_document()` and then continues extraction. Rows with a non-empty marker and a missing file still fail loudly.
 - **Concurrency:** Script `full_history_ticker_sync.py` accepts `--concurrency N` (default 1). API/worker sync backfill use `BACKFILL_CONCURRENCY` (default 1). When N > 1, up to N documents are downloaded and processed in parallel per ticker; HTTP and Qdrant clients are reused for the run. See [09_worker_and_celery_contract.md](09_worker_and_celery_contract.md) for env details.
@@ -34,7 +34,7 @@ This document defines the contract for backfill endpoints and pipeline parameter
 ## Idempotency
 
 - Re-running backfill for the same ticker and `years` does not create duplicate document rows (deduplication by `source_url`).
-- Re-running `process_document` for the same document overwrites the same Qdrant points (deterministic IDs `document_id:chunk_index`) and updates the same financial/risk rows.
+- Re-running `process_document` for the same document overwrites the same Qdrant points (deterministic logical IDs `document_id:chunk_index`, with deterministic physical point-ID mapping) and updates the same financial/risk rows.
 - See [04_ingestion_pipeline.md](04_ingestion_pipeline.md) for details.
 
 ---
@@ -53,6 +53,6 @@ Single-ticker sync: `{"mode": "sync", **result}`. ASX20 sync: `{"mode": "sync", 
 
 ## Gotchas
 
-- **Changing `years`** affects which documents are in scope for discovery and processing only; it does not alter or delete existing document rows or vector IDs. To re-process already-ingested documents you need a separate mechanism (e.g. re-run with same `years` and `process_documents=true`; only already-present docs are skipped for download but can be explicitly reprocessed via a different path).
+- **Changing `years`** affects which documents are in scope for discovery and processing only; it does not alter or delete existing document rows, logical vector IDs, or physical point-ID mappings. To re-process already-ingested documents you need a separate mechanism (e.g. re-run with same `years` and `process_documents=true`; only already-present docs are skipped for download but can be explicitly reprocessed via a different path).
 - **Running with `process_documents=false`** then later with `true` does not auto-process documents that were only downloaded earlier. The second run only processes documents discovered in that run (new since the first run). To get full processing for a given lookback window, run once with `process_documents=true` for that window.
 - **Calling `POST /api/process/document/{document_id}` on a pending-download row** may now trigger the canonical PDF download first if `pdf_sha256` is still empty. That is a single-document recovery convenience, not a change to backfill semantics.
