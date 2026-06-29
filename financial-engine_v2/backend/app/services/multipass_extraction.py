@@ -6473,7 +6473,7 @@ def _apply_preferred_statement_text_source_payload(
 
     for page, lines in _statement_text_pages(
         sections,
-        ("consolidatedstatementofcashflows",),
+        ("consolidatedstatementofcashflows", "statementofcashflows"),
     ):
         recovered = _recover_cashflow_metrics_from_statement_text(lines, scale_for_text)
         if not recovered:

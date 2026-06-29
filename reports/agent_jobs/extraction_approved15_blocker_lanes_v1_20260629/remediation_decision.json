@@ -1,0 +1,29 @@
+{
+  "artifact_type": "approved15_blocker_remediation_decision_v1",
+  "implemented_fix": {
+    "files": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "lane": "A",
+    "summary": "Allow formal statementofcashflows heading in the existing statement-text cash-flow recovery path."
+  },
+  "not_selected": {
+    "B": "QBE is source-proven but requires a separate formal-statement revenue selection fix.",
+    "C": "DXS remains partial source proof and must not weaken mixed-scale fail-closed gate.",
+    "D": "BHP/MIN owner-attributable precedence is source-proven but a separate fix class.",
+    "E": "Ambiguous quarantine is policy/source-evidence review, not extractor remediation.",
+    "F": "Gate lane is validation only."
+  },
+  "scorecard_after_fix": {
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "not_evaluated_no_actual_payload": 18,
+      "present_wrong_value": 2
+    },
+    "gate_status": "fail",
+    "missing_expected_metric": 0,
+    "status": "PARTIAL"
+  },
+  "status": "PARTIAL"
+}

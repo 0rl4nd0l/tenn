@@ -1,0 +1,118 @@
+{
+  "after_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_evidence": 0,
+    "missing_expected_metric": 0,
+    "not_evaluated_no_actual_payload": 18,
+    "present_correct": 53,
+    "present_wrong_value": 2,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "after_scorecard": "reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/payload_scorecard_after_fix.json",
+  "artifact_type": "approved15_after_rms_cashflow_fix_payload_scorecard_delta_v1",
+  "before_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_evidence": 0,
+    "missing_expected_metric": 4,
+    "not_evaluated_no_actual_payload": 18,
+    "present_correct": 49,
+    "present_wrong_value": 2,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "before_scorecard": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/payload_scorecard_after_fix.json",
+  "changed_row_count": 4,
+  "changed_rows": [
+    {
+      "changed_fields": {
+        "actual_value": {
+          "after": -25239000.0,
+          "before": null
+        },
+        "reason": {
+          "after": "Actual payload matches expectation within tolerance",
+          "before": "Expected metric is absent from actual payload"
+        },
+        "result_class": {
+          "after": "present_correct",
+          "before": "missing_expected_metric"
+        },
+        "score": {
+          "after": 1.0,
+          "before": 0.0
+        }
+      },
+      "fixture_id": "rms_2025h1_appendix4d",
+      "metric_name": "capex"
+    },
+    {
+      "changed_fields": {
+        "actual_value": {
+          "after": -84747000.0,
+          "before": null
+        },
+        "reason": {
+          "after": "Actual payload matches expectation within tolerance",
+          "before": "Expected metric is absent from actual payload"
+        },
+        "result_class": {
+          "after": "present_correct",
+          "before": "missing_expected_metric"
+        },
+        "score": {
+          "after": 1.0,
+          "before": 0.0
+        }
+      },
+      "fixture_id": "rms_2025h1_appendix4d",
+      "metric_name": "financing_cf"
+    },
+    {
+      "changed_fields": {
+        "actual_value": {
+          "after": -211390000.0,
+          "before": null
+        },
+        "reason": {
+          "after": "Actual payload matches expectation within tolerance",
+          "before": "Expected metric is absent from actual payload"
+        },
+        "result_class": {
+          "after": "present_correct",
+          "before": "missing_expected_metric"
+        },
+        "score": {
+          "after": 1.0,
+          "before": 0.0
+        }
+      },
+      "fixture_id": "rms_2025h1_appendix4d",
+      "metric_name": "investing_cf"
+    },
+    {
+      "changed_fields": {
+        "actual_value": {
+          "after": 171179000.0,
+          "before": null
+        },
+        "reason": {
+          "after": "Actual payload matches expectation within tolerance",
+          "before": "Expected metric is absent from actual payload"
+        },
+        "result_class": {
+          "after": "present_correct",
+          "before": "missing_expected_metric"
+        },
+        "score": {
+          "after": 1.0,
+          "before": 0.0
+        }
+      },
+      "fixture_id": "rms_2025h1_appendix4d",
+      "metric_name": "operating_cf"
+    }
+  ]
+}

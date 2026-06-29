@@ -4992,6 +4992,64 @@ def test_statement_text_overlay_recovers_fragmented_full_statements_over_wrapper
     assert payload["provenance"]["operating_cf"].startswith("cashflow_statement:")
 
 
+def test_statement_text_overlay_recovers_rms_statement_of_cash_flows_heading():
+    """RMS uses a formal statement heading without the word consolidated."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+        },
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        [
+            {
+                "page": 23,
+                "text": "STATEMENT OF CASH FLOWS For the half-year ended 31 December 2025",
+            },
+            {"page": 23, "text": "Net cash provided by operating activities"},
+            {"page": 23, "text": "171,179"},
+            {"page": 23, "text": "Net cash used in investing activities"},
+            {"page": 23, "text": "(211,390)"},
+            {"page": 23, "text": "Payments for property, plant and equipment"},
+            {"page": 23, "text": "10"},
+            {"page": 23, "text": "(25,239)"},
+            {"page": 23, "text": "Net cash used in financing activities"},
+            {"page": 23, "text": "(84,747)"},
+        ],
+        scale="thousands",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["operating_cf"] == 171_179_000
+    assert payload["metrics"]["investing_cf"] == -211_390_000
+    assert payload["metrics"]["financing_cf"] == -84_747_000
+    assert payload["metrics"]["capex"] == -25_239_000
+    assert (
+        payload["row_refs"]["operating_cf"]
+        == "Net cash provided by operating activities"
+    )
+    assert payload["metric_source_scales"]["operating_cf"] == "thousands"
+    assert payload["metric_scale_sources"]["operating_cf"] == "source_text"
+
+
 def test_statement_text_overlay_replaces_ebitda_with_income_statement_profit_before_tax():
     """FMG-style source text should use profit before tax instead of EBITDA."""
     from app.services.multipass_extraction import (

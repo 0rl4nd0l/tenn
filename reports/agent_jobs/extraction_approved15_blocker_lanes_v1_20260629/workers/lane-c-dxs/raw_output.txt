@@ -1,0 +1,1 @@
+UNSUPPORTED_REMOTE_PERMISSION_ENFORCEMENT: evidence_only workers cannot use OPENCODE_SERVER_URL/--attach without proven remote readonly enforcement
