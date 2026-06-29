@@ -337,13 +337,14 @@ def run_embedding_stage(
         ensure_collection_fn(qc, qdrant_collection, vector_dimension)
         points: list[dict[str, Any]] = []
         for index, vector in enumerate(usable_vectors):
-            point_id = f"{doc_id_str}:{index}"
+            logical_vector_id = f"{doc_id_str}:{index}"
             payload = {
                 "document_id": doc_id_str,
                 "ticker": doc.ticker,
                 "doc_class": doc.doc_class,
                 "doc_subtype": doc.doc_subtype,
                 "chunk_index": index,
+                "logical_vector_id": logical_vector_id,
                 "title": doc.title,
                 "text": chunks[index],
             }
@@ -356,11 +357,11 @@ def run_embedding_stage(
                     reason or "payload validation failed",
                     payload=payload,
                     collection=qdrant_collection,
-                    point_id=point_id,
+                    point_id=logical_vector_id,
                     source=doc.source_url,
                 )
                 continue
-            points.append({"id": point_id, "vector": vector, "payload": payload})
+            points.append({"id": logical_vector_id, "vector": vector, "payload": payload})
         if points:
             delete_points_for_document_fn(qc, qdrant_collection, doc_id_str)
         upsert_result = dict(upsert_points_fn(qc, qdrant_collection, points) or {})

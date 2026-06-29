@@ -116,8 +116,9 @@ def main() -> None:
             points = []
             for i, (chunk, vector) in enumerate(zip(batch, vectors)):
                 chunk_idx = batch_start + i
-                point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{doc_id}:{chunk_idx}"))
                 canonical_doc_id = str(uuid.UUID(doc_id))
+                logical_vector_id = f"{canonical_doc_id}:{chunk_idx}"
+                point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, logical_vector_id))
                 points.append(
                     qmodels.PointStruct(
                         id=point_id,
@@ -130,6 +131,7 @@ def main() -> None:
                             "title": title or "",
                             "published_at": published_at or "",
                             "chunk_index": chunk_idx,
+                            "logical_vector_id": logical_vector_id,
                             "text": chunk,
                         },
                     )

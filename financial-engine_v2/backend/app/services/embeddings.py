@@ -92,6 +92,37 @@ def _is_canonical_document_id(value: Any) -> bool:
         return False
 
 
+def asx_logical_vector_id(document_id: Any, chunk_index: Any) -> str | None:
+    """Return the canonical logical vector ID for an ASX document chunk."""
+    document_id_str = str(document_id or "").strip().lower()
+    if not _is_canonical_document_id(document_id_str):
+        return None
+    try:
+        chunk_index_int = int(chunk_index)
+    except (TypeError, ValueError):
+        return None
+    return f"{document_id_str}:{chunk_index_int}"
+
+
+def coerce_qdrant_point_id(raw_id: Any) -> Any:
+    """Return the physical Qdrant point ID for a logical point identifier."""
+    if not isinstance(raw_id, str):
+        return raw_id
+    try:
+        uuid.UUID(raw_id)
+        return raw_id
+    except ValueError:
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, raw_id))
+
+
+def _resolve_logical_vector_id(point_id: Any, payload: dict[str, Any]) -> str:
+    for key in ("logical_vector_id", "chunk_id", "logical_point_id"):
+        value = payload.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return str(point_id)
+
+
 def validate_asx_docs_payload(
     payload: Any,
     *,
@@ -122,6 +153,10 @@ def validate_asx_docs_payload(
         int(chunk_index)
     except (TypeError, ValueError):
         return False, "chunk_index is not an integer"
+    expected_logical_id = asx_logical_vector_id(document_id, chunk_index)
+    logical_vector_id = payload.get("logical_vector_id")
+    if logical_vector_id not in (None, "") and str(logical_vector_id) != expected_logical_id:
+        return False, "logical_vector_id does not match document_id:chunk_index"
     return True, None
 
 
@@ -477,16 +512,8 @@ def delete_points_for_document(client: QdrantClient, collection: str, document_i
 
 
 def upsert_points(client: QdrantClient, collection: str, points: list[dict]) -> dict[str, int]:
-    is_local_mode = "qdrant_client.local." in type(getattr(client, "_client", None)).__module__
-
     def _coerce_id(raw_id: Any) -> Any:
-        if not isinstance(raw_id, str):
-            return raw_id
-        try:
-            uuid.UUID(raw_id)
-            return raw_id
-        except ValueError:
-            return str(uuid.uuid5(uuid.NAMESPACE_URL, raw_id))
+        return coerce_qdrant_point_id(raw_id)
 
     valid_points: list[qmodels.PointStruct] = []
     skipped_count = 0
@@ -513,24 +540,45 @@ def upsert_points(client: QdrantClient, collection: str, points: list[dict]) -> 
             log_rejected_payload("payload is not a dict", payload=payload, collection=collection, point_id=point_id)
             skipped_count += 1
             continue
+        payload_for_write = dict(payload)
+        logical_vector_id = _resolve_logical_vector_id(point_id, payload_for_write)
         if collection == settings.qdrant_collection:
-            is_valid, reason = validate_asx_docs_payload(payload, mode="write")
-            if not is_valid:
+            expected_logical_id = asx_logical_vector_id(
+                payload_for_write.get("document_id"),
+                payload_for_write.get("chunk_index"),
+            )
+            if expected_logical_id and str(point_id) != expected_logical_id:
                 log_invalid_asx_docs_payload(
-                    reason or "payload validation failed",
-                    payload=payload,
+                    "point id does not match document_id:chunk_index",
+                    payload=payload_for_write,
                     collection=collection,
                     point_id=point_id,
                     action="skipped_write",
                 )
                 skipped_count += 1
                 continue
+            if expected_logical_id:
+                logical_vector_id = expected_logical_id
+            payload_for_write.setdefault("logical_vector_id", logical_vector_id)
+            is_valid, reason = validate_asx_docs_payload(payload_for_write, mode="write")
+            if not is_valid:
+                log_invalid_asx_docs_payload(
+                    reason or "payload validation failed",
+                    payload=payload_for_write,
+                    collection=collection,
+                    point_id=point_id,
+                    action="skipped_write",
+                )
+                skipped_count += 1
+                continue
+        else:
+            payload_for_write.setdefault("logical_vector_id", logical_vector_id)
 
         valid_points.append(
             qmodels.PointStruct(
                 id=_coerce_id(point_id),
                 vector=vector,
-                payload=payload,
+                payload=payload_for_write,
             )
         )
 

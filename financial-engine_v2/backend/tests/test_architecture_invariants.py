@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from qdrant_client.http import models as qmodels
 
-from app.services.embeddings import ensure_collection
+from app.services.embeddings import coerce_qdrant_point_id, ensure_collection
 from app.services import pipeline
 from app.services.pipeline_stages import run_embedding_stage
 
@@ -135,6 +135,7 @@ def test_no_uuid4_usage_inside_process_document():
 
 def test_vector_ids_use_document_id_and_chunk_index():
     captured_ids: list[str] = []
+    captured_payloads: list[dict] = []
 
     class DummyDoc:
         def __init__(self, doc_id: uuid.UUID):
@@ -163,6 +164,7 @@ def test_vector_ids_use_document_id_and_chunk_index():
     def fake_upsert_points(client, collection: str, points: list[dict]) -> None:
         for p in points:
             captured_ids.append(p["id"])
+            captured_payloads.append(dict(p["payload"]))
 
     run_embedding_stage(
         chunks=["chunk-0", "chunk-1"],
@@ -202,6 +204,7 @@ def test_vector_ids_use_document_id_and_chunk_index():
         assert not uuid_pattern.fullmatch(point_id), (
             "Vector ID should not be a bare UUID."
         )
+        assert captured_payloads[idx]["logical_vector_id"] == point_id
 
 
 def test_process_document_integration_vector_id_and_payload():
@@ -251,6 +254,7 @@ def test_process_document_integration_vector_id_and_payload():
         "doc_class",
         "doc_subtype",
         "chunk_index",
+        "logical_vector_id",
         "title",
     }
 
@@ -270,6 +274,7 @@ def test_process_document_integration_vector_id_and_payload():
         assert payload["document_id"] == expected_doc_id_str
         assert payload["ticker"] == "XYZ"
         assert payload["chunk_index"] == idx
+        assert payload["logical_vector_id"] == point_id
 
 
 def test_vector_id_format_matches_document_id_contract():
@@ -285,6 +290,15 @@ def test_vector_id_format_matches_document_id_contract():
     assert doc_part == sample_id
     uuid.UUID(doc_part)  # must not raise
     assert chunk_part.isdigit()
+
+
+def test_physical_qdrant_point_id_is_deterministic_uuid5_mapping():
+    logical_vector_id = "12345678-1234-4234-8234-123456789abc:0"
+
+    physical_point_id = coerce_qdrant_point_id(logical_vector_id)
+
+    assert physical_point_id == str(uuid.uuid5(uuid.NAMESPACE_URL, logical_vector_id))
+    assert physical_point_id != logical_vector_id
 
 
 def test_ensure_collection_raises_on_dimension_mismatch():
