@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex repo hygiene collision scanner daily
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=false
+Unit=tenn-codex-repo-hygiene.service
+
+[Install]
+WantedBy=timers.target

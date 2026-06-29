@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex bug and regression finder daily
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+Persistent=false
+Unit=tenn-codex-bug-regression.service
+
+[Install]
+WantedBy=timers.target
