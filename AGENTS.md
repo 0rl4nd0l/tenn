@@ -27,6 +27,16 @@ git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
 ```
 
+- Before editing, staging, committing, pushing, starting services, or mutating
+  runtime/data state, run:
+
+```bash
+python3 scripts/tenn_dev_status.py
+git status --short --untracked-files=all
+```
+
+- If `HEAD` or worktree state changes unexpectedly mid-run, stop mutation and
+  run read-only forensics before continuing.
 - Runtime paths are environment-specific. Do not assume `/workspace`,
   `/home/l4nd0`, NVMe, venv, Docker, services, GPUs, or DB access without
   checking.
@@ -98,6 +108,10 @@ Do not mutate any of these without explicit approval for that exact action:
 
 Preserve unrelated dirty or untracked files. Work with existing dirt instead of
 cleaning it.
+
+Treat PreToolUse hook failures and missing local tooling as separate
+control-plane risks: record them, route them explicitly, and do not silently
+ignore them.
 
 ### Runtime Functionality Proof
 
@@ -199,6 +213,8 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
 ## Implementation Discipline
 
 - Prefer the smallest readable, testable change. Avoid opportunistic refactors.
+- Keep one logical bundle per commit. Do not mix unrelated dirty work into a
+  task, validation result, commit, or PR.
 - Use one primary lane accepted by local tooling. If doing Repo Hygiene, use an
   accepted primary lane such as `Evaluation` or `Reporting` and list
   `Repo Hygiene` as supporting.
@@ -247,6 +263,8 @@ optional, continue only with clearly labeled useful read-only work.
   only when justified.
 - Never claim validation passed without the command, exit status, and relevant
   output.
+- Closeout must include validation evidence and current
+  `git status --short --untracked-files=all` output.
 - Final reports should list files touched, files intentionally not touched,
   commands run, validation status, unsafe actions avoided, blocked items,
   ignored/untracked artifacts, and the next recommended prompt.
