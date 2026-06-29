@@ -4938,6 +4938,68 @@ def test_statement_text_overlay_replaces_ebitda_with_income_statement_profit_bef
     assert payload["provenance"]["ebit"] == "income_statement:page_21:Profit before tax"
 
 
+def test_statement_text_overlay_replaces_narrative_future_sales_revenue():
+    """CSL-style future-sales narrative is not a current-period revenue row."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 202_000_000,
+            "ebit": 577_000_000,
+            "np_attributable": 286_000_000,
+        },
+        "revenue": 202_000_000,
+        "row_refs": {
+            "revenue": (
+                "December . With TDAPA scheduled to expire in December , "
+                "management expects a material decline in future sales revenue,"
+            )
+        },
+        "provenance": {
+            "revenue": (
+                "income_statement:page_22:December . With TDAPA scheduled "
+                "to expire in December , management expects a material decline "
+                "in future sales revenue,"
+            )
+        },
+    }
+    sections = [
+        {"page": 11, "text": "Consolidated Statement of Profit or Loss"},
+        {"page": 11, "text": "For the half year ended 31 December 2025"},
+        {"page": 11, "text": "Revenue"},
+        {"page": 11, "text": "8,332"},
+        {"page": 11, "text": "7,988"},
+        {"page": 11, "text": "Operating profit (EBIT)"},
+        {"page": 11, "text": "577"},
+        {"page": 11, "text": "2,008"},
+        {"page": 11, "text": "Net profit for the period"},
+        {"page": 11, "text": "286"},
+        {"page": 11, "text": "1,826"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 8_332_000_000
+    assert payload["revenue"] == 8_332_000_000
+    assert payload["row_refs"]["revenue"] == "Revenue"
+    assert payload["provenance"]["revenue"] == "income_statement:page_11:Revenue"
+
+
 def test_pdf_text_fallback_replaces_rejected_ebitda_with_profit_before_tax(
     monkeypatch, tmp_path
 ):
@@ -5946,6 +6008,44 @@ def test_shares_prose_recovers_dual_listed_ordinary_shares_on_issue():
 
     assert value == 5_057_000_000
     assert provenance.startswith("prose_note:page_53:")
+
+
+def test_shares_prose_recovers_split_number_of_shares_on_issue():
+    """SEG-style PyMuPDF sections can split the label and share count."""
+    from app.services.multipass_extraction import _extract_shares_from_prose
+
+    value, provenance = _extract_shares_from_prose(
+        [
+            {"page": 24, "text": "6. Issued Capital"},
+            {"page": 24, "text": "Number of shares on issue"},
+            {"page": 24, "text": "280,874,770"},
+            {"page": 24, "text": "Fully Paid Ordinary Share Capital"},
+        ]
+    )
+
+    assert value == 280_874_770
+    assert provenance.startswith("prose_note:page_24:")
+
+
+def test_shares_prose_rejects_split_weighted_average_shares():
+    """Weighted-average EPS denominators are not period-end shares outstanding."""
+    from app.services.multipass_extraction import _extract_shares_from_prose
+
+    value, provenance = _extract_shares_from_prose(
+        [
+            {
+                "page": 21,
+                "text": (
+                    "Weighted average number of ordinary shares on issue during "
+                    "the financial period"
+                ),
+            },
+            {"page": 21, "text": "280,874,770 shares"},
+        ]
+    )
+
+    assert value is None
+    assert provenance == ""
 
 
 def test_pass3a_shares_scaling_doc_level_fallback():

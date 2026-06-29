@@ -1,0 +1,25 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "view",
+    "457",
+    "--json",
+    "number,title,state,headRefName,baseRefName,updatedAt,url,mergeCommit"
+  ],
+  "json": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "headRefName": "safe/extraction-tdd-dxs-canonical-replay-v1-20260626",
+    "mergeCommit": {
+      "oid": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d"
+    },
+    "number": 457,
+    "state": "MERGED",
+    "title": "Fix confirmed metric replay extraction blockers",
+    "updatedAt": "2026-06-28T03:14:58Z",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/457"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"baseRefName\":\"migration/clean-runtime-baseline-reconstruct-v1\",\"headRefName\":\"safe/extraction-tdd-dxs-canonical-replay-v1-20260626\",\"mergeCommit\":{\"oid\":\"7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d\"},\"number\":457,\"state\":\"MERGED\",\"title\":\"Fix confirmed metric replay extraction blockers\",\"updatedAt\":\"2026-06-28T03:14:58Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/pull/457\"}\n"
+}

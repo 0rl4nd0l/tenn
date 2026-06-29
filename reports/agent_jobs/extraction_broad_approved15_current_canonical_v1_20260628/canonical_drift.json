@@ -1,0 +1,67 @@
+{
+  "artifact_type": "canonical_drift_audit_v2",
+  "checked_at": "2026-06-28T07:43:25Z",
+  "fetch": {
+    "command": "git fetch origin migration/clean-runtime-baseline-reconstruct-v1",
+    "exit_status": 0
+  },
+  "worktree_head": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d",
+  "latest_origin_head": "87e49247a0ddbf5e35fd6b7c2b61ea5a1fe9d74c",
+  "origin_ref": {
+    "command": "git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
+    "exit_status": 0,
+    "stdout": "87e49247a0ddbf5e35fd6b7c2b61ea5a1fe9d74c\trefs/heads/migration/clean-runtime-baseline-reconstruct-v1"
+  },
+  "merge_base": {
+    "command": "git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1",
+    "exit_status": 0,
+    "stdout": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d"
+  },
+  "rev_list_left_right_count": {
+    "command": "git rev-list --left-right --count HEAD...origin/migration/clean-runtime-baseline-reconstruct-v1",
+    "exit_status": 0,
+    "stdout": "0\t7",
+    "local_commits_not_on_origin": 0,
+    "origin_commits_not_in_worktree_head": 7
+  },
+  "extraction_scope_diff": {
+    "command": "git diff --name-status HEAD..origin/migration/clean-runtime-baseline-reconstruct-v1 -- financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py scripts/extraction_no_write_replay.py financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/eval_fixtures financial-engine_v2/backend/tests/eval_source_assets",
+    "exit_status": 0,
+    "changed_files": [],
+    "impact": "NO_EXTRACTION_SCOPE_DRIFT"
+  },
+  "all_upstream_changed_files": [
+    "cockpit-ui/components/cockpit/chat/chat-screen.test.tsx",
+    "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+    "docs/agent_tasks/code_review_withapikey_test_mocks_v1_20260628.md",
+    "docs/agent_tasks/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628.md",
+    "financial-engine_v2/backend/app/api/auth.py",
+    "financial-engine_v2/backend/app/api/routes.py",
+    "financial-engine_v2/backend/app/routes/chat.py",
+    "financial-engine_v2/backend/tests/test_chat_route.py",
+    "financial-engine_v2/backend/tests/test_local_api_key.py",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/PR_BODY.md",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/README.md",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/REVIEW.md",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/VALIDATION.md",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/diff-check.json",
+    "reports/agent_jobs/code_review_withapikey_test_mocks_v1_20260628/status.json",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/PR_BODY.md",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/README.md",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/REVIEW.md",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/VALIDATION.md",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/diff-check.json",
+    "reports/agent_jobs/issue249_legacy_chat_route_auth_guard_current_base_v1_20260628/status.json"
+  ],
+  "upstream_commits_after_worktree_head": [
+    "87e49247 test(cockpit): restore api client mock helper",
+    "1f7edc14 Merge remote-tracking branch 'origin/migration/clean-runtime-baseline-reconstruct-v1' into safe/code-review-withapikey-test-mocks-v1-20260628",
+    "129c2996 fix(chat): require api key for legacy route",
+    "c3081c50 Merge remote-tracking branch 'origin/migration/clean-runtime-baseline-reconstruct-v1' into safe/issue249-legacy-chat-route-guard-current-base-v2-20260627",
+    "1a8c5460 Merge remote-tracking branch 'origin/migration/clean-runtime-baseline-reconstruct-v1' into safe/code-review-withapikey-test-mocks-v1-20260628",
+    "63c0c33b fix(chat): require api key for legacy route",
+    "62f87fea test(cockpit): restore api client mock helper"
+  ],
+  "decision": "EXTRACTION_SCOPE_EVIDENCE_STILL_APPLIES",
+  "reason": "Latest origin advanced after the replay/fix report, but the fetched drift does not modify the extraction service, focused extraction test file, no-write replay runner, scorecard builder, confirmed-metric fixtures, or source-asset map used by this lane. No merge, rebase, branch cleanup, GitHub write, or runtime/data mutation was performed."
+}

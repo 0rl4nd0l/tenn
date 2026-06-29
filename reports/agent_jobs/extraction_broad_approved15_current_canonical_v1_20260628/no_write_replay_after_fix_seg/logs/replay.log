@@ -1,0 +1,31 @@
+llm_ready {"base_url": "http://127.0.0.1:8001/v1", "has_api_key": true, "models_elapsed_s": 0.002, "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782629440, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782629440, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l", "models_status_code": 200, "write_sentinels": ["app.core.db.SessionLocal", "app.services.embeddings.QdrantClient", "app.services.pipeline.process_document"]}
+case_start ANZ_H_2025-03-31 timeout_seconds=1200
+case_done ANZ_H_2025-03-31 status=failed error=validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high
+case_start AZJ_H_2025-12-31 timeout_seconds=1200
+case_done AZJ_H_2025-12-31 status=ok error=None
+case_start BHP_A_2021-06-30 timeout_seconds=1200
+case_done BHP_A_2021-06-30 status=ok_low_confidence error=None
+case_start CSL_H_2025-12-31 timeout_seconds=1200
+case_done CSL_H_2025-12-31 status=failed error=validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high
+case_start DXS_H_2025-12-31 timeout_seconds=1200
+case_done DXS_H_2025-12-31 status=failed error=validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale
+case_start EQR_Q_2025-12-31 timeout_seconds=1200
+case_done EQR_Q_2025-12-31 status=ok error=None
+case_start FMG_H_2025-12-31 timeout_seconds=1200
+case_done FMG_H_2025-12-31 status=ok_low_confidence error=None
+case_start GRE_Q_2024-12-31 timeout_seconds=1200
+case_done GRE_Q_2024-12-31 status=ok error=None
+case_start MIN_H_2025-12-31 timeout_seconds=1200
+case_done MIN_H_2025-12-31 status=ok error=None
+case_start QBE_H_2025-06-30 timeout_seconds=1200
+case_done QBE_H_2025-06-30 status=failed error=validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high
+case_start RMS_H_2025-12-31 timeout_seconds=1200
+case_done RMS_H_2025-12-31 status=ok error=None
+case_start SEG_H_2025-12-31 timeout_seconds=1200
+case_done SEG_H_2025-12-31 status=ok error=None
+case_start TCL_H_2025-12-31 timeout_seconds=1200
+case_done TCL_H_2025-12-31 status=ok error=None
+case_start TLS_H_2025-12-31 timeout_seconds=1200
+case_done TLS_H_2025-12-31 status=ok error=None
+case_start WOW_H_2026-01-04 timeout_seconds=1200
+case_done WOW_H_2026-01-04 status=ok error=None

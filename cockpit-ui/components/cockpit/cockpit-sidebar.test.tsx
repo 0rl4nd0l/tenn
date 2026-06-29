@@ -20,6 +20,7 @@ vi.mock('@/lib/api-client', () => ({
   createChatSessionRemote: vi.fn(async () => undefined),
   deleteChatSessionRemote: vi.fn(async () => undefined),
   listChatSessions: vi.fn(),
+  withApiKey: vi.fn(() => ({ 'X-API-Key': 'test-key' })),
 }))
 
 vi.mock('@/lib/chat-session-store', () => ({

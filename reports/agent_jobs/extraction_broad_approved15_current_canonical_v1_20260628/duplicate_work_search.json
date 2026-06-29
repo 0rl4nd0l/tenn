@@ -1,0 +1,35 @@
+{
+  "command": [
+    "python3",
+    "scripts/agent_task_ledger.py",
+    "--repo-root",
+    ".",
+    "search",
+    "--text",
+    "extraction broad approved-15 current-canonical replay scorecard issue #97"
+  ],
+  "json": {
+    "data_missing": [],
+    "duplicate_work_classification": "UNKNOWN_ASK",
+    "issues": [],
+    "matches": [],
+    "ok": true,
+    "sources_checked": [
+      {
+        "entry_count": 268,
+        "exists": true,
+        "kind": "live",
+        "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+      },
+      {
+        "entry_count": 2,
+        "exists": true,
+        "kind": "committed",
+        "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_registry/task_ledger/LEDGER.jsonl"
+      }
+    ]
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\n  \"data_missing\": [],\n  \"duplicate_work_classification\": \"UNKNOWN_ASK\",\n  \"issues\": [],\n  \"matches\": [],\n  \"ok\": true,\n  \"sources_checked\": [\n    {\n      \"entry_count\": 268,\n      \"exists\": true,\n      \"kind\": \"live\",\n      \"path\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl\"\n    },\n    {\n      \"entry_count\": 2,\n      \"exists\": true,\n      \"kind\": \"committed\",\n      \"path\": \"/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_registry/task_ledger/LEDGER.jsonl\"\n    }\n  ]\n}\n"
+}

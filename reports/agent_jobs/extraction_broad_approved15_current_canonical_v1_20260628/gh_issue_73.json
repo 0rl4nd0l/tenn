@@ -1,0 +1,70 @@
+{
+  "command": [
+    "gh",
+    "issue",
+    "view",
+    "73",
+    "--json",
+    "number,title,state,updatedAt,labels,url"
+  ],
+  "json": {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qjg",
+        "name": "task:codex-ready"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "FBCA04",
+        "description": "State: follow-up issue, task, or validation is required.",
+        "id": "LA_kwDORRPz_M8AAAACklh8Ew",
+        "name": "state:needs-followup"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "number": 73,
+    "state": "OPEN",
+    "title": "[Financial Truth] ASX evidence-bound extraction redesign parent tracker",
+    "updatedAt": "2026-06-08T11:22:14Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/73"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"labels\":[{\"id\":\"LA_kwDORRPz_M8AAAACkj1qig\",\"name\":\"mode:audit\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkj1qiw\",\"name\":\"risk:high\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkj1qjg\",\"name\":\"task:codex-ready\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkj1xGw\",\"name\":\"lane:evaluation\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkkZvEg\",\"name\":\"lane:financial-truth\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh5Yw\",\"name\":\"priority:p1\",\"description\":\"Priority: P1 important near-term work.\",\"color\":\"D93F0B\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh8Ew\",\"name\":\"state:needs-followup\",\"description\":\"State: follow-up issue, task, or validation is required.\",\"color\":\"FBCA04\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh-HA\",\"name\":\"type:validation-gap\",\"description\":\"Type: missing or insufficient validation coverage.\",\"color\":\"FBCA04\"}],\"number\":73,\"state\":\"OPEN\",\"title\":\"[Financial Truth] ASX evidence-bound extraction redesign parent tracker\",\"updatedAt\":\"2026-06-08T11:22:14Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/issues/73\"}\n"
+}
