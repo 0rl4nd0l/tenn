@@ -96,6 +96,23 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 - If cwd is not a valid Tenn git worktree, stop or create a fresh sibling
   worktree from current canonical; do not repair or clean the wrong path.
 
+### Risk-Based Execution Lanes
+
+- `FAST_PROGRESS`: small docs/control-plane fixes or narrow code fixes with
+  exact files, no runtime/data/extraction/GitHub/destructive boundary, and no
+  stale/dirty/duplicate-work blocker. Use summarized guard output, a small task
+  card when editing, focused validation, and a direct closeout. Do not add a
+  review board, handoff, or workers unless a real blocker appears.
+- `STANDARD_FIX`: normal bounded implementation with task card, guard,
+  allowed-files check, focused validation, docs impact, and final diff review.
+- `FULL_GUARD`: stale path, dirty overlap, duplicate-work risk, merge/parking,
+  owner-boundary, architecture, broad cleanup, or high-collision work. Use full
+  guard fallback detail and stop on unresolved risk.
+- `RUNTIME_PROOF`: daemon, runtime, ingestion, extraction, automation,
+  collector, scheduler, service, or pipeline functionality claims. Use the
+  Runtime Functionality Proof table before any `DONE`/working/functional claim.
+- If lane eligibility is uncertain, escalate to `FULL_GUARD`.
+
 ### Advanced-Code And Stale-Work Policy
 
 - Search for more advanced existing work before implementing.
@@ -218,6 +235,11 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 
 - Run the portable guard before relying on repo-local Tenn scripts:
   `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json`.
+  This default uses summarized branch/worktree fallback output for fast/small
+  work. Add `--fallback-detail full` for `FULL_GUARD` audits, merge/parking
+  decisions, high-risk duplicate-work searches, or broad hygiene work.
+  If the installed host runner has not yet picked up this option, use the
+  repo-backed fallback from a current Tenn control-plane checkout.
   From a Tenn control-plane checkout, the repo-backed fallback is
   `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json`.
   Missing repo-local `scripts/agent_*` files in runtime/product repos is not

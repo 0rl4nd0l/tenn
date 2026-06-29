@@ -185,6 +185,65 @@ class TennGitGuardTest(unittest.TestCase):
             self.assertTrue(payload["stop_reimplementation"])
             self.assertEqual(payload["final_decision"], "block")
 
+    def test_summary_fallback_caps_branch_and_worktree_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(base)
+            for index in range(4):
+                run(["git", "branch", f"topic-branch-{index}"], cwd=repo)
+                run(
+                    [
+                        "git",
+                        "worktree",
+                        "add",
+                        "-b",
+                        f"topic-worktree-{index}",
+                        str(base / f"worktree-{index}"),
+                        "HEAD",
+                    ],
+                    cwd=repo,
+                )
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="topic",
+                fallback_sample_limit=2,
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            fallback = payload["fallback_sources_checked"]
+            self.assertEqual(fallback["detail"], "summary")
+            branches = fallback["local_and_remote_branches"]
+            worktrees = fallback["worktrees"]
+            self.assertIsInstance(branches, dict)
+            self.assertIsInstance(worktrees, dict)
+            self.assertGreater(branches["count"], 2)
+            self.assertGreater(worktrees["count"], 2)
+            self.assertLessEqual(len(branches["sample"]), 2)
+            self.assertLessEqual(len(worktrees["sample"]), 2)
+            self.assertTrue(branches["truncated"])
+            self.assertTrue(worktrees["truncated"])
+            self.assertIn("dirty_status_rows", fallback)
+
+    def test_full_fallback_detail_preserves_branch_and_worktree_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(base)
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="topic",
+                fallback_detail="full",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            fallback = payload["fallback_sources_checked"]
+            self.assertEqual(fallback["detail"], "full")
+            self.assertIsInstance(fallback["local_and_remote_branches"], list)
+            self.assertIsInstance(fallback["worktrees"], list)
+
     def test_branch_not_based_on_current_canonical_blocks_as_stale_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)

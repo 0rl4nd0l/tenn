@@ -28,6 +28,23 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
   --json
 ```
 
+Default preflight uses summarized branch/worktree fallback output so small
+fixes do not burn context on thousands of stale rows. Use full fallback detail
+only when the decision depends on broad branch/worktree evidence:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
+  preflight \
+  --repo-root <repo-root> \
+  --topic "<topic-or-path>" \
+  --fallback-detail full \
+  --json
+```
+
+If the installed host copy rejects `--fallback-detail` or still emits full
+fallback rows by default, run the repo-backed fallback from a current Tenn
+control-plane checkout until host skills are refreshed.
+
 From a repo-backed Tenn control-plane checkout:
 
 ```bash
@@ -74,6 +91,10 @@ git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 ```
+
+The default preflight is suitable for `FAST_PROGRESS` and `STANDARD_FIX`. Add
+`--fallback-detail full` for `FULL_GUARD`, merge/parking, broad cleanup,
+owner-boundary, or high-risk duplicate-work decisions.
 
 If the installed host skill path is unavailable inside a control-plane checkout,
 use:

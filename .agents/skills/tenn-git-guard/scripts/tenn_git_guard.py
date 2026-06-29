@@ -19,6 +19,8 @@ from typing import Any, Mapping, Sequence
 
 
 DATA_MISSING = "DATA_MISSING"
+DEFAULT_FALLBACK_DETAIL = "summary"
+DEFAULT_FALLBACK_SAMPLE_LIMIT = 20
 REQUIRED_CONTROL_PLANE_FILES = (
     "scripts/agent_job_registry.py",
     "scripts/agent_task_ledger.py",
@@ -525,18 +527,59 @@ def safe_count_paths(root: Path, relative: str) -> dict[str, Any]:
     }
 
 
-def fallback_sources(repo_root: Path, topic: str | None) -> dict[str, Any]:
+def summarize_lines(
+    rows: Sequence[str],
+    *,
+    topic: str | None,
+    limit: int = DEFAULT_FALLBACK_SAMPLE_LIMIT,
+) -> dict[str, Any]:
+    tokens = topic_tokens(topic)
+    matched = [
+        row
+        for row in rows
+        if tokens and any(token in row.lower() for token in tokens)
+    ]
+    selected: list[str] = []
+    for row in [*matched, *rows]:
+        if row in selected:
+            continue
+        selected.append(row)
+        if len(selected) >= limit:
+            break
+    return {
+        "count": len(rows),
+        "sample_limit": limit,
+        "sample": selected,
+        "matched_sample_count": min(len(matched), limit),
+        "truncated": len(rows) > len(selected),
+    }
+
+
+def fallback_sources(
+    repo_root: Path,
+    topic: str | None,
+    *,
+    detail: str = DEFAULT_FALLBACK_DETAIL,
+    sample_limit: int = DEFAULT_FALLBACK_SAMPLE_LIMIT,
+) -> dict[str, Any]:
     branches = git_command(repo_root, "branch", "-a")
     worktrees = git_command(repo_root, "worktree", "list", "--porcelain")
     status = git_command(repo_root, "status", "--short", "--untracked-files=all")
+    branch_rows = branches["stdout"].splitlines() if branches["returncode"] == 0 else []
+    worktree_rows = worktrees["stdout"].splitlines() if worktrees["returncode"] == 0 else []
+    if detail == "full":
+        branch_payload: Any = branch_rows
+        worktree_payload: Any = worktree_rows
+    else:
+        branch_payload = summarize_lines(branch_rows, topic=topic, limit=sample_limit)
+        worktree_payload = summarize_lines(worktree_rows, topic=topic, limit=sample_limit)
     return {
         "topic": topic,
+        "detail": detail,
         "task_cards": safe_count_paths(repo_root, "docs/agent_tasks"),
         "reports": safe_count_paths(repo_root, "reports/agent_jobs"),
-        "local_and_remote_branches": branches["stdout"].splitlines()
-        if branches["returncode"] == 0
-        else [],
-        "worktrees": worktrees["stdout"].splitlines() if worktrees["returncode"] == 0 else [],
+        "local_and_remote_branches": branch_payload,
+        "worktrees": worktree_payload,
         "dirty_status_rows": status["stdout"].splitlines() if status["returncode"] == 0 else [],
     }
 
@@ -547,6 +590,8 @@ def preflight(
     topic: str | None = None,
     audit_paths: Sequence[Path] | None = None,
     env: Mapping[str, str] | None = None,
+    fallback_detail: str = DEFAULT_FALLBACK_DETAIL,
+    fallback_sample_limit: int = DEFAULT_FALLBACK_SAMPLE_LIMIT,
 ) -> dict[str, Any]:
     env = dict(env or os.environ)
     repo_root = repo_root.expanduser().resolve()
@@ -593,7 +638,12 @@ def preflight(
         env=env,
         topic=topic,
     )
-    fallback = fallback_sources(repo_root, topic)
+    fallback = fallback_sources(
+        repo_root,
+        topic,
+        detail=fallback_detail,
+        sample_limit=fallback_sample_limit,
+    )
     path_ownership = path_ownership_for_path(
         repo_root,
         topic=topic,
@@ -729,6 +779,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     preflight_parser.add_argument("--repo-root", required=True, type=Path)
     preflight_parser.add_argument("--topic", default=None)
     preflight_parser.add_argument("--audit-path", action="append", type=Path, default=[])
+    preflight_parser.add_argument(
+        "--fallback-detail",
+        choices=("summary", "full"),
+        default=DEFAULT_FALLBACK_DETAIL,
+        help="Use summary for fast/small work; use full for hygiene, parking, merge, or deep duplicate-work audits.",
+    )
+    preflight_parser.add_argument(
+        "--fallback-sample-limit",
+        type=int,
+        default=DEFAULT_FALLBACK_SAMPLE_LIMIT,
+        help="Maximum branch/worktree fallback rows retained in summary mode.",
+    )
     preflight_parser.add_argument("--json", action="store_true")
     return parser.parse_args(argv)
 
@@ -736,7 +798,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     if args.command == "preflight":
-        payload = preflight(repo_root=args.repo_root, topic=args.topic, audit_paths=args.audit_path)
+        payload = preflight(
+            repo_root=args.repo_root,
+            topic=args.topic,
+            audit_paths=args.audit_path,
+            fallback_detail=args.fallback_detail,
+            fallback_sample_limit=max(1, args.fallback_sample_limit),
+        )
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True, default=str))
         else:
