@@ -22,7 +22,33 @@ Read docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md when path owners
 Read .agents/skills/<skill>/SKILL.md fully and follow it.
 ```
 
-First preflight command:
+## Start And Closeout Gates
+
+Start with Dev Status:
+
+```bash
+python3 scripts/tenn_dev_status.py
+git status --short --untracked-files=all
+```
+
+If Dev Status reports a blocked, stale, dirty, or unexpected state, stop before
+editing and report `STATE` plus `NEXT_SAFE_ACTION`. If HEAD or the worktree
+moves unexpectedly during a run, stop mutation and run read-only forensics.
+
+Then use the relevant task card and guard checks, keep one logical bundle per
+commit, and preserve unrelated work. End with Done Gate:
+
+```text
+docs/dev_flow/DONE_GATE_V0.md
+docs/dev_flow/templates/DONE_GATE_EVIDENCE_PACKET.md
+```
+
+Do not claim done without evidence. The closeout packet must restate intent,
+prove scope and `allowed_files`, list changed files, record validation
+commands/results, name risks/blockers/owner decisions, capture git status, and
+give the next safe action.
+
+Portable git guard preflight:
 
 ```bash
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
