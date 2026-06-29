@@ -16,6 +16,7 @@ allowed_files:
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/DECISIONS.md
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/VALIDATION.md
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/NEXT_GOAL.md
+  - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/DONE_GATE_PACKET.md
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/diff-check.json
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/guard_preflight.json
   - reports/agent_jobs/extraction_qbe_revenue_selection_v1_20260629/registry_active_jobs.json
@@ -86,13 +87,22 @@ approved-15 scorecard/gate, and stop `PARTIAL` unless fully unblocked.
 ## Scope
 
 - Worktree:
-  `/home/l4nd0/tenn-extraction-qbe-revenue-selection-v1-20260629`
-- Branch: `safe/extraction-qbe-revenue-selection-v1-20260629`
+  `/home/l4nd0/tenn`
+- Branch: `local/home-tenn-canonical-current-v3-20260629`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1` at
-  `9fdee4cdb7fbce3d925ba7d5205da75c35d59295`
+  `ca424a2835094de40c366a36d4bb0bf04cd8246a`
 - Handoff:
   `/home/l4nd0/tenn-extraction-approved15-blocker-lanes-v1-20260629/reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/handoff/HANDOFF.md`
 - Selected lane: QBE formal-statement revenue selection.
+
+## Retarget Note
+
+The originally named task worktree
+`/home/l4nd0/tenn-extraction-qbe-revenue-selection-v1-20260629` is stale at
+`9e84baa54f740df92c32d89c42861245b60f2b0a` and guard-blocked. The live
+replacement implementation surface is `/home/l4nd0/tenn`, which Dev Status
+reports as `CLEAN` and the portable guard reports as `VALID_TASK_WORKTREE` at
+canonical head `ca424a2835094de40c366a36d4bb0bf04cd8246a`.
 
 ## Current-Origin Note
 

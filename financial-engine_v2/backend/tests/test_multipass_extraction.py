@@ -4910,6 +4910,71 @@ def test_statement_text_overlay_rejects_financial_report_contents_page():
     )
 
 
+def test_statement_text_overlay_rejects_spaced_qbe_contents_page():
+    """QBE contents pages can push note markers beyond the first text window."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"revenue": None, "ebit": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+    contents_page = [
+        {"page": 17, "text": "Financial statements"},
+        {"page": 17, "text": "Consolidated statement of comprehensive income 14"},
+        {"page": 17, "text": "Consolidated balance sheet 15"},
+        {"page": 17, "text": "Consolidated statement of changes in equity 16"},
+        {"page": 17, "text": "Consolidated statement of cash flows 17"},
+    ]
+    contents_page.extend(
+        {"page": 17, "text": f"contents spacer {index}"} for index in range(45)
+    )
+    contents_page.extend(
+        [
+            {"page": 17, "text": "Notes to the financial statements"},
+            {"page": 17, "text": "2. Underwriting activities 22"},
+            {"page": 17, "text": "2.1 Insurance revenue"},
+            {"page": 17, "text": "22"},
+        ]
+    )
+    sections = contents_page + [
+        {"page": 18, "text": "Consolidated statement of comprehensive income"},
+        {"page": 18, "text": "Insurance revenue"},
+        {"page": 18, "text": "2.1"},
+        {"page": 18, "text": "10,875"},
+        {"page": 18, "text": "10,436"},
+        {"page": 18, "text": "Profit before income tax"},
+        {"page": 18, "text": "1,334"},
+        {"page": 18, "text": "1,051"},
+        {"page": 18, "text": "Ordinary equity holders of the Company"},
+        {"page": 18, "text": "1,022"},
+        {"page": 18, "text": "802"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 10_875_000_000
+    assert payload["row_refs"]["revenue"] == "Insurance revenue"
+    assert payload["provenance"]["revenue"] == (
+        "income_statement:page_18:Insurance revenue"
+    )
+
+
 def test_statement_text_overlay_recovers_fragmented_full_statements_over_wrapper():
     """SEG-style fragmented statement pages should override Appendix wrapper rows."""
     from app.services.multipass_extraction import (
