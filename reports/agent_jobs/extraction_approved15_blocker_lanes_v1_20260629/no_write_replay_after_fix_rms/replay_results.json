@@ -1,0 +1,290 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 1,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782715391, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782715391, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "profile": "baseline-no-write",
+  "results": [
+    {
+      "case_id": "RMS_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "rms_2025h1_appendix4d",
+      "elapsed_s": 105.421,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 39,
+            "table_count": 100
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "source_text",
+          "cash_end": "source_text",
+          "ebit": "wrapper",
+          "financing_cf": "source_text",
+          "investing_cf": "source_text",
+          "np_attributable": "wrapper",
+          "operating_cf": "source_text",
+          "revenue": "wrapper",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -25239000.0,
+          "cash_end": 658721000.0,
+          "ebit": 31284000.0,
+          "financing_cf": -84747000.0,
+          "investing_cf": -211390000.0,
+          "np_attributable": -11716000.0,
+          "operating_cf": 171179000.0,
+          "revenue": 485630000.0,
+          "shares_outstanding": 1924937480.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_23:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_23:Cash and cash equivalents at the end of the half-year",
+          "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+          "financing_cf": "cashflow_statement:page_23:Net cash used in financing activities",
+          "investing_cf": "cashflow_statement:page_23:Net cash used in investing activities",
+          "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+          "operating_cf": "cashflow_statement:page_23:Net cash provided by operating activities",
+          "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+          "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at the end of the half-year",
+          "ebit": "Earnings before Interest and Tax (EBIT)",
+          "financing_cf": "Net cash used in financing activities",
+          "investing_cf": "Net cash used in investing activities",
+          "np_attributable": "Net (loss) / profit after tax attributable to members",
+          "operating_cf": "Net cash provided by operating activities",
+          "revenue": "31 December Revenue from ordinary activities",
+          "shares_outstanding": "At 31 December 2025"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4d",
+          "document_title": "2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "appendix_4d_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "DECEMBER 2025 RESULTS FOR ANNOUNCEMENT TO THE MARKET Current reporting period: Half-year ended 31 December 2025 Previous corresponding reporting period: Half-year ended 31 December 2024 Key I",
+              "evidence": "Half-year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "riod: Half-year ended 31 December 2025 Previous corresponding reporting period: Half-year ended 31 December 2024 Key Information % change 31 December 2025 $\u2019000 31 December 2024 $\u2019000 Revenue",
+              "evidence": "Half-year ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "porting period dividend has not been brought to account in the financial report for the half-year ended 31 December 2025 and will be recognised in subsequent financial reports. The dividend will be el",
+              "evidence": "for the half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "review by Deloitte Touche Tohmatsu. For personal use only 2026 Half-Year Report For the six months ended 31 December 2025 It is recommended that the 2026 half-year report is read in conjunction with th",
+              "evidence": "For the six months ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "her with any public announcements made by Ramelius Resources Limited during the half-year ended 31 December 2025 in accordance with the continuous disclosure obligations arising under the Corp",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "a permit already in place). Ramelius produced 100,623 ounces of gold during the half-year ended 31 December 2025 at an All-in Sustaining Cost (AISC) of A$1,901 per ounce. Guidance for the 202",
+              "evidence": "half-year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 39,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "approved_15_current_canonical_refresh",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "ticker": "RMS"
+    }
+  ],
+  "status": "PASS"
+}

@@ -1,0 +1,1320 @@
+{
+  "artifact_type": "approved15_after_rms_cashflow_fix_failure_classes_v1",
+  "blocking_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "not_evaluated_no_actual_payload": 18,
+    "present_wrong_value": 2
+  },
+  "blocking_row_count": 93,
+  "classes": {
+    "ambiguous_quarantined": [
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 11153000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 5222000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 3663000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 47507000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": -10262000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 2824000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": -242000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 195788000000.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": 3003366782.0,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "anz_20250331_h",
+        "expected_value": null,
+        "fixture_id": "anz_20250331_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 2104000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 522000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 235000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 775000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": -374000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": -422000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": -377000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 43000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 5158000000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "azj_20251231_h",
+        "expected_value": 1714214000.0,
+        "fixture_id": "azj_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 8332000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 577000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 401000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 1302000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": -652000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": -1643000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": -296000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 1145000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 9993000000.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "csl_20251231_h",
+        "expected_value": 482130812.0,
+        "fixture_id": "csl_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 4516700000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 8439000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 2908000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 1914000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 3203000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": -1659000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": -1160000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": -1475000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 4743000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 1013000000.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "fmg_20251231_h",
+        "expected_value": 3078964918.0,
+        "fixture_id": "fmg_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 1555000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "actual_value": null,
+        "document_id": "seg_h_fy2026_appendix4d",
+        "expected_value": -13476000.0,
+        "fixture_id": "seg_h_fy2026_appendix4d",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 1983000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 298000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 853000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": -248000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": -1098000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": -69000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 1229000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 19227000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": 3115000000.0,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tcl_20251231_h",
+        "expected_value": null,
+        "fixture_id": "tcl_20251231_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 11641000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 2016000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 1124000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 3637000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": -1735000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": -1457000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": -1914000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 1436000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 16800000000.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "tls_20251231_h",
+        "expected_value": 11254937273.0,
+        "fixture_id": "tls_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 37135000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "revenue",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 962000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "ebit",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 374000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "np_attributable",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 2301000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "operating_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": -1186000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "investing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": -1096000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "financing_cf",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": -1304000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "capex",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 1289000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "cash_end",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 4397000000.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "net_debt",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2026-01-04",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "document_id": "wow_20260104_h",
+        "expected_value": 1221599192.0,
+        "fixture_id": "wow_20260104_h",
+        "metric_name": "shares_outstanding",
+        "reason": "Expectation requires review or has ambiguous label evidence"
+      }
+    ],
+    "not_evaluated_no_actual_payload": [
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 360000000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "revenue",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 347600000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "ebit",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 348500000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "np_attributable",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 168500000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "operating_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 83900000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "investing_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": -243000000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "financing_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": -27200000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "capex",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 74700000.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "cash_end",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "dxs_20251231_h",
+        "expected_value": 1075565246.0,
+        "fixture_id": "dxs_20251231_h",
+        "metric_name": "shares_outstanding",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 10875000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "revenue",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 1334000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "ebit",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 1022000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "np_attributable",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 1756000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "operating_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": -562000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "investing_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": -668000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "financing_cf",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": -9000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "capex",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 2124000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "cash_end",
+        "reason": "No actual extracted payload supplied for this document"
+      },
+      {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "document_id": "qbe_20250630_h",
+        "expected_value": 1510000000.0,
+        "fixture_id": "qbe_20250630_h",
+        "metric_name": "shares_outstanding",
+        "reason": "No actual extracted payload supplied for this document"
+      }
+    ],
+    "present_wrong_value": [
+      {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2021-06-30",
+          "period_type": "A",
+          "scale": "millions"
+        },
+        "actual_value": 3451000000.0,
+        "document_id": "bhp_fy2021_preliminary_final",
+        "expected_value": 11304000000.0,
+        "fixture_id": "bhp_fy2021_preliminary_final",
+        "metric_name": "np_attributable",
+        "reason": "Actual payload value does not match expectation within tolerance"
+      },
+      {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": 573000000.0,
+        "document_id": "min_2025h1_appendix4d",
+        "expected_value": 495000000.0,
+        "fixture_id": "min_2025h1_appendix4d",
+        "metric_name": "np_attributable",
+        "reason": "Actual payload value does not match expectation within tolerance"
+      }
+    ]
+  },
+  "source_row_matrix": "reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/row_level_failure_matrix_after_fix.json"
+}
