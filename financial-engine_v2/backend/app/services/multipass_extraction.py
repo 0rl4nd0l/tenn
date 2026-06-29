@@ -5677,12 +5677,12 @@ def _apply_appendix_wrapper_source_payload(
         )
 
 
-def _is_financial_report_contents_index_text(compact_text: str) -> bool:
+def _is_financial_report_contents_index_text(normalized_text: str) -> bool:
     return (
-        "notestothefinancialstatements" in compact_text
-        and "consolidatedstatementofcashflows" in compact_text
+        "notestothefinancialstatements" in normalized_text
+        and "consolidatedstatementofcashflows" in normalized_text
         and any(
-            marker in compact_text
+            marker in normalized_text
             for marker in (
                 "consolidatedstatementofcomprehensiveincome",
                 "consolidatedincomestatement",
