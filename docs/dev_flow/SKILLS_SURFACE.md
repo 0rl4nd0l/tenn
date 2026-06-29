@@ -103,9 +103,15 @@ These behaviors are modes inside existing commands, not new visible skills:
 
 | Mode | Home | Use when |
 | --- | --- | --- |
+| Fast progress lane | `tenn-fix`, `tenn-git-guard`, and focused validation | A small docs/control-plane or narrow code fix has exact files, no runtime/data/extraction/GitHub/destructive boundary, and no stale/dirty/duplicate blocker. |
 | Fresh-session orchestrator | `tenn-fix` plus `WORKER_TASK.md` and `WORKER_RESULT.md` | A handoff, problem statement, board decision, or long repair needs lane splitting, bounded workers, review, integration, validation, and closeout. |
 | Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `HANDOFF_NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
 | Zoom-out / contrarian check | `zoom-out`, `tenn-explain`, `tenn-review-board`, `EXPLAIN.md`, and board templates | The workflow may be solving the wrong problem, overfitting, looping on reports, or missing broader production-readiness value. |
+
+Fast progress is action-first, not safety-free. It still needs current path
+proof, exact task-card scope when editing, focused validation, and honest
+closeout. It skips review boards, handoffs, workers, broad reports, and full
+branch/worktree fallback detail unless a real blocker appears.
 
 Handoff owns fresh-session continuation. Its report-local `NEXT_GOAL.md` should
 be produced from `HANDOFF_NEXT_GOAL.md`: short, handoff-specific, and explicit
@@ -150,6 +156,13 @@ First-class preflight command:
 
 ```bash
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+```
+
+The default preflight uses summarized branch/worktree fallback output. Use full
+fallback detail only when it is part of the decision:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --fallback-detail full --json
 ```
 
 Repo-backed fallback from a Tenn control-plane checkout:

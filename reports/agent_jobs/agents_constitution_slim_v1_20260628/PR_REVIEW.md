@@ -27,13 +27,20 @@ No remaining blocking findings in the docs diff. Residual risk is documentation
 interpretation: reviewers should confirm that the shorter `AGENTS.md` still
 feels strict enough for always-loaded policy.
 
+Second refresh review after canonical moved to
+`b2adf891096f41d4ddef260b1c47fd9b5a8417a4`: PR #462 was green on checks but
+GitHub reported `CONFLICTING` / `DIRTY`. The conflict was in `AGENTS.md`. The
+resolution preserves the slim constitution and adds only the current-base
+execution-lane and `--fallback-detail` guidance that the branch lacked.
+
 ## Publication State
 
 - PR: `https://github.com/0rl4nd0l/tenn/pull/462`
 - State: open draft
 - Base: `migration/clean-runtime-baseline-reconstruct-v1`
 - Head: `control-plane/agents-constitution-slim-v1-20260628`
-- Mergeability: `MERGEABLE`
-- Current checks: recheck live after branch refresh push
+- Pre-refresh mergeability: `CONFLICTING`
+- Pre-refresh checks: `scan` success; `lint-and-test` success
+- Current checks: recheck live after conflict-resolution push
 - Branch refresh: merged canonical
-  `265a0d5a8125254c099e391087724097d6200517`
+  `b2adf891096f41d4ddef260b1c47fd9b5a8417a4`

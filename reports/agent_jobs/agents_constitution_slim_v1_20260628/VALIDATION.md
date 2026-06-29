@@ -19,6 +19,11 @@
 | `gh pr view 462 --json number,title,state,isDraft,url,baseRefName,headRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,commits` | PASS | PR open draft; mergeable; `scan` success; `lint-and-test` in progress. |
 | PR review | BLOCKED_THEN_FIXED | Found stale report wording claiming no GitHub writes after PR creation. Report and task card now record later user approval for push/PR/branch refresh. |
 | `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | PASS | Refreshed branch against canonical `265a0d5a8125254c099e391087724097d6200517` without conflicts. |
+| `gh pr view 462 --json number,state,isDraft,mergeable,mergeStateStatus,statusCheckRollup,url,commits` | PASS | Pre-refresh recheck: PR open draft; `scan` success; `lint-and-test` success; mergeable `CONFLICTING`; merge state `DIRTY`. |
+| `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "PR #462 AGENTS constitution slim conflict refresh" --json` | EXPECTED_BLOCK | Guard reported `STALE_PATH` against canonical `b2adf891096f41d4ddef260b1c47fd9b5a8417a4`; owner had approved this exact refresh. |
+| `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | CONFLICT_THEN_FIXED | Auto-merged operator docs; `AGENTS.md` conflicted and was resolved manually. |
+| `rg -n "<<<<<<<|=======|>>>>>>>" AGENTS.md docs/dev_flow/CODEX_OPERATOR_GUIDE.md docs/dev_flow/SKILLS_SURFACE.md` | PASS | No conflict markers remain. |
+| `wc -l -c AGENTS.md` | PASS | Resolved file is 241 lines / 12005 bytes. |
 
 ## Runtime Validation
 

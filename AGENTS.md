@@ -137,6 +137,10 @@ be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 ```
 
+- For `FULL_GUARD` audits, merge/parking decisions, high-risk duplicate-work
+  searches, or broad hygiene work, add `--fallback-detail full` when the runner
+  supports it. Keep small `FAST_PROGRESS` work on summarized guard output.
+
 - If the portable guard is unavailable inside a Tenn control-plane checkout,
   use `.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py`.
 - Do not start coding when requested work already exists elsewhere, the current
@@ -150,6 +154,21 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
   parked, or superseded status as required by `tenn-fix`.
 - Classify similar work as active, open-PR, merged-canonical, stale-preserve,
   superseded, owner-boundary, or unknown before replacing it.
+
+## Execution Lanes
+
+- `FAST_PROGRESS`: small docs/control-plane fixes or narrow code fixes with
+  exact files, no runtime/data/extraction/GitHub/destructive boundary, and no
+  stale/dirty/duplicate-work blocker. Use summarized guard output, focused
+  validation, and direct closeout.
+- `STANDARD_FIX`: normal bounded implementation with task card, guard,
+  allowed-files check, validation, docs impact, and final diff review.
+- `FULL_GUARD`: stale path, dirty overlap, duplicate-work risk, merge/parking,
+  owner-boundary, architecture, broad cleanup, or high-collision work. Use full
+  fallback detail and stop on unresolved risk.
+- `RUNTIME_PROOF`: runtime-like work may be called working, functional,
+  complete, or `DONE` only after the Runtime Functionality Proof table passes.
+- If lane eligibility is uncertain, escalate to `FULL_GUARD`.
 
 ## Implementation Discipline
 

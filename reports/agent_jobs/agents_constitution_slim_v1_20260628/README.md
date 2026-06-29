@@ -12,12 +12,13 @@ manual, while preserving the hard Tenn guardrails.
 
 - Fresh task worktree: `/home/l4nd0/tenn-agents-constitution-slim-v1-20260628`
 - Branch: `control-plane/agents-constitution-slim-v1-20260628`
-- Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@265a0d5a8125254c099e391087724097d6200517`
+- Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@b2adf891096f41d4ddef260b1c47fd9b5a8417a4`
 - Task card: `docs/agent_tasks/agents_constitution_slim_v1_20260628.md`
 
 ## Completed Work
 
-- Reduced `AGENTS.md` from 342 lines / 17011 bytes to 222 lines / 10925 bytes.
+- Reduced `AGENTS.md` from the current base's 364 lines to 241 lines. The
+  resolved file is 12005 bytes.
 - Preserved the Runtime Functionality Proof table and compatibility heading
   required by `scripts/check_runtime_functionality_proof_docs.py`.
 - Routed repeatable procedure to existing homes:
@@ -36,7 +37,10 @@ manual, while preserving the hard Tenn guardrails.
 - Fixed the report contradiction found during PR review: GitHub writes were
   not avoided; they were performed only after explicit user approval.
 - Refreshed the PR branch by merging current canonical
-  `265a0d5a8125254c099e391087724097d6200517`.
+  `b2adf891096f41d4ddef260b1c47fd9b5a8417a4`.
+- Resolved the `AGENTS.md` merge conflict by keeping the slim constitution
+  structure and folding in current-base execution-lane and `--fallback-detail`
+  guidance.
 
 ## Runtime Functionality Proof
 
@@ -62,14 +66,14 @@ runtime state, access production data, or claim runtime functionality.
 
 All required docs/control-plane checks passed. See `VALIDATION.md`.
 
-Live PR state must be rechecked after each push. Last pre-refresh state:
+Live PR state must be rechecked after each push. Last pre-push refresh state:
 
 - PR #462: open draft.
 - Base: `migration/clean-runtime-baseline-reconstruct-v1`.
 - Head: `control-plane/agents-constitution-slim-v1-20260628`.
-- Mergeable: `MERGEABLE`.
-- Merge state: `UNSTABLE`.
-- Checks: `scan` success; `lint-and-test` in progress.
+- Mergeable before refresh: `CONFLICTING`.
+- Merge state before refresh: `DIRTY`.
+- Checks before refresh: `scan` success; `lint-and-test` success.
 
 ## Unsafe Actions Avoided
 

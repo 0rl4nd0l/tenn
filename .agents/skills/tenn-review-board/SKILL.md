@@ -10,6 +10,10 @@ or architecture decisions.
 
 The board is not a discussion loop. It must end with one actionable decision.
 Do not run a board for trivial edits.
+Do not use a board as the default path for `FAST_PROGRESS` work. If a small
+fix has a clean worktree, exact files, no stale/dirty/duplicate blocker, and no
+runtime/data/extraction/GitHub/destructive or owner-boundary decision, route it
+through `tenn-fix` action-first mode instead.
 
 ## Preflight
 
@@ -22,6 +26,9 @@ The board must not recommend new implementation when an open PR or merged
 canonical implementation already solves the request. In those cases, choose
 `park`, `supersede`, `ask_owner`, or a review/merge-oriented next goal instead
 of `proceed`.
+The board must not recommend another board or report as the next step unless
+the next meaningful action is genuinely blocked on owner input or unavailable
+evidence.
 
 ## Model And Risk Routing
 

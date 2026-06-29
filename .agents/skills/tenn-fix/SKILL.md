@@ -68,6 +68,28 @@ board decision, task card, handoff, or explicit fix request.
 19. When stopping before completion, run or follow `tenn-handoff` so the next
     session has git state, ledger state, validation, and a short next `/goal`.
 
+## Action-First Small Fix Mode
+
+Use this mode for `FAST_PROGRESS`: small docs/control-plane fixes or narrow
+code fixes with exact files, a valid clean worktree, no stale/dirty/duplicate
+blocker, no runtime/data/extraction/GitHub/destructive boundary, and no
+owner-boundary decision.
+
+In this mode:
+
+1. Run the default summarized `tenn-git-guard` preflight and inspect
+   `path_ownership`, `duplicate_work_status`, and `stop_reimplementation`.
+2. Create or validate the smallest exact task card needed for edits.
+3. Patch only the allowed files.
+4. Run the cheapest focused validation that exercises the change.
+5. Close out with files touched, validation command/result, unsafe actions
+   avoided, and exact next action.
+
+Do not run a review board, handoff, worker delegation, broad report packet, or
+full fallback branch/worktree scan in `FAST_PROGRESS` unless the guard,
+validation, or user request creates a real blocker. Escalate to `FULL_GUARD`
+when eligibility is uncertain.
+
 ## Fresh-Session Orchestrator Mode
 
 Use this mode when a fresh Codex session is asked to continue from a

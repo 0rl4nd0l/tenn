@@ -28,6 +28,18 @@ First preflight command:
 python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
 ```
 
+This default is the fast/summarized shape: it keeps blocking fields but caps
+branch/worktree fallback detail. Use full detail only for high-risk duplicate
+work, hygiene, merge, parking, stale-work, or broad audit decisions:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --fallback-detail full --json
+```
+
+If the installed host runner rejects `--fallback-detail` or still emits full
+fallback rows by default, use the repo-backed fallback from a current Tenn
+control-plane checkout until the host skill copy is refreshed.
+
 From a Tenn control-plane checkout, use this repo-backed fallback only when the
 installed host skill path is unavailable:
 
@@ -51,6 +63,19 @@ python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo
 | Architecture improvement | `tenn-improve-codebase-architecture` | Runs architecture/deepening review under Tenn gates. |
 | Worker scouts | `codex-worker-bridge` through `tenn-fix` | Runs bounded OpenCode evidence scouts under Codex authority. |
 | Git/task-card safety | `tenn-git-guard` | Backend guard for preflight, registry, ledger, and allowed diff checks. |
+
+## Execution Lanes
+
+| Lane | Use when | Default shape |
+| --- | --- | --- |
+| `FAST_PROGRESS` | Small docs/control-plane or narrow code fixes with exact files and no runtime/data/extraction/GitHub/destructive boundary. | Summarized guard, exact task card when editing, focused validation, direct closeout. |
+| `STANDARD_FIX` | Normal bounded implementation. | Task card, guard, allowed-files check, validation, docs impact, final diff review. |
+| `FULL_GUARD` | Stale path, dirty overlap, duplicate-work risk, merge/parking, owner-boundary, architecture, or broad cleanup. | `--fallback-detail full`, stop on unresolved risk. |
+| `RUNTIME_PROOF` | Runtime-like work may be called working, functional, complete, or `DONE`. | Runtime Functionality Proof table and closeout gate. |
+
+When in doubt, use `FULL_GUARD`. When the lane is clearly `FAST_PROGRESS`,
+avoid review boards, handoffs, workers, and broad report packets unless the
+guard or validation finds a real blocker.
 
 ## How To Force Repo-Backed Skills
 
@@ -117,6 +142,8 @@ Create or validate the task card.
 Only edit allowed files.
 Run validation, check-diff, check-closeout, and check-report-artifacts.
 Treat check-closeout as the final report gate for Runtime Functionality Proof and listed BOARD_DECISION.json artifacts.
+For `FAST_PROGRESS`, keep the report/direct closeout compact and skip board,
+handoff, and worker delegation unless a blocker appears.
 Open a PR only if the task card explicitly permits it.
 ```
 
@@ -168,18 +195,19 @@ Run through scripts/opencode_worker_bridge.py, validate-result, then have Codex 
 
 1. Confirm canonical branch and HEAD.
 2. Read `AGENTS.md`.
-3. Pick the repo-backed skill by path.
-4. Validate or create a task card.
-5. Run the portable `tenn-git-guard` preflight first and inspect
+3. Select `FAST_PROGRESS`, `STANDARD_FIX`, `FULL_GUARD`, or `RUNTIME_PROOF`.
+4. Pick the repo-backed skill by path.
+5. Validate or create a task card.
+6. Run the portable `tenn-git-guard` preflight first and inspect
    `path_ownership`, `duplicate_work_classification`, and
    `stop_reimplementation`.
-6. In a Tenn control-plane checkout, run repo-local registry/ledger validation
+7. In a Tenn control-plane checkout, run repo-local registry/ledger validation
    only when those scripts are available and useful.
-7. Do only the allowed work.
-8. Preserve report evidence.
-9. Run validation and allowed-diff checks.
-10. Apply Runtime Functionality Proof for runtime claims and run `check-closeout`.
-11. Handoff or open a PR only if explicitly permitted.
+8. Do only the allowed work.
+9. Preserve report evidence proportional to the lane.
+10. Run validation and allowed-diff checks.
+11. Apply Runtime Functionality Proof for runtime claims and run `check-closeout`.
+12. Handoff or open a PR only if explicitly permitted.
 
 ## Red Flags That Codex Is Overclaiming
 

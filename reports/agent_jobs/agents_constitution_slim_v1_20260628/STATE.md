@@ -1,10 +1,11 @@
 # State
 
-state: PR_OPENED
+state: PR_REFRESH_VALIDATING
 
 ## Evidence Used
 
 - Current user approval: "proceed".
+- Current user approval after conflict check: "proceed".
 - `tenn-git-guard` preflight in the original checkout blocked edits there as
   `STALE_PATH`.
 - Fresh sibling worktree guard result: `VALID_TASK_WORKTREE`, final decision
@@ -25,6 +26,14 @@ state: PR_OPENED
   fixed to reflect explicit later user approval.
 - Branch refreshed against canonical `265a0d5a8125254c099e391087724097d6200517`
   by a non-destructive merge.
+- PR #462 later became conflicting after canonical advanced to
+  `b2adf891096f41d4ddef260b1c47fd9b5a8417a4`; `scan` and `lint-and-test` were
+  both green before the refresh.
+- Guard classified the PR worktree as `STALE_PATH` because it was not based on
+  current canonical. This was the expected owner-approved repair path, not a
+  new implementation lane.
+- Conflict in `AGENTS.md` resolved by preserving the slim constitution and
+  incorporating current-base execution-lane / `--fallback-detail` guidance.
 - Duplicate-work classification: `NO_MATCHING_ACTIVE_WORK_FOUND`.
 
 ## Docs Impact Check
@@ -67,7 +76,7 @@ not_applicable: docs-only task.
 
 ## Closeout
 
-- closeout_status: PR_OPENED
+- closeout_status: PR_REFRESH_VALIDATING
 - system_functionality_proven: no
 - reason: docs-only constitution cleanup; no runtime behavior claimed.
 
@@ -76,8 +85,9 @@ not_applicable: docs-only task.
 - pr: `https://github.com/0rl4nd0l/tenn/pull/462`
 - state: OPEN
 - draft: true
-- mergeable: MERGEABLE
-- merge_state_status: UNSTABLE
-- checks: recheck live after branch refresh push
+- mergeable_before_refresh: CONFLICTING
+- merge_state_status_before_refresh: DIRTY
+- checks_before_refresh: `scan` success; `lint-and-test` success
+- checks_after_refresh_push: recheck live after push
 - note: connector PR creation failed with expired app token, so `gh pr create`
   was used as the authenticated fallback.
