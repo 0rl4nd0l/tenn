@@ -38,6 +38,12 @@ result: DONE_WITH_RISK
 - Follow-up owner approval was received as `proceed`; the branch was rebased
   onto canonical `cc750c836aa77a22675dccc26f51bf5a8700224f` without conflicts
   and focused local validation passed again.
+- Final merge-readiness verification found canonical had advanced again to
+  `ca424a2835094de40c366a36d4bb0bf04cd8246a`, and Tenn guard blocked ready or
+  merge claims from the stale PR branch.
+- Follow-up owner approval was received as `proceed`; the branch was rebased
+  onto canonical `ca424a2835094de40c366a36d4bb0bf04cd8246a` without conflicts
+  and focused local validation passed again.
 
 ## Implementation
 
@@ -64,7 +70,7 @@ result: DATA_MISSING
 | pre-run max timestamp or count | `DATA_MISSING`; no live Qdrant baseline was captured. |
 | post-run max timestamp or count | `DATA_MISSING`; no live Qdrant mutation was performed. |
 | rows/files inserted or updated after run start | zero runtime rows/points; code/docs/report files only. |
-| readiness/gate status | Focused local validation passed after refresh onto `cc750c836aa77a22675dccc26f51bf5a8700224f`; live runtime readiness not proven. |
+| readiness/gate status | Focused local validation passed after refresh onto `ca424a2835094de40c366a36d4bb0bf04cd8246a`; live runtime readiness not proven. |
 | exact command/query used | See `VALIDATION.md`; no live Qdrant query was required for this code/docs task. |
 | result: WORKING / PARTIAL / BROKEN / DATA_MISSING | DATA_MISSING |
 | remaining blocker | Live Qdrant/backfill proof would require separate runtime/data approval. |
@@ -79,3 +85,5 @@ result: DATA_MISSING
 - PR was left draft; no ready-for-review or merge action was performed.
 - Refresh did not run live Qdrant/runtime/data proof; runtime result remains
   `DATA_MISSING`.
+- Ready-for-review and merge remain outside the performed action; either live
+  proof approval or explicit risk-accepting merge approval is required first.

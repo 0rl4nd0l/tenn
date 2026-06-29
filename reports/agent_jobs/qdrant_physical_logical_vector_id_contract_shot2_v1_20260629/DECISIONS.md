@@ -55,6 +55,22 @@ The branch was rebased onto current canonical
 No merge, ready-for-review, issue close, live Qdrant proof, runtime/data
 mutation, or production operation is included in this refresh.
 
+## Third PR Refresh And Merge-Readiness Boundary
+
+Owner approval on 2026-06-29 permits refreshing draft PR #473 after final
+merge-readiness verification found canonical had advanced again and Tenn guard
+blocked ready/merge claims.
+
+The branch was rebased onto current canonical
+`origin/migration/clean-runtime-baseline-reconstruct-v1` at
+`ca424a2835094de40c366a36d4bb0bf04cd8246a`.
+
+No merge, ready-for-review, issue close, live Qdrant proof, runtime/data
+mutation, or production operation is included in this refresh. Because runtime
+functionality proof remains `DATA_MISSING`, merge requires a separate explicit
+owner decision that either authorizes live proof first or authorizes merging
+with that risk accepted.
+
 ## Second PR Refresh After Review
 
 Owner approval on 2026-06-29 permits a second refresh of draft PR #473 after

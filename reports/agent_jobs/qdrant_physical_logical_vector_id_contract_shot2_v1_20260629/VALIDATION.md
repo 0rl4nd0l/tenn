@@ -21,6 +21,27 @@ Post-rebase publication validation on 2026-06-29:
   - ok true
 - `git diff --check`
   - exit 0
+
+Third post-review refresh validation on 2026-06-29:
+
+- `git rebase origin/migration/clean-runtime-baseline-reconstruct-v1`
+  - exit 0
+  - rebased branch onto `ca424a2835094de40c366a36d4bb0bf04cd8246a`
+- `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629 --topic "PR #473 issue #266 refreshed onto ca424a" --json`
+  - exit 0
+  - `final_decision=pass`
+  - `stop_reimplementation=false`
+- `uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_embeddings_local_point_id_compat.py financial-engine_v2/backend/tests/test_architecture_invariants.py financial-engine_v2/backend/tests/test_qdrant_resolution.py financial-engine_v2/backend/tests/test_rag_payload_guardrails.py -q`
+  - exit 0
+  - `62 passed`
+- `uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_pipeline_stages.py -q`
+  - exit 0
+  - `25 passed`
+- `uv run --with ruff ruff check financial-engine_v2/backend/app/services/embeddings.py financial-engine_v2/backend/app/services/pipeline_stages.py financial-engine_v2/backend/app/services/commentary_ingest.py financial-engine_v2/backend/tests/test_embeddings_local_point_id_compat.py financial-engine_v2/backend/tests/test_architecture_invariants.py financial-engine_v2/backend/tests/test_qdrant_resolution.py financial-engine_v2/backend/tests/test_rag_payload_guardrails.py financial-engine_v2/scripts/inspect_qdrant_collection.py financial-engine_v2/scripts/embed_docs_to_qdrant.py`
+  - exit 0
+  - `All checks passed!`
+- `python3 -m py_compile financial-engine_v2/backend/app/services/embeddings.py financial-engine_v2/backend/app/services/pipeline_stages.py financial-engine_v2/backend/app/services/commentary_ingest.py financial-engine_v2/scripts/inspect_qdrant_collection.py financial-engine_v2/scripts/embed_docs_to_qdrant.py`
+  - exit 0
 - `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`
   - exit 0
   - `active_jobs=[]`
