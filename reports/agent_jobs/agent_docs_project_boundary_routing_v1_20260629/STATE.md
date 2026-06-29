@@ -1,10 +1,10 @@
 # State
 
-Generated: 2026-06-29T20:01:52+1000
+Generated: 2026-06-29T20:03:39+1000
 
 ## Result
 
-Status: `IMPLEMENTED_LOCAL_CANONICAL_REFRESHED`
+Status: `DRAFT_PR_OPEN`
 
 The Tenn agent docs update is implemented in a fresh task worktree:
 
@@ -14,6 +14,8 @@ The Tenn agent docs update is implemented in a fresh task worktree:
 - Base HEAD: `ca424a2835094de40c366a36d4bb0bf04cd8246a`
 - Refreshed canonical parent: `a299ce45e42f50c23321733082c7d5bbe8dfb88a`
 - Branch refresh merge commit: `ba261c9bbad02ade4486dd712c420606a940cb70`
+- Published head: `6f84950757305c6864d0018948563cf8a3a1ec97`
+- Draft PR: `https://github.com/0rl4nd0l/tenn/pull/476`
 - Scope: docs-only control-plane routing
 
 `AGENTS.md` now routes project ownership and external-sibling boundary
@@ -23,6 +25,9 @@ After owner approval, the branch was refreshed against current canonical with a
 normal merge commit. The PR-owned diff against
 `origin/migration/clean-runtime-baseline-reconstruct-v1` remains limited to the
 task-card allowed files.
+
+After owner approval, the branch was pushed and opened as draft PR #476. No
+merge was performed.
 
 ## Source Worktree Note
 
@@ -78,5 +83,5 @@ runtime functionality were not tested or proven.
 - No service, runtime, data, Greyhound, cleanup, branch deletion, worktree
   deletion, pruning, parked-work, reset, stash, force-push, or rebase action.
 - A normal branch refresh merge from canonical was performed after owner
-  approval; branch push and draft PR creation are the only approved GitHub
-  follow-up actions for this docs-only branch.
+  approval; GitHub mutation was limited to branch push and draft PR creation for
+  this docs-only branch.

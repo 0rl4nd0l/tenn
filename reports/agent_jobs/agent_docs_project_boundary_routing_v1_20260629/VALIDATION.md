@@ -17,6 +17,8 @@
 | `git merge-tree $(git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1) HEAD origin/migration/clean-runtime-baseline-reconstruct-v1 \| rg -n '<<<<<<<\|changed in both\|CONFLICT\|removed in'` | 1 | no conflict markers or conflict lines found before branch refresh |
 | `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | 0 | normal branch refresh merge from current canonical; no force-push or rebase |
 | `git diff --name-status origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD` after branch refresh | 0 | PR-owned diff remained limited to `AGENTS.md`, task card, and this report bundle |
+| `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin HEAD` | 0 | branch pushed; local pre-push skipped missing repo-venv `ruff`/`pytest`, markdown hygiene passed |
+| `gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/agent-docs-project-boundary-routing-v1-20260629 ...` | 0 | draft PR #476 opened: `https://github.com/0rl4nd0l/tenn/pull/476` |
 
 ## Guard Notes
 
@@ -32,5 +34,5 @@ refresh and publish, so the branch was updated with a normal merge commit.
 ## Validation Status
 
 Required docs/control-plane validation passed before local commit and was rerun
-after the canonical branch refresh. Runtime functionality is out of scope and
-was not tested.
+after the canonical branch refresh. Draft PR #476 is open. Runtime
+functionality is out of scope and was not tested.
