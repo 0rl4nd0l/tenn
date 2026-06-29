@@ -9,6 +9,10 @@ enough to load every turn. Put repeatable procedures in repo-backed skills and
 - Tenn is an ASX financial data ingestion, extraction, and cockpit workflow
   repository. Active runtime code is mainly under `financial-engine_v2/`;
   repo-level scripts and evaluation helpers also exist under `scripts/`.
+- Default normal Tenn sessions should start from `/home/l4nd0/tenn`, which
+  should be kept clean and at current canonical content. Use task branches or
+  sibling worktrees for implementation; resume old task worktrees only when
+  that specific branch/lane is intentional.
 - Verify the actual target before acting:
 
 ```bash
@@ -169,6 +173,21 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
 - `RUNTIME_PROOF`: runtime-like work may be called working, functional,
   complete, or `DONE` only after the Runtime Functionality Proof table passes.
 - If lane eligibility is uncertain, escalate to `FULL_GUARD`.
+
+## Two-Shot Workstreams
+
+- Non-trivial, high-risk, ambiguous, or multi-step Tenn work should default to
+  a two-shot workstream unless it clearly qualifies for `FAST_PROGRESS`.
+  This includes extraction/runtime/data planning, broad audits, merge or
+  parking decisions, cleanup, architecture, multi-agent work, Git Hygiene, and
+  any task where execution boundaries need owner confirmation.
+- Shot 1 means investigate, classify, preserve safe evidence, create an
+  approval manifest, create an execution plan, and stop.
+- Shot 2 means execute approved manifest groups mechanically, skip drifted
+  paths, stop before forbidden boundaries, and close out.
+- Use group-level approval for safe report-local and preservation-only manifest
+  groups where possible. Still stop for destructive, source-state,
+  canonical-history, GitHub, product, runtime, or data boundaries.
 
 ## Implementation Discipline
 
