@@ -4,6 +4,8 @@ Issue: #266
 
 Branch: `safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629`
 
+Draft PR: `https://github.com/0rl4nd0l/tenn/pull/473`
+
 Worktree:
 `/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629`
 
@@ -41,4 +43,5 @@ draft PR.
 result: DONE_WITH_RISK
 
 Reason: implementation and focused validation passed, but no live Qdrant runtime
-output was mutated or proven. This is code/docs/test completion only.
+output was mutated or proven. This is code/docs/test completion only. Draft PR
+#473 is open; GitHub checks were still in progress at PR creation.

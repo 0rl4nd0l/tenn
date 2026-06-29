@@ -1,6 +1,6 @@
 # State
 
-status: rebased_pending_publish
+status: draft_pr_opened
 
 result: DONE_WITH_RISK
 
@@ -20,6 +20,12 @@ result: DONE_WITH_RISK
 - Branch was rebased successfully onto
   `origin/migration/clean-runtime-baseline-reconstruct-v1` at
   `6c486d07743d3483d05fa163dc5c02fd66b68863`.
+- Draft PR #473 was opened:
+  `https://github.com/0rl4nd0l/tenn/pull/473`.
+- At PR creation, GitHub reported the PR as open/draft with base
+  `migration/clean-runtime-baseline-reconstruct-v1`, head
+  `safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629`, and checks
+  `lint-and-test` plus `scan` in progress.
 
 ## Implementation
 
@@ -58,3 +64,4 @@ result: DATA_MISSING
 - No service restart.
 - No issue comment, issue closure, merge, force push, live runtime write, or
   production data mutation.
+- PR was left draft; no ready-for-review or merge action was performed.

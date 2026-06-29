@@ -35,6 +35,12 @@ Post-rebase publication validation on 2026-06-29:
   - ok true
 - `git diff --check`
   - exit 0
+- `gh pr view 473 --repo 0rl4nd0l/tenn --json number,title,state,isDraft,headRefName,baseRefName,url,mergeStateStatus,reviewDecision,statusCheckRollup`
+  - exit 0
+  - PR #473 open/draft
+  - base `migration/clean-runtime-baseline-reconstruct-v1`
+  - head `safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629`
+  - `lint-and-test` and `scan` checks in progress at first read
 
 - `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629 --topic "issue #266 qdrant physical logical vector id policy" --json`
   - exit 0

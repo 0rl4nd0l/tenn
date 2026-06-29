@@ -35,3 +35,10 @@ Follow-up owner approval on 2026-06-29 permits:
 
 No issue comments, issue closure, merge, force push, runtime/data mutation, or
 live Qdrant proof are included in this approval.
+
+Draft PR #473 was opened against
+`migration/clean-runtime-baseline-reconstruct-v1`:
+`https://github.com/0rl4nd0l/tenn/pull/473`.
+
+The PR remains draft. No ready-for-review, merge, issue comment, or issue close
+action was taken.
