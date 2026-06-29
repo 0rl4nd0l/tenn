@@ -101,6 +101,7 @@ These behaviors are modes inside existing commands, not new visible skills:
 | Fast progress lane | `tenn-fix`, `tenn-git-guard`, and focused validation | A small docs/control-plane or narrow code fix has exact files, no runtime/data/extraction/GitHub/destructive boundary, and no stale/dirty/duplicate blocker. |
 | Fresh-session orchestrator | `tenn-fix` plus `WORKER_TASK.md` and `WORKER_RESULT.md` | A handoff, problem statement, board decision, or long repair needs lane splitting, bounded workers, review, integration, validation, and closeout. |
 | Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `HANDOFF_NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
+| Regression adjudication | `docs/dev_flow/REGRESSION_ADJUDICATION.md`, `tenn-fix`, and `tenn-review-board` | A bug, metric, gate, route, extraction result, or runtime behavior appears broken again after a prior claimed fix. |
 | Zoom-out / contrarian check | `zoom-out`, `tenn-explain`, `tenn-review-board`, `EXPLAIN.md`, and board templates | The workflow may be solving the wrong problem, overfitting, looping on reports, or missing broader production-readiness value. |
 
 Fast progress is action-first, not safety-free. It still needs current path
@@ -120,6 +121,16 @@ discipline: split independent lanes, give each worker exact allowed files,
 decision limit, result path, and stop condition, then review outputs before
 integrating one coherent change at a time. Small workers do not make final
 high-risk decisions.
+
+Regression adjudication is also a mode, not a new visible skill. Use
+`docs/dev_flow/REGRESSION_ADJUDICATION.md` before coding when Orlando says a
+thing was fixed already, is broken again, or regressed. The first output is a
+classification: `STALE_BRANCH`, `FIX_NOT_IN_CANONICAL`, `NARROW_FIX_ONLY`,
+`RUNTIME_NOT_PROVEN`, `TEST_GAP`, `NEW_FAILURE_CLASS`, `TRUE_REGRESSION`, or
+`DATA_MISSING`. `tenn-fix` uses the classification to choose the repair path;
+`tenn-review-board` uses it to avoid approving another implementation when the
+right answer is retargeting, adopting existing work, adding proof, or stopping
+on missing evidence.
 
 Zoom-out is also a mode, not a separate always-visible command. Use it inside
 `tenn-explain` or `tenn-review-board` to ask whether the real root problem is

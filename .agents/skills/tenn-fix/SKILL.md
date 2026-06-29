@@ -40,6 +40,15 @@ board decision, task card, handoff, or explicit fix request.
    status, or evaluation result until denominator, filters, exclusions,
    freshness, and pipeline stage are understood. Use counter-lineage evidence
    when the number is surprising or challenged.
+   If the user says or implies "we fixed this already", "broken again",
+   "regressed", "same bug", "why is this still broken", or equivalent, run the
+   Regression Adjudication workflow in
+   `docs/dev_flow/REGRESSION_ADJUDICATION.md` before coding. Classify the case
+   as `STALE_BRANCH`, `FIX_NOT_IN_CANONICAL`, `NARROW_FIX_ONLY`,
+   `RUNTIME_NOT_PROVEN`, `TEST_GAP`, `NEW_FAILURE_CLASS`, `TRUE_REGRESSION`, or
+   `DATA_MISSING`, then choose the matching next action. Do not patch from the
+   headline symptom until target identity, old-fix lineage, current repro,
+   permanent gate, and runtime proof status are explicit.
 8. Before closeout on daemon, runtime, ingestion, extraction, automation,
    collector, scheduler, service, or pipeline work, complete the
    `Runtime Functionality Proof` table from `AGENTS.md`. If intended live output
@@ -89,6 +98,39 @@ Do not run a review board, handoff, worker delegation, broad report packet, or
 full fallback branch/worktree scan in `FAST_PROGRESS` unless the guard,
 validation, or user request creates a real blocker. Escalate to `FULL_GUARD`
 when eligibility is uncertain.
+
+## Regression Adjudication Mode
+
+Use this mode before implementation when a failure appears to resurface after a
+prior claimed fix.
+
+1. Read `docs/dev_flow/REGRESSION_ADJUDICATION.md`.
+2. Freeze target identity with the normal guard preflight.
+3. Find the alleged old fix by commit, PR, branch, report, task card, issue, or
+   handoff.
+4. Prove whether that fix is in the selected canonical path or active runtime
+   surface.
+5. Reproduce the current failure with the smallest exact command, query, input,
+   or artifact check.
+6. Classify the failure using the workflow's exact classification set.
+7. Add or name the permanent regression gate before claiming the fix.
+8. For runtime-like work, run the Runtime Functionality Proof table before
+   saying working, fixed, complete, or `DONE`.
+
+Classification controls action:
+
+- `STALE_BRANCH`: retarget to canonical or active runtime surface.
+- `FIX_NOT_IN_CANONICAL`: adopt, review, merge, park, or supersede existing
+  work instead of reimplementing.
+- `NARROW_FIX_ONLY`: turn the work into a failure-class task with a class-level
+  gate.
+- `RUNTIME_NOT_PROVEN`: prove the intended live output before fixing again.
+- `TEST_GAP`: add the missing gate first or with the fix.
+- `NEW_FAILURE_CLASS`: scope a new narrow fix and avoid claiming the old fix
+  failed unless equivalence is proven.
+- `TRUE_REGRESSION`: use red/green repair and preserve the failing command.
+- `DATA_MISSING`: stop or continue only with labeled read-only evidence
+  gathering.
 
 ## Fresh-Session Orchestrator Mode
 
