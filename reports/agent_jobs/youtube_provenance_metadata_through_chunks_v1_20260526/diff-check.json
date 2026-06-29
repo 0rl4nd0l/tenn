@@ -1,0 +1,96 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/api/commentary.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/commentary_ingest.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/transcript_watcher.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_commentary_endpoints.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_commentary_takeaways_endpoint.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_qdrant_resolution.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_youtube_transcript_fetcher.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md",
+        "financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py",
+        "financial-engine_v2/backend/app/services/transcript_watcher.py",
+        "financial-engine_v2/backend/app/services/commentary_ingest.py",
+        "financial-engine_v2/backend/app/api/commentary.py",
+        "financial-engine_v2/backend/tests/test_youtube_transcript_fetcher.py",
+        "financial-engine_v2/backend/tests/test_qdrant_resolution.py",
+        "financial-engine_v2/backend/tests/test_commentary_endpoints.py",
+        "financial-engine_v2/backend/tests/test_commentary_takeaways_endpoint.py",
+        "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/",
+        "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/README.md",
+        "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/status.json",
+        "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/validation.json",
+        "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "youtube_provenance_metadata_through_chunks_v1_20260526",
+      "lane": "Provenance",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Memory",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -4,7 +4,15 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from app.services.channel_registry import ChannelConfig
+from app.services.transcript_watcher import (
+    TranscriptMetadata,
+    parse_transcript_job,
+    render_transcript_drop_file,
+)
 from app.services.youtube_transcript_fetcher import (
+    YoutubeTranscriptFetcher,
+    YoutubeTranscriptText,
     YoutubeVideo,
     fetch_video_metadata,
     list_recent_channel_videos,
@@ -488,3 +496,109 @@ class TestListRecentChannelVideos:
             "unknown-b",
         ]
         assert result["videos"][0]["published_at"] is None
+
+
+class TestYoutubeTranscriptFetcher:
+    def test_transcript_drop_file_round_trips_youtube_provenance(self, tmp_path):
+        metadata = TranscriptMetadata(
+            source_name="Test Video",
+            source_type="youtube_transcript",
+            speaker="Test Channel",
+            published_at="2026-04-12T00:00:00Z",
+            video_id="abc123",
+            webpage_url="https://www.youtube.com/watch?v=abc123",
+            transcript_segments=(
+                {
+                    "text": "This is the transcript text.",
+                    "segment_start_seconds": 12.0,
+                    "segment_end_seconds": 15.5,
+                },
+            ),
+        )
+        path = tmp_path / "transcript.txt"
+        path.write_text(
+            render_transcript_drop_file(
+                transcript_text="00:00:12 This is the transcript text.",
+                metadata=metadata,
+            ),
+            encoding="utf-8",
+        )
+
+        job = parse_transcript_job(path)
+
+        assert job.metadata.video_id == "abc123"
+        assert job.metadata.webpage_url == "https://www.youtube.com/watch?v=abc123"
+        assert job.metadata.transcript_segments == metadata.transcript_segments
+
+    def test_poll_once_passes_video_provenance_to_drop_file(self, tmp_path):
+        from app.services.channel_registry import ChannelRegistry
+
+        registry = ChannelRegistry(tmp_path / "channels.json")
+        registry.save(
+            [
+                ChannelConfig(
+                    name="Test Channel",
+                    channel_id="UCabc123",
+                    credibility_weight=0.71,
+                )
+            ]
+        )
+        video = YoutubeVideo(
+            video_id="abc123",
+            title="Test Video",
+            channel_name="Test Channel",
+            published_at="2026-04-12T00:00:00Z",
+            webpage_url="https://www.youtube.com/watch?v=abc123",
+        )
+        captured = {}
+
+        class StubProcessor:
+            def ensure_directories(self):
+                captured["ensured"] = True
+
+            def duplicate_source_id_for_text(self, *, transcript_text, metadata):
+                captured["duplicate_metadata"] = metadata
+                return None
+
+            def write_drop_file(self, *, file_name, transcript_text, metadata):
+                captured["file_name"] = file_name
+                captured["transcript_text"] = transcript_text
+                captured["metadata"] = metadata
+                return tmp_path / file_name
+
+            def process_file(self, path):
+                captured["processed_path"] = path
+                return {"status": "ingested", "path": str(path)}
+
+        fetcher = YoutubeTranscriptFetcher(
+            processor=StubProcessor(),
+            channel_registry_path=str(registry.path),
+            list_videos_fn=lambda channel, limit: [video],
+            fetch_transcript_fn=lambda video: YoutubeTranscriptText(
+                "00:00:12 This is the transcript text.",
+                segment_timing=[
+                    {
+                        "text": "This is the transcript text.",
+                        "segment_start_seconds": 12.0,
+                        "segment_end_seconds": 15.5,
+                    }
+                ],
+            ),
+        )
+
+        results = fetcher.poll_once()
+
+        assert results == [
+            {"status": "ingested", "path": str(captured["processed_path"])}
+        ]
+        assert captured["ensured"] is True
+        assert captured["metadata"].video_id == "abc123"
+        assert captured["metadata"].webpage_url == "https://www.youtube.com/watch?v=abc123"
+        assert captured["metadata"].transcript_segments == (
+            {
+                "text": "This is the transcript text.",
+                "segment_start_seconds": 12.0,
+                "segment_end_seconds": 15.5,
+            },
+        )
+        assert captured["metadata"].credibility_weight == 0.71

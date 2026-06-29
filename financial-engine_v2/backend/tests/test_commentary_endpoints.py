@@ -242,7 +242,14 @@ class TestApproveTranscript:
                 {
                     "id": "pt-1",
                     "vector": [0.1, 0.2],
-                    "payload": {"source_id": "src-001", "text": "hello"},
+                    "payload": {
+                        "source_id": "src-001",
+                        "text": "hello",
+                        "video_id": "abc123",
+                        "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                        "segment_start_seconds": 12.0,
+                        "segment_end_seconds": 15.5,
+                    },
                 }
             )
             + "\n"
@@ -273,6 +280,10 @@ class TestApproveTranscript:
         payload = captured_points[0]["payload"]
         assert payload["credibility_weight"] == 0.72
         assert payload["review_takeaways"] == ["Operator-edited takeaway"]
+        assert payload["video_id"] == "abc123"
+        assert payload["webpage_url"] == "https://www.youtube.com/watch?v=abc123"
+        assert payload["segment_start_seconds"] == 12.0
+        assert payload["segment_end_seconds"] == 15.5
         assert result["credibility_weight"] == 0.72
         assert result["takeaways"][0]["text"] == "Operator-edited takeaway"
         update_registry.assert_called_once_with(
@@ -537,6 +548,7 @@ class TestIngestUrl:
         monkeypatch.setattr(
             mod, "_default_fetch_transcript", lambda v: "This is the transcript text."
         )
+
         def fake_ingest_transcript(**kwargs):
             captured.update(kwargs)
             return {
@@ -558,10 +570,58 @@ class TestIngestUrl:
         assert result["video_title"] == "Test Video"
         assert result["channel"] == "Test Channel"
         assert captured["credibility_weight"] == 0.7
+        assert captured["video_id"] == "abc123"
+        assert captured["webpage_url"] == "https://www.youtube.com/watch?v=abc123"
+        assert captured["transcript_segments"] == []
         assert "transcript_chars" in result
         assert "duration_seconds" in result
         assert result["review_status"] == "staged"
         assert result["commit_path"] == "/api/commentary/transcripts/{source_id}/approve"
+
+    def test_ingest_url_passes_transcript_segment_timing(self, monkeypatch):
+        import app.api.commentary as mod
+        from app.services.youtube_transcript_fetcher import YoutubeTranscriptText
+
+        captured: dict = {}
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod,
+            "_default_fetch_transcript",
+            lambda v: YoutubeTranscriptText(
+                "00:00:12 This is the transcript text.",
+                segment_timing=[
+                    {
+                        "text": "This is the transcript text.",
+                        "segment_start_seconds": 12.0,
+                        "segment_end_seconds": 15.5,
+                    }
+                ],
+            ),
+        )
+
+        def fake_ingest_transcript(**kwargs):
+            captured.update(kwargs)
+            return {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            }
+
+        monkeypatch.setattr(mod, "ingest_transcript", fake_ingest_transcript)
+
+        result = ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+
+        assert result["ok"] is True
+        assert captured["transcript_segments"] == [
+            {
+                "text": "This is the transcript text.",
+                "segment_start_seconds": 12.0,
+                "segment_end_seconds": 15.5,
+            }
+        ]
 
     def test_single_url_ingest_returns_takeaways(self, monkeypatch):
         import app.api.commentary as mod
@@ -716,6 +776,8 @@ class TestIngestUrl:
         assert result["results"][0]["takeaways"][0]["text"] == "Key takeaway"
         assert result["results"][0]["source_id"] == "youtube_transcript:test-video:abc123"
         assert captured["credibility_weight"] == 0.65
+        assert captured["video_id"] == "abc123"
+        assert captured["webpage_url"] == "https://www.youtube.com/watch?v=abc123"
 
     def test_empty_transcript_raises_422(self, monkeypatch):
         import app.api.commentary as mod
