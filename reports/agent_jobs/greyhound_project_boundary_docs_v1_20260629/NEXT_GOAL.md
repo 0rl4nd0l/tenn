@@ -1,9 +1,9 @@
 # Next Goal
 
-Recommended next prompt to finish publication:
+Recommended next prompt for owner-approved PR readiness or merge:
 
 ```text
-/goal Continue publishing the Tenn docs-only Greyhound project-boundary branch from /home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629. The branch is clean and rebased, but pre-push is blocked because financial-engine_v2/.venv is missing ruff and pytest. If approved, use TENN_ALLOW_MISSING_HOOK_TOOLS=1 for this push only and open a draft PR against migration/clean-runtime-baseline-reconstruct-v1. Do not touch Tenn product/runtime/extraction code. Do not touch Greyhound repo files, DBs, systemd units, services, runtime artifacts, branches, worktrees, or GitHub beyond the approved branch push and draft PR.
+/goal Review PR #472 for the Tenn docs-only Greyhound project-boundary change from /home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629. Verify the latest PR head, checks, mergeability, task-card allowlist, focused docs grep, and final git status. If explicitly approved and still green, mark the draft ready or merge according to owner direction. Do not touch Tenn product/runtime/extraction code. Do not touch Greyhound repo files, DBs, systemd units, services, runtime artifacts, branches, worktrees, or GitHub beyond the approved Tenn PR action.
 ```
 
 Separate Greyhound relocation prompt, only if physical filesystem cleanup is

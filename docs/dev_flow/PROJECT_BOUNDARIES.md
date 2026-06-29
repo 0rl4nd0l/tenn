@@ -1,6 +1,6 @@
 # Tenn Project Boundaries
 
-Last verified: 2026-06-29T18:02:29+1000.
+Last verified: 2026-06-29T18:35:22+1000.
 
 Verification scope: Tenn documentation and agent routing only. This document
 does not prove runtime functionality for Tenn or any sibling project.
@@ -15,8 +15,10 @@ Source evidence:
   `/home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629`
 - Fresh Tenn task branch:
   `docs/greyhound-project-boundary-v1-20260629`
-- Fresh Tenn task base:
+- Initial Tenn task base:
   `3b32b8b3be8b04bb5a198c71ec928db182438f17`
+- Publish refresh canonical parent:
+  `6c486d07743d3483d05fa163dc5c02fd66b68863`
 
 ## Boundary Rule
 

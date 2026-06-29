@@ -45,6 +45,23 @@ empty, and the user explicitly approved the commit/push/PR path. Rebasing the
 single docs commit removed the stale-path blocker without touching runtime or
 Greyhound surfaces.
 
+## Closeout Correction Decision
+
+Decision: update the report-local closeout and provenance wording after review
+found stale publication-wait language.
+
+Evidence before this closeout correction: PR #472 was open as a draft against
+`migration/clean-runtime-baseline-reconstruct-v1`, head
+`7af1c2dceaa91b5d0f3ff7e1751d690902f3e5da`, merge state `CLEAN`, with
+`lint-and-test` and `scan` successful. The old missing-hook-tool wait state was
+resolved by owner-approved one-shot push using
+`TENN_ALLOW_MISSING_HOOK_TOOLS=1`.
+
+Rationale: report artifacts are part of the committed diff and must match live
+publication state before this PR can be treated as review-ready. The correction
+does not change Tenn runtime/product/extraction code or Greyhound-owned
+surfaces.
+
 ## Docs Impact Check
 
 - `docs_impact`: `DOCS_UPDATED`

@@ -40,7 +40,9 @@ rule: Greyhound is an external sibling project, not a Tenn subsystem.
 - Fresh worktree:
   `/home/l4nd0/tenn-greyhound-project-boundary-docs-v1-20260629`
 - Branch: `docs/greyhound-project-boundary-v1-20260629`
-- Base HEAD: `3b32b8b3be8b04bb5a198c71ec928db182438f17`
+- Initial task base HEAD: `3b32b8b3be8b04bb5a198c71ec928db182438f17`
+- Publish refresh canonical parent:
+  `6c486d07743d3483d05fa163dc5c02fd66b68863`
 
 ## Scope
 
@@ -51,6 +53,8 @@ Allowed:
 - Update `docs/README.md` only to route operators to the project-boundary doc.
 - Write report-local closeout files under this task `output_dir`.
 - Run read-only guard, registry, ledger, grep, diff, and contract validation.
+- After explicit owner approval, publish this Tenn docs-only branch by local
+  commit, rebase onto canonical, branch push, and draft PR creation.
 
 Forbidden:
 
@@ -60,8 +64,10 @@ Forbidden:
 - Greyhound repo file edits, DB changes, systemd unit edits, service starts,
   restarts, stops, runtime artifact edits, branch/worktree changes, cleanup, or
   GitHub writes.
-- Tenn GitHub writes, commits, pushes, merges, rebases, resets, stashes,
-  branch deletion, worktree deletion, pruning, or parked-work changes.
+- Tenn merges, resets, stashes, branch deletion, worktree deletion, pruning,
+  parked-work changes, or unrelated GitHub writes. Any Tenn commit, rebase,
+  branch push, or draft PR creation must stay limited to this docs-only branch
+  and require explicit owner approval.
 - Broad repo cleanup or moving filesystem paths.
 
 ## Required Behavior
@@ -88,6 +94,7 @@ The docs must state:
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --no-write-report`
 - `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --repo-root .`
+- `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/greyhound_project_boundary_docs_v1_20260629.md --repo-root .`
 - Final `git status --short --untracked-files=all`
 
 ## Closeout Notes
