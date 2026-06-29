@@ -1,55 +1,96 @@
 # AGENTS.md - Tenn Repo Constitution
 
-This file is the stable instruction layer for agents working in Tenn. Keep it
-short enough to load every turn. Put repeatable procedures in `.agents/skills`
-instead of expanding this file.
+This is the stable instruction layer for agents working in Tenn. Keep it short
+enough to load every turn. Put repeatable procedures in repo-backed skills and
+`docs/dev_flow`, not in this file.
 
-## Repo Map And Target Selection
+## Repo And Target Verification
 
 - Tenn is an ASX financial data ingestion, extraction, and cockpit workflow
-  repository. The active runtime code is mainly under `financial-engine_v2/`;
-  repository-level scripts and evaluation helpers also exist under `scripts/`.
-- Verify the actual target before acting: `pwd`, `git branch --show-current`,
-  `git rev-parse HEAD`, `git remote -v`, and
-  `git status --short --untracked-files=all`.
+  repository. Active runtime code is mainly under `financial-engine_v2/`;
+  repo-level scripts and evaluation helpers also exist under `scripts/`.
+- Verify the actual target before acting:
+
+```bash
+pwd
+git branch --show-current
+git rev-parse HEAD
+git remote -v
+git rev-parse --abbrev-ref --symbolic-full-name @{u}
+git status --short --untracked-files=all
+```
+
 - Runtime paths are environment-specific. Do not assume `/workspace`,
-  `/home/l4nd0`, NVMe, venv, Docker, or service availability without checking.
-- Use `docs/README.md` as the documentation source map before browsing the
-  wider docs tree or historical report archives.
-- Use `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` before
-  implementation-capable work when repo path ownership, stale worktrees, or
-  duplicate-work preservation is in scope.
-- Use `docs/entrypoints.md` for runtime entrypoint context only when the task
-  needs runtime work. Most repo-hygiene tasks should not start services.
+  `/home/l4nd0`, NVMe, venv, Docker, services, GPUs, or DB access without
+  checking.
+- Use `docs/README.md` as the documentation source map before browsing wider
+  docs or historical reports.
+- Use `docs/entrypoints.md` only when runtime entrypoint context is needed.
+  Most repo-hygiene and docs tasks should not start services.
 
-## Current Evidence And Truthfulness
+## Procedure Routing
 
-- Ground substantive claims in current-turn evidence. Prior memory, reports, and
-  older summaries are background until re-checked.
-- Mark missing or stale evidence as `DATA_MISSING`; do not invent repo state,
-  validation results, issue status, branch ownership, or active agent ownership.
-- Prefer exact file paths, command outputs, issue numbers, and report artifacts
-  over qualitative status claims.
+`AGENTS.md` states the non-negotiables. Read the relevant procedure only when
+the task needs it:
 
-## Source Of Truth Hierarchy
+| Task type | Procedure source |
+| --- | --- |
+| Implementation, docs edits, validation, closeout | `.agents/skills/tenn-fix/SKILL.md` |
+| Branch, worktree, dirty state, ledger, registry, duplicate work | `.agents/skills/tenn-git-guard/SKILL.md` |
+| Operator prompts and exact command patterns | `docs/dev_flow/CODEX_OPERATOR_GUIDE.md` |
+| Skill selection and visible-surface policy | `docs/dev_flow/SKILLS_SURFACE.md` |
+| Handoff or fresh-session continuation | `.agents/skills/tenn-handoff/SKILL.md` |
+| Long `/goal` reports and wait states | `.agents/skills/tenn-goal-report/SKILL.md` |
+| Risky decisions or merge/readiness calls | `.agents/skills/tenn-review-board/SKILL.md` |
+| Plain-language explanations | `.agents/skills/tenn-explain/SKILL.md` |
+| Financial metric extraction | `.agents/skills/tenn-financial-metric-extraction/SKILL.md` |
+| Path ownership and stale-work preservation | `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` |
+
+Host/global skills must not silently replace Tenn repo-backed skills. If a
+repo skill is needed but absent from autocomplete, read it by path.
+
+## Source Of Truth
+
+Use this order when evidence conflicts:
 
 1. Current user instructions and explicit safety boundaries.
-2. The active task card, if one is provided or created.
+2. Active task card, if one is provided or created.
 3. Live repo state, current files, branch/HEAD/origin, and safe GitHub reads.
 4. Current reports under `reports/agent_jobs/...` and registry evidence.
-5. Durable docs such as `AGENTS.md`, `docs/entrypoints.md`, and issue bodies.
-6. Memory or prior session context, as background only.
+5. Durable docs such as this file, `docs/README.md`, `docs/entrypoints.md`,
+   repo-backed skills, and issue bodies.
+6. Memory, prior reports, and older summaries as background only.
 
 If these disagree, stop or narrow the work until the conflict is explicit.
 
-## Agent Operating Constitution
+## Evidence And Truthfulness
 
-### Truthfulness And Non-Sycophancy
+- Ground substantive claims in current-turn evidence.
+- Label important claims as `VERIFIED`, `USER_REPORTED`, `INFERRED`,
+  `UNKNOWN`, `CONFLICT`, or `DATA_MISSING`.
+- Do not invent repo state, validation results, issue status, branch ownership,
+  runtime behavior, active agent ownership, or dissent.
+- Challenge the premise when evidence disagrees. Do not mirror Orlando when the
+  repo says otherwise.
+- Prefer exact paths, commands, issue/PR numbers, report artifacts, timestamps,
+  counts, and query outputs over qualitative status.
+- For surprising counts, scores, pass rates, daemon status, or evaluation
+  results, explain denominator, filters, exclusions, freshness, and pipeline
+  stage.
 
-- Do not lie, invent state, exaggerate progress, or mirror Orlando. Challenge
-  the premise when repo evidence disagrees.
-- Label important claims as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
-  `CONFLICT`, or `DATA_MISSING`; treat conflicts as stop-or-narrow conditions.
+## Safety Boundaries
+
+Do not mutate any of these without explicit approval for that exact action:
+
+- DB, Qdrant, Redis, news stores, memory stores, production data, source PDFs,
+  gold labels, extraction prompts, backfills, runtime state, service config,
+  model/GPU config, Docker volumes, or secrets.
+- Broad rewrites, dependency installs, service starts, merge/rebase/reset/stash,
+  branch deletion, worktree deletion, pruning, force operations, GitHub writes,
+  or parked-work changes.
+
+Preserve unrelated dirty or untracked files. Work with existing dirt instead of
+cleaning it.
 
 ### Runtime Functionality Proof
 
@@ -86,220 +127,90 @@ a proof table with these exact fields:
 If the intended output is stale, zero, missing, or unverified, the status must
 be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
 
-### Branch And Worktree Preflight
+## Worktree, Task Card, And Ledger Discipline
 
-- Before non-trivial implementation, check worktree, branch, HEAD, upstream,
-  canonical base, related PRs, related branches/worktrees, dirty state, and
-  owner-boundary paths.
-- Do not start coding when requested work already exists elsewhere or the
-  current branch is stale.
-- If cwd is not a valid Tenn git worktree, stop or create a fresh sibling
-  worktree from current canonical; do not repair or clean the wrong path.
+- Before non-trivial implementation, run the portable guard and inspect
+  `path_ownership`, `canonical_head`, `duplicate_work_status`, and
+  `stop_reimplementation`:
 
-### Risk-Based Execution Lanes
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+```
+
+- For `FULL_GUARD` audits, merge/parking decisions, high-risk duplicate-work
+  searches, or broad hygiene work, add `--fallback-detail full` when the runner
+  supports it. Keep small `FAST_PROGRESS` work on summarized guard output.
+
+- If the portable guard is unavailable inside a Tenn control-plane checkout,
+  use `.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py`.
+- Do not start coding when requested work already exists elsewhere, the current
+  branch is stale, the path is not a valid Tenn git worktree, or owner
+  boundaries are ambiguous.
+- Create or validate a task card before implementation-capable edits. Keep
+  `allowed_files` exact, including report artifacts.
+- Check the branch-independent Agent Task Ledger, task cards, reports,
+  branches, worktrees, PRs, and issues for duplicate work before coding.
+- Update ledger/report state for claim, progress, wait/block, PR, merge, done,
+  parked, or superseded status as required by `tenn-fix`.
+- Classify similar work as active, open-PR, merged-canonical, stale-preserve,
+  superseded, owner-boundary, or unknown before replacing it.
+
+## Execution Lanes
 
 - `FAST_PROGRESS`: small docs/control-plane fixes or narrow code fixes with
   exact files, no runtime/data/extraction/GitHub/destructive boundary, and no
-  stale/dirty/duplicate-work blocker. Use summarized guard output, a small task
-  card when editing, focused validation, and a direct closeout. Do not add a
-  review board, handoff, or workers unless a real blocker appears.
+  stale/dirty/duplicate-work blocker. Use summarized guard output, focused
+  validation, and direct closeout.
 - `STANDARD_FIX`: normal bounded implementation with task card, guard,
-  allowed-files check, focused validation, docs impact, and final diff review.
+  allowed-files check, validation, docs impact, and final diff review.
 - `FULL_GUARD`: stale path, dirty overlap, duplicate-work risk, merge/parking,
   owner-boundary, architecture, broad cleanup, or high-collision work. Use full
-  guard fallback detail and stop on unresolved risk.
-- `RUNTIME_PROOF`: daemon, runtime, ingestion, extraction, automation,
-  collector, scheduler, service, or pipeline functionality claims. Use the
-  Runtime Functionality Proof table before any `DONE`/working/functional claim.
+  fallback detail and stop on unresolved risk.
+- `RUNTIME_PROOF`: runtime-like work may be called working, functional,
+  complete, or `DONE` only after the Runtime Functionality Proof table passes.
 - If lane eligibility is uncertain, escalate to `FULL_GUARD`.
 
-### Advanced-Code And Stale-Work Policy
+## Implementation Discipline
 
-- Search for more advanced existing work before implementing.
-- Classify existing work as `ADOPT`, `CONTINUE`, `PRESERVE`, `SUPERSEDED`,
-  `OWNER_BOUNDARY`, or `UNKNOWN`.
-- Preserve valuable stale work through validated commit/PR paths when approved.
-
-### Minimum Necessary Code
-
-- Prefer the smallest readable, testable change. If one line is enough, use one
-  line.
-- Remove unnecessary related lines when safe and in scope, but do not code-golf
-  or add obscure cleverness.
-- Avoid opportunistic unrelated refactors.
-
-### No Report-Only Loops
-
+- Prefer the smallest readable, testable change. Avoid opportunistic refactors.
+- Use one primary lane accepted by local tooling. If doing Repo Hygiene, use an
+  accepted primary lane such as `Evaluation` or `Reporting` and list
+  `Repo Hygiene` as supporting.
+- Use subagents only when they save context, increase independent verification,
+  or support parallel read-only specialist review. Each worker needs one lane,
+  one worktree, one result file, and no invisible dirt.
+- Review board output must include `BOARD_DECISION.json`, not just opinions. It
+  should search for credible objections but never fabricate dissent.
 - Reports must end in implementation, PR/merge, issue closeout, cleanup
-  approval, owner decision, or an exact next goal.
-- Do not run report after report.
+  approval, owner decision, blocked state, or an exact next goal.
+- Financial metric extraction is highest priority only when live issue or
+  registry evidence confirms it for the task. Canonical financial numbers must
+  be source-bound, deterministic, auditable, and provenance-linked.
 
-### Native Git Hygiene
+## Waiting And Approval
 
-- Git Hygiene is a backend guard for every workflow.
-- It may classify and recommend, but must not clean, delete, reset, stash,
-  rebase, merge, or push without approval.
+Stop with `WAITING_ON_USER` when the next meaningful step requires approval,
+permission flags, credentials, services, DB/backfill access, runtime/data
+mutation, GitHub writes, merge/rebase/branch/parking decisions, cleanup, or an
+owner product/design/architecture decision.
 
-### Review Board And Worker Discipline
-
-- Review board must produce `BOARD_DECISION.json`, not just opinions.
-- Review board must search for credible objections but never fabricate dissent.
-- Workers require one lane, one worktree, one result file, and no invisible
-  dirt.
-
-### Explanation Obligation
-
-- When Orlando asks, explain in plain language but enough depth: what it is,
-  why it exists, what changed, what remains broken, risks, and next action.
-
-### Surprising Numbers And Owner Challenges
-
-- When reporting counts, scores, pass rates, daemon status, evaluation results,
-  or surprisingly low/high numbers, explain denominator, filters, exclusions,
-  freshness, and pipeline stage.
-- Before closeout for daemon, runtime, extraction, or automation functionality
-  claims, build evidence/counter-lineage for the intended output and current
-  gate status even if Orlando has not challenged the result.
-- If Orlando challenges a number with phrases like "why only", "shouldn't this
-  be higher", "is the daemon doing it", or "that doesn't make sense", switch to
-  evidence mode and build counter lineage: raw/captured -> candidate -> accepted
-  -> evaluated -> reported.
-- Distinguish `VERIFIED`, `INFERRED`, `UNKNOWN`, and `DATA_MISSING`.
-
-## Task Ledger And Duplicate-Work Prevention
-
-- Before non-trivial work, check the branch-independent Agent Task Ledger and
-  related task cards, reports, branches, worktrees, PRs, and issues.
-- Do not reimplement work that already exists. Classify similar work before
-  coding as active, open-PR, merged-canonical, stale-preserve, superseded,
-  owner-boundary, or unknown.
-- For owner-facing preservation decisions, use `ADOPT`, `CONTINUE`,
-  `MERGE_READY`, `PARK`, `SUPERSEDE`, `BLOCKED`, `DUPLICATE`, or
-  `DATA_MISSING` as defined in
-  `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md`.
-- Implementation-capable sessions must write or update a ledger entry for their
-  claim, progress, wait/block state, PR, merge, done, parked, or superseded
-  state.
-- If the ledger is unavailable, record `DATA_MISSING` and perform a bounded
-  fallback search before coding.
-
-## Safety Boundaries
-
-- Do not mutate DB, Qdrant, Redis, news stores, memory, backfills, source PDFs,
-  gold labels, extraction prompts, runtime state, model/GPU/service config, or
-  production data unless the user explicitly approves that exact action.
-- Do not run broad rewrites, dependency installs, service starts, branch
-  deletion/pruning, merge/rebase/reset/stash/clean, or GitHub write actions
-  unless the task explicitly requires and permits them.
-- Preserve unrelated dirty or untracked files. Work with existing dirt instead
-  of cleaning it.
-
-## Financial Truth Priority
-
-- Financial metric extraction is currently the highest-priority Tenn blocker
-  only when live issue/registry evidence confirms it for the task.
-- Canonical financial numbers must be source-bound, deterministic, auditable,
-  and provenance-linked. Do not let LLM outputs define canonical numbers or
-  promote disclosure text into canonical truth silently.
-- Favor audit-first work and one narrow safe extension at a time.
-
-## Multi-Agent Live Repo Control
-
-- Assume other agents or worktrees may be active. Check branch, dirty state,
-  task cards, and registry evidence before edits.
-- Use exactly one primary lane accepted by local tooling. If doing Repo Hygiene,
-  use an accepted primary lane such as `Evaluation` or `Reporting` and list
-  `Repo Hygiene` as a supporting lane until the validator changes.
-- Stop on unresolved high collision risk or ambiguous target branch/worktree.
-- Prefer a clean sibling worktree when shared-checkout dirt overlaps the task;
-  otherwise keep the diff strictly inside the task-card allowlist.
-
-## Two-Shot Workstreams And Autonomy Envelopes
-
-- Non-trivial Git Hygiene and control-plane remediation should default to a
-  two-shot workstream.
-- Shot 1 means investigate, classify, preserve safe evidence, create an
-  approval manifest, create an execution plan, and stop.
-- Shot 2 means execute approved manifest groups mechanically, skip drifted
-  paths, stop before forbidden boundaries, and close out.
-- Avoid micro-approval loops for safe report-local and preservation-only
-  actions. Approval should be group-level and manifest-based where possible, not
-  path-by-path chat back-and-forth.
-- Still stop for destructive, source-state, canonical-history, GitHub,
-  product, runtime, or data boundaries.
-- Reserve `WAITING_ON_USER` for actual boundary crossings, ambiguity, missing
-  approval, or unsafe drift; do not use it for every safe report, ledger,
-  archive, patch bundle, or preservation artifact.
-
-## Task Cards, Registry, And Merge Parking
-
-- Run the portable guard before relying on repo-local Tenn scripts:
-  `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json`.
-  This default uses summarized branch/worktree fallback output for fast/small
-  work. Add `--fallback-detail full` for `FULL_GUARD` audits, merge/parking
-  decisions, high-risk duplicate-work searches, or broad hygiene work.
-  If the installed host runner has not yet picked up this option, use the
-  repo-backed fallback from a current Tenn control-plane checkout.
-  From a Tenn control-plane checkout, the repo-backed fallback is
-  `python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root . --topic "<topic-or-path>" --json`.
-  Missing repo-local `scripts/agent_*` files in runtime/product repos is not
-  itself repo corruption; record `DATA_MISSING` only for unavailable evidence.
-- Implementation-capable work should have a task card before edits. Validate it
-  with the Tenn-control-plane-local
-  `python3 scripts/agent_job_contract.py validate <task_card>` when the script
-  is available.
-- Keep `allowed_files` exact. Include report artifacts explicitly because
-  `reports/` is ignored and local `check-diff` is literal.
-- Use the Tenn-control-plane-local
-  `python3 scripts/agent_job_registry.py list-active --read-only` for focused
-  registry inspection when the script is available. Do not use lock-writing
-  registry commands for read-only audit. If safe read-only registry evidence is
-  unavailable, record `DATA_MISSING`.
-- Use `docs/agent_registry/merge_parking/REGISTRY.md` for parked merge state.
-  Do not merge, rebase, cherry-pick, unpark, or delete parked work without
-  explicit approval.
+Write the wait state into the report or handoff with: needed input, why it
+matters, current safe state, options, and recommendation. If approval is
+optional, continue only with clearly labeled useful read-only work.
 
 ## Command Output Discipline
 
 - Scope unknown or potentially large output before reading it into context.
   Prefer `rg`, `rg --files`, `git status --short`, `git diff --name-only`, and
-  targeted ranges before full reads.
+  targeted ranges.
 - For noisy commands, cap bytes, not just lines:
-  - `COMMAND 2>&1 | head -c 4000`
-  - `COMMAND 2>&1 | tail -c 4000`
-- Line caps alone are unsafe because one giant line can flood context.
+  `COMMAND 2>&1 | head -c 4000` or `COMMAND 2>&1 | tail -c 4000`.
 - Preserve exit codes when validation matters. Use `set -o pipefail`, capture
   status explicitly, or rerun a focused command if a pipe hides the status.
-- Read these fully when relevant: instruction files, policy files, skill files,
-  task cards, small config files, and intentionally selected small source
-  sections.
 - For noisy tests or builds, write raw logs to a report artifact and show only
   the summary plus raw-log path.
 
-## Blocked, Waiting, And Approval States
-
-Never silently continue low-value work when the next meaningful step requires
-approval, a flag, permission, credential, service, or decision.
-
-Declare `WAITING_ON_USER` when work cannot safely continue because it needs user
-approval, permission flags, sandbox/network/runtime capability, secrets/env
-vars, live services, DB/backfill approval, GitHub write/auth, merge/rebase/
-branch/parking decisions, or product/design/architecture decisions.
-
-```text
-WAITING_ON_USER
-Needed: <exact approval/flag/input>
-Why: <what this unlocks>
-Current safe state: <what has been done>
-Options: <A/B/C>
-Recommended: <one option>
-```
-
-For `/goal`, write the same wait state into the goal report or handoff before
-stopping. If approval is optional, continue only with clearly labeled useful
-read-only work. If approval is required for the next meaningful step, stop.
-
-## Risk-Based Validation
+## Validation And Done
 
 - Tiny docs, comments, report-only artifacts, or prompt text: no runtime
   validation required; explain why.
@@ -310,55 +221,21 @@ read-only work. If approval is required for the next meaningful step, stop.
   only when justified.
 - Never claim validation passed without the command, exit status, and relevant
   output.
-
-## Done Criteria And Reporting
-
 - Final reports should list files touched, files intentionally not touched,
   commands run, validation status, unsafe actions avoided, blocked items,
   ignored/untracked artifacts, and the next recommended prompt.
-- For runtime, daemon, automation, extraction, ingestion, collector, scheduler,
-  service, or pipeline work, `DONE` requires fresh intended-output proof from
-  the `Runtime Functionality Proof` table.
-- If only artifacts, tests, reports, logs, services, timers, or PR state changed,
-  use `DONE_WITH_RISK` or `PARTIAL`, not `DONE`.
-- If the task was report-only, explicitly say "report-only complete; system
-  functionality not proven."
+- If the task was report-only or docs-only, explicitly say system
+  functionality was not proven.
 - Use `DONE_WITH_RISK` when useful work completed but evidence is incomplete,
-  validation is skipped for a stated reason, or an external blocker remains.
-- Use `DONE` only when the stated done criteria and validation/reporting
-  requirements are met.
-
-## Skill And Subagent Policy
-
-- Repo-backed Codex skills live under `.agents/skills`.
-- See `docs/agents/skill-registry.md` for active, legacy, tool-specific, and
-  reference-only skill root labels.
-- `.codex/config.toml` and `.codex/hooks.json` are Codex config/hooks surfaces.
-  Treat `.codex/skills` references as legacy/custom unless local evidence proves
-  compatibility is intentionally required.
-- Generic engineering skills that need issue tracker, triage label, or
-  domain-doc configuration should read `docs/agents/issue-tracker.md`,
-  `docs/agents/triage-labels.md`, and `docs/agents/domain.md`.
-- Do not mirror all host skills into Tenn. Repo skills should wrap Tenn-specific
-  workflows.
-- If a repo-backed skill is needed but not shown in the picker or autocomplete,
-  read the skill file by path under `.agents/skills/<skill>/SKILL.md`.
-- Autocomplete or picker absence is not evidence that the repo-backed skill does
-  not exist.
-- Host/global skills must not silently replace Tenn repo-backed skills. Use the
-  repo skill, or state why it is unavailable and mark the gap explicitly.
-- Use subagents only when they save context, increase independent verification,
-  or allow parallel read-only specialist review. Do not use subagents for
-  trivial tasks or parallel writes on contested surfaces.
-- Each subagent report must include files inspected, findings, uncertainty,
-  commands run, files changed if any, and recommended next action.
+  validation was skipped for a stated reason, or an external blocker remains.
+  Use `DONE` only when the stated done criteria and proof requirements are met.
 
 ## GitHub Issue Workflow
 
 - GitHub issues are the coordination backlog; task cards are execution
   contracts; reports are evidence and closeout.
-- Search open and closed issues before proposing new issue mutations. Do not
-  create, edit, label, comment on, close, or reopen issues without explicit
-  approval.
+- Search open and closed issues before proposing issue mutations.
+- Do not create, edit, label, comment on, close, or reopen issues without
+  explicit approval.
 - Use issue #78 for agent markdown and Codex repo documentation refresh work
   unless live evidence shows a narrower tracker supersedes it.
