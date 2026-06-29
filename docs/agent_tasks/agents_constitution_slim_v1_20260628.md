@@ -52,6 +52,17 @@ repo-backed skills and `docs/dev_flow` operator docs.
 - Do not merge, rebase, reset, stash, cherry-pick, prune, delete branches,
   delete worktrees, push, open PRs, or mutate GitHub.
 
+## Later Owner Approval
+
+After the docs-only local commit and review, Orlando explicitly approved:
+
+- pushing `control-plane/agents-constitution-slim-v1-20260628`;
+- opening draft PR #462;
+- fixing review feedback in the report bundle;
+- refreshing the PR branch against current canonical.
+
+All other hard boundaries remain in force.
+
 ## Required Validation
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/agents_constitution_slim_v1_20260628.md`

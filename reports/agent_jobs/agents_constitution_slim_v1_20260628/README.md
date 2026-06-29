@@ -12,7 +12,7 @@ manual, while preserving the hard Tenn guardrails.
 
 - Fresh task worktree: `/home/l4nd0/tenn-agents-constitution-slim-v1-20260628`
 - Branch: `control-plane/agents-constitution-slim-v1-20260628`
-- Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d`
+- Base: `origin/migration/clean-runtime-baseline-reconstruct-v1@265a0d5a8125254c099e391087724097d6200517`
 - Task card: `docs/agent_tasks/agents_constitution_slim_v1_20260628.md`
 
 ## Completed Work
@@ -33,6 +33,10 @@ manual, while preserving the hard Tenn guardrails.
   `d07fc0f3633395fb727a556bce5b6f25d3af27dc`.
 - Opened draft PR #462:
   `https://github.com/0rl4nd0l/tenn/pull/462`.
+- Fixed the report contradiction found during PR review: GitHub writes were
+  not avoided; they were performed only after explicit user approval.
+- Refreshed the PR branch by merging current canonical
+  `265a0d5a8125254c099e391087724097d6200517`.
 
 ## Runtime Functionality Proof
 
@@ -58,7 +62,7 @@ runtime state, access production data, or claim runtime functionality.
 
 All required docs/control-plane checks passed. See `VALIDATION.md`.
 
-Live PR state at 2026-06-29T06:09Z:
+Live PR state must be rechecked after each push. Last pre-refresh state:
 
 - PR #462: open draft.
 - Base: `migration/clean-runtime-baseline-reconstruct-v1`.
@@ -71,9 +75,11 @@ Live PR state at 2026-06-29T06:09Z:
 
 - No service starts.
 - No dependency installs.
-- No GitHub writes.
-- No merge, rebase, reset, stash, clean, prune, push, branch deletion, or
-  worktree deletion.
+- No unapproved GitHub writes. Branch push and draft PR creation happened only
+  after explicit user approval.
+- No unapproved merge, rebase, reset, stash, clean, prune, branch deletion, or
+  worktree deletion. The canonical branch refresh merge happened only after
+  explicit user approval.
 - No runtime or production-data mutation.
 
 ## Next Recommended Prompt

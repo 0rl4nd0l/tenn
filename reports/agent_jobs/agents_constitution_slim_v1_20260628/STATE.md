@@ -21,6 +21,10 @@ state: PR_OPENED
 - Ledger entry appended for `implementation_started`.
 - Final ledger entry appended for `done`.
 - PR #462 opened as draft and branch pushed to origin.
+- PR review found a report contradiction around GitHub writes; wording was
+  fixed to reflect explicit later user approval.
+- Branch refreshed against canonical `265a0d5a8125254c099e391087724097d6200517`
+  by a non-destructive merge.
 - Duplicate-work classification: `NO_MATCHING_ACTIVE_WORK_FOUND`.
 
 ## Docs Impact Check
@@ -74,6 +78,6 @@ not_applicable: docs-only task.
 - draft: true
 - mergeable: MERGEABLE
 - merge_state_status: UNSTABLE
-- checks: `scan` success; `lint-and-test` in progress
+- checks: recheck live after branch refresh push
 - note: connector PR creation failed with expired app token, so `gh pr create`
   was used as the authenticated fallback.

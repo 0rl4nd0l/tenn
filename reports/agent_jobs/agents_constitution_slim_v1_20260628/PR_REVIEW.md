@@ -19,7 +19,11 @@
 
 ## Findings
 
-No blocking findings in the current diff. Residual risk is documentation
+Initial review found stale report wording: the report said no GitHub writes
+after PR #462 had been opened. This was fixed by recording that push, PR
+creation, and branch refresh were later user-approved actions.
+
+No remaining blocking findings in the docs diff. Residual risk is documentation
 interpretation: reviewers should confirm that the shorter `AGENTS.md` still
 feels strict enough for always-loaded policy.
 
@@ -30,4 +34,6 @@ feels strict enough for always-loaded policy.
 - Base: `migration/clean-runtime-baseline-reconstruct-v1`
 - Head: `control-plane/agents-constitution-slim-v1-20260628`
 - Mergeability: `MERGEABLE`
-- Current checks: `scan` success; `lint-and-test` in progress
+- Current checks: recheck live after branch refresh push
+- Branch refresh: merged canonical
+  `265a0d5a8125254c099e391087724097d6200517`

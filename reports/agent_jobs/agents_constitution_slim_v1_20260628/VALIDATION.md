@@ -17,6 +17,8 @@
 | `git push -u origin control-plane/agents-constitution-slim-v1-20260628` | BLOCKED_THEN_PASS | First blocked by missing local `ruff`/`pytest`; pushed with documented `TENN_ALLOW_MISSING_HOOK_TOOLS=1` after docs-only validation passed. |
 | `gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/agents-constitution-slim-v1-20260628` | PASS | Opened PR #462. |
 | `gh pr view 462 --json number,title,state,isDraft,url,baseRefName,headRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,commits` | PASS | PR open draft; mergeable; `scan` success; `lint-and-test` in progress. |
+| PR review | BLOCKED_THEN_FIXED | Found stale report wording claiming no GitHub writes after PR creation. Report and task card now record later user approval for push/PR/branch refresh. |
+| `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | PASS | Refreshed branch against canonical `265a0d5a8125254c099e391087724097d6200517` without conflicts. |
 
 ## Runtime Validation
 
