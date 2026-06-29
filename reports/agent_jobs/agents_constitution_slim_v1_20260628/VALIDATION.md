@@ -24,6 +24,13 @@
 | `git merge --no-edit origin/migration/clean-runtime-baseline-reconstruct-v1` | CONFLICT_THEN_FIXED | Auto-merged operator docs; `AGENTS.md` conflicted and was resolved manually. |
 | `rg -n "<<<<<<<|=======|>>>>>>>" AGENTS.md docs/dev_flow/CODEX_OPERATOR_GUIDE.md docs/dev_flow/SKILLS_SURFACE.md` | PASS | No conflict markers remain. |
 | `wc -l -c AGENTS.md` | PASS | Resolved file is 241 lines / 12005 bytes. |
+| `git diff --cached --name-only origin/migration/clean-runtime-baseline-reconstruct-v1` | PASS | In-merge diff against current canonical was limited to task-card `allowed_files`. |
+| `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | EXPECTED_PRECOMMIT_FAIL | While the merge was uncommitted, `git status` still listed current-base files staged from the merge, so this status-based check reported outside-allowlist base files. |
+| `git commit -m "docs(control-plane): refresh constitution PR branch"` | PASS | Created merge commit `93cbfbb4`; pre-commit skipped missing local runtime `ruff`. |
+| `git diff --name-only origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD` | PASS | Post-merge PR diff limited to task-card `allowed_files`. |
+| `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | PASS | Post-merge allowed-diff gate passed and refreshed `diff-check.json`. |
+| `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | PASS | Docs-only closeout accepted. |
+| `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/agents_constitution_slim_v1_20260628.md --repo-root .` | PASS | Listed report artifacts exist and are non-empty. |
 
 ## Runtime Validation
 

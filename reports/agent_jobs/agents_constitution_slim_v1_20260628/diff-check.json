@@ -1,23 +1,15 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/agents_constitution_slim_v1_20260628.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/PR_REVIEW.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/README.md",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/STATE.md",
       "status": "M"
     },
     {
       "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/agents_constitution_slim_v1_20260628/diff-check.json",
       "status": "M"
     }
   ],

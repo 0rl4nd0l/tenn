@@ -1,6 +1,6 @@
 # State
 
-state: PR_REFRESH_VALIDATING
+state: PR_REFRESH_VALIDATED_PENDING_PUSH
 
 ## Evidence Used
 
@@ -34,6 +34,8 @@ state: PR_REFRESH_VALIDATING
   new implementation lane.
 - Conflict in `AGENTS.md` resolved by preserving the slim constitution and
   incorporating current-base execution-lane / `--fallback-detail` guidance.
+- Post-merge PR diff against current canonical is limited to task-card
+  `allowed_files`.
 - Duplicate-work classification: `NO_MATCHING_ACTIVE_WORK_FOUND`.
 
 ## Docs Impact Check
@@ -76,7 +78,7 @@ not_applicable: docs-only task.
 
 ## Closeout
 
-- closeout_status: PR_REFRESH_VALIDATING
+- closeout_status: PR_REFRESH_VALIDATED_PENDING_PUSH
 - system_functionality_proven: no
 - reason: docs-only constitution cleanup; no runtime behavior claimed.
 
