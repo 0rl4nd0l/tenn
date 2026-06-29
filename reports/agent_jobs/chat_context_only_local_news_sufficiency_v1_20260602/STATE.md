@@ -10,7 +10,8 @@ VERIFIED: implementation and focused validation are complete.
 - Base commit used by this worktree: `f60b5161cd121a41c5cc56048feb055f82ebdd10`
 - Rebased onto canonical: `55da116ad6b20adccb7a66931601895b3e8ab757`
 - Related issue: `#265`
-- GitHub writes: approved by user `proceed`; push and draft PR pending
+- GitHub writes: approved by user `proceed`; draft PR opened
+- PR: `https://github.com/0rl4nd0l/tenn/pull/470`
 - Runtime/data mutations: not performed
 - Rebase: performed onto `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Merge: not performed
@@ -27,6 +28,12 @@ VERIFIED: implementation and focused validation are complete.
 
 Generic `tell me about A2M` context-only behavior remains `context_only`.
 
+## PR State
+
+Draft PR #470 is open against
+`migration/clean-runtime-baseline-reconstruct-v1`.
+
 ## Next Action
 
-Push the refreshed branch and open a draft PR for issue #265.
+Wait for checks/review, then mark ready or merge only after the normal Tenn
+review and green-check gates pass.

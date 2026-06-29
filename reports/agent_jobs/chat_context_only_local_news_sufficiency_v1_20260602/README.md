@@ -5,6 +5,8 @@
 VERIFIED: implemented issue #265 locally on
 `safe/issue265-chat-context-only-local-news-current-base-v1-20260629`.
 
+Draft PR: https://github.com/0rl4nd0l/tenn/pull/470
+
 Direct `chat_with_tenn()` now marks recent/update/news prompts as
 `missing_required_evidence` and `insufficient_for_recent_news` when local news
 was retrieved only as `context_only` and no local-news source is
