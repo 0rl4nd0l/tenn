@@ -13,6 +13,9 @@ enough to load every turn. Put repeatable procedures in repo-backed skills and
   should be kept clean and at current canonical content. Use task branches or
   sibling worktrees for implementation; resume old task worktrees only when
   that specific branch/lane is intentional.
+- If `/home/l4nd0/tenn` is clean but behind canonical, fast-forward it before
+  starting work. If it has local dirt or ahead commits, preserve that work on a
+  task branch or sibling worktree before updating the launch checkout.
 - Verify the actual target before acting:
 
 ```bash
@@ -158,6 +161,10 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
   parked, or superseded status as required by `tenn-fix`.
 - Classify similar work as active, open-PR, merged-canonical, stale-preserve,
   superseded, owner-boundary, or unknown before replacing it.
+- Do not commit, push, merge, rebase, cherry-pick, park, unpark, or otherwise
+  advance another agent's branch, worktree, PR, or task-card lane unless
+  Orlando explicitly requests that exact preservation, adoption, or merge
+  action.
 
 ## Execution Lanes
 
