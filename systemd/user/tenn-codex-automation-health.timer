@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex automation health monitor daily
+
+[Timer]
+OnCalendar=*-*-* 07:45:00
+Persistent=true
+Unit=tenn-codex-automation-health.service
+
+[Install]
+WantedBy=timers.target
