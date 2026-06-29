@@ -42,3 +42,15 @@ Draft PR #473 was opened against
 
 The PR remains draft. No ready-for-review, merge, issue comment, or issue close
 action was taken.
+
+## PR Refresh After Review
+
+Owner approval on 2026-06-29 permits refreshing draft PR #473 after the review
+found the code clean but Tenn guard classified the branch as stale.
+
+The branch was rebased onto current canonical
+`origin/migration/clean-runtime-baseline-reconstruct-v1` at
+`2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4`.
+
+No merge, ready-for-review, issue close, live Qdrant proof, runtime/data
+mutation, or production operation is included in this refresh.

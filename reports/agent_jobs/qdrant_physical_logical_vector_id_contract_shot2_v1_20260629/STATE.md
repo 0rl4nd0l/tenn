@@ -1,6 +1,6 @@
 # State
 
-status: draft_pr_opened
+status: draft_pr_refreshed_pending_github_checks
 
 result: DONE_WITH_RISK
 
@@ -26,6 +26,12 @@ result: DONE_WITH_RISK
   `migration/clean-runtime-baseline-reconstruct-v1`, head
   `safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629`, and checks
   `lint-and-test` plus `scan` in progress.
+- Review found no code-level blockers, but Tenn guard later classified the PR
+  branch as stale after canonical advanced to
+  `2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4`.
+- Follow-up owner approval was received as `proceed`; the branch was rebased
+  onto canonical `2a4a1c1baddf98f8728e7fe518ff2c1576fc18e4` without conflicts
+  and focused local validation passed again.
 
 ## Implementation
 
@@ -65,3 +71,5 @@ result: DATA_MISSING
 - No issue comment, issue closure, merge, force push, live runtime write, or
   production data mutation.
 - PR was left draft; no ready-for-review or merge action was performed.
+- Refresh did not run live Qdrant/runtime/data proof; runtime result remains
+  `DATA_MISSING`.

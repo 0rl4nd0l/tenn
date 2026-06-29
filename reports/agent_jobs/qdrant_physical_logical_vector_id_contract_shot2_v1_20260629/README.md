@@ -44,4 +44,5 @@ result: DONE_WITH_RISK
 
 Reason: implementation and focused validation passed, but no live Qdrant runtime
 output was mutated or proven. This is code/docs/test completion only. Draft PR
-#473 is open; GitHub checks were still in progress at PR creation.
+#473 is open and was refreshed onto canonical `2a4a1c1` after review found no
+code-level blockers but guard classified the older PR branch as stale.
