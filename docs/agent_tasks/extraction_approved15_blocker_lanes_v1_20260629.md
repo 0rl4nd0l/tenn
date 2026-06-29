@@ -1,0 +1,161 @@
+---
+job_id: extraction_approved15_blocker_lanes_v1_20260629
+lane: Financial Truth
+supporting_lanes:
+  - Evaluation
+  - Provenance
+  - Reporting
+owner: Codex
+allowed_files:
+  - docs/agent_tasks/extraction_approved15_blocker_lanes_v1_20260629.md
+  - financial-engine_v2/backend/app/services/multipass_extraction.py
+  - financial-engine_v2/backend/tests/test_multipass_extraction.py
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/TASK_CARD.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/README.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/STATE.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/DECISIONS.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/VALIDATION.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/NEXT_GOAL.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/guard_preflight.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/registry_active_jobs.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/task_card_validate.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/worker_probe.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lane_summary.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/source_evidence_index.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/remediation_decision.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/validation/commands.log
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/validation/diff_check.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/validation/report_artifacts_check.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/validation/scorecard_after_fix_summary.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/A_RMS_cashflow_missing_metrics.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/B_QBE_revenue_source_text_false_positive.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/C_DXS_mixed_source_scale.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/D_BHP_MIN_np_attributable_wrong_value.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/E_ambiguous_quarantined_grouping.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/lanes/F_orchestrator_integration_gate.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-a-rms/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-a-rms/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-a-rms/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-a-rms/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-b-qbe/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-b-qbe/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-b-qbe/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-b-qbe/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-c-dxs/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-c-dxs/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-c-dxs/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-c-dxs/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-d-bhp-min/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-d-bhp-min/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-d-bhp-min/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-d-bhp-min/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-e-ambiguous/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-e-ambiguous/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-e-ambiguous/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-e-ambiguous/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-f-gate/WORKER_TASK.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-f-gate/WORKER_RESULT.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-f-gate/WORKER_META.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/workers/lane-f-gate/raw_output.txt
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/no_write_replay_after_fix_rms/input_manifest.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/no_write_replay_after_fix_rms/replay_results.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/no_write_replay_after_fix_rms/side_effect_audit.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/no_write_replay_after_fix_rms/validation.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/no_write_replay_after_fix_rms/logs/replay.log
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/actual_payload_map_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/payload_scorecard_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/payload_scorecard_delta_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/scorecard_gate_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/failure_classes_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/row_level_failure_matrix_after_fix.json
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/handoff/HANDOFF.md
+  - reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629/handoff/NEXT_GOAL.md
+approval_required: false
+allow_unapproved_safe_extension: true
+timeout_seconds: 21600
+output_dir: reports/agent_jobs/extraction_approved15_blocker_lanes_v1_20260629
+mutation_mode: safe_extension
+production_data_access: false
+github_mutation_allowed: false
+docs_impact: DOCS_FOLLOWUP
+docs_checked:
+  - AGENTS.md
+  - docs/README.md
+  - docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md
+  - docs/dev_flow/templates/WORKER_TASK.md
+  - docs/dev_flow/templates/WORKER_RESULT.md
+  - .agents/skills/tenn-goal-report/SKILL.md
+  - .agents/skills/tenn-financial-metric-extraction/SKILL.md
+  - .agents/skills/tenn-git-guard/SKILL.md
+  - .agents/skills/tenn-fix/SKILL.md
+  - .agents/skills/codex-worker-bridge/SKILL.md
+docs_changed: []
+docs_followup: "If a cash-flow/source-text recovery behavior is implemented, update extraction docs in a follow-up or this task before PR closeout."
+reason: "Parallel approved-15 blocker lane investigation/remediation from current origin after PR #461, with no-write boundaries and at most one narrow source-proven fix."
+task_tier: critical
+recommended_model: "high reasoning"
+actual_model: "Codex GPT-5"
+why_this_model: "Financial Truth blocker triage and possible extractor changes require source-bound reasoning, duplicate-work checks, and conservative validation."
+worker_model_allowed: "mini/low-cost evidence only"
+worker_decision_limit: "evidence_only"
+escalation_needed: false
+task_scope: approved15_parallel_blocker_lanes_then_optional_one_source_proven_fix
+---
+
+# Approved-15 Blocker Lanes After PR #461
+
+## Objective
+
+Start from current `origin/migration/clean-runtime-baseline-reconstruct-v1`
+after PR #461 and build parallel lane packets for the remaining broad
+approved-15 extraction blockers:
+
+- A RMS cash-flow missing metrics
+- B QBE revenue source-text false positive
+- C DXS mixed source/scale investigation
+- D BHP/MIN `np_attributable` wrong-value audit
+- E `ambiguous_quarantined` grouping
+- F orchestrator integration gate
+
+Each lane must produce source evidence, failure lineage, remediation
+eligibility, validation plan, and next action. Use read-only workers for
+bounded evidence gathering. Implement at most one narrow source-proven fix only
+after lane evidence proves eligibility, then rerun focused replay and the
+approved-15 scorecard. Stop `PARTIAL` unless the scorecard gate is fully
+unblocked with source-bound evidence.
+
+## Scope
+
+- Worktree:
+  `/home/l4nd0/tenn-extraction-approved15-blocker-lanes-v1-20260629`
+- Branch: `safe/extraction-approved15-blocker-lanes-v1-20260629`
+- Base: `origin/migration/clean-runtime-baseline-reconstruct-v1` at PR #461
+  merge commit `265a0d5a8125254c099e391087724097d6200517`.
+- Source handoff:
+  `/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/handoff/HANDOFF.md`
+- Prior scorecard evidence may seed the lanes, but lane decisions must be
+  re-grounded in current repo and report artifacts.
+
+## Hard Stops
+
+- No DB, Qdrant, Redis, news, runtime, backfill, production-data, source-PDF,
+  gold-label, prompt, model, service, count-24, count-32, or GitHub issue
+  mutation without explicit approval.
+- No broad parser rewrite, ontology expansion, fixture rewrite, source asset
+  rewrite, branch cleanup, merge, rebase, reset, stash, clean, push, or GitHub
+  write.
+- Workers are evidence-only and must write only their assigned worker result
+  artifacts.
+- Code/test mutation is limited to one narrow source-proven extractor behavior
+  plus focused tests under the allowlist.
+
+## Validation
+
+- Repo identity checks and portable Tenn guard preflight.
+- Task-card validation and report-local allowed-file check.
+- Read-only registry inspection.
+- Worker result validation for evidence-only output.
+- Focused tests for any code change.
+- Focused no-write replay for the fixed case, then approved-15 payload
+  scorecard/gate rebuild.
+- `git diff --check`, task-card `check-diff`, and report artifact checks.

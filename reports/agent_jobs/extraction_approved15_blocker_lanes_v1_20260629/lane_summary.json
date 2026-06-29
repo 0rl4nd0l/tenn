@@ -1,0 +1,53 @@
+{
+  "artifact_type": "approved15_blocker_lane_summary_v1",
+  "gate_after_rms_fix": {
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "not_evaluated_no_actual_payload": 18,
+      "present_wrong_value": 2
+    },
+    "decision": "blocked",
+    "gate_status": "fail",
+    "missing_expected_metric": 0,
+    "passed": false
+  },
+  "lanes": {
+    "A": {
+      "name": "RMS cash-flow missing metrics",
+      "next_action": "handled_in_this_task",
+      "remediation_eligibility": "implemented_single_narrow_fix",
+      "status": "fix_implemented_and_validated"
+    },
+    "B": {
+      "name": "QBE revenue source-text false positive",
+      "next_action": "separate_qbe_formal_statement_revenue_lane",
+      "remediation_eligibility": "eligible_but_not_selected",
+      "status": "park_next_source_proven_fix_candidate"
+    },
+    "C": {
+      "name": "DXS mixed source/scale investigation",
+      "next_action": "inspect_parser_table_debug_before_fix",
+      "remediation_eligibility": "not_yet_source_proven_for_one_fix",
+      "status": "park_not_yet_eligible"
+    },
+    "D": {
+      "name": "BHP/MIN np_attributable wrong-value audit",
+      "next_action": "separate_owner_attributable_precedence_lane",
+      "remediation_eligibility": "eligible_but_not_selected",
+      "status": "park_next_source_proven_fix_candidate"
+    },
+    "E": {
+      "name": "ambiguous_quarantined grouping",
+      "next_action": "human_source_evidence_or_policy_review",
+      "remediation_eligibility": "not_extractor_eligible",
+      "status": "park_policy_evidence_review"
+    },
+    "F": {
+      "name": "orchestrator integration gate",
+      "next_action": "stop_partial",
+      "remediation_eligibility": "orchestrator_only",
+      "status": "gate_executed_partial"
+    }
+  },
+  "status": "PARTIAL"
+}
