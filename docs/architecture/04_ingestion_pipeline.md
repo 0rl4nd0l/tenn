@@ -1,6 +1,6 @@
 # 04 — Ingestion Pipeline
 
-This document describes the document ingestion pipeline: from discovery of ASX announcements through persistence, PDF download, text extraction, chunking, embedding, and vector upsert. It also covers idempotency, deterministic Qdrant point IDs, where ingestion runs (sync vs async), and common failure modes.
+This document describes the document ingestion pipeline: from discovery of ASX announcements through persistence, PDF download, text extraction, chunking, embedding, and vector upsert. It also covers idempotency, deterministic logical vector IDs, physical Qdrant point IDs, where ingestion runs (sync vs async), and common failure modes.
 
 ---
 
@@ -17,7 +17,7 @@ The pipeline proceeds in a fixed sequence. Each stage consumes the output of the
 | **Extract text / structure** | Read the PDF from disk and run the structured extraction path for documents that pass the title gate. | `pipeline.process_document` → `run_method_isolated_extraction` |
 | **Chunk** | Chunk extracted prose sections for embedding. | `pipeline.process_document` → `chunk_prose_sections` |
 | **Embed** | Compute embeddings for each chunk via the configured llama.cpp/OpenAI-compatible embedding runtime. Batched; optional in-memory cache by text SHA256. | `pipeline.process_document` → `_embed_chunks` → `embed_texts`/`embed_texts_batched` |
-| **Upsert** | Write vectors to Qdrant with deterministic point IDs and payload (document_id, ticker, chunk_index, etc.). Optionally run LLM extraction and upsert financial/risk rows. | `pipeline.process_document` → `upsert_points`; `_upsert_financial_rows` |
+| **Upsert** | Write vectors to Qdrant with deterministic logical IDs and payload (document_id, ticker, chunk_index, logical_vector_id, etc.). Optionally run LLM extraction and upsert financial/risk rows. | `pipeline.process_document` → `upsert_points`; `_upsert_financial_rows` |
 
 Discovery and persist are done once per backfill run; download → extract → chunk → embed → upsert are done per document (for each `new_document_id` returned from persist). The per-document loop is implemented in `pipeline._download_and_process_document_ids`: when `max_workers` is 1 (default), documents are processed sequentially; when `max_workers` > 1 (e.g. `BACKFILL_CONCURRENCY` or script `--concurrency`), multiple documents are processed in parallel with shared HTTP and Qdrant clients for the run.
 
@@ -53,20 +53,35 @@ This preserves the contract requirement to avoid dropping legitimate financial d
   - Single-document processing now has one additional repair path: if `process_document()` is called for a row whose PDF is missing locally but `pdf_sha256` is still empty, it treats that row as pending download and invokes `download_pdf_for_document()` before extraction. This uses the same canonical downloader and does not introduce an alternate fetch path.
 
 - **Extract → Chunk → Embed → Upsert**
-  - **Qdrant:** Point IDs are deterministic (see below). Re-running embedding and upsert for the same document overwrites the same points, so the vector store state is idempotent with respect to that document.
+  - **Qdrant:** Logical vector IDs are deterministic (see below), and the backend adapter maps those IDs to deterministic physical Qdrant point IDs when required. Re-running embedding and upsert for the same document targets the same logical chunks and physical storage IDs, so the vector store state is idempotent with respect to that document.
   - **Financial/risk rows:** Upserts are keyed by `(ticker, period_end, period_type)` and `document_id`; re-running updates the same rows.
 
 ---
 
-## Deterministic Qdrant point IDs
+## Deterministic logical and physical point IDs
 
-- **Format:** `document_id:chunk_index`
+- **Logical format:** `document_id:chunk_index`
   - `document_id` is the canonical lowercase UUID string of the document (same as in the `documents` table).
   - `chunk_index` is the zero-based index of the chunk within that document.
+  - This value is written to Qdrant payloads as `logical_vector_id`.
 
-- **Why deterministic:** Same document + same chunking always yields the same point ID. Re-embedding and re-upserting replace the same points instead of creating duplicates. This is required by [06_embeddings_and_vector_store.md](06_embeddings_and_vector_store.md), [08_backfill_contract.md](08_backfill_contract.md), and [10_failure_model.md](10_failure_model.md).
+- **Physical Qdrant point ID:** The backend Qdrant adapter may store the point
+  under a deterministic UUIDv5 of the logical ID when Qdrant/client constraints
+  require a UUID-compatible point ID. That physical UUID is not the canonical
+  vector/chunk identity.
 
-- **Implementation:** In `pipeline.process_document`, for each chunk: `point_id = f"{doc_id_str}:{index}"` with `doc_id_str = str(doc.document_id).lower()`.
+- **Why deterministic:** Same document + same chunking always yields the same
+  logical ID and physical storage mapping. Re-embedding and re-upserting replace
+  the same points instead of creating duplicates. This is required by
+  [06_embeddings_and_vector_store.md](06_embeddings_and_vector_store.md),
+  [08_backfill_contract.md](08_backfill_contract.md), and
+  [10_failure_model.md](10_failure_model.md).
+
+- **Implementation:** In `pipeline.process_document`, for each chunk:
+  `logical_vector_id = f"{doc_id_str}:{index}"` with
+  `doc_id_str = str(doc.document_id).lower()`. `upsert_points()` preserves that
+  logical ID in payload and performs any deterministic physical point-ID mapping
+  at the Qdrant adapter boundary.
 
 ---
 

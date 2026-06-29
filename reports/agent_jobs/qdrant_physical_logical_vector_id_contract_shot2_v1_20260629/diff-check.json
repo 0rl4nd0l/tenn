@@ -1,0 +1,119 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/DECISIONS.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/guard_preflight.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": false,
+      "allowed_files": [
+        "docs/agent_tasks/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/README.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/STATE.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/DECISIONS.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/NEXT_GOAL.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/ARCHITECTURE_REVIEW.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/VALIDATION.md",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/diff-check.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/guard_preflight.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/registry_claim.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/registry_release.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/status.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/ledger_claimed.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/ledger_started.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/ledger_done.json",
+        "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/issue_snapshot.json",
+        "docs/architecture/SYSTEM_CONTRACT.md",
+        "docs/architecture/01_system_overview.md",
+        "docs/architecture/03_data_model.md",
+        "docs/architecture/04_ingestion_pipeline.md",
+        "docs/architecture/06_embeddings_and_vector_store.md",
+        "docs/architecture/08_backfill_contract.md",
+        "docs/architecture/11_rebuild_and_recovery.md",
+        "docs/architecture/22_memory_ownership_map.md",
+        "financial-engine_v2/backend/app/services/embeddings.py",
+        "financial-engine_v2/backend/app/services/pipeline_stages.py",
+        "financial-engine_v2/backend/app/services/commentary_ingest.py",
+        "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+        "financial-engine_v2/backend/tests/test_embeddings_local_point_id_compat.py",
+        "financial-engine_v2/backend/tests/test_qdrant_resolution.py",
+        "financial-engine_v2/backend/tests/test_rag_payload_guardrails.py",
+        "financial-engine_v2/scripts/inspect_qdrant_collection.py",
+        "financial-engine_v2/scripts/embed_docs_to_qdrant.py"
+      ],
+      "approval_required": true,
+      "docs_changed": [
+        "docs/architecture/SYSTEM_CONTRACT.md",
+        "docs/architecture/01_system_overview.md",
+        "docs/architecture/03_data_model.md",
+        "docs/architecture/04_ingestion_pipeline.md",
+        "docs/architecture/06_embeddings_and_vector_store.md",
+        "docs/architecture/08_backfill_contract.md",
+        "docs/architecture/11_rebuild_and_recovery.md",
+        "docs/architecture/22_memory_ownership_map.md"
+      ],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/architecture/00_README.md",
+        "docs/architecture/SYSTEM_CONTRACT.md",
+        "docs/architecture/03_data_model.md",
+        "docs/architecture/04_ingestion_pipeline.md",
+        "docs/architecture/06_embeddings_and_vector_store.md",
+        "docs/architecture/08_backfill_contract.md",
+        "docs/architecture/11_rebuild_and_recovery.md",
+        "docs/architecture/22_memory_ownership_map.md"
+      ],
+      "docs_followup": "none",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": "push_branch_and_open_draft_pr_only",
+      "job_id": "qdrant_physical_logical_vector_id_contract_shot2_v1_20260629",
+      "lane": "Provenance",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629",
+      "owner": "Codex",
+      "owner_approval": "USER_APPROVED_PROCEED_RETAIN_UUIDV5_PHYSICAL_MAPPING_2026-06-29",
+      "production_data_access": false,
+      "publish_approval": "USER_APPROVED_REBASE_PUSH_OPEN_DRAFT_PR_2026-06-29",
+      "reason": "Issue #266 has owner approval to retain deterministic UUIDv5 physical Qdrant point IDs while preserving logical vector IDs in payload, docs, and tests; follow-up approval permits rebasing onto current canonical, pushing the branch, and opening a draft PR.",
+      "recommended_model": "high reasoning",
+      "related_issue": 266,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Evaluation",
+        "Repo Hygiene"
+      ],
+      "task_tier": "large",
+      "timeout_seconds": 7200,
+      "why_this_model": "Vector-store identity policy touches architecture invariants, provenance, rebuild semantics, and tests.",
+      "worker_decision_limit": "No workers; policy decision remains with owner/orchestrator.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

@@ -36,6 +36,8 @@ Last updated: 2026-05-27
 - SQLite is not permitted as canonical financial truth, as an embedding/vector
   store, or as a hidden fallback for Qdrant-backed retrieval.
 - Random IDs may be used for operational task, session, feedback, proposal, or
-  event records when those IDs are not vector IDs, canonical financial IDs, or
-  reproducibility keys.
-- Vector IDs remain deterministic and must use `document_id:chunk_index`.
+  event records when those IDs are not logical vector IDs, canonical financial
+  IDs, or reproducibility keys.
+- Logical vector IDs remain deterministic and must use `document_id:chunk_index`.
+  Qdrant physical point IDs may be deterministic UUIDv5 storage mappings of
+  logical vector IDs, but they are not canonical vector/chunk identity.

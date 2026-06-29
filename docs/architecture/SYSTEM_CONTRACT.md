@@ -205,11 +205,18 @@ Forbidden:
 
 ---
 
-## 4.2 Deterministic Vector IDs
+## 4.2 Deterministic Logical Vector IDs
 
 ```
 {document_id}:{chunk_index}
 ```
+
+This is the canonical logical vector/chunk ID and must be preserved in Qdrant
+payloads as `logical_vector_id`.
+
+Physical Qdrant point IDs may be a deterministic UUIDv5 mapping of the logical
+ID when required by the Qdrant adapter/storage boundary. That UUIDv5 value is a
+storage address, not the canonical vector/chunk identity.
 
 Forbidden:
 

@@ -183,6 +183,7 @@ def ingest_transcript(
                 "vector": list(vector),
                 "payload": {
                     "chunk_id": chunk_id,
+                    "logical_vector_id": chunk_id,
                     "source_id": resolved_source_id,
                     "chunk_index": index,
                     "text": chunk_text,

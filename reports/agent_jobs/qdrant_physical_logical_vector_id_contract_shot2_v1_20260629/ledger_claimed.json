@@ -1,0 +1,47 @@
+{
+  "entry": {
+    "artifacts": [
+      "docs/agent_tasks/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.md",
+      "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/"
+    ],
+    "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@3b32b8b3be8b04bb5a198c71ec928db182438f17",
+    "branch": "safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629",
+    "codex_goal_id": "DATA_MISSING",
+    "evidence_grade": "VERIFIED",
+    "files_touched": [
+      "docs/agent_tasks/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.md",
+      "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/"
+    ],
+    "issue_refs": [
+      266
+    ],
+    "next_action": "Patch the approved physical/logical Qdrant vector ID contract in docs, backend adapter, inspector, and focused tests.",
+    "owner": "Codex",
+    "owner_boundary": false,
+    "parent_task_id": "issue-266",
+    "pr_refs": [],
+    "session_id": "DATA_MISSING",
+    "source_session_ref": "codex:thread:DATA_MISSING",
+    "started_at": "2026-06-29T08:06:23Z",
+    "status": "claimed",
+    "summary": "Claimed issue #266 Shot 2 after owner approved RETAIN_UUIDV5_PHYSICAL_MAPPING and current-base guard passed.",
+    "superseded_by": [],
+    "supersedes": [],
+    "task_id": "qdrant_physical_logical_vector_id_contract_shot2_v1_20260629",
+    "thread_id": "019f123b-7eae-7a52-a2c0-1d043e1b6683",
+    "updated_at": "2026-06-29T08:06:23Z",
+    "validation": {
+      "commands": [
+        "tenn_git_guard preflight: pass VALID_TASK_WORKTREE",
+        "agent_job_contract validate: ok",
+        "agent_job_registry check-overlap: ok",
+        "agent_job_registry claim: ok"
+      ],
+      "status": "passed"
+    },
+    "workflow": "tenn-fix",
+    "worktree": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629"
+  },
+  "ok": true,
+  "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+}
