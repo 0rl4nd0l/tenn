@@ -1,0 +1,425 @@
+{
+  "accepted_payload_count": 1,
+  "actual_payloads_by_document_id": {
+    "csl_20251231_h": {
+      "confidence_metrics": 0.933,
+      "currency": "USD",
+      "error": null,
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "shares_outstanding": "millions"
+      },
+      "non_null_metric_count": 9,
+      "non_null_metrics": {
+        "capex": -296000000.0,
+        "cash_end": 1145000000.0,
+        "ebit": 577000000.0,
+        "financing_cf": -1643000000.0,
+        "investing_cf": -652000000.0,
+        "net_debt": 9276000000.0,
+        "np_attributable": 286000000.0,
+        "operating_cf": 1302000000.0,
+        "shares_outstanding": 482130812.0
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_11:Operating profit (EBIT)",
+        "financing_cf": "cashflow_statement:page_14:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_14:Net cash outflow from investing activities",
+        "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "income_statement:page_11:Net profit for the period",
+        "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+        "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Operating profit (EBIT)",
+        "financing_cf": "Net cash outflow from financing activities",
+        "investing_cf": "Net cash outflow from investing activities",
+        "net_debt": "total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "Net profit for the period",
+        "operating_cf": "Net cash inflow from operating activities",
+        "shares_outstanding": "Closing balance as at 31 December 2025"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "ambiguous"
+      },
+      "source_period_end_evidence": {
+        "hits": [
+          {
+            "context": "s and disposals. 3 Excludes the impact of foreign exchange movements during the year ended 31 December 2025. For personal use only Explanation of results For further explanation of the re",
+            "evidence": "year ended 31 December 2025",
+            "is_comparative_context": "true",
+            "period_end": "2025-12-31",
+            "period_type": "A",
+            "reason": "year_ended_explicit_date",
+            "source": "source_text"
+          },
+          {
+            "context": "se ASX Announcement 11 February, 2026 Melbourne, Australia Results Announcement for the Half year ended 31 December 2025 CSL Limited (ASX:CSL; USOTC:CSLLY) In accordance with ASX Listing Rule 4.2A, pl",
+            "evidence": "for the Half year ended 31 December 2025",
+            "is_comparative_context": "false",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "reason": "half_year_ended_explicit_date",
+            "source": "source_text"
+          },
+          {
+            "context": "rdance with ASX Listing Rule 4.2A, please find attached the following documents for the half year ended 31 December 2025: \u2022 Appendix 4D; \u2022 Directors\u2019 Report; and \u2022 Financial Report. These documents sh",
+            "evidence": "for the half year ended 31 December 2025",
+            "is_comparative_context": "false",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "reason": "half_year_ended_explicit_date",
+            "source": "source_text"
+          },
+          {
+            "context": "urne VIC 3000 For personal use only CSL Limited ABN: 99 051 588 348 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for A",
+            "evidence": "Half Year Ended 31 December 2025",
+            "is_comparative_context": "false",
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "reason": "half_year_ended_explicit_date",
+            "source": "source_text"
+          },
+          {
+            "context": "48 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for Announcement to the Market December 2025 December 2024 Percentage",
+            "evidence": "Half Year Ended 31 December 2024",
+            "is_comparative_context": "true",
+            "period_end": "2024-12-31",
+            "period_type": "H",
+            "reason": "half_year_ended_explicit_date",
+            "source": "source_text"
+          }
+        ],
+        "period_end": null,
+        "period_type": null,
+        "reason": "ambiguous"
+      },
+      "status": "ok_low_confidence",
+      "structured_extraction": {
+        "docling_version": null,
+        "fallback_used": false,
+        "page_count": 29,
+        "parser_id": "pymupdf",
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      }
+    }
+  },
+  "artifact_type": "csl_after_fix_replay_results_v1",
+  "case_count": 1,
+  "fail_closed_payload_count": 0,
+  "failed_payload_count": 0,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782631624, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782631624, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "payload_generation": "focused CSL replay after narrative future-sales revenue rejection",
+  "results": [
+    {
+      "case_id": "CSL_H_2025-12-31",
+      "case_timeout_seconds": 1200,
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "csl_20251231_h",
+      "elapsed_s": 126.878,
+      "expected_period_end": "2025-12-31",
+      "expected_period_type": "H",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 29,
+            "table_count": 39
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok_low_confidence"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 0.933,
+        "currency": "USD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "shares_outstanding": "millions"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -296000000.0,
+          "cash_end": 1145000000.0,
+          "ebit": 577000000.0,
+          "financing_cf": -1643000000.0,
+          "investing_cf": -652000000.0,
+          "net_debt": 9276000000.0,
+          "np_attributable": 286000000.0,
+          "operating_cf": 1302000000.0,
+          "shares_outstanding": 482130812.0
+        },
+        "period_end": "2025-12-31",
+        "period_start": "2025-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+          "ebit": "income_statement:page_11:Operating profit (EBIT)",
+          "financing_cf": "cashflow_statement:page_14:Net cash outflow from financing activities",
+          "investing_cf": "cashflow_statement:page_14:Net cash outflow from investing activities",
+          "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+          "np_attributable": "income_statement:page_11:Net profit for the period",
+          "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+          "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at the end of the period",
+          "ebit": "Operating profit (EBIT)",
+          "financing_cf": "Net cash outflow from financing activities",
+          "investing_cf": "Net cash outflow from investing activities",
+          "net_debt": "total_debt(10421000000)-cash_end(1145000000)",
+          "np_attributable": "Net profit for the period",
+          "operating_cf": "Net cash inflow from operating activities",
+          "shares_outstanding": "Closing balance as at 31 December 2025"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "USD",
+          "document_subtype": "appendix4d",
+          "document_title": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "ambiguous"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "s and disposals. 3 Excludes the impact of foreign exchange movements during the year ended 31 December 2025. For personal use only Explanation of results For further explanation of the re",
+              "evidence": "year ended 31 December 2025",
+              "is_comparative_context": "true",
+              "period_end": "2025-12-31",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "se ASX Announcement 11 February, 2026 Melbourne, Australia Results Announcement for the Half year ended 31 December 2025 CSL Limited (ASX:CSL; USOTC:CSLLY) In accordance with ASX Listing Rule 4.2A, pl",
+              "evidence": "for the Half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "rdance with ASX Listing Rule 4.2A, please find attached the following documents for the half year ended 31 December 2025: \u2022 Appendix 4D; \u2022 Directors\u2019 Report; and \u2022 Financial Report. These documents sh",
+              "evidence": "for the half year ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "urne VIC 3000 For personal use only CSL Limited ABN: 99 051 588 348 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for A",
+              "evidence": "Half Year Ended 31 December 2025",
+              "is_comparative_context": "false",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "48 Appendix 4D Half Year Ended 31 December 2025 (Previous corresponding period: Half Year Ended 31 December 2024) Results for Announcement to the Market December 2025 December 2024 Percentage",
+              "evidence": "Half Year Ended 31 December 2024",
+              "is_comparative_context": "true",
+              "period_end": "2024-12-31",
+              "period_type": "H",
+              "reason": "half_year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": null,
+          "period_type": null,
+          "reason": "ambiguous"
+        },
+        "status": "ok_low_confidence",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 29,
+          "parser_id": "pymupdf",
+          "warnings": [
+            "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+          ]
+        }
+      },
+      "role": "approved_15_current_canonical_refresh",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+      "ticker": "CSL"
+    }
+  ],
+  "status": "PASS"
+}

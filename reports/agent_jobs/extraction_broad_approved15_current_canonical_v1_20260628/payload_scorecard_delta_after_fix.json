@@ -1,0 +1,305 @@
+{
+  "after_scorecard": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/payload_scorecard_after_fix.json",
+  "artifact_type": "approved15_after_csl_fix_scorecard_delta_v1",
+  "baseline_scorecard": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/payload_scorecard.json",
+  "changed_count": 11,
+  "changed_rows": [
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "revenue"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "ebit"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "np_attributable"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "operating_cf"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "investing_cf"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "financing_cf"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "capex"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "cash_end"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "net_debt"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "USD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "millions"
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "before": {
+        "actual_context": {
+          "currency": null,
+          "period_end": null,
+          "period_type": null,
+          "scale": null
+        },
+        "actual_value": null,
+        "reason": "Expectation requires review or has ambiguous label evidence",
+        "result_class": "ambiguous_quarantined"
+      },
+      "document_id": "csl_20251231_h",
+      "fixture_id": "csl_20251231_h",
+      "metric_name": "shares_outstanding"
+    },
+    {
+      "after": {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "actual_value": 280874770.0,
+        "reason": "Actual payload matches expectation within tolerance",
+        "result_class": "present_correct"
+      },
+      "before": {
+        "actual_context": {
+          "currency": "AUD",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "actual_value": null,
+        "reason": "Expected metric is absent from actual payload",
+        "result_class": "missing_expected_metric"
+      },
+      "document_id": "seg_h_fy2026_appendix4d",
+      "fixture_id": "seg_h_fy2026_appendix4d",
+      "metric_name": "shares_outstanding"
+    }
+  ]
+}
