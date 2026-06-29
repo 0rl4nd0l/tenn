@@ -394,9 +394,14 @@ class TestChatWithTennTickerPropagation(unittest.TestCase):
         self.assertIn("context_only", source["evidence_labels"])
         self.assertNotIn("claim_verified", source["evidence_labels"])
         self.assertFalse(source["claim_verified"])
-        self.assertNotIn("missing_required_evidence", result["evidence_labels"])
+        self.assertIn("missing_required_evidence", result["evidence_labels"])
+        self.assertIn("insufficient_for_recent_news", result["evidence_labels"])
         self.assertNotIn("no_hit", result["evidence_labels"])
-        self.assertEqual(result["source_coverage_status"], "context_only")
+        self.assertEqual(result["source_coverage_status"], "missing_required_evidence")
+        self.assertEqual(
+            result["evidence_status"]["missing_required_evidence"],
+            ["local_news_context"],
+        )
 
     @patch("app.services.tenn_chat.generate_json")
     @patch("app.services.tenn_chat.query_rag")
