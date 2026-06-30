@@ -35,6 +35,12 @@ python3 scripts/tenn_dev_status.py
 git status --short --untracked-files=all
 ```
 
+- If Dev Status reports `STALE_PATH` from a clean checkout and registry,
+  ledger, and duplicate-work checks show no conflict, automatically create a
+  fresh canonical task worktree and continue there. Ask the owner only for
+  dirty state, branch/path collision, destructive cleanup, duplicate active
+  work, unclear task scope, runtime/data mutation, GitHub mutation, or
+  reset/rebase/stash/clean/delete decisions.
 - If `HEAD` or worktree state changes unexpectedly mid-run, stop mutation and
   run read-only forensics before continuing.
 - Runtime paths are environment-specific. Do not assume `/workspace`,

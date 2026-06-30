@@ -20,9 +20,14 @@ board decision, task card, handoff, or explicit fix request.
    Orlando explicitly overrides with continue, adopt, or supersede instructions.
    Stop on `OWNER_BOUNDARY` or `UNKNOWN_ASK` when the next meaningful step needs
    an owner decision.
-   Also stop when `path_ownership.classification` is not a valid clean
-   canonical/task worktree; create a fresh sibling worktree from canonical only
-   when the task card and owner boundaries allow it.
+   When `path_ownership.classification` is `STALE_PATH`, the checkout is clean,
+   and registry, ledger, and duplicate-work evidence show no conflict, create a
+   fresh sibling task worktree from canonical and rerun preflight there.
+   Otherwise stop when `path_ownership.classification` is not a valid clean
+   canonical/task worktree. Ask Orlando only for dirty state, branch/path
+   collision, destructive cleanup, duplicate active work, unclear task scope,
+   runtime/data mutation, GitHub mutation, or reset/rebase/stash/clean/delete
+   decisions.
 4. Create or validate a task card before any mutation.
 5. Confirm every intended path is inside the task-card `allowed_files`.
 6. Write or update Task Ledger state when the workflow is implementation-capable:

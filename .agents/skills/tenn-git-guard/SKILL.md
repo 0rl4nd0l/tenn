@@ -265,8 +265,18 @@ fresh sibling worktree from canonical. Guard path classifications are:
 
 Only `VALID_CANONICAL_WORKTREE` and clean, task-owned
 `VALID_TASK_WORKTREE` are valid starting points for new implementation.
-Stop before coding from non-git, sparse, runtime-only, stale, dirty-related, or
-ambiguous paths. The guard sets `path_ownership_blocks_implementation=true` and
+
+When the current checkout is clean and guard evidence shows `STALE_PATH` with no
+registry, ledger, or duplicate-work conflict, create a fresh sibling task
+worktree from canonical and rerun preflight there. This is a normal retarget,
+not an owner-boundary wait.
+
+Stop before coding from non-git, sparse, runtime-only, dirty-related, or
+ambiguous paths. Also stop for stale paths when the checkout is dirty, a branch
+or path collision exists, duplicate active work is present, task scope is
+unclear, or the next step needs destructive cleanup, runtime/data mutation,
+GitHub mutation, reset, rebase, stash, clean, or delete decisions. The guard
+sets `path_ownership_blocks_implementation=true` and
 `stop_reimplementation=true` for those blocking path states. Do not clean or
 repair those paths unless a separate approved task card authorizes that exact
 action.
