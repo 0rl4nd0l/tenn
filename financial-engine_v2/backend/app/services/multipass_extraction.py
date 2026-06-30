@@ -6373,10 +6373,11 @@ def _statement_text_pages(
     selected: list[tuple[int, list[str]]] = []
     for page, lines in pages.items():
         compact = _normalize_filter_text(" ".join(lines[:40]))
+        compact_page = _normalize_filter_text(" ".join(lines))
         if (
             any(marker in compact for marker in markers)
             and "resultsforannouncement" not in compact
-            and not _is_financial_report_contents_index_text(compact)
+            and not _is_financial_report_contents_index_text(compact_page)
         ):
             selected.append((page, lines))
     return sorted(selected, key=lambda item: item[0])
