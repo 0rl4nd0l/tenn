@@ -1,10 +1,10 @@
 # State
 
-Generated: 2026-06-29T20:28:37+1000
+Generated: 2026-06-30T15:45:09+1000
 
 ## Result
 
-Status: `DRAFT_PR_OPEN_REFRESHED`
+Status: `PR_READY_GREEN`
 
 The Tenn agent docs update is implemented in a fresh task worktree:
 
@@ -16,16 +16,18 @@ The Tenn agent docs update is implemented in a fresh task worktree:
   `a299ce45e42f50c23321733082c7d5bbe8dfb88a`
 - First branch refresh merge commit:
   `ba261c9bbad02ade4486dd712c420606a940cb70`
-- Draft PR head checked during review:
+- Earlier draft PR head checked during review:
   `6c015da99f3d52f507cdc81f500a27803a095843`
 - Current canonical parent for this fix:
   `105b174ba723b978d486e9eebaf10c6ee6bce242`
 - Current branch refresh merge commit:
   `95677604e1660abc7de62120a3e51b084a8f7c5e`
+- Ready-for-review head checked before this closeout metadata update:
+  `d84719609f3fa9c5b071d05693bb6c0a1793d105`
 - Current PR head:
   use `gh pr view 476 --json commits` or `git rev-parse HEAD` after push;
   this report does not hard-code the hash of the commit that contains itself.
-- Draft PR: `https://github.com/0rl4nd0l/tenn/pull/476`
+- PR: `https://github.com/0rl4nd0l/tenn/pull/476`
 - Scope: docs-only control-plane routing
 
 `AGENTS.md` now routes project ownership and external-sibling boundary
@@ -38,7 +40,8 @@ task-card allowed files after each refresh.
 
 After owner approval, the branch was pushed and opened as draft PR #476. Review
 then found stale report metadata and a newer canonical parent, so this closeout
-was refreshed. No merge was performed.
+was refreshed. After checks passed, owner approval was received to proceed and
+PR #476 was marked ready for review. No merge was performed.
 
 ## Source Worktree Note
 
@@ -93,6 +96,6 @@ runtime functionality were not tested or proven.
 - No Greyhound repo mutation.
 - No service, runtime, data, Greyhound, cleanup, branch deletion, worktree
   deletion, pruning, parked-work, reset, stash, force-push, or rebase action.
-- A normal branch refresh merge from canonical was performed after owner
-  approval; GitHub mutation was limited to branch push and draft PR creation for
-  this docs-only branch.
+- Normal branch refresh merges from canonical were performed after owner
+  approval; GitHub mutation was limited to branch push, draft PR creation, and
+  the ready-for-review transition for this docs-only branch.

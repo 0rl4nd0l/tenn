@@ -31,6 +31,17 @@
 | `git diff --check` after fix report edit | 0 | no whitespace errors |
 | `rg -n "Project ownership and external-sibling boundaries\|PROJECT_BOUNDARIES\|external sibling\|not a Tenn subsystem\|external sibling project" AGENTS.md docs/README.md docs/dev_flow/PROJECT_BOUNDARIES.md docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md reports/agent_jobs/agent_docs_project_boundary_routing_v1_20260629` after fix report edit | 0 | focused routing terms found in `AGENTS.md`, active source map, boundary doc, task card, and report |
 | `python3 scripts/tenn_dev_status.py` after fix report edit | 0 | `GUARD_RESULT=pass`; dirty files were limited to report-local `STATE.md` and `VALIDATION.md`; duplicate work `NO_MATCHING_ACTIVE_WORK_FOUND`, registry `PASS`, ledger `PASS` |
+| `gh pr view 476 --json number,state,isDraft,mergeable,mergeStateStatus,commits,statusCheckRollup,url,updatedAt,reviewDecision` after owner-approved ready transition | 0 | PR #476 was open, `isDraft=false`, `MERGEABLE`, `CLEAN`; latest checked head before this closeout metadata update was `d84719609f3fa9c5b071d05693bb6c0a1793d105` |
+| `gh pr checks 476` after owner-approved ready transition | 0 | `lint-and-test` passed and `scan` passed |
+| `python3 scripts/tenn_dev_status.py` after owner-approved ready transition | 0 | clean task worktree, `GUARD_RESULT=pass`, `VALID_TASK_WORKTREE`, `stop_reimplementation=false`, duplicate work `NO_MATCHING_ACTIVE_WORK_FOUND`, registry `PASS`, ledger `PASS` |
+| `python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-agent-docs-project-boundary-routing-v1-20260629 --topic "agent docs project boundary routing report ready-state fix" --json` before ready-state report fix | 0 | `final_decision=pass`, `VALID_TASK_WORKTREE`, `canonical_head=105b174ba723b978d486e9eebaf10c6ee6bce242`, `merge_base=105b174ba723b978d486e9eebaf10c6ee6bce242`, duplicate work `NO_MATCHING_ACTIVE_WORK_FOUND`, registry `PASS`, ledger `PASS` |
+| `python3 scripts/agent_job_contract.py validate docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md` after ready-state report edit | 0 | `ok=true`, no issues |
+| `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md --no-write-report` after ready-state report edit | 0 | `ok=true`, `disallowed_files=[]`; dirty files were limited to report-local `NEXT_GOAL.md`, `STATE.md`, and `VALIDATION.md` |
+| `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md --repo-root .` after ready-state report edit | 0 | `ok=true`, report artifacts present and non-empty |
+| `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md --repo-root .` after ready-state report edit | 0 | `ok=true` |
+| `git diff --check` after ready-state report edit | 0 | no whitespace errors |
+| `rg -n "Project ownership and external-sibling boundaries\|PROJECT_BOUNDARIES\|external sibling\|not a Tenn subsystem\|external sibling project\|PR_READY_GREEN\|ready for review\|merge according" AGENTS.md docs/README.md docs/dev_flow/PROJECT_BOUNDARIES.md docs/agent_tasks/agent_docs_project_boundary_routing_v1_20260629.md reports/agent_jobs/agent_docs_project_boundary_routing_v1_20260629` after ready-state report edit | 0 | focused routing and ready-state terms found in allowed docs/report surfaces |
+| `python3 scripts/tenn_dev_status.py` after ready-state report edit | 0 | `GUARD_RESULT=pass`, `REPORT_ONLY_OK`; dirty files were limited to report-local `NEXT_GOAL.md`, `STATE.md`, and `VALIDATION.md`; duplicate work `NO_MATCHING_ACTIVE_WORK_FOUND`, registry `PASS`, ledger `PASS` |
 
 ## Guard Notes
 
@@ -53,5 +64,6 @@ the branch head; use `gh pr view 476 --json commits` for the live PR head.
 ## Validation Status
 
 Required docs/control-plane validation passed before local commit and was rerun
-after canonical branch refreshes. Draft PR #476 is open. Runtime functionality
-is out of scope and was not tested.
+after canonical branch refreshes. PR #476 is open, ready for review, mergeable,
+and green at the latest checked head before this closeout metadata update.
+Runtime functionality is out of scope and was not tested.
