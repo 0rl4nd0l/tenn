@@ -56,6 +56,7 @@ the task needs it:
 | Branch, worktree, dirty state, ledger, registry, duplicate work | `.agents/skills/tenn-git-guard/SKILL.md` |
 | Operator prompts and exact command patterns | `docs/dev_flow/CODEX_OPERATOR_GUIDE.md` |
 | Skill selection and visible-surface policy | `docs/dev_flow/SKILLS_SURFACE.md` |
+| Project ownership and external-sibling boundaries | `docs/dev_flow/PROJECT_BOUNDARIES.md` |
 | Handoff or fresh-session continuation | `.agents/skills/tenn-handoff/SKILL.md` |
 | Long `/goal` reports and wait states | `.agents/skills/tenn-goal-report/SKILL.md` |
 | Risky decisions or merge/readiness calls | `.agents/skills/tenn-review-board/SKILL.md` |
