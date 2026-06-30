@@ -1,7 +1,40 @@
 {
-  "_source": "Claude API verified from 2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf (AZJ, H, 2025-12-31). Currency=AUD, scale=millions. revenue: page 13, Condensed consolidated income statement, 'Total revenue and other income'; ebit: page 13, Condensed consolidated income statement, 'Operating profit'; np_attributable: page 13, Condensed consolidated income statement, 'Profit for the six months attributable to owners of Aurizon Holdings Limited'; operating_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash inflow from operating activities'; investing_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash outflow from investing activities'; financing_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash outflow from financing activities'; capex: page 17, Condensed consolidated statement of cash flows, 'Payments for property, plant and equipment'; cash_end: page 15, Condensed consolidated balance sheet, 'Cash and cash equivalents'; net_debt: page 15, Calculated from Total borrowings ($5,201m) minus Cash and cash equivalents ($43m); shares_outstanding: page 28, Note 5 Contributed equity, 'At 31 December 2025' shares on issue (1,714,214 thousand shares)",
-  "_verification": "claude-api-sonnet",
-  "_verification_confidence": "lower — Claude API verified, not hand-verified from source PDF. Values should be hand-checked before trusting as regression gate.",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from 2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf (AZJ, H, 2025-12-31). Currency=AUD, scale=millions. revenue: page 13, Condensed consolidated income statement, 'Total revenue and other income'; ebit: page 13, Condensed consolidated income statement, 'Operating profit'; np_attributable: page 13, Condensed consolidated income statement, 'Profit for the six months attributable to owners of Aurizon Holdings Limited'; operating_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash inflow from operating activities'; investing_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash outflow from investing activities'; financing_cf: page 17, Condensed consolidated statement of cash flows, 'Net cash outflow from financing activities'; capex: page 17, Condensed consolidated statement of cash flows, 'Payments for property, plant and equipment'; cash_end: page 15, Condensed consolidated balance sheet, 'Cash and cash equivalents'; net_debt: page 15, Calculated from Total borrowings ($5,201m) minus Cash and cash equivalents ($43m); shares_outstanding: page 28, Note 5 Contributed equity, 'At 31 December 2025' shares on issue (1,714,214 thousand shares)",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "ebit",
+      "financing_cf",
+      "investing_cf",
+      "net_debt",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt",
+      "shares_outstanding"
+    ],
+    "row_ids": {
+      "revenue": "AQ011",
+      "ebit": "AQ012",
+      "np_attributable": "AQ013",
+      "operating_cf": "AQ014",
+      "investing_cf": "AQ015",
+      "financing_cf": "AQ016",
+      "capex": "AQ017",
+      "cash_end": "AQ018",
+      "net_debt": "AQ019",
+      "shares_outstanding": "AQ020"
+    }
+  },
   "ticker": "AZJ",
   "pdf_path": "data/asx/docs/AZJ/financial_performance/2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf",
   "document_id": "azj_20251231_h",

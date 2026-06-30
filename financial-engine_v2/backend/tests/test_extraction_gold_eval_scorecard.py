@@ -242,6 +242,69 @@ def test_confirmed_metric_coverage_scores_only_confirmed_labels(tmp_path):
     assert by_metric[("candidate_doc", "revenue")]["evaluation_status"] is None
 
 
+def test_per_metric_source_review_scores_confirmed_and_preserves_data_missing(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "reviewed.json",
+        _base_fixture(
+            _source="Claude API verified from source PDF page 1.",
+            _verification="claude-api-sonnet",
+            _verification_confidence="lower - not hand-verified",
+            metrics={"revenue": 100.0, "net_debt": 50.0},
+            expected_nulls=["ebit"],
+            notes={"net_debt": "Derived from borrowings less cash."},
+            source_review={
+                "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+                "confirmed_metrics": ["revenue", "net_debt"],
+                "data_missing_metrics": ["ebit"],
+                "source_bound_arithmetic_confirmed_metrics": ["net_debt"],
+            },
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0, "net_debt": 50.0},
+                "evidence": {
+                    "revenue": {"page": 1},
+                    "net_debt": {"page": 1},
+                },
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    by_metric = {row["metric_name"]: row for row in scorecard["metric_results"]}
+    assert by_metric["revenue"]["source_status"] == (
+        "CONFIRMED_SOURCE_EVIDENCED"
+    )
+    assert by_metric["revenue"]["result_class"] == (
+        PayloadScoreStatus.PRESENT_CORRECT.value
+    )
+    assert by_metric["net_debt"]["support_status"] == (
+        CoverageSupportStatus.SCORED.value
+    )
+    assert by_metric["net_debt"]["result_class"] == (
+        PayloadScoreStatus.PRESENT_CORRECT.value
+    )
+    assert by_metric["ebit"]["source_status"] == "MISSING_SOURCE_EVIDENCE"
+    assert by_metric["ebit"]["result_class"] == (
+        PayloadScoreStatus.MISSING_EVIDENCE.value
+    )
+
+
 def test_confirmed_metric_coverage_uses_fixture_labels_not_extractor_output_as_gold(
     tmp_path,
 ):

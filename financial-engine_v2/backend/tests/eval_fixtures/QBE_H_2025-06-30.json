@@ -1,7 +1,21 @@
 {
   "_source": "Hand-verified from 2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf (QBE, H, 2025-06-30). Currency=USD, scale=millions. revenue: page 14, Consolidated statement of comprehensive income, 'Insurance revenue' = 10,875; ebit: page 14, 'Profit before income tax' = 1,334; np_attributable: page 14, 'Ordinary equity holders of the Company' = 1,022; operating_cf: page 17, 'Net cash flows from operating activities' = 1,756; investing_cf: page 17, 'Net cash flows from investing activities' = (562); financing_cf: page 17, 'Net cash flows from financing activities' = (668); capex: page 17, 'Payments for purchase of property, plant and equipment' = (9); cash_end: page 15, 'Cash and cash equivalents' = 2,124; net_debt: borrowings (3,679) - cash (2,124) = 1,555; shares_outstanding: page 28, Note 4.3.1, 'Issued ordinary shares, fully paid at 30 June' = 1,510 millions = 1,510,000,000",
   "_verification": "hand-verified",
-  "_verification_confidence": "high — values hand-verified from audited half-year report. PricewaterhouseCoopers reviewed.",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "net_debt"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt"
+    ],
+    "row_ids": {
+      "net_debt": "AQ042"
+    }
+  },
   "ticker": "QBE",
   "pdf_path": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
   "document_id": "qbe_20250630_h",
@@ -29,7 +43,7 @@
     "operating_cf": 0.01,
     "investing_cf": 0.01,
     "financing_cf": 0.01,
-    "capex": 0.10,
+    "capex": 0.1,
     "cash_end": 0.001,
     "net_debt": 0.05,
     "shares_outstanding": 0.01
@@ -45,7 +59,7 @@
     "shares_outstanding": "1,510 millions = 1,510,000,000 from Note 4.3.1. Share count is in millions in the note — extraction must convert to absolute count."
   },
   "config": {
-    "min_accuracy_overall": 0.70,
+    "min_accuracy_overall": 0.7,
     "_note": "First insurance fixture. Set lower threshold (0.70) to establish a baseline before optimizing prompts for insurance-sector terminology (insurance revenue, underwriting profit, etc.)."
   }
 }
