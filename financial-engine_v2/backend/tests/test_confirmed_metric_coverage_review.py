@@ -65,14 +65,21 @@ def test_review_packet_records_provenance_and_quality_flags(monkeypatch, tmp_pat
     assert isinstance(confirmed["precise_source_evidence"], bool)
     assert confirmed["blocked_ambiguous"] is False
 
-    candidate = rows[("ANZ", "shares_outstanding")]
-    assert candidate["classification"] == "CANDIDATE_REVIEW_REQUIRED"
-    assert candidate["human_review_required"] is True
+    approved15 = rows[("ANZ", "shares_outstanding")]
+    assert approved15["classification"] == "CONFIRMED_SOURCE_EVIDENCED"
+    assert approved15["blocked_ambiguous"] is False
+    assert approved15["recommended_action"] == "score_in_confirmed_metric_coverage"
+    assert approved15["human_review_required"] is True
 
-    ambiguous = rows[("DXS", "net_debt")]
-    assert ambiguous["classification"] == "AMBIGUOUS_OR_DERIVED"
-    assert ambiguous["blocked_ambiguous"] is True
-    assert ambiguous["human_review_required"] is True
+    unsupported = rows[("ANZ", "net_debt")]
+    assert unsupported["classification"] == "UNSUPPORTED"
+    assert unsupported["expected_value"] is None
+    assert unsupported["recommended_action"] == "add_source_evidence_before_scoring"
+    assert unsupported["human_review_required"] is True
+
+    approved_arithmetic = rows[("DXS", "net_debt")]
+    assert approved_arithmetic["classification"] == "CONFIRMED_SOURCE_EVIDENCED"
+    assert approved_arithmetic["blocked_ambiguous"] is False
 
 
 def test_git_provenance_uses_environment_before_git_commands(monkeypatch, tmp_path):
