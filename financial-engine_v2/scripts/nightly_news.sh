@@ -41,8 +41,21 @@ QDRANT_URL="${NIGHTLY_NEWS_QDRANT_URL:-${QDRANT_URL:-http://127.0.0.1:6333}}"
 QDRANT_CONTAINER="${NIGHTLY_NEWS_QDRANT_CONTAINER:-fe_qdrant}"
 QDRANT_AUTO_START="${NIGHTLY_NEWS_QDRANT_AUTO_START:-1}"
 QDRANT_START_TIMEOUT_SECONDS="${NIGHTLY_NEWS_QDRANT_START_TIMEOUT_SECONDS:-45}"
+if [[ -n "${TENN_RESEARCH_MEMORY_ROOT:-}" ]]; then
+  TENN_RESEARCH_MEMORY_ROOT="${TENN_RESEARCH_MEMORY_ROOT}"
+elif [[ -d "/mnt/tenn-nvme2/tenn/financial-engine_v2/data" ]]; then
+  TENN_RESEARCH_MEMORY_ROOT="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory"
+else
+  TENN_RESEARCH_MEMORY_ROOT="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory"
+fi
+MEMO_DIAGNOSTICS_PATH="${TENN_RESEARCH_MEMORY_ROOT}/news_memos.jsonl"
+NEWS_MEMO_LLM_URL_EFFECTIVE="${NEWS_MEMO_LLM_URL:-${LLAMACPP_URL:-http://127.0.0.1:8001}}"
+NEWS_MEMO_LLM_MODEL_EFFECTIVE="${NEWS_MEMO_LLM_MODEL:-${LLAMACPP_MODEL:-model:qwen2.5-14b-instruct}}"
 export TENN_NEWS_ARTIFACT_ROOT="${NEWS_ARTIFACT_ROOT}"
-mkdir -p "${NEWS_ARTIFACT_ROOT}" "${NEWS_RUNS_ROOT}"
+export TENN_RESEARCH_MEMORY_ROOT="${TENN_RESEARCH_MEMORY_ROOT}"
+export LLAMACPP_URL="${LLAMACPP_URL:-${NEWS_MEMO_LLM_URL_EFFECTIVE}}"
+export LLAMACPP_MODEL="${LLAMACPP_MODEL:-${NEWS_MEMO_LLM_MODEL_EFFECTIVE}}"
+mkdir -p "${NEWS_ARTIFACT_ROOT}" "${NEWS_RUNS_ROOT}" "${TENN_RESEARCH_MEMORY_ROOT}"
 
 write_status_json() {
   local exit_code="$1"
@@ -73,6 +86,10 @@ write_status_json() {
   export NIGHTLY_NEWS_ARTICLES_DB="${NEWS_ARTICLES_DB}"
   export NIGHTLY_NEWS_CONTEXT_DB="${NEWS_CONTEXT_DB}"
   export NIGHTLY_NEWS_RUNS_ROOT="${NEWS_RUNS_ROOT}"
+  export NIGHTLY_NEWS_RESEARCH_MEMORY_ROOT="${TENN_RESEARCH_MEMORY_ROOT}"
+  export NIGHTLY_NEWS_MEMO_DIAGNOSTICS_PATH="${MEMO_DIAGNOSTICS_PATH}"
+  export NIGHTLY_NEWS_MEMO_LLM_URL="${NEWS_MEMO_LLM_URL_EFFECTIVE}"
+  export NIGHTLY_NEWS_MEMO_LLM_MODEL="${NEWS_MEMO_LLM_MODEL_EFFECTIVE}"
   export NIGHTLY_NEWS_TENN_ROOT="${TENN_ROOT}"
   export NIGHTLY_NEWS_VENV="${VENV:-}"
   export NIGHTLY_NEWS_BACKEND_VENV="${BACKEND_VENV:-}"
@@ -123,6 +140,8 @@ payload = {
         "news_articles_db": env("NIGHTLY_NEWS_ARTICLES_DB"),
         "news_context_db": env("NIGHTLY_NEWS_CONTEXT_DB"),
         "news_runs_root": env("NIGHTLY_NEWS_RUNS_ROOT"),
+        "research_memory_root": env("NIGHTLY_NEWS_RESEARCH_MEMORY_ROOT"),
+        "memo_diagnostics_path": env("NIGHTLY_NEWS_MEMO_DIAGNOSTICS_PATH"),
         "log": env("NIGHTLY_NEWS_LOG_FILE"),
         "status_json": env("NIGHTLY_NEWS_STATUS_FILE"),
         "sync_summary_json": summary_file,
@@ -140,6 +159,10 @@ payload = {
         "url": env("NIGHTLY_NEWS_QDRANT_URL_EFFECTIVE"),
         "container": env("NIGHTLY_NEWS_QDRANT_CONTAINER"),
         "auto_start": env("NIGHTLY_NEWS_QDRANT_AUTO_START"),
+    },
+    "memo_llm": {
+        "url": env("NIGHTLY_NEWS_MEMO_LLM_URL"),
+        "model": env("NIGHTLY_NEWS_MEMO_LLM_MODEL"),
     },
     "phases": {
         "initializing": env("NIGHTLY_NEWS_INIT_STATUS"),
@@ -314,6 +337,10 @@ echo "[nightly_news] news_artifact_root=${NEWS_ARTIFACT_ROOT}"
 echo "[nightly_news] news_articles_db=${NEWS_ARTICLES_DB}"
 echo "[nightly_news] news_context_db=${NEWS_CONTEXT_DB}"
 echo "[nightly_news] news_runs_root=${NEWS_RUNS_ROOT}"
+echo "[nightly_news] research_memory_root=${TENN_RESEARCH_MEMORY_ROOT}"
+echo "[nightly_news] memo_diagnostics_path=${MEMO_DIAGNOSTICS_PATH}"
+echo "[nightly_news] memo_llm_url=${NEWS_MEMO_LLM_URL_EFFECTIVE}"
+echo "[nightly_news] memo_llm_model=${NEWS_MEMO_LLM_MODEL_EFFECTIVE}"
 echo "[nightly_news] qdrant_url=${QDRANT_URL}"
 echo "[nightly_news] qdrant_container=${QDRANT_CONTAINER} auto_start=${QDRANT_AUTO_START}"
 echo "[nightly_news] phase=fetch python=$(command -v python3) venv=${VENV} dry_run=${DRY_RUN}"
@@ -356,7 +383,6 @@ else
 
     # Add backend to PYTHONPATH for app.* imports
     export PYTHONPATH="${TENN_ROOT}/financial-engine_v2/backend:${TENN_ROOT}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
-    MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"
 
     # Sync articles to Qdrant, dispatch memo extraction, and refresh the
     # canonical news.sqlite fallback used by Cockpit local news paths. Memo
@@ -371,6 +397,8 @@ else
       --skip-clean-upserts
       --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
       --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
+      --memo-llm-url "${NEWS_MEMO_LLM_URL_EFFECTIVE}"
+      --memo-llm-model "${NEWS_MEMO_LLM_MODEL_EFFECTIVE}"
       --summary-json "${SUMMARY_FILE}"
     )
     WAIT_FOR_MEMOS=false
@@ -425,6 +453,8 @@ else
         --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}"
         --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
         --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
+        --memo-llm-url "${NEWS_MEMO_LLM_URL_EFFECTIVE}"
+        --memo-llm-model "${NEWS_MEMO_LLM_MODEL_EFFECTIVE}"
         --json-error-fallback-model "${JSON_ERROR_FALLBACK_MODEL}"
         --json-error-fallback-limit "${NEWS_JSON_ERROR_FALLBACK_LIMIT:-3}"
         --summary-json "${MEMO_BACKFILL_SUMMARY_FILE}"

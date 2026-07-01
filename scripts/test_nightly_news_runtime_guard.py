@@ -51,6 +51,25 @@ class NightlyNewsRuntimeGuardTests(unittest.TestCase):
         self.assertIn('"container": env("NIGHTLY_NEWS_QDRANT_CONTAINER")', self.script)
         self.assertIn('"auto_start": env("NIGHTLY_NEWS_QDRANT_AUTO_START")', self.script)
 
+    def test_memo_dispatch_uses_durable_memory_root_and_explicit_llm(self) -> None:
+        self.assertIn("TENN_RESEARCH_MEMORY_ROOT", self.script)
+        self.assertIn(
+            "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory",
+            self.script,
+        )
+        self.assertIn(
+            'MEMO_DIAGNOSTICS_PATH="${TENN_RESEARCH_MEMORY_ROOT}/news_memos.jsonl"',
+            self.script,
+        )
+        self.assertNotIn(
+            'MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"',
+            self.script,
+        )
+        self.assertIn("--memo-llm-url", self.script)
+        self.assertIn("--memo-llm-model", self.script)
+        self.assertIn("NEWS_MEMO_LLM_URL_EFFECTIVE", self.script)
+        self.assertIn("NEWS_MEMO_LLM_MODEL_EFFECTIVE", self.script)
+
     def test_no_destructive_qdrant_operations_in_wrapper(self) -> None:
         destructive_patterns = [
             r"delete_collection",

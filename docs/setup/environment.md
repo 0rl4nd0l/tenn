@@ -33,7 +33,10 @@ audit did not prove backend, Qdrant, Postgres, or Cockpit functionality.
 | `CELERY_BROKER_URL` | `redis://127.0.0.1:6379/0` | Broker URL for Celery mode. |
 | `CELERY_RESULT_BACKEND` | `redis://127.0.0.1:6379/1` | Result backend for Celery mode. |
 | `TENN_LLM_GPU_WORKER_CONCURRENCY` | `1` | Compose GPU worker concurrency for the `llm_gpu` queue. Keep aligned with validated llama.cpp slots. |
+| `TENN_RESEARCH_MEMORY_ROOT` | `/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory` when the NVMe data root exists; otherwise checkout-local fallback | Durable root for news memo JSONL outputs and skip ledgers. Nightly news uses this root for memo diagnostics and queued memo payload paths. |
 | `NEWS_MEMO_MAX_ARTICLE_CHARS` | `5000` | Maximum article characters sent to each news memo extraction task. |
+| `NEWS_MEMO_LLM_URL` | `LLAMACPP_URL`, then `http://127.0.0.1:8001` | OpenAI-compatible llama.cpp URL embedded into nightly/backfill memo task payloads. |
+| `NEWS_MEMO_LLM_MODEL` | `LLAMACPP_MODEL`, then `model:qwen2.5-14b-instruct` | Model name embedded into nightly/backfill memo task payloads. |
 | `NEWS_WAIT_FOR_MEMOS` | `0` | Nightly news waits for memo tasks only when set to `1`; default keeps ingest success independent from background enrichment. |
 | `ENABLE_SESSION_MEMORY` | `true` | Enable OpenViking session memory for `/api/chat`. Set to `false` to disable. |
 | `COCKPIT_LLM_PROFILE` | `ops` | Cockpit high-level preset when `HYBRID_ROUTER_POLICY` is unset: `ops` (local-first when local + Anthropic are available), `advisor` (API-first when a key is present), or `balanced` (same mapping as `advisor`). Optional per-message override: prefix chat with `/advisor` or `/local`. |
@@ -100,6 +103,9 @@ Single-instance router mode (default — recommended):
 # cockpit chat must route to the configured API backend instead of local llama.cpp.
 LLAMACPP_URL=http://127.0.0.1:8001
 EXTRACT_MODEL=qwen2.5-14b-instruct
+TENN_RESEARCH_MEMORY_ROOT=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory
+NEWS_MEMO_LLM_URL=http://127.0.0.1:8001
+NEWS_MEMO_LLM_MODEL=model:qwen2.5-14b-instruct
 ```
 
 Legacy dual-server mode (set `EXTRACTION_LLAMACPP_URL` to enable):
