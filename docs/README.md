@@ -26,6 +26,7 @@
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- Sloppy scan/fix quality workflows: `sloppy_workflows.md`
 
 ### Migration / historical
 
