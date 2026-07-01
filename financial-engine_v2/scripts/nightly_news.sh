@@ -37,6 +37,10 @@ fi
 NEWS_ARTICLES_DB="${TENN_NEWS_ARTICLES_DB:-${NEWS_ARTIFACT_ROOT}/news_articles.sqlite}"
 NEWS_CONTEXT_DB="${TENN_NEWS_CONTEXT_DB:-${NEWS_ARTIFACT_ROOT}/news.sqlite}"
 NEWS_RUNS_ROOT="${TENN_NEWS_RUNS_ROOT:-${NEWS_ARTIFACT_ROOT}/news_runs}"
+QDRANT_URL="${NIGHTLY_NEWS_QDRANT_URL:-${QDRANT_URL:-http://127.0.0.1:6333}}"
+QDRANT_CONTAINER="${NIGHTLY_NEWS_QDRANT_CONTAINER:-fe_qdrant}"
+QDRANT_AUTO_START="${NIGHTLY_NEWS_QDRANT_AUTO_START:-1}"
+QDRANT_START_TIMEOUT_SECONDS="${NIGHTLY_NEWS_QDRANT_START_TIMEOUT_SECONDS:-45}"
 export TENN_NEWS_ARTIFACT_ROOT="${NEWS_ARTIFACT_ROOT}"
 mkdir -p "${NEWS_ARTIFACT_ROOT}" "${NEWS_RUNS_ROOT}"
 
@@ -72,6 +76,9 @@ write_status_json() {
   export NIGHTLY_NEWS_TENN_ROOT="${TENN_ROOT}"
   export NIGHTLY_NEWS_VENV="${VENV:-}"
   export NIGHTLY_NEWS_BACKEND_VENV="${BACKEND_VENV:-}"
+  export NIGHTLY_NEWS_QDRANT_URL_EFFECTIVE="${QDRANT_URL}"
+  export NIGHTLY_NEWS_QDRANT_CONTAINER="${QDRANT_CONTAINER}"
+  export NIGHTLY_NEWS_QDRANT_AUTO_START="${QDRANT_AUTO_START}"
 
   python3 - "${STATUS_FILE}" <<'PY'
 from __future__ import annotations
@@ -128,6 +135,11 @@ payload = {
     "venvs": {
         "newspaper4k": env("NIGHTLY_NEWS_VENV"),
         "backend": env("NIGHTLY_NEWS_BACKEND_VENV"),
+    },
+    "qdrant": {
+        "url": env("NIGHTLY_NEWS_QDRANT_URL_EFFECTIVE"),
+        "container": env("NIGHTLY_NEWS_QDRANT_CONTAINER"),
+        "auto_start": env("NIGHTLY_NEWS_QDRANT_AUTO_START"),
     },
     "phases": {
         "initializing": env("NIGHTLY_NEWS_INIT_STATUS"),
@@ -187,6 +199,95 @@ on_exit() {
   exit "${exit_code}"
 }
 
+qdrant_ready() {
+  python3 - "${QDRANT_URL}" <<'PY'
+from __future__ import annotations
+
+import sys
+import urllib.request
+
+url = sys.argv[1].rstrip("/") + "/collections"
+try:
+    with urllib.request.urlopen(url, timeout=3) as response:
+        raise SystemExit(0 if 200 <= response.status < 300 else 1)
+except Exception:
+    raise SystemExit(1)
+PY
+}
+
+start_qdrant_container() {
+  if [[ "${QDRANT_AUTO_START}" != "1" ]]; then
+    echo "[nightly_news] qdrant auto-start disabled NIGHTLY_NEWS_QDRANT_AUTO_START=${QDRANT_AUTO_START}" >&2
+    return 1
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "[nightly_news] ERROR: docker not available; cannot start Qdrant container ${QDRANT_CONTAINER}" >&2
+    return 1
+  fi
+  if ! docker container inspect "${QDRANT_CONTAINER}" >/dev/null 2>&1; then
+    echo "[nightly_news] ERROR: Qdrant container not found: ${QDRANT_CONTAINER}" >&2
+    return 1
+  fi
+  echo "[nightly_news] qdrant unavailable; starting existing container ${QDRANT_CONTAINER}"
+  docker start "${QDRANT_CONTAINER}" >/dev/null
+}
+
+ensure_qdrant_ready() {
+  local timeout="${QDRANT_START_TIMEOUT_SECONDS}"
+  if ! [[ "${timeout}" =~ ^[0-9]+$ ]]; then
+    timeout="45"
+  fi
+
+  if qdrant_ready; then
+    echo "[nightly_news] qdrant ready url=${QDRANT_URL}"
+    return 0
+  fi
+
+  echo "[nightly_news] qdrant unavailable url=${QDRANT_URL}" >&2
+  start_qdrant_container || return 1
+
+  local deadline=$((SECONDS + timeout))
+  while (( SECONDS <= deadline )); do
+    if qdrant_ready; then
+      echo "[nightly_news] qdrant ready after container start url=${QDRANT_URL}"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "[nightly_news] ERROR: qdrant still unavailable after ${timeout}s url=${QDRANT_URL}" >&2
+  return 1
+}
+
+validate_sync_summary() {
+  python3 - "${SUMMARY_FILE}" <<'PY'
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1])
+if not summary_path.is_file():
+    raise SystemExit(f"sync summary missing: {summary_path}")
+
+payload = json.loads(summary_path.read_text(encoding="utf-8"))
+qdrant_sync = payload.get("qdrant_sync") or {}
+sqlite_fallback = payload.get("sqlite_fallback") or {}
+qdrant_diff = qdrant_sync.get("qdrant_diff") or {}
+
+errors = []
+if qdrant_sync.get("status") != "success":
+    errors.append(f"qdrant_sync.status={qdrant_sync.get('status')!r}")
+if qdrant_diff.get("status") != "available":
+    errors.append(f"qdrant_diff.status={qdrant_diff.get('status')!r}")
+if sqlite_fallback.get("status") != "success":
+    errors.append(f"sqlite_fallback.status={sqlite_fallback.get('status')!r}")
+if errors:
+    raise SystemExit("sync summary failed readiness checks: " + ", ".join(errors))
+PY
+}
+
 trap on_exit EXIT
 exec > >(tee "${LOG_FILE}") 2>&1
 
@@ -213,6 +314,8 @@ echo "[nightly_news] news_artifact_root=${NEWS_ARTIFACT_ROOT}"
 echo "[nightly_news] news_articles_db=${NEWS_ARTICLES_DB}"
 echo "[nightly_news] news_context_db=${NEWS_CONTEXT_DB}"
 echo "[nightly_news] news_runs_root=${NEWS_RUNS_ROOT}"
+echo "[nightly_news] qdrant_url=${QDRANT_URL}"
+echo "[nightly_news] qdrant_container=${QDRANT_CONTAINER} auto_start=${QDRANT_AUTO_START}"
 echo "[nightly_news] phase=fetch python=$(command -v python3) venv=${VENV} dry_run=${DRY_RUN}"
 
 CURRENT_PHASE="fetch"
@@ -263,6 +366,7 @@ else
       --since-hours 36
       --db-path "${NEWS_ARTICLES_DB}"
       --news-context-db "${NEWS_CONTEXT_DB}"
+      --qdrant-url "${QDRANT_URL}"
       --refresh-sqlite-fallback
       --skip-clean-upserts
       --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
@@ -297,7 +401,9 @@ else
     elif [[ "${MEMO_STATUS}" == "pending" ]]; then
       MEMO_STATUS="dispatch_requested"
     fi
+    ensure_qdrant_ready
     python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" "${SYNC_ARGS[@]}"
+    validate_sync_summary
     SYNC_STATUS="success"
     if [[ "${MEMO_STATUS}" == "dispatch_requested" || "${MEMO_STATUS}" == "force_dispatch_requested" ]]; then
       MEMO_STATUS="dispatched"
@@ -332,10 +438,12 @@ else
       echo "[nightly_news] memo_backfill_summary_json=${MEMO_BACKFILL_SUMMARY_FILE}"
     fi
   else
-    WARNING_TEXT="Backend venv not found at ${BACKEND_VENV}; skipped Qdrant sync and memo work"
-    SYNC_STATUS="skipped_backend_venv_missing"
+    WARNING_TEXT="Backend venv not found at ${BACKEND_VENV}; cannot run Qdrant sync or memo work"
+    SYNC_STATUS="failure_backend_venv_missing"
     MEMO_STATUS="skipped_backend_venv_missing"
-    echo "[nightly_news] WARNING: ${WARNING_TEXT}" >&2
+    echo "[nightly_news] ERROR: ${WARNING_TEXT}" >&2
+    echo "[nightly_news] Run: python3 -m venv ${BACKEND_VENV} && ${BACKEND_VENV}/bin/pip install -r ${TENN_ROOT}/requirements.txt" >&2
+    exit 1
   fi
 fi
 
