@@ -2845,6 +2845,94 @@ def test_validate_gate_blocks_extreme_metric_revenue_ratio_for_accepted_output()
     assert "metric_revenue_ratio_high" in error
 
 
+def test_validate_gate_blocks_bank_cash_end_ratio_without_balance_sheet_source():
+    """ANZ-sized cash cannot bypass magnitude review with weak cash-flow provenance."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["metrics"].update(
+        {
+            "revenue": 11_153_000_000,
+            "ebit": 5_222_000_000,
+            "np_attributable": 3_663_000_000,
+            "operating_cf": 47_507_000_000,
+            "cash_end": 195_788_000_000,
+        }
+    )
+    payload["metric_source_scales"] = {
+        metric_name: "millions"
+        for metric_name, value in payload["metrics"].items()
+        if metric_name != "shares_outstanding" and value is not None
+    }
+    payload["row_refs"] = {
+        "revenue": "Operating income",
+        "cash_end": "unknown",
+    }
+    payload["provenance"] = {
+        "revenue": "income_statement:page_5:Operating income",
+        "cash_end": "cashflow_statement:page_16:unknown",
+    }
+    payload["source_bound"] = {
+        "document_title": (
+            "2025-05-08_anzbgl-consolidated-half-year-financial-report.pdf"
+        )
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error is not None
+    assert "metric_revenue_ratio_high" in error
+
+
+def test_validate_gate_allows_source_bound_bank_balance_sheet_cash_end_ratio():
+    """ANZ bank balance-sheet cash can exceed operating income when source-bound."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["metrics"].update(
+        {
+            "revenue": 11_153_000_000,
+            "ebit": 5_222_000_000,
+            "np_attributable": 3_663_000_000,
+            "operating_cf": 47_507_000_000,
+            "cash_end": 195_788_000_000,
+        }
+    )
+    payload["metric_source_scales"] = {
+        metric_name: "millions"
+        for metric_name, value in payload["metrics"].items()
+        if metric_name != "shares_outstanding" and value is not None
+    }
+    payload["row_refs"] = {
+        "revenue": "Operating income",
+        "cash_end": "Cash and cash equivalents",
+    }
+    payload["provenance"] = {
+        "revenue": "income_statement:page_5:Operating income",
+        "cash_end": "balance_sheet:page_14:Cash and cash equivalents",
+    }
+    payload["field_provenance"] = {
+        "cash_end": {
+            "metric": "cash_end",
+            "source": "balance_sheet",
+            "row_ref": "Cash and cash equivalents",
+            "scale": "millions",
+            "scale_source": "table",
+        }
+    }
+    payload["source_bound"] = {
+        "document_title": (
+            "2025-05-08_anzbgl-consolidated-half-year-financial-report.pdf"
+        )
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+
 def test_validate_gate_allows_source_bound_reit_net_debt_revenue_ratio():
     """DXS-style source-bound REIT/stapled net debt may exceed revenue."""
     from app.services.multipass_extraction import _validate_gate
@@ -3283,6 +3371,82 @@ def test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting
         "ebit": "Profit before income tax",
         "metric_name": "Total operating income, Profit before income tax",
     }
+
+
+def test_income_source_overlay_prefers_bank_operating_income_total_over_net_interest_subline():
+    """ANZ-style bank statements use Operating income as revenue when present."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=5,
+        caption="Condensed Consolidated Income Statement",
+        headers=["", "Mar 25 $M", "Sep 24 $M", "Mar 24 $M"],
+        rows=[
+            ["Net interest income", "8,838", "8,137", "7,900"],
+            ["Other operating income", "2,315", "2,236", "2,248"],
+            ["Operating income", "11,153", "10,373", "10,148"],
+            ["Operating expenses", "(5,788)", "(5,490)", "(5,179)"],
+            ["Profit before credit impairment and income tax", "5,365", "4,883", "4,969"],
+            ["Credit impairment (charge)/release", "(143)", "(336)", "(70)"],
+            ["Profit before income tax", "5,222", "4,547", "4,899"],
+            ["Income tax expense", "(1,538)", "(1,381)", "(1,435)"],
+            ["Non-controlling interests", "(21)", "(21)", "(14)"],
+            [
+                "Profit attributable to shareholders of the Company",
+                "3,663",
+                "3,145",
+                "3,450",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 8_137_000_000,
+            "ebit": 5_365_000_000,
+            "np_attributable": 3_663_000_000,
+        },
+        "revenue": 8_137_000_000,
+        "ebit": 5_365_000_000,
+        "np_attributable": 3_663_000_000,
+        "row_refs": {
+            "revenue": "Net interest income",
+            "ebit": "Profit before credit impairment and income tax",
+            "np_attributable": "Profit attributable to shareholders of the Company",
+        },
+        "provenance": {
+            "revenue": "income_statement:page_5:Net interest income",
+            "ebit": "income_statement:page_5:Profit before credit impairment and income tax",
+            "np_attributable": (
+                "income_statement:page_5:"
+                "Profit attributable to shareholders of the Company"
+            ),
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 11_153_000_000
+    assert payload["revenue"] == 11_153_000_000
+    assert payload["row_refs"]["revenue"] == "Operating income"
+    assert payload["provenance"]["revenue"] == "income_statement:page_5:Operating income"
+    assert payload["metrics"]["ebit"] == 5_222_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before income tax"
 
 
 def test_market_update_net_revenue_candidate_passes_quarterly_gate():
@@ -3881,6 +4045,54 @@ def test_cash_end_overlay_uses_later_exact_cash_equivalents_table():
     assert payload["metric_source_scales"]["cash_end"] == "thousands"
     assert payload["metric_scale_sources"]["cash_end"] == "table"
     assert payload["field_provenance"]["cash_end"]["page_number"] == 23
+
+
+def test_cash_end_overlay_uses_balance_sheet_cash_equivalents_for_bank_payload():
+    """ANZ bank cash_end should bind to the balance-sheet cash-equivalents row."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_cash_end_source_payload
+
+    balance_sheet = DoclingTable(
+        page_number=14,
+        caption="Condensed Consolidated Balance Sheet",
+        headers=["", "Mar 2025 $m", "Sep 2024 $m"],
+        rows=[
+            ["Assets", "", ""],
+            ["Cash and cash equivalents", "195,788", "147,262"],
+            ["Total assets", "1,234,567", "1,111,111"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"cash_end": 195_788_000_000},
+        "cash_end": 195_788_000_000,
+        "row_refs": {"cash_end": "unknown"},
+        "provenance": {"cash_end": "cashflow_statement:page_16:unknown"},
+    }
+
+    _apply_preferred_cash_end_source_payload(
+        payload,
+        [balance_sheet],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["cash_end"] == 195_788_000_000
+    assert payload["row_refs"]["cash_end"] == "Cash and cash equivalents"
+    assert (
+        payload["provenance"]["cash_end"]
+        == "balance_sheet:page_14:Cash and cash equivalents"
+    )
+    assert payload["metric_source_scales"]["cash_end"] == "millions"
+    assert payload["metric_scale_sources"]["cash_end"] == "table"
+    assert payload["field_provenance"]["cash_end"]["source"] == "balance_sheet"
 
 
 def test_cash_end_overlay_does_not_replace_without_exact_cash_equivalents_row():
@@ -4908,6 +5120,235 @@ def test_statement_text_overlay_rejects_financial_report_contents_page():
     assert payload["provenance"]["revenue"] == (
         "income_statement:page_18:Insurance revenue"
     )
+
+
+def test_statement_text_overlay_prefers_bank_operating_income_total_over_net_interest_subline():
+    """ANZ bank source text should replace subline revenue and pre-impairment EBIT."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 8_137_000_000,
+            "ebit": 5_365_000_000,
+            "np_attributable": 3_663_000_000,
+        },
+        "row_refs": {
+            "revenue": "Net interest income",
+            "ebit": "Profit before credit impairment and income tax",
+            "np_attributable": "Profit attributable to shareholders of the Company",
+        },
+        "provenance": {
+            "revenue": "income_statement:page_5:Net interest income",
+            "ebit": "income_statement:page_5:Profit before credit impairment and income tax",
+            "np_attributable": (
+                "income_statement:page_5:"
+                "Profit attributable to shareholders of the Company"
+            ),
+        },
+    }
+    sections = [
+        {"page": 5, "text": "Performance overview"},
+        {"page": 5, "text": "Condensed Consolidated Income Statement"},
+        {"page": 5, "text": "Half Year Mar 25 Sep 24 Mar 24"},
+        {"page": 5, "text": "$M $M $M"},
+        {"page": 5, "text": "Net interest income 8,838 8,137 7,900"},
+        {"page": 5, "text": "Other operating income 2,315 2,236 2,248"},
+        {"page": 5, "text": "Operating income 11,153 10,373 10,148"},
+        {"page": 5, "text": "Operating expenses (5,788) (5,490) (5,179)"},
+        {
+            "page": 5,
+            "text": "Profit before credit impairment and income tax 5,365 4,883 4,969",
+        },
+        {"page": 5, "text": "Credit impairment (charge)/release (143) (336) (70)"},
+        {"page": 5, "text": "Profit before income tax 5,222 4,547 4,899"},
+        {"page": 5, "text": "Income tax expense (1,538) (1,381) (1,435)"},
+        {"page": 5, "text": "Non-controlling interests (21) (21) (14)"},
+        {
+            "page": 5,
+            "text": "Profit attributable to shareholders of the Company 3,663 3,145 3,450",
+        },
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 11_153_000_000
+    assert payload["row_refs"]["revenue"] == "Operating income"
+    assert payload["provenance"]["revenue"] == (
+        "income_statement:page_5:Operating income"
+    )
+    assert payload["metrics"]["ebit"] == 5_222_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before income tax"
+    assert payload["provenance"]["ebit"] == (
+        "income_statement:page_5:Profit before income tax"
+    )
+
+
+def test_statement_text_overlay_recovers_bank_balance_sheet_cash_end():
+    """ANZ bank balance-sheet text should replace weak cash_end provenance."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "cash_end": 195_788_000_000,
+        },
+        "cash_end": 195_788_000_000,
+        "row_refs": {
+            "cash_end": "unknown",
+        },
+        "provenance": {
+            "cash_end": "cashflow_statement:page_16:unknown",
+        },
+        "metric_source_scales": {
+            "cash_end": "millions",
+        },
+        "metric_scale_sources": {
+            "cash_end": "table",
+        },
+    }
+    sections = [
+        {"page": 14, "text": "Condensed Consolidated Balance Sheet"},
+        {"page": 14, "text": "Assets"},
+        {"page": 14, "text": "Cash and cash equivalents1"},
+        {"page": 14, "text": "195,788"},
+        {"page": 14, "text": "147,262"},
+        {"page": 14, "text": "Total assets"},
+        {"page": 14, "text": "1,234,567"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["cash_end"] == 195_788_000_000
+    assert payload["row_refs"]["cash_end"] == "Cash and cash equivalents"
+    assert (
+        payload["provenance"]["cash_end"]
+        == "balance_sheet:page_14:Cash and cash equivalents"
+    )
+    assert payload["metric_source_scales"]["cash_end"] == "millions"
+    assert payload["metric_scale_sources"]["cash_end"] == "source_text"
+    assert payload["field_provenance"]["cash_end"]["source"] == "balance_sheet"
+
+
+def test_statement_text_overlay_does_not_use_balance_sheet_note_for_cash_end():
+    """A note page mentioning balance sheet is not the formal cash_end statement row."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"cash_end": 195_788_000_000},
+        "cash_end": 195_788_000_000,
+        "row_refs": {"cash_end": "unknown"},
+        "provenance": {"cash_end": "cashflow_statement:page_16:unknown"},
+        "metric_source_scales": {"cash_end": "millions"},
+        "metric_scale_sources": {"cash_end": "table"},
+    }
+    sections = [
+        {"page": 39, "text": "Cash and cash equivalents in the balance sheet"},
+        {"page": 39, "text": "Cash and cash equivalents"},
+        {"page": 39, "text": "140,504"},
+        {"page": 39, "text": "138,942"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["row_refs"]["cash_end"] == "unknown"
+    assert payload["provenance"]["cash_end"] == "cashflow_statement:page_16:unknown"
+
+
+def test_statement_text_overlay_prefers_bank_net_investments_capex_row():
+    """ANZ bank capex should bind to net investments in other assets, not purchases."""
+    from app.services.multipass_extraction import (
+        _apply_preferred_statement_text_source_payload,
+    )
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"capex": -40_877_000_000},
+        "capex": -40_877_000_000,
+        "row_refs": {"capex": "Investment securities assets:Purchases"},
+        "provenance": {
+            "capex": "cashflow_statement:page_16:Investment securities assets:Purchases"
+        },
+        "metric_source_scales": {"capex": "millions"},
+        "metric_scale_sources": {"capex": "table"},
+    }
+    sections = [
+        {"page": 16, "text": "Condensed Consolidated Cash Flow Statement"},
+        {"page": 16, "text": "Cash flows from investing activities"},
+        {"page": 16, "text": "Investment securities assets:"},
+        {"page": 16, "text": "Purchases"},
+        {"page": 16, "text": "(41,649)"},
+        {"page": 16, "text": "Proceeds from sale or maturity"},
+        {"page": 16, "text": "31,629"},
+        {"page": 16, "text": "Net investments in other assets"},
+        {"page": 16, "text": "(242)"},
+        {"page": 16, "text": "(153)"},
+        {"page": 16, "text": "(451)"},
+    ]
+
+    _apply_preferred_statement_text_source_payload(
+        payload,
+        sections,
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["capex"] == -242_000_000
+    assert payload["row_refs"]["capex"] == "Net investments in other assets"
+    assert payload["provenance"]["capex"] == (
+        "cashflow_statement:page_16:Net investments in other assets"
+    )
+    assert payload["metric_scale_sources"]["capex"] == "source_text"
 
 
 def test_statement_text_overlay_rejects_spaced_qbe_contents_page():
@@ -6380,6 +6821,49 @@ def test_pass3a_shares_outstanding_rejects_equity_dollar_table():
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert results[0]["shares_outstanding"] is None
+
+
+def test_pass3a_shares_outstanding_rejects_anz_ordinary_share_capital_dollars():
+    """ANZ ordinary share capital in $M must not be treated as share count."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=45,
+        caption="Shareholders' equity",
+        headers=["", "Mar 25 $M", "Sep 24 $M", "Mar 24 $M"],
+        rows=[
+            ["Ordinary share capital", "27,028", "27,065", "29,033"],
+            ["Reserves", "(902)", "(1,678)", "(1,510)"],
+        ],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "shares_outstanding": 27_028,
+        "pass3_confidence": 0.9,
+        "row_refs": {"shares_outstanding": "Ordinary share capital"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["shares_outstanding"] is None
+    assert "shares_outstanding" not in results[0]["row_refs"]
 
 
 def test_pass3a_shares_outstanding_rejects_weighted_average_row():
