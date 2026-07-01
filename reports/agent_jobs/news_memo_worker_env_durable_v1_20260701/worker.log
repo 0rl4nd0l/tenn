@@ -1,0 +1,53 @@
+
+ -------------- memo-proof-20260701T2034@l4nd0-System-Product-Name v5.4.0 (opalescent)
+--- ***** -----
+-- ******* ---- Linux-6.8.0-124-generic-x86_64-with-glibc2.35 2026-07-01 20:34:33
+- *** --- * ---
+- ** ---------- [config]
+- ** ---------- .> app:         financial_engine:0x72a7d7bd4430
+- ** ---------- .> transport:   redis://127.0.0.1:6379/0
+- ** ---------- .> results:     redis://127.0.0.1:6379/1
+- *** --- * --- .> concurrency: 1 (solo)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** -----
+ -------------- [queues]
+                .> llm_gpu          exchange=celery(direct) key=llm_gpu
+
+
+[tasks]
+  . backfill_ticker
+  . download_pdf
+  . extract_commentary_memo_task
+  . extract_news_memo_task
+  . llm_embed_texts
+  . llm_generate_json
+  . process_document
+  . thesis_watchdog_check
+
+[2026-07-01 20:34:33,977: WARNING/MainProcess] /home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-07-01 20:34:33,979: INFO/MainProcess] Connected to redis://127.0.0.1:6379/0
+[2026-07-01 20:34:33,980: WARNING/MainProcess] /home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-07-01 20:34:33,980: INFO/MainProcess] mingle: searching for neighbors
+[2026-07-01 20:34:34,984: INFO/MainProcess] mingle: all alone
+[2026-07-01 20:34:34,996: INFO/MainProcess] memo-proof-20260701T2034@l4nd0-System-Product-Name ready.
+[2026-07-01 20:35:01,502: INFO/MainProcess] Task extract_news_memo_task[8f59329d-55d4-40d3-b736-0132f340fe46] received
+[2026-07-01 20:35:01,533: INFO/MainProcess] llm_route operation=generate_json classified_task=reasoning selected_role=router policy=light queue=llm_cpu model=model:qwen2.5-14b-instruct provider=llamacpp base_url=http://127.0.0.1:8001 deferred=True confidence=0.840 payload_size=6029 gpu_util=100
+[2026-07-01 20:35:01,533: INFO/MainProcess] llm_runtime operation=generate_json classified_task=reasoning selected_role=router policy=light queue=llm_cpu routed_model=Qwen3-30B-A3B-Instruct-2507-Q3_K_M routed_base_url=http://127.0.0.1:8001 effective_model=model:qwen2.5-14b-instruct effective_base_url=http://127.0.0.1:8001 provider=llamacpp runtime_override=True component=news_memo_extractor
+[2026-07-01 20:35:01,590: INFO/MainProcess] HTTP Request: GET http://127.0.0.1:8001/v1/models "HTTP/1.1 200 OK"
+[2026-07-01 20:35:34,983: INFO/MainProcess] HTTP Request: POST http://127.0.0.1:8001/v1/chat/completions "HTTP/1.1 200 OK"
+[2026-07-01 20:35:34,984: INFO/MainProcess] llm_request_complete model=model:qwen2.5-14b-instruct latency=33.452 tokens=162 tps=4.843 task_type=reasoning queue=llm_cpu
+[2026-07-01 20:35:35,079: INFO/MainProcess] Task extract_news_memo_task[8f59329d-55d4-40d3-b736-0132f340fe46] succeeded in 33.57684276600048s: {'source_id': 'news:art_78563f510fe7a2e3c622a9ef', 'provider': 'newspaper4k', 'key_events': ['Coles Group (ASX:COL) tumbles more than 4%', 'Woolworths (ASX:WOW) dragged almost 2% lower', 'Healthcare continues to outperform as most sectors fall', 'Chinese lithium futures jumped more than 5%'], 'sentiment': 'bearish', 'impact_magnitude': 'moderate', 'tickers': ['COL', 'WOW', 'IMI'], 'claims': ['Consumer staples sector slumped 2.2%', 'Healthcare sector rose 0.8%'], 'risks': ['Coles\' proposed Greencross deal affecting consumer staples', 'Ongoing concerns about housing valuations and lofty share prices for financials'], 'published_at': '2026-07-01T06:46:35Z', 'extraction_provenance': {'component': 'news_memo_extractor', 'llm_model': 'model:qwen2.5-14b-instruct', 'llm_url': 'http://127.0.0.1:8001', 'max_article_chars': 5000}, 'signal_routing': {'status': 'ok', 'company_memory_count': 2, 'market_memory_count': 3, 'company_memory_results': [{...}, {...}], 'market_memory_results': [{...}, {...}, {...}]}}
+
+worker: Hitting Ctrl+C again will terminate all running tasks!
+
+worker: Warm shutdown (MainProcess)

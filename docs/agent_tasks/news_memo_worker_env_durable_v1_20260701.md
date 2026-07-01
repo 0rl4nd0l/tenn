@@ -28,6 +28,16 @@ allowed_files:
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/VALIDATION.md
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/CODE_REVIEW.md
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_functionality_proof.md
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_before.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_after.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_before.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_after.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/llm_models.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/candidate_preview.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/worker.log
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/dispatch.log
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/postfix_live_backfill_summary.json
+  - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_proof_live.json
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/ledger_entries.jsonl
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/status.json
   - reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/diff-check.json

@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-07-01T10:37:32.136620+00:00",
+  "parked_keys": [
+    {
+      "key": "llm_gpu:parked:news_memo_stale_queue_single_candidate_runtime_v1_20260701:20260701T1959",
+      "llen": 42
+    }
+  ],
+  "queue_depths": {
+    "embed": 0,
+    "ingest": 0,
+    "llm_cpu": 0,
+    "llm_gpu": 0,
+    "score": 35
+  },
+  "redis_url": "redis://127.0.0.1:6379/0",
+  "unacked_keys": []
+}
