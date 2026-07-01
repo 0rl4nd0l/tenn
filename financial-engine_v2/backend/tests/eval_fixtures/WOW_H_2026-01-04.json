@@ -1,7 +1,39 @@
 {
-  "_source": "WOW Appendix 4D + Half-Year Financial Report 2026. All values AUD millions applied.",
-  "_verification": "claude-opus",
-  "_verification_confidence": "high — extracted directly from audited consolidated financial statements (p4-8 of HY report).",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from WOW Appendix 4D + Half-Year Financial Report 2026. All values AUD millions applied.",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "ebit",
+      "financing_cf",
+      "investing_cf",
+      "net_debt",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt"
+    ],
+    "row_ids": {
+      "revenue": "AQ064",
+      "ebit": "AQ065",
+      "np_attributable": "AQ066",
+      "operating_cf": "AQ067",
+      "investing_cf": "AQ068",
+      "financing_cf": "AQ069",
+      "capex": "AQ070",
+      "cash_end": "AQ071",
+      "net_debt": "AQ072",
+      "shares_outstanding": "AQ073"
+    }
+  },
   "_notes": {
     "revenue": "p4 P&L: 'Revenue' = 37,135. Note: Appendix 4D Key Information also confirms 37,135.",
     "ebit": "p12 segment note 5.1: 'EBIT' = 962 (consolidated). Also derivable from P&L: 'Earnings before interest and tax' = 962.",
@@ -40,6 +72,6 @@
     "ebit": 0.02
   },
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.8
   }
 }

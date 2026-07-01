@@ -1800,7 +1800,7 @@ def _expectations_for_payload(
     financial_engine_root: Path,
 ) -> list[CoverageExpectation]:
     document_id = str(payload.get("document_id") or path.stem)
-    source_status = classify_fixture_source_status(payload)
+    fixture_source_status = classify_fixture_source_status(payload)
     source_pdf_exists = _source_pdf_exists(payload, financial_engine_root)
     fixture_name = path.name
 
@@ -1834,6 +1834,11 @@ def _expectations_for_payload(
 
         canonical_field = METRIC_NAME_MAP.get(raw_metric)
         expected_value = _coerce_metric_value(raw_metrics.get(raw_metric), path)
+        source_status = _metric_source_status(
+            payload,
+            raw_metric,
+            fallback_status=fixture_source_status,
+        )
         expectation_type = (
             "expected_null"
             if raw_metric in expected_nulls or expected_value is None
@@ -1900,6 +1905,47 @@ def classify_fixture_source_status(
     return FixtureEvidenceStatus.CANDIDATE_REVIEW_REQUIRED
 
 
+def _metric_source_status(
+    payload: Mapping[str, Any],
+    metric: str,
+    *,
+    fallback_status: FixtureEvidenceStatus,
+) -> FixtureEvidenceStatus:
+    """Return optional per-metric source status before fixture-level fallback."""
+
+    if _metric_in_source_review(payload, "data_missing_metrics", metric):
+        return FixtureEvidenceStatus.MISSING_SOURCE_EVIDENCE
+    if _metric_in_source_review(payload, "still_ambiguous_metrics", metric):
+        return FixtureEvidenceStatus.CANDIDATE_REVIEW_REQUIRED
+    if _metric_in_source_review(payload, "confirmed_metrics", metric):
+        return FixtureEvidenceStatus.CONFIRMED_SOURCE_EVIDENCED
+
+    return fallback_status
+
+
+def _metric_in_source_review(
+    payload: Mapping[str, Any],
+    key: str,
+    metric: str,
+) -> bool:
+    source_review = payload.get("source_review")
+    if not isinstance(source_review, Mapping):
+        return False
+
+    raw_values = source_review.get(key)
+    if raw_values is None:
+        return False
+    if not isinstance(raw_values, list) or not all(
+        isinstance(value, str) for value in raw_values
+    ):
+        raise ValueError(f"source_review.{key} must be a string list")
+
+    normalised_metric = _normalise_metric_name(metric)
+    return normalised_metric in {
+        _normalise_metric_name(value) for value in raw_values
+    }
+
+
 def _source_pdf_exists(
     payload: Mapping[str, Any],
     financial_engine_root: Path,
@@ -1934,6 +1980,15 @@ def _metric_ambiguity(
     expected_value: float | None,
     payload: Mapping[str, Any],
 ) -> str | None:
+    if _metric_in_source_review(payload, "confirmed_metrics", metric):
+        return None
+    if _metric_in_source_review(
+        payload,
+        "source_bound_arithmetic_confirmed_metrics",
+        metric,
+    ):
+        return None
+
     notes = payload.get("notes", {})
     metric_note = ""
     if isinstance(notes, Mapping):

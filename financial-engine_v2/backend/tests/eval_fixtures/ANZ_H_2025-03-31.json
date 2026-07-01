@@ -1,7 +1,41 @@
 {
-  "_source": "Claude API verified from 2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf (ANZ, H, 2025-03-31). Currency=AUD, scale=millions. revenue: page 12, Condensed Consolidated Income Statement, 'Operating income'; ebit: page 12, Condensed Consolidated Income Statement, 'Profit before income tax'; np_attributable: page 12, Condensed Consolidated Income Statement, 'Profit attributable to shareholders of the Company'; operating_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) operating activities'; investing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) investing activities'; financing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) financing activities'; capex: page 15, Condensed Consolidated Cash Flow Statement, 'Net investments in other assets'; cash_end: page 14, Condensed Consolidated Balance Sheet, 'Cash and cash equivalents'; shares_outstanding: page 44, Note 13, 'The Company share capital comprises 3,003,366,782 fully paid shares'",
-  "_verification": "claude-api-sonnet",
-  "_verification_confidence": "lower — Claude API verified, not hand-verified from source PDF. Values should be hand-checked before trusting as regression gate.",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from 2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf (ANZ, H, 2025-03-31). Currency=AUD, scale=millions. revenue: page 12, Condensed Consolidated Income Statement, 'Operating income'; ebit: page 12, Condensed Consolidated Income Statement, 'Profit before income tax'; np_attributable: page 12, Condensed Consolidated Income Statement, 'Profit attributable to shareholders of the Company'; operating_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) operating activities'; investing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) investing activities'; financing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) financing activities'; capex: page 15, Condensed Consolidated Cash Flow Statement, 'Net investments in other assets'; cash_end: page 14, Condensed Consolidated Balance Sheet, 'Cash and cash equivalents'; shares_outstanding: page 44, Note 13, 'The Company share capital comprises 3,003,366,782 fully paid shares'",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "ebit",
+      "financing_cf",
+      "investing_cf",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [
+      "net_debt"
+    ],
+    "source_bound_arithmetic_confirmed_metrics": [],
+    "row_ids": {
+      "revenue": "AQ001",
+      "ebit": "AQ002",
+      "np_attributable": "AQ003",
+      "operating_cf": "AQ004",
+      "investing_cf": "AQ005",
+      "financing_cf": "AQ006",
+      "capex": "AQ007",
+      "cash_end": "AQ008",
+      "shares_outstanding": "AQ009",
+      "net_debt": "AQ010"
+    },
+    "data_missing_reasons": {
+      "net_debt": "Input row has expected_value null; ANZ fixture lists net_debt under expected_nulls, so there is no numeric target to source-confirm in this row contract."
+    }
+  },
   "ticker": "ANZ",
   "pdf_path": "data/asx/docs/ANZ/financial_performance/2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf",
   "document_id": "anz_20250331_h",

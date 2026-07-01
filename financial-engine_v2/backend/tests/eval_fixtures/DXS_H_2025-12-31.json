@@ -1,7 +1,21 @@
 {
   "_source": "Hand-verified from 2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf (DXS, H, 2025-12-31). Currency=AUD, scale=millions. revenue: page 12, Consolidated Statement of Comprehensive Income, 'Total revenue from ordinary activities' = 360.0; ebit: page 12, 'Profit for the period before tax' = 347.6; np_attributable: page 12, 'Profit for the period' = 348.5 (consolidated stapled entity; Appendix 4D uses this figure); operating_cf: page 16, 'Net cash inflow/(outflow) from operating activities' = 168.5; investing_cf: page 16, 'Net cash inflow/(outflow) from investing activities' = 83.9; financing_cf: page 16, 'Net cash inflow/(outflow) from financing activities' = (243.0); capex: page 16, 'Payments for property, plant and equipment' = (27.2) — NOTE: REIT-specific 'Payments for capital expenditure on investment properties' = (15.5) is also a valid capex line; cash_end: page 13, 'Cash and cash equivalents' = 74.7; net_debt: derived from interest bearing liabilities (782.8 + 3808.6 = 4591.4) - cash (74.7) = 4516.7; shares_outstanding: page 36, Note 14 Contributed equity, 'Closing balance' = 1,075,565,246 (stapled securities on issue)",
   "_verification": "hand-verified",
-  "_verification_confidence": "high — values hand-verified from audited interim report PDF pages 12, 13, 16, 36. KPMG reviewed.",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "net_debt"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt"
+    ],
+    "row_ids": {
+      "net_debt": "AQ031"
+    }
+  },
   "ticker": "DXS",
   "pdf_path": "data/asx/docs/DXS/financial_performance/2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf",
   "document_id": "dxs_20251231_h",
@@ -29,7 +43,7 @@
     "operating_cf": 0.01,
     "investing_cf": 0.01,
     "financing_cf": 0.01,
-    "capex": 0.10,
+    "capex": 0.1,
     "cash_end": 0.001,
     "net_debt": 0.02,
     "shares_outstanding": 0.0001
@@ -44,7 +58,7 @@
     "shares_outstanding": "Stapled securities on issue unchanged at 1,075,565,246 (Note 14). DXS is a stapled entity — each security comprises one unit in Dexus Property Trust + one unit in Dexus Operations Trust."
   },
   "config": {
-    "min_accuracy_overall": 0.70,
+    "min_accuracy_overall": 0.7,
     "_note": "First REIT fixture. Set lower threshold (0.70) to establish a baseline before optimizing prompts for property-sector terminology."
   }
 }

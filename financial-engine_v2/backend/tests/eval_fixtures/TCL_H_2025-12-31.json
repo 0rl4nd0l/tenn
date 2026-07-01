@@ -1,7 +1,44 @@
 {
-  "_source": "TCL Transurban Appendix 4D + Half-Year Interim Report. All values AUD millions applied.",
-  "_verification": "claude-opus",
-  "_verification_confidence": "medium — TCL is a stapled group (THL/THT/TIL); attribution is complex. Revenue and cash flows are clear.",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from TCL Transurban Appendix 4D + Half-Year Interim Report. All values AUD millions applied.",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "financing_cf",
+      "investing_cf",
+      "net_debt",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [
+      "ebit"
+    ],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt",
+      "shares_outstanding"
+    ],
+    "row_ids": {
+      "revenue": "AQ044",
+      "np_attributable": "AQ045",
+      "operating_cf": "AQ046",
+      "investing_cf": "AQ047",
+      "financing_cf": "AQ048",
+      "capex": "AQ049",
+      "cash_end": "AQ050",
+      "net_debt": "AQ051",
+      "shares_outstanding": "AQ052",
+      "ebit": "AQ053"
+    },
+    "data_missing_reasons": {
+      "ebit": "Input row has expected_value null; TCL fixture lists ebit under expected_nulls, so there is no numeric target to source-confirm in this row contract."
+    }
+  },
   "_notes": {
     "revenue": "p13 income stmt: 'Revenue' = 1,983.",
     "ebit": "No explicit EBIT row. Income stmt goes Revenue → Expenses → D&A → 'Profit/(loss) before income tax' = 352. No 'Operating profit' or 'EBIT' label exists. Set to null.",
@@ -32,12 +69,14 @@
     "net_debt": 19227000000,
     "shares_outstanding": 3115000000
   },
-  "expected_nulls": ["ebit"],
+  "expected_nulls": [
+    "ebit"
+  ],
   "tolerances": {
     "net_debt": 0.05,
     "shares_outstanding": 0.01
   },
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.8
   }
 }
