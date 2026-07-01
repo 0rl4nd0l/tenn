@@ -43,6 +43,7 @@ MAX_PROBE_TEXT_BYTES = 16000
 MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
+MARKDOWN_FENCE_RE = re.compile(r"^```[A-Za-z0-9_-]*\s*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
     r"|\.env(?:\.[A-Za-z0-9_-]+)?"
@@ -743,7 +744,10 @@ def parse_result_fields(text: str) -> dict[str, str]:
     current: str | None = None
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
-        match = FIELD_RE.match(line.strip())
+        stripped = line.strip()
+        if MARKDOWN_FENCE_RE.match(stripped):
+            continue
+        match = FIELD_RE.match(stripped)
         if match:
             field = match.group(1)
             if field not in REQUIRED_RESULT_FIELDS:
@@ -782,6 +786,47 @@ def _evidence_paths_are_present(value: str | None) -> bool:
     if not concrete:
         return False
     return any("/" in line or "." in Path(line).name for line in concrete)
+
+
+def _final_authority_boundary_statement(line: str) -> bool:
+    parent_authority_owner = re.search(r"\b(codex|parent|main[- ]agent|orchestrator)\b", line)
+    parent_boundary_word = re.search(
+        r"\b(own|owns|owned|remain|remains|responsible|review|must|should|cannot|not|no|evidence only)\b",
+        line,
+    )
+    if parent_authority_owner and parent_boundary_word:
+        return True
+
+    worker_authority_owner = re.search(r"\bworkers?\b", line)
+    worker_boundary_word = re.search(r"\b(cannot|not|no|evidence only)\b", line)
+    return bool(worker_authority_owner and worker_boundary_word)
+
+
+def _evidence_only_final_authority_claim(text: str) -> str | None:
+    terminal_claims = (
+        "approved to merge",
+        "ready to merge",
+        "merge now",
+        "ship it",
+        "no further review needed",
+        "codex can skip review",
+        "this is fixed",
+        "this is complete",
+    )
+    authority_claims = (
+        "final decision",
+        "final authority",
+        "authoritative decision",
+    )
+    for raw_line in text.splitlines():
+        line = raw_line.strip().lower()
+        for phrase in terminal_claims:
+            if phrase in line:
+                return phrase
+        for phrase in authority_claims:
+            if phrase in line and not _final_authority_boundary_statement(line):
+                return phrase
+    return None
 
 
 def validate_result_text(
@@ -843,29 +888,14 @@ def validate_result_text(
 
     effective_decision_limit = requested_decision_limit or reported_decision_limit
     if effective_decision_limit == "evidence_only":
-        lower = text.lower()
-        authority_phrases = (
-            "final decision",
-            "final authority",
-            "authoritative decision",
-            "approved to merge",
-            "ready to merge",
-            "merge now",
-            "ship it",
-            "no further review needed",
-            "codex can skip review",
-            "this is fixed",
-            "this is complete",
-        )
-        for phrase in authority_phrases:
-            if phrase in lower:
-                issues.append(
-                    {
-                        "field": "decision_limit",
-                        "message": f"evidence_only result claims final authority: {phrase}",
-                    }
-                )
-                break
+        authority_claim = _evidence_only_final_authority_claim(text)
+        if authority_claim:
+            issues.append(
+                {
+                    "field": "decision_limit",
+                    "message": f"evidence_only result claims final authority: {authority_claim}",
+                }
+            )
 
     return {"ok": not issues, "fields": fields, "issues": issues}
 

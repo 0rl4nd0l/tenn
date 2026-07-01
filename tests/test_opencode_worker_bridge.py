@@ -125,6 +125,16 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(result_with_stop_condition_hit("DATA_MISSING"))
         self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_fenced_worker_result(self) -> None:
+        result = bridge.validate_result_text("```markdown\n" + VALID_RESULT + "```\n")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["fields"]["stop_condition_hit"], "no")
+
+    def test_result_validation_rejects_invalid_stop_condition_inside_fence(self) -> None:
+        result = bridge.validate_result_text("```markdown\n" + result_with_stop_condition_hit("maybe") + "```\n")
+        self.assertFalse(result["ok"])
+        self.assertIn("stop_condition_hit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_ignores_following_stop_condition_impact_field(self) -> None:
         result = bridge.validate_result_text(VALID_RESULT + "stop_condition_impact: none\n")
         self.assertTrue(result["ok"])
@@ -150,6 +160,31 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
 
     def test_result_validation_rejects_final_authority_under_evidence_only(self) -> None:
         invalid = VALID_RESULT.replace("Codex review", "final decision: ready to merge")
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_accepts_parent_final_decision_boundary(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex parent session owns the final decision; worker output is evidence only.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_accepts_no_final_decisions_by_workers_boundary(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Bridge policy says evidence-only workers make no final decisions.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_rejects_worker_final_decision_claim(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "The worker should make the final decision for this lane.",
+        )
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})

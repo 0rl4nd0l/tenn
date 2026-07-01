@@ -150,6 +150,8 @@ DATA_MISSING
 ```
 
 The validator rejects final-authority claims in evidence-only mode, mismatched decision limits, invalid stop-condition values, and missing permission metadata.
+It tolerates one surrounding markdown fence around the whole worker result, but
+workers should still return the bare `WORKER_RESULT.md` body.
 
 ## How To Summarize Worker Outputs
 

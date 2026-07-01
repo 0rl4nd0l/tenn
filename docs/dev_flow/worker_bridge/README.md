@@ -69,6 +69,10 @@ claims such as merge approval or no-review-needed conclusions.
 impact when it is hit. The bridge validates `stop_condition_hit` as the required
 safety signal used by the orchestrator.
 
+Workers should return the bare result body. The validator tolerates one
+surrounding markdown fence around the whole result so a fenced response does not
+turn the final field into malformed content.
+
 Evidence-only runs also require verified permission-enforcement metadata in
 `WORKER_META.json`.
 
