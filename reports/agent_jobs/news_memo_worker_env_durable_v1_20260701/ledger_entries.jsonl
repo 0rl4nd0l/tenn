@@ -1,0 +1,3 @@
+{"job_id":"news_memo_worker_env_durable_v1_20260701","status":"claimed","at":"2026-07-01T20:11:06+10:00","note":"Live ledger mutation skipped because task card did not authorize registry mutation; recorded report-local entry."}
+{"job_id":"news_memo_worker_env_durable_v1_20260701","status":"implementation_started","at":"2026-07-01T20:11:06+10:00","note":"Durable nightly memo path and worker env fix started in isolated task worktree."}
+{"job_id":"news_memo_worker_env_durable_v1_20260701","status":"committed","at":"2026-07-01T20:23:45+10:00","commit":"see git log -1 --oneline","note":"Committed scoped durable memo env fix; live ledger mutation skipped."}

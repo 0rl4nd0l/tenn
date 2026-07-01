@@ -49,6 +49,12 @@ from news_pipeline.cli_common import (  # noqa: E402
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
 
 DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
+DEFAULT_NEWS_MEMO_LLM_URL = "http://127.0.0.1:8001"
+DEFAULT_NEWS_MEMO_LLM_MODEL = "model:qwen2.5-14b-instruct"
+NEWS_MEMO_LLM_URL_ENV = "NEWS_MEMO_LLM_URL"
+NEWS_MEMO_LLM_MODEL_ENV = "NEWS_MEMO_LLM_MODEL"
+LLAMACPP_URL_ENV = "LLAMACPP_URL"
+LLAMACPP_MODEL_ENV = "LLAMACPP_MODEL"
 EXCHANGE_TICKER_PATTERN = re.compile(
     r"\b(?:ASX|NYSE|NASDAQ|TSX|TSXV|TSE|LSE|AIM|OTCMKTS|OTC)\s*:\s*"
     r"([A-Z][A-Z0-9.\-]{0,12})\b",
@@ -339,6 +345,29 @@ def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
         return max(1, int(raw_value))
     except (TypeError, ValueError) as exc:
         raise ValueError("NEWS_MEMO_MAX_ARTICLE_CHARS must be a positive integer") from exc
+
+
+def resolve_news_memo_llm_url(value: str | None = None) -> str:
+    raw_value = (
+        str(value or "").strip()
+        or os.getenv(NEWS_MEMO_LLM_URL_ENV, "").strip()
+        or os.getenv(LLAMACPP_URL_ENV, "").strip()
+        or DEFAULT_NEWS_MEMO_LLM_URL
+    )
+    if raw_value.startswith("http://") or raw_value.startswith("https://"):
+        return raw_value
+    raise ValueError(
+        f"{NEWS_MEMO_LLM_URL_ENV} must be a http:// or https:// URL"
+    )
+
+
+def resolve_news_memo_llm_model(value: str | None = None) -> str:
+    return (
+        str(value or "").strip()
+        or os.getenv(NEWS_MEMO_LLM_MODEL_ENV, "").strip()
+        or os.getenv(LLAMACPP_MODEL_ENV, "").strip()
+        or DEFAULT_NEWS_MEMO_LLM_MODEL
+    )
 
 
 def _read_news_memo_source_ids(memos_path: str | Path | None = None) -> Dict[str, Any]:
@@ -1475,6 +1504,8 @@ def sync_news_to_qdrant(
     memo_wait_poll_interval_seconds: float = 2.0,
     memo_force_dispatch: bool = False,
     memo_max_article_chars: int | str | None = None,
+    memo_llm_url: str | None = None,
+    memo_llm_model: str | None = None,
     embed_model: str | None = None,
     ollama_url: str | None = None,
     write_model_marker: bool = True,
@@ -1755,6 +1786,8 @@ def sync_news_to_qdrant(
                 poll_interval_seconds=float(memo_wait_poll_interval_seconds),
                 force_dispatch=bool(memo_force_dispatch),
                 max_article_chars=memo_max_article_chars,
+                llm_url=memo_llm_url,
+                llm_model=memo_llm_model,
             )
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
@@ -1862,6 +1895,24 @@ def main() -> int:
         ),
     )
     ap.add_argument(
+        "--memo-llm-url",
+        default="",
+        help=(
+            "OpenAI-compatible llama.cpp URL sent with each memo task "
+            f"(default: {NEWS_MEMO_LLM_URL_ENV}, {LLAMACPP_URL_ENV}, then "
+            f"{DEFAULT_NEWS_MEMO_LLM_URL})"
+        ),
+    )
+    ap.add_argument(
+        "--memo-llm-model",
+        default="",
+        help=(
+            "Model name sent with each memo task "
+            f"(default: {NEWS_MEMO_LLM_MODEL_ENV}, {LLAMACPP_MODEL_ENV}, then "
+            f"{DEFAULT_NEWS_MEMO_LLM_MODEL})"
+        ),
+    )
+    ap.add_argument(
         "--wait-for-memos",
         action="store_true",
         help="Wait for dispatched news memo Celery tasks with a bounded timeout",
@@ -1925,6 +1976,11 @@ def main() -> int:
         memo_max_article_chars = resolve_news_memo_max_article_chars(args.memo_max_article_chars)
     except ValueError as exc:
         ap.error(str(exc))
+    try:
+        memo_llm_url = resolve_news_memo_llm_url(args.memo_llm_url)
+    except ValueError as exc:
+        ap.error(str(exc))
+    memo_llm_model = resolve_news_memo_llm_model(args.memo_llm_model)
     dispatch_memos = not bool(args.no_dispatch_memos)
     if bool(args.qdrant_only):
         dispatch_memos = False
@@ -1961,6 +2017,8 @@ def main() -> int:
             memo_wait_poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
             memo_force_dispatch=bool(args.force_dispatch_memos),
             memo_max_article_chars=memo_max_article_chars,
+            memo_llm_url=memo_llm_url,
+            memo_llm_model=memo_llm_model,
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}

@@ -1,0 +1,34 @@
+{
+  "status": "committed",
+  "job_id": "news_memo_worker_env_durable_v1_20260701",
+  "started_at": "2026-07-01T20:11:06+10:00",
+  "worktree": "/home/l4nd0/tenn-news-memo-worker-env-durable-v1-20260701",
+  "branch": "runtime/news-memo-worker-env-durable-v1-20260701",
+  "head": "see git log -1 --oneline",
+  "base_head": "1e5da485183bcce619f4c5c63e2f99aac7e5067f",
+  "guard": {
+    "final_decision": "pass",
+    "path_classification": "VALID_TASK_WORKTREE",
+    "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+    "stop_reimplementation": false
+  },
+  "runtime_proof_result": "DATA_MISSING",
+  "docs_impact": "DOCS_UPDATED",
+  "validation": {
+    "task_card_validate": "pass",
+    "nightly_static_unittest": "pass",
+    "focused_pytest_uv": "pass",
+    "bash_n": "pass",
+    "yaml_parse": "pass",
+    "compose_config_without_env_file_entries": "pass",
+    "git_diff_check": "pass",
+    "check_diff": "pass",
+    "check_report_artifacts": "pass",
+    "code_review": "pass_with_mount_alias_fix"
+  },
+  "notes": [
+    "Task card created before implementation edits.",
+    "Parked stale Redis queue remains untouched.",
+    "Commit hash is available from git log -1 --oneline."
+  ]
+}
