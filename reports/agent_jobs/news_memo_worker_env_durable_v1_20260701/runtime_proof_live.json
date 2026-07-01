@@ -1,0 +1,110 @@
+{
+  "captured_at": "2026-07-01T10:37:32.140423+00:00",
+  "delta": {
+    "memo_line_count": 1,
+    "memo_valid_json_lines": 1,
+    "sha_changed": true
+  },
+  "dispatch_summary": {
+    "dispatched": 1,
+    "llm_model": "model:qwen2.5-14b-instruct",
+    "llm_url": "http://127.0.0.1:8001",
+    "missing_after_dispatch": 0,
+    "persisted_after_dispatch": 1,
+    "persisted_before_dispatch": 0,
+    "status": "complete",
+    "task_ids_sample": [
+      "8f59329d-55d4-40d3-b736-0132f340fe46"
+    ],
+    "tasks_completed": 1,
+    "tasks_failed": 0,
+    "tasks_observed": 1,
+    "tasks_pending": 0,
+    "tasks_unobserved": 0
+  },
+  "exact_commands": [
+    "python scripts/backfill_missing_news_memos.py --db-path /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite --since-hours 0 --limit 1 --memo-diagnostics-path /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl --wait-for-memos --memo-wait-timeout-seconds 240 --memo-wait-poll-interval-seconds 2 --dispatch-batch-size 1 --memo-llm-url http://127.0.0.1:8001 --memo-llm-model model:qwen2.5-14b-instruct --summary-json reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/postfix_live_backfill_summary.json",
+    "queue/memo baseline capture scripts wrote queue_before.json, memo_before.json, queue_after.json, memo_after.json"
+  ],
+  "intended_output": "one current news memo row written through scripts/backfill_missing_news_memos.py to the durable NVMe research memory store",
+  "live_output_location": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+  "post_run": {
+    "llm_gpu_depth": 0,
+    "memo_latest_value": "2026-07-01T06:56:41Z",
+    "memo_sha256": "575ab19d726ac12e76f1b1654e5c4910151f70d7cf4ffa8f0282ad2c2fdf9499",
+    "memo_valid_json_lines": 412,
+    "parked_depths": [
+      {
+        "key": "llm_gpu:parked:news_memo_stale_queue_single_candidate_runtime_v1_20260701:20260701T1959",
+        "llen": 42
+      }
+    ],
+    "proof_source_present": true,
+    "proof_source_row": {
+      "claims": [
+        "Consumer staples sector slumped 2.2%",
+        "Healthcare sector rose 0.8%"
+      ],
+      "extraction_provenance": {
+        "component": "news_memo_extractor",
+        "llm_model": "model:qwen2.5-14b-instruct",
+        "llm_url": "http://127.0.0.1:8001",
+        "max_article_chars": 5000
+      },
+      "impact_magnitude": "moderate",
+      "key_events": [
+        "Coles Group (ASX:COL) tumbles more than 4%",
+        "Woolworths (ASX:WOW) dragged almost 2% lower",
+        "Healthcare continues to outperform as most sectors fall",
+        "Chinese lithium futures jumped more than 5%"
+      ],
+      "provider": "newspaper4k",
+      "published_at": "2026-07-01T06:46:35Z",
+      "risks": [
+        "Coles' proposed Greencross deal affecting consumer staples",
+        "Ongoing concerns about housing valuations and lofty share prices for financials"
+      ],
+      "sentiment": "bearish",
+      "source_id": "news:art_78563f510fe7a2e3c622a9ef",
+      "tickers": [
+        "COL",
+        "WOW",
+        "IMI"
+      ]
+    }
+  },
+  "pre_run": {
+    "llm_gpu_depth": 0,
+    "memo_latest_value": "2026-07-01T06:56:41Z",
+    "memo_sha256": "3bea3a55979ec5fbfff4dcf69be467041a631c8e80ac834cfd0746beca5cc519",
+    "memo_valid_json_lines": 411,
+    "parked_depths": [
+      {
+        "key": "llm_gpu:parked:news_memo_stale_queue_single_candidate_runtime_v1_20260701:20260701T1959",
+        "llen": 42
+      }
+    ],
+    "selector_persisted_before_for_selected_batch": 0
+  },
+  "proof_candidate": {
+    "candidate_tickers": [
+      "BCA",
+      "NXM",
+      "PPT",
+      "RML",
+      "RWC",
+      "TM1",
+      "WTM",
+      "WWI"
+    ],
+    "published_at": "2026-07-01T06:46:35Z",
+    "source_id": "news:art_78563f510fe7a2e3c622a9ef",
+    "text_len": 5844,
+    "title": "Closing Bell: International Joke Day ends with the ASX as the punchline",
+    "url": "https://stockhead.com.au/news/closing-bell-international-joke-day-ends-with-the-asx-as-the-punchline"
+  },
+  "proof_source_id": "news:art_78563f510fe7a2e3c622a9ef",
+  "readiness_gate_status": "WORKING for bounded post-fix single-candidate backfill smoke; full scheduled nightly automation still requires a scheduled-run proof",
+  "remaining_blocker": "none for bounded backfill smoke; scheduled nightly proof still needed before claiming full automation is working",
+  "result": "WORKING"
+}

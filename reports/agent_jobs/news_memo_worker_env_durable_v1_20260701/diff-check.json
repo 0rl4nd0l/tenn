@@ -1,44 +1,72 @@
 {
   "changed_files": [
     {
-      "path": "docs/architecture/09_worker_and_celery_contract.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/setup/environment.md",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/docker-compose.yml",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/scripts/nightly_news.sh",
-      "status": "M"
-    },
-    {
-      "path": "scripts/backfill_missing_news_memos.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/load_news_to_qdrant.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/test_backfill_missing_news_memos.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/test_load_news_qdrant_preflight.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/test_nightly_news_runtime_guard.py",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/news_memo_worker_env_durable_v1_20260701.md",
-      "status": "??"
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/candidate_preview.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/dispatch.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/ledger_entries.jsonl",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/llm_models.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_before.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/postfix_live_backfill_summary.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_before.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_functionality_proof.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_proof_live.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/worker.log",
+      "status": "A"
     }
   ],
   "disallowed_files": [],
@@ -65,6 +93,16 @@
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/VALIDATION.md",
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/CODE_REVIEW.md",
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_functionality_proof.md",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_before.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/queue_after.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_before.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/memo_after.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/llm_models.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/candidate_preview.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/worker.log",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/dispatch.log",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/postfix_live_backfill_summary.json",
+        "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/runtime_proof_live.json",
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/ledger_entries.jsonl",
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/status.json",
         "reports/agent_jobs/news_memo_worker_env_durable_v1_20260701/diff-check.json"
