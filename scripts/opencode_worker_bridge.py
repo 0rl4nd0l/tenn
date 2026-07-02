@@ -852,11 +852,13 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
     worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
+    trailing_worker_denial = re.compile(r"\s*,\s*(?:not|never)\s+workers?\s*$")
 
     def parent_boundary_is_safe(text: str) -> bool:
-        if parent_boundary_unsafe.search(text):
+        safety_text = trailing_worker_denial.sub("", text)
+        if parent_boundary_unsafe.search(safety_text):
             return False
-        return not (worker_id_unsafe and worker_id_unsafe.search(text))
+        return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
 
     if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0)):
         spans.append(parent_owns_authority.span())
