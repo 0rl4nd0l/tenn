@@ -901,8 +901,15 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         line,
     )
     worker_denial_unsafe = re.compile(
-        r"\b(?:(?:anything\s+)?less than|except|unless|alongside|i|me|my|mine|we|us|our|ours)\b"
+        r"\b(?:(?:anything\s+)?less than|apart\s+from|other\s+than|except|unless|alongside|"
+        r"i|me|my|mine|we|us|our|ours)\b"
     )
+
+    def worker_denial_is_safe(text: str) -> bool:
+        if worker_denial_unsafe.search(text):
+            return False
+        return not (worker_id_unsafe and worker_id_unsafe.search(text))
+
     authority_denied_to_workers = re.search(
         rf"\b(?:no|never)\b"
         rf"[^.\n;:]*?\b{authority_phrase}\b"
@@ -910,15 +917,15 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"[^.\n;:]*?\bworkers?\b[^.\n;:]*",
         line,
     )
-    if parent_denies_worker_authority and not worker_denial_unsafe.search(parent_denies_worker_authority.group(0)):
+    if parent_denies_worker_authority and worker_denial_is_safe(parent_denies_worker_authority.group(0)):
         spans.append(parent_denies_worker_authority.span())
-    if worker_not_allowed_authority and not worker_denial_unsafe.search(worker_not_allowed_authority.group(0)):
+    if worker_not_allowed_authority and worker_denial_is_safe(worker_not_allowed_authority.group(0)):
         spans.append(worker_not_allowed_authority.span())
-    if worker_denies_authority and not worker_denial_unsafe.search(worker_denies_authority.group(0)):
+    if worker_denies_authority and worker_denial_is_safe(worker_denies_authority.group(0)):
         spans.append(worker_denies_authority.span())
-    if worker_has_no_authority and not worker_denial_unsafe.search(worker_has_no_authority.group(0)):
+    if worker_has_no_authority and worker_denial_is_safe(worker_has_no_authority.group(0)):
         spans.append(worker_has_no_authority.span())
-    if authority_denied_to_workers and not worker_denial_unsafe.search(authority_denied_to_workers.group(0)):
+    if authority_denied_to_workers and worker_denial_is_safe(authority_denied_to_workers.group(0)):
         spans.append(authority_denied_to_workers.span())
     return spans
 

@@ -348,6 +348,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         for sentence in (
             "Workers have no final authority except me.",
             "Workers have no final authority unless I approve.",
+            "Workers have no final authority apart from scout-1.",
+            "Workers have no final authority other than scout-1.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
