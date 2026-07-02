@@ -5791,6 +5791,29 @@ def _apply_preferred_income_statement_source_payload(
         )
         return any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS)
 
+    def _existing_income_statement_metric_scale_conflicts(
+        metric_name: str,
+        preferred_scale: str,
+        table_scale: str,
+    ) -> bool:
+        if metric_name not in {"revenue", "ebit", "np_attributable"}:
+            return False
+        if table_scale == "unknown":
+            return False
+        normalized_preferred = str(preferred_scale or "").strip().lower()
+        if not normalized_preferred or normalized_preferred == "unknown":
+            return False
+        target_scale = str(scale or "").strip().lower()
+        if normalized_preferred != target_scale:
+            return False
+        existing_scale = str(metric_source_scales.get(metric_name) or "").strip().lower()
+        if not existing_scale or existing_scale == "unknown":
+            return False
+        if existing_scale == normalized_preferred:
+            return False
+        existing_provenance = str(provenance.get(metric_name) or "").strip().lower()
+        return existing_provenance.startswith("income_statement:")
+
     for table in _preferred_statement_tables(tables):
         if not _table_has_income_statement_source_rows(table):
             continue
@@ -5812,10 +5835,18 @@ def _apply_preferred_income_statement_source_payload(
             existing_is_rejected = _existing_income_statement_metric_is_rejected(
                 metric_name
             )
+            existing_scale_conflicts_with_preferred = (
+                _existing_income_statement_metric_scale_conflicts(
+                    metric_name,
+                    scale_for_table,
+                    table_scale,
+                )
+            )
             if metrics.get(metric_name) is not None and not (
                 existing_is_weak_wrapper
                 or existing_is_appendix_wrapper
                 or existing_is_rejected
+                or existing_scale_conflicts_with_preferred
             ):
                 continue
             metrics[metric_name] = recovered_value
