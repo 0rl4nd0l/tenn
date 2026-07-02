@@ -971,6 +971,7 @@ def validate_result_text(
     *,
     max_bytes: int = MAX_RESULT_BYTES,
     expected_decision_limit: str | None = None,
+    trusted_worker_id: str | None = None,
 ) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     encoded = text.encode("utf-8")
@@ -1003,6 +1004,16 @@ def validate_result_text(
 
     reported_decision_limit = (fields.get("decision_limit") or "").strip().lower()
     requested_decision_limit = (expected_decision_limit or "").strip().lower()
+    trusted_worker_id = (trusted_worker_id or "").strip()
+    if trusted_worker_id:
+        reported_worker_id = (fields.get("worker_id") or "").strip()
+        if reported_worker_id and reported_worker_id != trusted_worker_id:
+            issues.append(
+                {
+                    "field": "worker_id",
+                    "message": f"worker_id {reported_worker_id} does not match trusted worker_id {trusted_worker_id}",
+                }
+            )
     if requested_decision_limit:
         if requested_decision_limit not in DECISION_LIMITS:
             issues.append(
@@ -1025,7 +1036,10 @@ def validate_result_text(
 
     effective_decision_limit = requested_decision_limit or reported_decision_limit
     if effective_decision_limit == "evidence_only":
-        authority_claim = _evidence_only_final_authority_claim(text, worker_id=fields.get("worker_id"))
+        authority_claim = _evidence_only_final_authority_claim(
+            text,
+            worker_id=trusted_worker_id or fields.get("worker_id"),
+        )
         if authority_claim:
             issues.append(
                 {
@@ -1055,14 +1069,20 @@ def validate_result_file(path: Path, *, expected_decision_limit: str | None = No
                 meta_read_error = "WORKER_META.json must be a JSON object"
 
     requested_decision_limit = expected_decision_limit
+    trusted_worker_id = None
     if requested_decision_limit is None and meta is not None:
         meta_decision_limit = meta.get("decision_limit")
         if isinstance(meta_decision_limit, str) and meta_decision_limit.strip():
             requested_decision_limit = meta_decision_limit
+    if meta is not None:
+        meta_worker_id = meta.get("worker_id")
+        if isinstance(meta_worker_id, str) and meta_worker_id.strip():
+            trusted_worker_id = meta_worker_id.strip()
 
     result = validate_result_text(
         path.read_text(encoding="utf-8"),
         expected_decision_limit=requested_decision_limit,
+        trusted_worker_id=trusted_worker_id,
     )
     fields = result.get("fields", {})
     effective_decision_limit = (

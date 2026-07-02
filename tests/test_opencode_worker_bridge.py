@@ -492,6 +492,38 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("permission_enforcement", {issue["field"] for issue in result["issues"]})
 
+    def test_result_file_validation_uses_trusted_worker_id_for_authority_filtering(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker_dir = Path(tmp) / "job" / "scout-1"
+            worker_dir.mkdir(parents=True)
+            result_path = worker_dir / "WORKER_RESULT.md"
+            result_path.write_text(
+                VALID_RESULT.replace("worker_id: scout-1", "worker_id: other-worker").replace(
+                    "Codex still needs to review the result.",
+                    "Codex is responsible for reviewing scout-1's final decision.",
+                ),
+                encoding="utf-8",
+            )
+            (worker_dir / "WORKER_META.json").write_text(
+                json.dumps(
+                    {
+                        "worker_id": "scout-1",
+                        "decision_limit": "evidence_only",
+                        "permission_enforcement": {
+                            "profile": "readonly",
+                            "verified": True,
+                            "method": "OPENCODE_CONFIG_CONTENT",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = bridge.validate_result_file(result_path)
+        self.assertFalse(result["ok"])
+        issue_fields = {issue["field"] for issue in result["issues"]}
+        self.assertIn("worker_id", issue_fields)
+        self.assertIn("decision_limit", issue_fields)
+
     def test_generated_readonly_permission_config_denies_edit(self) -> None:
         config = bridge.build_readonly_opencode_config("evidence-scout")
         self.assertEqual(config["permission"]["edit"], "deny")
