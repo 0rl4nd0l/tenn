@@ -206,6 +206,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "This is not currently ready for merge because validation failed.",
             "This should not be considered ready for merge because validation failed.",
             "Do not mark this ready for merge because validation failed.",
+            "This should not be approved for merge because validation failed.",
+            "This should not be merge-approved because validation failed.",
         ):
             with self.subTest(sentence=sentence):
                 advisory = VALID_RESULT.replace(
@@ -366,6 +368,15 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 result = bridge.validate_result_text(invalid)
                 self.assertFalse(result["ok"])
                 self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_worker_denial_with_later_authority_claim(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "No final decisions are made by workers, final authority is elsewhere.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
     def test_result_validation_rejects_negated_parent_final_authority_boundary(self) -> None:
         invalid = VALID_RESULT.replace(

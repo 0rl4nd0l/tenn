@@ -911,6 +911,8 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     def worker_denial_is_safe(text: str) -> bool:
         if worker_denial_unsafe.search(text):
             return False
+        if len(re.findall(authority_phrase, text)) > 1:
+            return False
         return not (worker_id_unsafe and worker_id_unsafe.search(text))
 
     authority_denied_to_workers = re.search(
@@ -941,7 +943,7 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
     prefix = line[:claim_start].rstrip()
     return bool(
         re.search(
-            r"\b(?:not(?:\s+(?:yet|currently|be\s+considered|mark\s+this(?:\s+as)?))?|"
+            r"\b(?:not(?:\s+(?:yet|currently|be|be\s+considered|mark\s+this(?:\s+as)?))?|"
             r"no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
             prefix,
         )
