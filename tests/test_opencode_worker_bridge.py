@@ -130,6 +130,11 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["fields"]["stop_condition_hit"], "no")
 
+    def test_result_validation_accepts_spaced_fence_info_string(self) -> None:
+        result = bridge.validate_result_text("``` markdown\n" + VALID_RESULT + "```\n")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["fields"]["stop_condition_hit"], "no")
+
     def test_result_validation_accepts_longer_fenced_worker_result(self) -> None:
         result = bridge.validate_result_text("````markdown\n" + VALID_RESULT + "````\n")
         self.assertTrue(result["ok"])

@@ -43,7 +43,7 @@ MAX_PROBE_TEXT_BYTES = 16000
 MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
-MARKDOWN_FENCE_RE = re.compile(r"^`{3,}[A-Za-z0-9_-]*\s*$")
+MARKDOWN_FENCE_RE = re.compile(r"^`{3,}\s*[A-Za-z0-9_-]*\s*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
     r"|\.env(?:\.[A-Za-z0-9_-]+)?"
