@@ -203,6 +203,15 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_codex_reviewing_worker_final_decision(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex must review the worker's final decision before acting.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_rejects_worker_negation_that_still_claims_authority(self) -> None:
         invalid = VALID_RESULT.replace(
             "Codex still needs to review the result.",

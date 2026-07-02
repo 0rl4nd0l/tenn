@@ -794,7 +794,7 @@ def _final_authority_boundary_statement(line: str) -> bool:
     parent_owns_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"[^.\n;:]*\b(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|"
-        rf"must make|must own|must review|is responsible for)\b"
+        rf"must make|must own|is responsible for)\b"
         rf"[^.\n;:]*\b{authority_phrase}\b",
         line,
     )
