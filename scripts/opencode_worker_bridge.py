@@ -739,13 +739,32 @@ def failure_result(
     ).lstrip()
 
 
+def _strip_outer_markdown_fence(lines: list[str]) -> list[str]:
+    nonblank = [idx for idx, line in enumerate(lines) if line.strip()]
+    if len(nonblank) < 2:
+        return lines
+    first = nonblank[0]
+    last = nonblank[-1]
+    if MARKDOWN_FENCE_RE.match(lines[first].strip()) and MARKDOWN_FENCE_RE.match(lines[last].strip()):
+        return lines[:first] + lines[first + 1 : last] + lines[last + 1 :]
+    return lines
+
+
 def parse_result_fields(text: str) -> dict[str, str]:
     fields: dict[str, list[str]] = {}
     current: str | None = None
-    for raw_line in text.splitlines():
+    in_markdown_fence = False
+    for raw_line in _strip_outer_markdown_fence(text.splitlines()):
         line = raw_line.rstrip()
         stripped = line.strip()
         if MARKDOWN_FENCE_RE.match(stripped):
+            in_markdown_fence = not in_markdown_fence
+            if current:
+                fields[current].append(stripped)
+            continue
+        if in_markdown_fence:
+            if current and line.strip():
+                fields[current].append(line.strip())
             continue
         match = FIELD_RE.match(stripped)
         if match:

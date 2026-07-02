@@ -135,6 +135,16 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["fields"]["stop_condition_hit"], "no")
 
+    def test_result_validation_ignores_field_like_lines_inside_internal_fences(self) -> None:
+        invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
+        invalid = invalid.replace(
+            "- The script exists and is scoped to control-plane tooling.",
+            "- Example contract snippet:\n```markdown\nstop_condition_hit: no\n```",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("stop_condition_hit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_rejects_invalid_stop_condition_inside_fence(self) -> None:
         result = bridge.validate_result_text("```markdown\n" + result_with_stop_condition_hit("maybe") + "```\n")
         self.assertFalse(result["ok"])
