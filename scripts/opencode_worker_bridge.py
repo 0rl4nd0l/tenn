@@ -843,7 +843,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"\b{parent_authority_owner}\b"
         rf"\s*,\s*(?:not|never)\s+workers?\s*,\s*"
         rf"(?:is|has|remain|remains)\b"
-        rf"\s+(?:the\s+)?\b{authority_phrase}\b",
+        rf"\s+(?:the\s+)?\b{authority_phrase}\b(?P<trailing>[^.\n;:]*)",
         line,
     )
     parent_boundary_unsafe = re.compile(
@@ -864,7 +864,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         spans.append(parent_is_authority.span())
     if authority_remains_with_parent and parent_boundary_is_safe(authority_remains_with_parent.group(0)):
         spans.append(authority_remains_with_parent.span())
-    if parent_not_worker_appositive:
+    if parent_not_worker_appositive and parent_boundary_is_safe(parent_not_worker_appositive.group("trailing")):
         spans.append(parent_not_worker_appositive.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
@@ -906,9 +906,9 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"[^.\n;:]*?\bworkers?\b",
         line,
     )
-    if parent_denies_worker_authority:
+    if parent_denies_worker_authority and not worker_denial_unsafe.search(parent_denies_worker_authority.group(0)):
         spans.append(parent_denies_worker_authority.span())
-    if worker_not_allowed_authority:
+    if worker_not_allowed_authority and not worker_denial_unsafe.search(worker_not_allowed_authority.group(0)):
         spans.append(worker_not_allowed_authority.span())
     if worker_denies_authority and not worker_denial_unsafe.search(worker_denies_authority.group(0)):
         spans.append(worker_denies_authority.span())

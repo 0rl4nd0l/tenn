@@ -307,9 +307,20 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
     def test_result_validation_rejects_worker_should_not_have_less_than_authority(self) -> None:
+        for sentence in (
+            "Workers should not have less than final authority.",
+            "Workers are not allowed to have less than final authority.",
+        ):
+            with self.subTest(sentence=sentence):
+                invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_appositive_shared_authority_qualifier(self) -> None:
         invalid = VALID_RESULT.replace(
             "Codex still needs to review the result.",
-            "Workers should not have less than final authority.",
+            "Codex, not workers, has final authority alongside workers.",
         )
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
