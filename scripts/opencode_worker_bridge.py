@@ -830,7 +830,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"\b{parent_authority_owner}\b"
         rf"\s+(?:(?:still|explicitly)\s+)*"
         rf"(?:is|has|remain|remains)\b"
-        rf"\s+(?:the\s+)?\b{authority_phrase}\b[^.\n;:]*",
+        rf"\s+(?:the\s+)?(?:(?:sole|exclusive)\s+)?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     authority_remains_with_parent = re.search(

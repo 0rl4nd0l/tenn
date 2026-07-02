@@ -473,6 +473,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex is the final authority; worker output is evidence only.",
             "Codex has final authority; worker output is evidence only.",
             "Codex has the final authority; worker output is evidence only.",
+            "Codex has sole final authority; worker output is evidence only.",
+            "Codex has exclusive final authority; worker output is evidence only.",
+            "Codex is the sole final authority; worker output is evidence only.",
             "Codex has final authority, not workers.",
         ):
             with self.subTest(sentence=sentence):
