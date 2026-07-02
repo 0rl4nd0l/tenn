@@ -861,6 +861,9 @@ def _final_authority_boundary_statement(line: str) -> bool:
 def _evidence_only_final_authority_claim(text: str) -> str | None:
     terminal_claims = (
         "approved to merge",
+        "approved for merge",
+        "merge approved",
+        "ready for merge",
         "ready to merge",
         "merge now",
         "ship it",

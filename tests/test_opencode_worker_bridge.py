@@ -169,6 +169,17 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_merge_readiness_next_to_boundary(self) -> None:
+        for sentence in (
+            "Codex has final authority; this is ready for merge.",
+            "Codex has final authority; merge approved.",
+        ):
+            with self.subTest(sentence=sentence):
+                invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_accepts_parent_final_decision_boundary(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
