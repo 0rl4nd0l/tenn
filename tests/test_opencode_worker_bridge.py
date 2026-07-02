@@ -322,6 +322,18 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_worker_alias_final_decision_boundary(self) -> None:
+        for sentence in (
+            "Codex is responsible for reviewing OpenCode's final decision.",
+            "Codex is responsible for reviewing the model's final decision.",
+            "Codex is responsible for reviewing the agent's final decision.",
+        ):
+            with self.subTest(sentence=sentence):
+                invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_accepts_final_decision_remains_with_codex(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",

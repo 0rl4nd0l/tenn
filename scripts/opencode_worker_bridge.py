@@ -813,7 +813,8 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         line,
     )
     parent_boundary_unsafe = re.compile(
-        r"\b(?:workers?|i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
+        r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
+        r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
     if parent_owns_authority and not parent_boundary_unsafe.search(parent_owns_authority.group(0)):
