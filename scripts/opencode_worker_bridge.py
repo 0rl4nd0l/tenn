@@ -848,11 +848,12 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     parent_boundary_unsafe = re.compile(
         r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
-        r"(?:evidence\s+)?scouts?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|delegates?'?s?|subagents?'?s?|"
         r"apart\s+from|other\s+than|except|unless|but|however|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
+    leading_parent_boundary_unsafe = re.compile(r"\b(?:if|when|unless|after|once)\b[^.\n;:]*,\s*$")
     worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
     trailing_worker_denial = re.compile(r"\s*,\s*(?:not|never)\s+workers?\s*$")
     possessive_authority_owner = re.compile(
@@ -865,7 +866,10 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
 
-    def parent_boundary_is_safe(text: str) -> bool:
+    def parent_boundary_is_safe(text: str, *, start: int = 0) -> bool:
+        prefix = line[:start]
+        if prefix and (parent_boundary_unsafe.search(prefix) or leading_parent_boundary_unsafe.search(prefix)):
+            return False
         safety_text = trailing_worker_denial.sub("", text)
         if parent_boundary_unsafe.search(safety_text):
             return False
@@ -879,13 +883,17 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
                 return False
         return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
 
-    if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0)):
+    if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0), start=parent_owns_authority.start()):
         spans.append(parent_owns_authority.span())
-    if parent_is_authority and parent_boundary_is_safe(parent_is_authority.group(0)):
+    if parent_is_authority and parent_boundary_is_safe(parent_is_authority.group(0), start=parent_is_authority.start()):
         spans.append(parent_is_authority.span())
-    if authority_remains_with_parent and parent_boundary_is_safe(authority_remains_with_parent.group(0)):
+    if authority_remains_with_parent and parent_boundary_is_safe(
+        authority_remains_with_parent.group(0), start=authority_remains_with_parent.start()
+    ):
         spans.append(authority_remains_with_parent.span())
-    if parent_not_worker_appositive and parent_boundary_is_safe(parent_not_worker_appositive.group("trailing")):
+    if parent_not_worker_appositive and parent_boundary_is_safe(
+        parent_not_worker_appositive.group("trailing"), start=parent_not_worker_appositive.start()
+    ):
         spans.append(parent_not_worker_appositive.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"

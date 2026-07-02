@@ -456,6 +456,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex has final authority other than merge readiness.",
             "Codex has final authority and the delegate has final authority.",
             "Codex has final authority, and the subagent has final authority.",
+            "If I approve, Codex has final authority.",
+            "Once the worker approves, Codex has final authority.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
