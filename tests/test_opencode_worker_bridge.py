@@ -187,7 +187,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
     def test_result_validation_rejects_merge_readiness_next_to_boundary(self) -> None:
         for sentence in (
             "Codex has final authority; this is ready for merge.",
+            "Codex has final authority; this is ready-for-merge.",
             "Codex has final authority; merge approved.",
+            "Codex has final authority; this is merge-ready.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
