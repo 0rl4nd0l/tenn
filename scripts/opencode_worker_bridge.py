@@ -951,8 +951,11 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
 def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = None) -> str | None:
     terminal_claims = (
         "approved to merge",
+        "approved-to-merge",
         "approved for merge",
+        "approved-for-merge",
         "merge approved",
+        "merge-approved",
         "ready for merge",
         "ready-for-merge",
         "ready to merge",

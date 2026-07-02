@@ -189,6 +189,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex has final authority; this is ready for merge.",
             "Codex has final authority; this is ready-for-merge.",
             "Codex has final authority; merge approved.",
+            "Codex has final authority; merge-approved.",
+            "Codex has final authority; approved-to-merge.",
+            "Codex has final authority; approved-for-merge.",
             "Codex has final authority; this is merge-ready.",
         ):
             with self.subTest(sentence=sentence):
