@@ -1,0 +1,15 @@
+{
+  "captured_at": "2026-07-01T10:33:36.883277+00:00",
+  "exists": true,
+  "last_valid_row_id": "news:art_ffe96e73baccb32f600ec187",
+  "last_valid_row_title": null,
+  "latest_field": "published_at",
+  "latest_row_id": "news:art_06be4ffaaa411c36a2953907",
+  "latest_row_title": null,
+  "latest_value": "2026-07-01T06:56:41Z",
+  "line_count": 411,
+  "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+  "sha256": "3bea3a55979ec5fbfff4dcf69be467041a631c8e80ac834cfd0746beca5cc519",
+  "size_bytes": 392003,
+  "valid_json_lines": 411
+}

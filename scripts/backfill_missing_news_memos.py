@@ -21,6 +21,8 @@ from load_news_to_qdrant import (  # noqa: E402
     build_memo_coverage_diagnostics,
     build_news_projection_target,
     dispatch_news_memos,
+    resolve_news_memo_llm_model,
+    resolve_news_memo_llm_url,
     resolve_news_memo_max_article_chars,
     write_summary_json,
 )
@@ -220,6 +222,7 @@ def _dispatch_selected_articles(
     force_dispatch: bool,
     max_article_chars: int,
     dispatch_batch_size: int,
+    llm_url: str | None = None,
     llm_model: str | None = None,
 ) -> dict[str, Any]:
     if not selected_articles:
@@ -231,6 +234,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_url=llm_url,
             llm_model=llm_model,
         )
 
@@ -243,6 +247,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_url=llm_url,
             llm_model=llm_model,
         )
 
@@ -257,6 +262,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_url=llm_url,
             llm_model=llm_model,
         )
         batch_results.append(result)
@@ -320,6 +326,7 @@ def _dispatch_selected_articles(
         "wait_poll_interval_seconds": poll_interval_seconds,
         "force_dispatch": force_dispatch,
         "max_article_chars": max_article_chars,
+        "llm_url": str(llm_url or ""),
         "llm_model": str(llm_model or ""),
         "memos_path": str(batch_results[-1].get("memos_path") or "")
         if batch_results
@@ -342,6 +349,7 @@ def _dispatch_json_error_fallback(
     wait_timeout_seconds: float,
     poll_interval_seconds: float,
     max_article_chars: int,
+    llm_url: str | None = None,
     preflight_fn: Any | None = None,
 ) -> dict[str, Any]:
     model = str(fallback_model or "").strip()
@@ -409,6 +417,7 @@ def _dispatch_json_error_fallback(
         force_dispatch=False,
         max_article_chars=max_article_chars,
         dispatch_batch_size=1,
+        llm_url=llm_url,
         llm_model=model,
     )
     fallback_failures = _fallback_task_failures(result)
@@ -464,6 +473,22 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Maximum article characters sent to each memo task "
             "(default: NEWS_MEMO_MAX_ARTICLE_CHARS or 5000)"
+        ),
+    )
+    parser.add_argument(
+        "--memo-llm-url",
+        default="",
+        help=(
+            "OpenAI-compatible llama.cpp URL sent with each memo task "
+            "(default: NEWS_MEMO_LLM_URL, LLAMACPP_URL, then http://127.0.0.1:8001)"
+        ),
+    )
+    parser.add_argument(
+        "--memo-llm-model",
+        default="",
+        help=(
+            "Model name sent with each memo task "
+            "(default: NEWS_MEMO_LLM_MODEL, LLAMACPP_MODEL, then model:qwen2.5-14b-instruct)"
         ),
     )
     parser.add_argument(
@@ -529,6 +554,11 @@ def main(argv: list[str] | None = None) -> int:
         )
     except ValueError as exc:
         parser.error(str(exc))
+    try:
+        memo_llm_url = resolve_news_memo_llm_url(args.memo_llm_url)
+    except ValueError as exc:
+        parser.error(str(exc))
+    memo_llm_model = resolve_news_memo_llm_model(args.memo_llm_model)
     fallback_model = str(args.json_error_fallback_model or "").strip()
     fallback_model_source = "cli" if fallback_model else ""
     env_fallback_model = os.getenv(NEWS_JSON_ERROR_FALLBACK_MODEL_ENV, "").strip()
@@ -558,6 +588,8 @@ def main(argv: list[str] | None = None) -> int:
         force_dispatch=bool(args.force),
         max_article_chars=memo_max_article_chars,
         dispatch_batch_size=int(args.dispatch_batch_size),
+        llm_url=memo_llm_url,
+        llm_model=memo_llm_model,
     )
     fallback_result = _dispatch_json_error_fallback(
         selected_articles,
@@ -568,6 +600,7 @@ def main(argv: list[str] | None = None) -> int:
         wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
         poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
         max_article_chars=memo_max_article_chars,
+        llm_url=memo_llm_url,
     )
     coverage_after = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
     summary = {
@@ -578,6 +611,10 @@ def main(argv: list[str] | None = None) -> int:
         "selection": selection,
         "memo_extraction": memo_result,
         "json_error_fallback": fallback_result,
+        "memo_llm": {
+            "url": memo_llm_url,
+            "model": memo_llm_model,
+        },
         "json_error_fallback_config": {
             "env_var": NEWS_JSON_ERROR_FALLBACK_MODEL_ENV,
             "env_model_set": bool(env_fallback_model),

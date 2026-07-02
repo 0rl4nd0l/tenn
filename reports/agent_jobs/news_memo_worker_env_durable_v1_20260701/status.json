@@ -1,0 +1,53 @@
+{
+  "base_head": "1e5da485183bcce619f4c5c63e2f99aac7e5067f",
+  "branch": "runtime/news-memo-worker-env-durable-v1-20260701",
+  "docs_impact": "DOCS_UPDATED",
+  "guard": {
+    "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+    "final_decision": "pass",
+    "path_classification": "VALID_TASK_WORKTREE",
+    "stop_reimplementation": false
+  },
+  "head": "see git log -1 --oneline",
+  "job_id": "news_memo_worker_env_durable_v1_20260701",
+  "notes": [
+    "Task card created before implementation edits.",
+    "Parked stale Redis queue remains untouched.",
+    "Commit hash is available from git log -1 --oneline.",
+    "Post-fix bounded live memo dispatch proof passed; full scheduled nightly run remains separately unproven."
+  ],
+  "postfix_runtime_proof": {
+    "captured_at": "2026-07-01T10:37:32.140423+00:00",
+    "llm_gpu_depth_after": 0,
+    "llm_gpu_depth_before": 0,
+    "llm_model": "model:qwen2.5-14b-instruct",
+    "llm_url": "http://127.0.0.1:8001",
+    "memo_valid_json_lines_after": 412,
+    "memo_valid_json_lines_before": 411,
+    "parked_stale_queue_depth_after": 42,
+    "parked_stale_queue_depth_before": 42,
+    "result": "WORKING",
+    "source_id": "news:art_78563f510fe7a2e3c622a9ef",
+    "task_id": "8f59329d-55d4-40d3-b736-0132f340fe46"
+  },
+  "runtime_proof_result": "WORKING",
+  "runtime_proof_scope": "bounded post-fix single-candidate backfill smoke",
+  "scheduled_nightly_proof": "not_run",
+  "started_at": "2026-07-01T20:11:06+10:00",
+  "status": "committed_with_postfix_runtime_proof",
+  "validation": {
+    "bash_n": "pass",
+    "check_diff": "pass",
+    "check_report_artifacts": "pass",
+    "code_review": "pass_with_mount_alias_fix",
+    "compose_config_without_env_file_entries": "pass",
+    "focused_pytest_uv": "pass",
+    "git_diff_check": "pass",
+    "nightly_static_unittest": "pass",
+    "postfix_live_backfill_smoke": "pass",
+    "task_card_validate": "pass",
+    "worker_warm_shutdown": "pass",
+    "yaml_parse": "pass"
+  },
+  "worktree": "/home/l4nd0/tenn-news-memo-worker-env-durable-v1-20260701"
+}
