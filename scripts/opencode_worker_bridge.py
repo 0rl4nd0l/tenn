@@ -869,6 +869,8 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         safety_text = trailing_worker_denial.sub("", text)
         if parent_boundary_unsafe.search(safety_text):
             return False
+        if len(re.findall(authority_phrase, safety_text)) > 1:
+            return False
         for match in possessive_authority_owner.finditer(safety_text):
             if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
                 return False
