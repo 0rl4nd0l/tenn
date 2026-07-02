@@ -788,42 +788,51 @@ def _evidence_paths_are_present(value: str | None) -> bool:
     return any("/" in line or "." in Path(line).name for line in concrete)
 
 
-def _final_authority_boundary_statement(line: str) -> bool:
+def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
     parent_authority_owner = r"(?:codex|parent(?: session)?|main[- ]agent|orchestrator)"
     authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
+    spans: list[tuple[int, int]] = []
     parent_owns_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"\s+(?:(?:must|should|still|explicitly)\s+)*"
         rf"(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|is responsible for)\b"
-        rf"[^.\n;:]*\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b",
         line,
     )
     authority_remains_with_parent = re.search(
         rf"\b{authority_phrase}\b"
-        rf"[^.\n;:]*\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
-        rf"[^.\n;:]*\b{parent_authority_owner}\b",
+        rf"[^.\n;:]*?\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
+        rf"[^.\n;:]*?\b{parent_authority_owner}\b",
         line,
     )
     worker_mentioned = re.compile(r"\bworkers?\b")
     if parent_owns_authority and not worker_mentioned.search(parent_owns_authority.group(0)):
-        return True
+        spans.append(parent_owns_authority.span())
     if authority_remains_with_parent and not worker_mentioned.search(authority_remains_with_parent.group(0)):
-        return True
+        spans.append(authority_remains_with_parent.span())
 
     worker_denies_authority = re.search(
         rf"\bworkers?\b"
         rf"[^.\n;:]*\b(?:cannot|can not|must not|should not|do not|does not|don't|doesn't|never|no)\b"
-        rf"[^.\n;:]*\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b",
         line,
     )
     authority_denied_to_workers = re.search(
         rf"\b(?:no|never)\b"
-        rf"[^.\n;:]*\b{authority_phrase}\b"
-        rf"[^.\n;:]*\b(?:by|from|for)\b"
-        rf"[^.\n;:]*\bworkers?\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b"
+        rf"[^.\n;:]*?\b(?:by|from|for)\b"
+        rf"[^.\n;:]*?\bworkers?\b",
         line,
     )
-    return bool(worker_denies_authority or authority_denied_to_workers)
+    if worker_denies_authority:
+        spans.append(worker_denies_authority.span())
+    if authority_denied_to_workers:
+        spans.append(authority_denied_to_workers.span())
+    return spans
+
+
+def _final_authority_boundary_statement(line: str) -> bool:
+    return bool(_final_authority_boundary_spans(line))
 
 
 def _evidence_only_final_authority_claim(text: str) -> str | None:
@@ -851,8 +860,14 @@ def _evidence_only_final_authority_claim(text: str) -> str | None:
             if phrase not in line:
                 continue
             for clause in re.split(r"[.;:,]", line):
-                if phrase in clause and not _final_authority_boundary_statement(clause.strip()):
-                    return phrase
+                stripped_clause = clause.strip()
+                safe_spans = _final_authority_boundary_spans(stripped_clause)
+                for match in re.finditer(re.escape(phrase), stripped_clause):
+                    in_safe_span = any(
+                        start <= match.start() and match.end() <= end for start, end in safe_spans
+                    )
+                    if not in_safe_span:
+                        return phrase
     return None
 
 
