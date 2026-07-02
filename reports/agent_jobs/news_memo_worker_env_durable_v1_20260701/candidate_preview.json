@@ -1,0 +1,88 @@
+{
+  "article_count": 348,
+  "captured_at": "2026-07-01T10:34:08.218087+00:00",
+  "db_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+  "memos_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+  "preview_limit": 5,
+  "selected_preview": [
+    {
+      "candidate_tickers": [
+        "BCA",
+        "NXM",
+        "PPT",
+        "RML",
+        "RWC",
+        "TM1",
+        "WTM",
+        "WWI"
+      ],
+      "published_at": "2026-07-01T06:46:35Z",
+      "source_id": "news:art_78563f510fe7a2e3c622a9ef",
+      "text_len": 5844,
+      "title": "Closing Bell: International Joke Day ends with the ASX as the punchline",
+      "url": "https://stockhead.com.au/news/closing-bell-international-joke-day-ends-with-the-asx-as-the-punchline"
+    },
+    {
+      "candidate_tickers": [
+        "ATT",
+        "FTI",
+        "MFG",
+        "ORI",
+        "RAU",
+        "SOR",
+        "VTX"
+      ],
+      "published_at": "2026-07-01T03:27:25Z",
+      "source_id": "news:art_815ddaf03df9d1f16935c488",
+      "text_len": 6880,
+      "title": "Lunch Wrap: ASX slips as Coles and Woolies head to the discount bin",
+      "url": "https://stockhead.com.au/news/lunch-wrap-asx-slips-as-coles-and-woolies-head-to-the-discount-bin"
+    },
+    {
+      "candidate_tickers": [
+        "CSL"
+      ],
+      "published_at": "2026-07-01T03:14:23Z",
+      "source_id": "news:art_c3fb93191e1f77602883ec56",
+      "text_len": 6326,
+      "title": "Health Check: Healthcare investors snare hot EOFY deals as the sector rebounds",
+      "url": "https://stockhead.com.au/health/health-check-healthcare-investors-snare-hot-eofy-deals-as-the-sector-rebounds"
+    },
+    {
+      "candidate_tickers": [
+        "ATT",
+        "BCA",
+        "GRL",
+        "NXM",
+        "RML",
+        "SOR",
+        "TM1",
+        "WTM",
+        "WWI"
+      ],
+      "published_at": "2026-07-01T01:13:10Z",
+      "source_id": "news:art_032e51ca47ef2531388c06bd",
+      "text_len": 4213,
+      "title": "Morning Feed: What's cooking on the ASX?",
+      "url": "https://stockhead.com.au/news/morning-feed-whats-cooking-on-the-asx-27"
+    },
+    {
+      "candidate_tickers": [],
+      "published_at": "2026-07-01T00:00:00Z",
+      "source_id": "news:art_a95f0908b299c2233e073089",
+      "text_len": 6524,
+      "title": "Bookshops offer much more than just retail \u2013 but who would open one in this economy?",
+      "url": "https://theguardian.com/books/2026/jul/01/bookshops-australia-industry-decline-economy"
+    }
+  ],
+  "selection": {
+    "eligible": 348,
+    "force": false,
+    "limit": 5,
+    "memos_file_exists": true,
+    "memos_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+    "persisted": 2,
+    "read_errors": 0,
+    "selected": 5
+  }
+}

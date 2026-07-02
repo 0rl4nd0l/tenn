@@ -63,6 +63,9 @@ The worker process must see the same logical configuration as the backend, becau
 | `QDRANT_URL`             | Qdrant base URL for embeddings/vector writes (e.g. `http://qdrant:6333` in Docker). |
 | `LLAMACPP_URL`           | Primary llama.cpp/OpenAI-compatible base URL for coding-model requests; used by default for embeddings and JSON generation. |
 | `OLLAMA_URL`             | Optional legacy Ollama API base kept for backward-compatible extraction or embedding paths; only necessary if `LLAMACPP_URL` is unavailable or you intentionally target Ollama. |
+| `TENN_RESEARCH_MEMORY_ROOT` | Durable host-visible root for research memory outputs such as `news_memos.jsonl` and `news_memo_skips.jsonl`. Nightly memo tasks should target the NVMe root when available, not a task worktree. |
+| `NEWS_MEMO_LLM_URL`      | OpenAI-compatible llama.cpp URL embedded into nightly/backfill news memo task payloads. Defaults through `LLAMACPP_URL` to `http://127.0.0.1:8001`. |
+| `NEWS_MEMO_LLM_MODEL`    | Model name embedded into nightly/backfill news memo task payloads. Defaults through `LLAMACPP_MODEL` to `model:qwen2.5-14b-instruct`. |
 | `DOCS_ROOT`              | Maps to `settings.docs_root`. Root directory for storing and resolving PDFs; must match backend so paths are consistent. In Docker, `/data/asx/docs`. When running the **standalone script** (e.g. `full_history_ticker_sync.py`) on the host, set to a writable path (e.g. `$(pwd)/data/asx/docs`) and `DATABASE_URL` to `postgresql+psycopg://fe:fe@localhost:5432/fe` so the script can connect and write PDFs. The `make backfill-asx20` target in `financial-engine_v2` sets these for you. |
 | `BACKFILL_CONCURRENCY`   | Max parallel documents per ticker when running sync backfill (script `--concurrency` or API/worker). Default 1 (sequential). 2–4 recommended for faster ingestion; HTTP and Qdrant clients are reused per run when concurrency is used. |
 | `CELERY_BROKER_URL`      | Redis URL for Celery broker (e.g. `redis://redis:6379/0`). The adaptive router also uses this broker URL for `LLEN` queue-depth probes when Redis is reachable. |
@@ -70,6 +73,11 @@ The worker process must see the same logical configuration as the backend, becau
 | `BACKEND_APP_ROOT`       | Optional; path to backend app root so worker can add it to `sys.path` and import `app.*` (Docker sets this to `/app_backend`). |
 
 Config uses the attribute `docs_root`; Pydantic Settings maps the env var `DOCS_ROOT` to it by default. Other backend settings (e.g. `QDRANT_COLLECTION`, `EMBED_MODEL`, `EXTRACT_MODEL`, feature flags) are also read from the environment when the worker imports `app`; ensure `.env` or the worker’s environment matches what the backend would use for the same run.
+
+When host-side scripts dispatch Celery memo tasks with absolute NVMe paths, the
+container worker must see the same path. The compose worker profiles mount the
+durable research-memory directory at the same host path inside the container so
+payload paths remain readable without widening source-PDF mounts.
 
 ## Verifying the worker is running correct code
 

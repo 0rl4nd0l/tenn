@@ -607,6 +607,61 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertEqual(payloads[0]["candidate_tickers"], ["ABC"])
         self.assertEqual(payloads[1]["candidate_tickers"], [])
 
+    def test_sync_news_to_qdrant_passes_memo_llm_config_to_dispatch(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "url": "",
+                "title": "T",
+                "provider": "rss",
+                "language": "en",
+                "published_at": "2026-03-01",
+                "tickers": ["BHP"],
+                "primary_ticker": "BHP",
+                "text": "BHP shares rally after market update.",
+            }
+        ]
+        client_mock = _make_qdrant_client_mock(
+            collection_exists=False,
+            existing_dim=3,
+            points_count=0,
+        )
+        captured: dict[str, object] = {}
+
+        def fake_dispatch(_articles, **kwargs):
+            captured.update(kwargs)
+            return {"status": "pending", "dispatched": 1}
+
+        with (
+            patch(
+                "load_news_to_qdrant.build_news_projection_target",
+                return_value=_news_projection_target_stub(articles),
+            ),
+            patch.object(mod, "dispatch_news_memos", side_effect=fake_dispatch),
+        ):
+            stats = mod.sync_news_to_qdrant(
+                db_path="/dev/null",
+                qdrant_url="http://localhost:6333",
+                collection="news_chunks",
+                qdrant_client=client_mock,
+                embed_texts_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+                ensure_collection_fn=lambda *_args, **_kwargs: None,
+                upsert_points_fn=lambda *_args, **_kwargs: None,
+                get_vector_config_fn=lambda *_args, **_kwargs: {},
+                memo_diagnostics_path="/tmp/news_memos.jsonl",
+                memo_llm_url="http://127.0.0.1:18001",
+                memo_llm_model="model:qwen3.5-35b-a3b-apex",
+                embed_model="nomic-embed-text",
+                ollama_url="http://127.0.0.1:11434",
+                write_model_marker=False,
+            )
+
+        self.assertEqual(stats["memo_extraction"]["status"], "pending")
+        self.assertEqual(captured["llm_url"], "http://127.0.0.1:18001")
+        self.assertEqual(captured["llm_model"], "model:qwen3.5-35b-a3b-apex")
+
     def test_dispatch_news_memos_payload_paths_are_absolute(self):
         import load_news_to_qdrant as mod
 
