@@ -902,6 +902,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     worker_denial_unsafe = re.compile(
         r"\b(?:(?:anything\s+)?less than|apart\s+from|other\s+than|except|unless|alongside|"
+        r"but|however|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
         r"i|me|my|mine|we|us|our|ours)\b"
     )
 

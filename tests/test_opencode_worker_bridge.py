@@ -350,6 +350,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Workers have no final authority unless I approve.",
             "Workers have no final authority apart from scout-1.",
             "Workers have no final authority other than scout-1.",
+            "Workers have no final authority, but the model has final authority.",
+            "Workers have no final authority, but OpenCode has final authority.",
+            "Workers have no final authority, but the agent has final authority.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
