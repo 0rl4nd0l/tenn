@@ -793,8 +793,8 @@ def _final_authority_boundary_statement(line: str) -> bool:
     authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
     parent_owns_authority = re.search(
         rf"\b{parent_authority_owner}\b"
-        rf"[^.\n;:]*\b(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|"
-        rf"must make|must own|is responsible for)\b"
+        rf"\s+(?:(?:must|should|still|explicitly)\s+)*"
+        rf"(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|is responsible for)\b"
         rf"[^.\n;:]*\b{authority_phrase}\b",
         line,
     )
@@ -804,7 +804,10 @@ def _final_authority_boundary_statement(line: str) -> bool:
         rf"[^.\n;:]*\b{parent_authority_owner}\b",
         line,
     )
-    if parent_owns_authority or authority_remains_with_parent:
+    worker_mentioned = re.compile(r"\bworkers?\b")
+    if parent_owns_authority and not worker_mentioned.search(parent_owns_authority.group(0)):
+        return True
+    if authority_remains_with_parent and not worker_mentioned.search(authority_remains_with_parent.group(0)):
         return True
 
     worker_denies_authority = re.search(

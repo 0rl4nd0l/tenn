@@ -212,6 +212,24 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_worker_final_decision_after_codex_mention(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex should accept that the worker makes the final decision for this lane.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_self_final_decision_after_codex_mention(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex should accept that I make the final decision for this lane.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_rejects_worker_negation_that_still_claims_authority(self) -> None:
         invalid = VALID_RESULT.replace(
             "Codex still needs to review the result.",
@@ -225,6 +243,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
             "The final decision remains with Codex; worker output is evidence only.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_accepts_codex_must_make_final_decision_boundary(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex must make the final decision; worker output is evidence only.",
         )
         result = bridge.validate_result_text(advisory)
         self.assertTrue(result["ok"])
