@@ -839,6 +839,13 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"[^.\n;:]*?\b{parent_authority_owner}\b[^.\n;:]*",
         line,
     )
+    parent_not_worker_appositive = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"\s*,\s*(?:not|never)\s+workers?\s*,\s*"
+        rf"(?:is|has|remain|remains)\b"
+        rf"\s+(?:the\s+)?\b{authority_phrase}\b",
+        line,
+    )
     parent_boundary_unsafe = re.compile(
         r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
@@ -857,6 +864,8 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         spans.append(parent_is_authority.span())
     if authority_remains_with_parent and parent_boundary_is_safe(authority_remains_with_parent.group(0)):
         spans.append(authority_remains_with_parent.span())
+    if parent_not_worker_appositive:
+        spans.append(parent_not_worker_appositive.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
     parent_denies_worker_authority = re.search(
@@ -941,7 +950,7 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
         for phrase in authority_claims:
             if phrase not in line:
                 continue
-            for clause in re.split(r"[.;:,]", line):
+            for clause in re.split(r"[.;:]", line):
                 stripped_clause = clause.strip()
                 safe_spans = _final_authority_boundary_spans(stripped_clause, worker_id=worker_id)
                 for match in re.finditer(re.escape(phrase), stripped_clause):

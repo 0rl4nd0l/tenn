@@ -403,6 +403,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 result = bridge.validate_result_text(advisory)
                 self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_codex_not_workers_final_authority_boundary(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex, not workers, has final authority.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
     def test_result_validation_accepts_no_final_decision_by_workers_boundary(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
