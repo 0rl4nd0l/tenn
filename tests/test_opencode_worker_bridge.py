@@ -331,6 +331,17 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_exception_qualified_worker_denial(self) -> None:
+        for sentence in (
+            "Workers have no final authority except me.",
+            "Workers have no final authority unless I approve.",
+        ):
+            with self.subTest(sentence=sentence):
+                invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_rejects_negated_parent_final_authority_boundary(self) -> None:
         invalid = VALID_RESULT.replace(
             "Codex still needs to review the result.",

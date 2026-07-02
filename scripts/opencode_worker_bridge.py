@@ -876,36 +876,38 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"\s+allow(?:s|ed)?\b"
         rf"[^.\n;:]*?\bworkers?\b"
         rf"[^.\n;:]*?\b{authority_action}\b"
-        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     worker_not_allowed_authority = re.search(
         rf"\bworkers?\b"
         rf"[^.\n;:]*?\b(?:are|is|be)\b"
         rf"\s+(?:not|never)\s+allowed\s+to\s+{authority_action}\b"
-        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     worker_denies_authority = re.search(
         rf"\bworkers?\b"
         rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
         rf"\s+{authority_action}\b"
-        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     worker_has_no_authority = re.search(
         rf"\bworkers?\b"
         rf"[^.\n;:]*\b{authority_action}\b"
         rf"[^.\n;:]*?\bno\b"
-        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
-    worker_denial_unsafe = re.compile(r"\b(?:anything\s+)?less than\b")
+    worker_denial_unsafe = re.compile(
+        r"\b(?:(?:anything\s+)?less than|except|unless|alongside|i|me|my|mine|we|us|our|ours)\b"
+    )
     authority_denied_to_workers = re.search(
         rf"\b(?:no|never)\b"
         rf"[^.\n;:]*?\b{authority_phrase}\b"
         rf"[^.\n;:]*?\b(?:by|from|for)\b"
-        rf"[^.\n;:]*?\bworkers?\b",
+        rf"[^.\n;:]*?\bworkers?\b[^.\n;:]*",
         line,
     )
     if parent_denies_worker_authority and not worker_denial_unsafe.search(parent_denies_worker_authority.group(0)):
@@ -916,7 +918,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         spans.append(worker_denies_authority.span())
     if worker_has_no_authority and not worker_denial_unsafe.search(worker_has_no_authority.group(0)):
         spans.append(worker_has_no_authority.span())
-    if authority_denied_to_workers:
+    if authority_denied_to_workers and not worker_denial_unsafe.search(authority_denied_to_workers.group(0)):
         spans.append(authority_denied_to_workers.span())
     return spans
 
