@@ -931,7 +931,7 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
     prefix = line[:claim_start].rstrip()
     return bool(
         re.search(
-            r"\b(?:not(?:\s+yet)?|no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
+            r"\b(?:not(?:\s+(?:yet|currently))?|no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
             prefix,
         )
     )
