@@ -848,8 +848,11 @@ def _evidence_only_final_authority_claim(text: str) -> str | None:
             if phrase in line:
                 return phrase
         for phrase in authority_claims:
-            if phrase in line and not _final_authority_boundary_statement(line):
-                return phrase
+            if phrase not in line:
+                continue
+            for clause in re.split(r"[.;:,]", line):
+                if phrase in clause and not _final_authority_boundary_statement(clause.strip()):
+                    return phrase
     return None
 
 
