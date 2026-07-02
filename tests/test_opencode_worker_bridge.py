@@ -218,12 +218,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 self.assertTrue(result["ok"])
 
     def test_result_validation_accepts_parent_final_decision_boundary(self) -> None:
-        advisory = VALID_RESULT.replace(
-            "Codex still needs to review the result.",
+        for sentence in (
             "Codex parent session owns the final decision; worker output is evidence only.",
-        )
-        result = bridge.validate_result_text(advisory)
-        self.assertTrue(result["ok"])
+            "The parent agent owns the final decision; worker output is evidence only.",
+        ):
+            with self.subTest(sentence=sentence):
+                advisory = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(advisory)
+                self.assertTrue(result["ok"])
 
     def test_result_validation_accepts_no_final_decisions_by_workers_boundary(self) -> None:
         advisory = VALID_RESULT.replace(
@@ -412,6 +414,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex is responsible for reviewing the agent's final decision.",
             "Codex is responsible for reviewing the scout's final decision.",
             "Codex is responsible for reviewing the evidence scout's final decision.",
+            "Codex is responsible for reviewing the delegate's final decision.",
+            "Codex is responsible for reviewing the subagent's final decision.",
+            "Codex is responsible for reviewing an external reviewer's final decision.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)

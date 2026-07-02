@@ -816,7 +816,7 @@ def _worker_id_unsafe_owner_re(worker_id: str | None) -> re.Pattern[str] | None:
 
 
 def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) -> list[tuple[int, int]]:
-    parent_authority_owner = r"(?:codex|parent(?: session)?|main[- ]agent|orchestrator)"
+    parent_authority_owner = r"(?:codex|parent(?: session| agent)?|main[- ]agent|orchestrator)"
     authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
     spans: list[tuple[int, int]] = []
     parent_owns_authority = re.search(
@@ -847,18 +847,26 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         line,
     )
     parent_boundary_unsafe = re.compile(
-        r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
+        r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
         r"(?:evidence\s+)?scouts?'?s?|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
     worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
     trailing_worker_denial = re.compile(r"\s*,\s*(?:not|never)\s+workers?\s*$")
+    possessive_authority_owner = re.compile(
+        rf"\b(?:(?:the|a|an)\s+)?(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){{0,2}})'s"
+        rf"\s+{authority_phrase}\b"
+    )
+    safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
 
     def parent_boundary_is_safe(text: str) -> bool:
         safety_text = trailing_worker_denial.sub("", text)
         if parent_boundary_unsafe.search(safety_text):
             return False
+        for match in possessive_authority_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
         return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
 
     if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0)):
@@ -903,7 +911,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     worker_denial_unsafe = re.compile(
         r"\b(?:(?:anything\s+)?less than|apart\s+from|other\s+than|except|unless|alongside|"
-        r"but|however|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
+        r"but|however|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
         r"(?:evidence\s+)?scouts?'?s?|"
         r"i|me|my|mine|we|us|our|ours)\b"
     )
