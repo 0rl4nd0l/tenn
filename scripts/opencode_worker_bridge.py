@@ -927,6 +927,16 @@ def _final_authority_boundary_statement(line: str) -> bool:
     return bool(_final_authority_boundary_spans(line))
 
 
+def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
+    prefix = line[:claim_start].rstrip()
+    return bool(
+        re.search(
+            r"\b(?:not(?:\s+yet)?|no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
+            prefix,
+        )
+    )
+
+
 def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = None) -> str | None:
     terminal_claims = (
         "approved to merge",
@@ -949,7 +959,7 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
     for raw_line in text.splitlines():
         line = raw_line.strip().lower()
         for phrase in terminal_claims:
-            if phrase in line:
+            if any(not _terminal_claim_is_negated(line, match.start()) for match in re.finditer(re.escape(phrase), line)):
                 return phrase
         for phrase in authority_claims:
             if phrase not in line:

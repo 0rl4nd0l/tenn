@@ -195,6 +195,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 self.assertFalse(result["ok"])
                 self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_accepts_negated_merge_readiness_report(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "- The script exists and is scoped to control-plane tooling.",
+            "- This is not ready for merge because validation failed.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
     def test_result_validation_accepts_parent_final_decision_boundary(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
