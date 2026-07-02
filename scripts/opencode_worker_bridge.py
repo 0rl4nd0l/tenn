@@ -812,12 +812,15 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"[^.\n;:]*?\b{parent_authority_owner}\b",
         line,
     )
-    worker_mentioned = re.compile(r"\bworkers?\b")
-    if parent_owns_authority and not worker_mentioned.search(parent_owns_authority.group(0)):
+    parent_boundary_unsafe = re.compile(
+        r"\b(?:workers?|i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
+        r"do not|does not|don't|doesn't|must not|should not)\b"
+    )
+    if parent_owns_authority and not parent_boundary_unsafe.search(parent_owns_authority.group(0)):
         spans.append(parent_owns_authority.span())
-    if parent_is_authority and not worker_mentioned.search(parent_is_authority.group(0)):
+    if parent_is_authority and not parent_boundary_unsafe.search(parent_is_authority.group(0)):
         spans.append(parent_is_authority.span())
-    if authority_remains_with_parent and not worker_mentioned.search(authority_remains_with_parent.group(0)):
+    if authority_remains_with_parent and not parent_boundary_unsafe.search(authority_remains_with_parent.group(0)):
         spans.append(authority_remains_with_parent.span())
 
     worker_denies_authority = re.search(

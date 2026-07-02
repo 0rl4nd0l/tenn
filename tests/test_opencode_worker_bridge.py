@@ -266,6 +266,24 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_negated_parent_final_authority_boundary(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "The final authority does not remain with Codex.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_first_person_final_decision_boundary(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex is responsible for reviewing my final decision.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_accepts_final_decision_remains_with_codex(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
