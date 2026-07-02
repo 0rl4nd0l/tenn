@@ -43,7 +43,7 @@ MAX_PROBE_TEXT_BYTES = 16000
 MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
-MARKDOWN_FENCE_RE = re.compile(r"^```[A-Za-z0-9_-]*\s*$")
+MARKDOWN_FENCE_RE = re.compile(r"^`{3,}[A-Za-z0-9_-]*\s*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
     r"|\.env(?:\.[A-Za-z0-9_-]+)?"
@@ -789,16 +789,26 @@ def _evidence_paths_are_present(value: str | None) -> bool:
 
 
 def _final_authority_boundary_statement(line: str) -> bool:
-    parent_authority_owner = re.search(r"\b(codex|parent|main[- ]agent|orchestrator)\b", line)
-    parent_boundary_word = re.search(
-        r"\b(own|owns|owned|remain|remains|responsible|review|must|should|cannot|not|no|evidence only)\b",
+    parent_authority_owner = r"(?:codex|parent(?: session)?|main[- ]agent|orchestrator)"
+    authority_phrase = r"(?:final decision|final authority|authoritative decision)"
+    parent_owns_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"[^.\n;:]*\b(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|"
+        rf"must make|must own|must review|is responsible for)\b"
+        rf"[^.\n;:]*\b{authority_phrase}\b",
         line,
     )
-    if parent_authority_owner and parent_boundary_word:
+    authority_remains_with_parent = re.search(
+        rf"\b{authority_phrase}\b"
+        rf"[^.\n;:]*\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
+        rf"[^.\n;:]*\b{parent_authority_owner}\b",
+        line,
+    )
+    if parent_owns_authority or authority_remains_with_parent:
         return True
 
     worker_authority_owner = re.search(r"\bworkers?\b", line)
-    worker_boundary_word = re.search(r"\b(cannot|not|no|evidence only)\b", line)
+    worker_boundary_word = re.search(r"\b(cannot|not|no|never|evidence only)\b", line)
     return bool(worker_authority_owner and worker_boundary_word)
 
 

@@ -130,6 +130,11 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["fields"]["stop_condition_hit"], "no")
 
+    def test_result_validation_accepts_longer_fenced_worker_result(self) -> None:
+        result = bridge.validate_result_text("````markdown\n" + VALID_RESULT + "````\n")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["fields"]["stop_condition_hit"], "no")
+
     def test_result_validation_rejects_invalid_stop_condition_inside_fence(self) -> None:
         result = bridge.validate_result_text("```markdown\n" + result_with_stop_condition_hit("maybe") + "```\n")
         self.assertFalse(result["ok"])
@@ -188,6 +193,23 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_worker_authority_claim_with_codex_mention(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Codex should accept the worker's final decision for this lane.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_accepts_final_decision_remains_with_codex(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "The final decision remains with Codex; worker output is evidence only.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
 
     def test_requested_decision_limit_mismatch_rejects_result(self) -> None:
         invalid = VALID_RESULT.replace("decision_limit: evidence_only", "decision_limit: recommendation_only")
