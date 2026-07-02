@@ -799,6 +799,13 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"[^.\n;:]*?\b{authority_phrase}\b",
         line,
     )
+    parent_is_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"\s+(?:(?:still|explicitly)\s+)*"
+        rf"(?:is|remain|remains)\b"
+        rf"\s+(?:the\s+)?\b{authority_phrase}\b",
+        line,
+    )
     authority_remains_with_parent = re.search(
         rf"\b{authority_phrase}\b"
         rf"[^.\n;:]*?\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
@@ -808,6 +815,8 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
     worker_mentioned = re.compile(r"\bworkers?\b")
     if parent_owns_authority and not worker_mentioned.search(parent_owns_authority.group(0)):
         spans.append(parent_owns_authority.span())
+    if parent_is_authority and not worker_mentioned.search(parent_is_authority.group(0)):
+        spans.append(parent_is_authority.span())
     if authority_remains_with_parent and not worker_mentioned.search(authority_remains_with_parent.group(0)):
         spans.append(authority_remains_with_parent.span())
 

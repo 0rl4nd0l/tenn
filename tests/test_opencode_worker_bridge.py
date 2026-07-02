@@ -282,6 +282,17 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(advisory)
         self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_codex_is_final_authority_boundary(self) -> None:
+        for sentence in (
+            "Codex remains final authority; worker output is evidence only.",
+            "Codex is final authority; worker output is evidence only.",
+            "Codex is the final authority; worker output is evidence only.",
+        ):
+            with self.subTest(sentence=sentence):
+                advisory = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(advisory)
+                self.assertTrue(result["ok"])
+
     def test_result_validation_accepts_no_final_decision_by_workers_boundary(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
