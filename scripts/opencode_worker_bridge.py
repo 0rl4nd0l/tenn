@@ -796,20 +796,20 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"\b{parent_authority_owner}\b"
         rf"\s+(?:(?:must|should|still|explicitly)\s+)*"
         rf"(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|is responsible for)\b"
-        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     parent_is_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"\s+(?:(?:still|explicitly)\s+)*"
         rf"(?:is|has|remain|remains)\b"
-        rf"\s+(?:the\s+)?\b{authority_phrase}\b",
+        rf"\s+(?:the\s+)?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
     authority_remains_with_parent = re.search(
         rf"\b{authority_phrase}\b"
         rf"[^.\n;:]*?\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
-        rf"[^.\n;:]*?\b{parent_authority_owner}\b",
+        rf"[^.\n;:]*?\b{parent_authority_owner}\b[^.\n;:]*",
         line,
     )
     parent_boundary_unsafe = re.compile(
