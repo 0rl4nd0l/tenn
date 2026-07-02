@@ -802,7 +802,7 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
     parent_is_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"\s+(?:(?:still|explicitly)\s+)*"
-        rf"(?:is|remain|remains)\b"
+        rf"(?:is|has|remain|remains)\b"
         rf"\s+(?:the\s+)?\b{authority_phrase}\b",
         line,
     )

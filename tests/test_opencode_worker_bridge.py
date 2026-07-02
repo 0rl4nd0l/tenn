@@ -314,6 +314,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex remains final authority; worker output is evidence only.",
             "Codex is final authority; worker output is evidence only.",
             "Codex is the final authority; worker output is evidence only.",
+            "Codex has final authority; worker output is evidence only.",
+            "Codex has the final authority; worker output is evidence only.",
         ):
             with self.subTest(sentence=sentence):
                 advisory = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
