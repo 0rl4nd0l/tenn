@@ -199,6 +199,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         for sentence in (
             "This is not ready for merge because validation failed.",
             "This is not currently ready for merge because validation failed.",
+            "This should not be considered ready for merge because validation failed.",
+            "Do not mark this ready for merge because validation failed.",
         ):
             with self.subTest(sentence=sentence):
                 advisory = VALID_RESULT.replace(
@@ -392,6 +394,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex is responsible for reviewing OpenCode's final decision.",
             "Codex is responsible for reviewing the model's final decision.",
             "Codex is responsible for reviewing the agent's final decision.",
+            "Codex is responsible for reviewing the scout's final decision.",
+            "Codex is responsible for reviewing the evidence scout's final decision.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)

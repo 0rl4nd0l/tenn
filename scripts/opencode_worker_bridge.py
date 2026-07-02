@@ -848,6 +848,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     parent_boundary_unsafe = re.compile(
         r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
@@ -903,6 +904,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     worker_denial_unsafe = re.compile(
         r"\b(?:(?:anything\s+)?less than|apart\s+from|other\s+than|except|unless|alongside|"
         r"but|however|opencode|models?'?s?|(?<!main-)(?<!main )agents?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|"
         r"i|me|my|mine|we|us|our|ours)\b"
     )
 
@@ -939,7 +941,8 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
     prefix = line[:claim_start].rstrip()
     return bool(
         re.search(
-            r"\b(?:not(?:\s+(?:yet|currently))?|no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
+            r"\b(?:not(?:\s+(?:yet|currently|be\s+considered|mark\s+this(?:\s+as)?))?|"
+            r"no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
             prefix,
         )
     )
