@@ -4795,6 +4795,94 @@ def test_income_source_overlay_prefers_total_rows_in_full_statement():
     assert payload["row_refs"]["revenue"] == "Total revenue from ordinary activities"
 
 
+def test_income_source_overlay_replaces_conflicting_component_scale_rows():
+    """DXS component trust rows at $000 scale must yield to group $m rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    component_statement = DoclingTable(
+        page_number=51,
+        caption="Dexus Property Trust Statement of Comprehensive Income",
+        headers=["", "31 Dec 2025 $000", "31 Dec 2024 $000"],
+        rows=[
+            ["Total revenue from ordinary activities", "223,366", "231,177"],
+            ["(Loss)/profit for the period before tax", "(4,662)", "2,000"],
+            ["(Loss)/profit for the period", "(3,747)", "1,500"],
+        ],
+    )
+    group_statement = DoclingTable(
+        page_number=16,
+        caption="Dexus Consolidated Statement of Comprehensive Income",
+        headers=["", "Note", "31 Dec 2025 $m", "31 Dec 2024 $m"],
+        rows=[
+            ["Revenue from ordinary activities", "", "", ""],
+            ["Property revenue", "2", "150.0", "159.1"],
+            ["Development revenue", "", "14.9", "20.2"],
+            ["Management fees and other revenue", "3", "174.3", "242.3"],
+            ["Interest revenue", "", "20.8", "13.1"],
+            ["Total revenue from ordinary activities", "", "360.0", "434.7"],
+            ["Profit for the period before tax", "", "347.6", "27.4"],
+            ["Income tax benefit/(expense)", "5", "0.9", "(17.1)"],
+            ["Profit for the period", "", "348.5", "10.3"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 223_366_000,
+            "ebit": -4_662_000,
+            "np_attributable": -3_747_000,
+        },
+        "revenue": 223_366_000,
+        "ebit": -4_662_000,
+        "np_attributable": -3_747_000,
+        "row_refs": {
+            "revenue": "Total revenue from ordinary activities",
+            "ebit": "(Loss)/profit for the period before tax",
+            "np_attributable": "(Loss)/profit for the period",
+        },
+        "provenance": {
+            "revenue": "income_statement:page_51:Total revenue from ordinary activities",
+            "ebit": "income_statement:page_51:(Loss)/profit for the period before tax",
+            "np_attributable": "income_statement:page_51:(Loss)/profit for the period",
+        },
+        "metric_source_scales": {
+            "revenue": "thousands",
+            "ebit": "thousands",
+            "np_attributable": "thousands",
+        },
+        "metric_scale_sources": {
+            "revenue": "table",
+            "ebit": "table",
+            "np_attributable": "table",
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [component_statement, group_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 360_000_000
+    assert payload["metrics"]["ebit"] == 347_600_000
+    assert payload["metrics"]["np_attributable"] == 348_500_000
+    assert payload["metric_source_scales"]["revenue"] == "millions"
+    assert payload["metric_source_scales"]["ebit"] == "millions"
+    assert payload["metric_source_scales"]["np_attributable"] == "millions"
+    assert payload["provenance"]["revenue"].startswith("income_statement:page_16:")
+
+
 def test_income_source_overlay_rejects_financial_report_contents_page():
     """QBE-style contents pages must not turn note page numbers into revenue."""
     from app.services.docling_extract import DoclingTable
