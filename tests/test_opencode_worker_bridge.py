@@ -203,10 +203,27 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_worker_negation_that_still_claims_authority(self) -> None:
+        invalid = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "Workers are not evidence only; final authority is mine.",
+        )
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_accepts_final_decision_remains_with_codex(self) -> None:
         advisory = VALID_RESULT.replace(
             "Codex still needs to review the result.",
             "The final decision remains with Codex; worker output is evidence only.",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_accepts_no_final_decision_by_workers_boundary(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "Codex still needs to review the result.",
+            "No final decisions are made by evidence-only workers.",
         )
         result = bridge.validate_result_text(advisory)
         self.assertTrue(result["ok"])

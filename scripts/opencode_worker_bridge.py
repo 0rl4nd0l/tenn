@@ -790,7 +790,7 @@ def _evidence_paths_are_present(value: str | None) -> bool:
 
 def _final_authority_boundary_statement(line: str) -> bool:
     parent_authority_owner = r"(?:codex|parent(?: session)?|main[- ]agent|orchestrator)"
-    authority_phrase = r"(?:final decision|final authority|authoritative decision)"
+    authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
     parent_owns_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"[^.\n;:]*\b(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|"
@@ -807,9 +807,20 @@ def _final_authority_boundary_statement(line: str) -> bool:
     if parent_owns_authority or authority_remains_with_parent:
         return True
 
-    worker_authority_owner = re.search(r"\bworkers?\b", line)
-    worker_boundary_word = re.search(r"\b(cannot|not|no|never|evidence only)\b", line)
-    return bool(worker_authority_owner and worker_boundary_word)
+    worker_denies_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*\b(?:cannot|can not|must not|should not|do not|does not|don't|doesn't|never|no)\b"
+        rf"[^.\n;:]*\b{authority_phrase}\b",
+        line,
+    )
+    authority_denied_to_workers = re.search(
+        rf"\b(?:no|never)\b"
+        rf"[^.\n;:]*\b{authority_phrase}\b"
+        rf"[^.\n;:]*\b(?:by|from|for)\b"
+        rf"[^.\n;:]*\bworkers?\b",
+        line,
+    )
+    return bool(worker_denies_authority or authority_denied_to_workers)
 
 
 def _evidence_only_final_authority_claim(text: str) -> str | None:
