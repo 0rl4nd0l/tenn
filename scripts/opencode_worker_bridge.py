@@ -788,7 +788,15 @@ def _evidence_paths_are_present(value: str | None) -> bool:
     return any("/" in line or "." in Path(line).name for line in concrete)
 
 
-def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
+def _worker_id_unsafe_owner_re(worker_id: str | None) -> re.Pattern[str] | None:
+    normalized = (worker_id or "").strip().lower()
+    if not normalized or not WORKER_ID_RE.fullmatch(normalized):
+        return None
+    escaped = re.escape(normalized)
+    return re.compile(rf"(?<![A-Za-z0-9_.-]){escaped}(?:'s)?(?![A-Za-z0-9_.-])")
+
+
+def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) -> list[tuple[int, int]]:
     parent_authority_owner = r"(?:codex|parent(?: session)?|main[- ]agent|orchestrator)"
     authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
     spans: list[tuple[int, int]] = []
@@ -817,11 +825,18 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )
-    if parent_owns_authority and not parent_boundary_unsafe.search(parent_owns_authority.group(0)):
+    worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
+
+    def parent_boundary_is_safe(text: str) -> bool:
+        if parent_boundary_unsafe.search(text):
+            return False
+        return not (worker_id_unsafe and worker_id_unsafe.search(text))
+
+    if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0)):
         spans.append(parent_owns_authority.span())
-    if parent_is_authority and not parent_boundary_unsafe.search(parent_is_authority.group(0)):
+    if parent_is_authority and parent_boundary_is_safe(parent_is_authority.group(0)):
         spans.append(parent_is_authority.span())
-    if authority_remains_with_parent and not parent_boundary_unsafe.search(authority_remains_with_parent.group(0)):
+    if authority_remains_with_parent and parent_boundary_is_safe(authority_remains_with_parent.group(0)):
         spans.append(authority_remains_with_parent.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
@@ -880,7 +895,7 @@ def _final_authority_boundary_statement(line: str) -> bool:
     return bool(_final_authority_boundary_spans(line))
 
 
-def _evidence_only_final_authority_claim(text: str) -> str | None:
+def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = None) -> str | None:
     terminal_claims = (
         "approved to merge",
         "approved for merge",
@@ -909,7 +924,7 @@ def _evidence_only_final_authority_claim(text: str) -> str | None:
                 continue
             for clause in re.split(r"[.;:,]", line):
                 stripped_clause = clause.strip()
-                safe_spans = _final_authority_boundary_spans(stripped_clause)
+                safe_spans = _final_authority_boundary_spans(stripped_clause, worker_id=worker_id)
                 for match in re.finditer(re.escape(phrase), stripped_clause):
                     in_safe_span = any(
                         start <= match.start() and match.end() <= end for start, end in safe_spans
@@ -978,7 +993,7 @@ def validate_result_text(
 
     effective_decision_limit = requested_decision_limit or reported_decision_limit
     if effective_decision_limit == "evidence_only":
-        authority_claim = _evidence_only_final_authority_claim(text)
+        authority_claim = _evidence_only_final_authority_claim(text, worker_id=fields.get("worker_id"))
         if authority_claim:
             issues.append(
                 {
