@@ -825,6 +825,22 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         spans.append(authority_remains_with_parent.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
+    parent_denies_worker_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
+        rf"\s+allow(?:s|ed)?\b"
+        rf"[^.\n;:]*?\bworkers?\b"
+        rf"[^.\n;:]*?\b{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        line,
+    )
+    worker_not_allowed_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*?\b(?:are|is|be)\b"
+        rf"\s+(?:not|never)\s+allowed\s+to\s+{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b",
+        line,
+    )
     worker_denies_authority = re.search(
         rf"\bworkers?\b"
         rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
@@ -847,6 +863,10 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"[^.\n;:]*?\bworkers?\b",
         line,
     )
+    if parent_denies_worker_authority:
+        spans.append(parent_denies_worker_authority.span())
+    if worker_not_allowed_authority:
+        spans.append(worker_not_allowed_authority.span())
     if worker_denies_authority and not worker_denial_unsafe.search(worker_denies_authority.group(0)):
         spans.append(worker_denies_authority.span())
     if worker_has_no_authority and not worker_denial_unsafe.search(worker_has_no_authority.group(0)):

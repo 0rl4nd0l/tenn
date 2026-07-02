@@ -196,6 +196,16 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(advisory)
         self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_parent_denies_worker_final_decisions(self) -> None:
+        for sentence in (
+            "Codex does not allow workers to make final decisions.",
+            "Workers are not allowed to make final decisions.",
+        ):
+            with self.subTest(sentence=sentence):
+                advisory = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(advisory)
+                self.assertTrue(result["ok"])
+
     def test_result_validation_rejects_worker_final_decision_claim(self) -> None:
         invalid = VALID_RESULT.replace(
             "Codex still needs to review the result.",
