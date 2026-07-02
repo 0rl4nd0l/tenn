@@ -165,6 +165,17 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("evidence_paths", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_accepts_terminal_claim_phrases_inside_evidence_paths(self) -> None:
+        for path in (
+            "docs/dev_flow/merge-ready-checklist.md",
+            "docs/dev_flow/ready-for-merge.md",
+            "reports/agent_jobs/approved-to-merge.txt",
+        ):
+            with self.subTest(path=path):
+                advisory = VALID_RESULT.replace("- scripts/opencode_worker_bridge.py", f"- {path}")
+                result = bridge.validate_result_text(advisory)
+                self.assertTrue(result["ok"])
+
     def test_result_validation_rejects_missing_stop_condition_hit(self) -> None:
         invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
         result = bridge.validate_result_text(invalid)

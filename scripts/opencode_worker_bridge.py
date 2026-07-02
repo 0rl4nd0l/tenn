@@ -968,6 +968,28 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
     )
 
 
+def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
+    token_boundary = re.compile(r"[A-Za-z0-9_-]")
+    path_token = re.compile(r"[A-Za-z0-9._~+/-]")
+    for match in re.finditer(re.escape(phrase), line):
+        start, end = match.span()
+        if start > 0 and token_boundary.fullmatch(line[start - 1]):
+            continue
+        if end < len(line) and token_boundary.fullmatch(line[end]):
+            continue
+
+        token_start = start
+        while token_start > 0 and path_token.fullmatch(line[token_start - 1]):
+            token_start -= 1
+        token_end = end
+        while token_end < len(line) and path_token.fullmatch(line[token_end]):
+            token_end += 1
+        token = line[token_start:token_end].rstrip(".,;:)")
+        if "/" in token or re.search(r"\.[a-z0-9]{1,8}$", token):
+            continue
+        yield match
+
+
 def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = None) -> str | None:
     terminal_claims = (
         "approved to merge",
@@ -995,7 +1017,7 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
     for raw_line in text.splitlines():
         line = raw_line.strip().lower()
         for phrase in terminal_claims:
-            if any(not _terminal_claim_is_negated(line, match.start()) for match in re.finditer(re.escape(phrase), line)):
+            if any(not _terminal_claim_is_negated(line, match.start()) for match in _terminal_claim_matches(line, phrase)):
                 return phrase
         for phrase in authority_claims:
             if phrase not in line:
