@@ -437,6 +437,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         for sentence in (
             "Codex is responsible for reviewing this final decision of mine.",
             "Codex has final authority alongside workers.",
+            "Codex has final authority with the delegate.",
+            "Codex has final authority alongside the subagent.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)

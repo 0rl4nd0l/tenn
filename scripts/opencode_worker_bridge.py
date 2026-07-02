@@ -858,6 +858,10 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         rf"\b(?:(?:the|a|an)\s+)?(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){{0,2}})'s"
         rf"\s+{authority_phrase}\b"
     )
+    shared_authority_owner = re.compile(
+        r"\b(?:with|alongside)\s+(?:(?:the|a|an)\s+)?"
+        r"(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){0,2})\b"
+    )
     safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
 
     def parent_boundary_is_safe(text: str) -> bool:
@@ -865,6 +869,9 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         if parent_boundary_unsafe.search(safety_text):
             return False
         for match in possessive_authority_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
+        for match in shared_authority_owner.finditer(safety_text):
             if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
                 return False
         return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
