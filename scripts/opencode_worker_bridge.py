@@ -838,6 +838,7 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"[^.\n;:]*?\b{authority_phrase}\b",
         line,
     )
+    worker_denial_unsafe = re.compile(r"\b(?:anything\s+)?less than\b")
     authority_denied_to_workers = re.search(
         rf"\b(?:no|never)\b"
         rf"[^.\n;:]*?\b{authority_phrase}\b"
@@ -845,9 +846,9 @@ def _final_authority_boundary_spans(line: str) -> list[tuple[int, int]]:
         rf"[^.\n;:]*?\bworkers?\b",
         line,
     )
-    if worker_denies_authority:
+    if worker_denies_authority and not worker_denial_unsafe.search(worker_denies_authority.group(0)):
         spans.append(worker_denies_authority.span())
-    if worker_has_no_authority:
+    if worker_has_no_authority and not worker_denial_unsafe.search(worker_has_no_authority.group(0)):
         spans.append(worker_has_no_authority.span())
     if authority_denied_to_workers:
         spans.append(authority_denied_to_workers.span())
