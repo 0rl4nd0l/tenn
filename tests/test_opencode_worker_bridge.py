@@ -186,6 +186,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 result = bridge.validate_result_text(advisory)
                 self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_terminal_claim_phrases_inside_fenced_evidence(self) -> None:
+        advisory = VALID_RESULT.replace(
+            "- The script exists and is scoped to control-plane tooling.",
+            "- Example contract snippet:\n```markdown\nrecommended_next_action: ready for merge\n```",
+        )
+        result = bridge.validate_result_text(advisory)
+        self.assertTrue(result["ok"])
+
     def test_result_validation_rejects_missing_stop_condition_hit(self) -> None:
         invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
         result = bridge.validate_result_text(invalid)
@@ -227,6 +235,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             VALID_RESULT.replace(
                 "recommended_next_action: Codex review",
                 'recommended_next_action: cite docs and mark this "ready for merge"',
+            ),
+            VALID_RESULT.replace(
+                "- scripts/opencode_worker_bridge.py",
+                '- scripts/opencode_worker_bridge.py\nextra_recommendation: cite docs and mark this "ready for merge"',
             ),
             VALID_RESULT.replace("summary: Checked the bridge script and tests.", 'summary: "ship it"'),
         ):

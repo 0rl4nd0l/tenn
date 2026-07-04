@@ -1046,11 +1046,18 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
         "authoritative decision",
     )
     current_field: str | None = None
+    in_markdown_fence = False
     for raw_line in text.splitlines():
         line = raw_line.strip().lower()
+        if MARKDOWN_FENCE_RE.match(line):
+            in_markdown_fence = not in_markdown_fence
+            continue
+        if in_markdown_fence and current_field in {"findings", "evidence_paths"}:
+            continue
         field_match = FIELD_RE.match(line)
-        if field_match and field_match.group(1) in REQUIRED_RESULT_FIELDS:
-            current_field = field_match.group(1)
+        if field_match:
+            field = field_match.group(1)
+            current_field = field if field in REQUIRED_RESULT_FIELDS else None
         for phrase in terminal_claims:
             if any(
                 not _terminal_claim_is_negated(line, match.start())
