@@ -848,7 +848,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     parent_boundary_unsafe = re.compile(
         r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
-        r"(?:evidence\s+)?scouts?'?s?|delegates?'?s?|subagents?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|delegates?'?s?|subagents?'?s?|ai|assistants?|(?:external\s+)?reviewers?|"
         r"apart\s+from|other\s+than|except|unless|but|however|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
@@ -976,6 +976,10 @@ def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
     )
 
 
+def _span_is_quoted(line: str, start: int, end: int) -> bool:
+    return any(line[:start].count(quote) % 2 == 1 and quote in line[end:] for quote in ('"', "`"))
+
+
 def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
     token_boundary = re.compile(r"[A-Za-z0-9_-]")
     path_token = re.compile(r"[A-Za-z0-9._~+/-]")
@@ -984,6 +988,8 @@ def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
         if start > 0 and token_boundary.fullmatch(line[start - 1]):
             continue
         if end < len(line) and token_boundary.fullmatch(line[end]):
+            continue
+        if _span_is_quoted(line, start, end):
             continue
 
         token_start = start

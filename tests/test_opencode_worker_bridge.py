@@ -176,6 +176,16 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 result = bridge.validate_result_text(advisory)
                 self.assertTrue(result["ok"])
 
+    def test_result_validation_accepts_quoted_terminal_claim_phrases_in_evidence(self) -> None:
+        for sentence in (
+            'The docs list "ready for merge" as a phrase workers must not use.',
+            "The test fixture cites `merge-approved` as invalid worker language.",
+        ):
+            with self.subTest(sentence=sentence):
+                advisory = VALID_RESULT.replace("- The script exists and is scoped to control-plane tooling.", f"- {sentence}")
+                result = bridge.validate_result_text(advisory)
+                self.assertTrue(result["ok"])
+
     def test_result_validation_rejects_missing_stop_condition_hit(self) -> None:
         invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
         result = bridge.validate_result_text(invalid)
@@ -428,6 +438,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex is responsible for reviewing the delegate's final decision.",
             "Codex is responsible for reviewing the subagent's final decision.",
             "Codex is responsible for reviewing an external reviewer's final decision.",
+            "Codex is responsible for reviewing the AI final decision.",
+            "Codex is responsible for reviewing the assistant final decision.",
+            "Codex is responsible for reviewing the external reviewer final decision.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
