@@ -980,6 +980,16 @@ def _span_is_quoted(line: str, start: int, end: int) -> bool:
     return any(line[:start].count(quote) % 2 == 1 and quote in line[end:] for quote in ('"', "`"))
 
 
+def _quoted_terminal_claim_is_evidence_context(line: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:docs?|documentation|tests?|fixture|example|quoted?|phrase|language|"
+            r"must\s+not\s+use|invalid\s+worker\s+language)\b",
+            line,
+        )
+    )
+
+
 def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
     token_boundary = re.compile(r"[A-Za-z0-9_-]")
     path_token = re.compile(r"[A-Za-z0-9._~+/-]")
@@ -989,7 +999,7 @@ def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
             continue
         if end < len(line) and token_boundary.fullmatch(line[end]):
             continue
-        if _span_is_quoted(line, start, end):
+        if _span_is_quoted(line, start, end) and _quoted_terminal_claim_is_evidence_context(line):
             continue
 
         token_start = start

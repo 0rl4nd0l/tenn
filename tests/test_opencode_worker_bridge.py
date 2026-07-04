@@ -221,6 +221,16 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 self.assertFalse(result["ok"])
                 self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
+    def test_result_validation_rejects_quoted_terminal_claims_in_decision_fields(self) -> None:
+        for invalid in (
+            VALID_RESULT.replace("recommended_next_action: Codex review", 'recommended_next_action: "ready for merge"'),
+            VALID_RESULT.replace("summary: Checked the bridge script and tests.", 'summary: "ship it"'),
+        ):
+            with self.subTest(invalid=invalid):
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
     def test_result_validation_accepts_negated_merge_readiness_report(self) -> None:
         for sentence in (
             "This is not ready for merge because validation failed.",
