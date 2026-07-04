@@ -145,6 +145,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["fields"]["stop_condition_hit"], "no")
 
+    def test_result_validation_rejects_malformed_outer_closing_fence(self) -> None:
+        invalid = bridge.validate_result_text("```markdown\n" + VALID_RESULT + "``` ready for merge\n")
+        self.assertFalse(invalid["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in invalid["issues"]})
+
+        shorter_closer = bridge.validate_result_text("````markdown\n" + VALID_RESULT + "```\n")
+        self.assertFalse(shorter_closer["ok"])
+
     def test_result_validation_ignores_field_like_lines_inside_internal_fences(self) -> None:
         invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
         invalid = invalid.replace(

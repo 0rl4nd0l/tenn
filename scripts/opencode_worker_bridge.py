@@ -44,7 +44,8 @@ MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
 HEADER_LIKE_RE = re.compile(r"^([a-z][a-z0-9_-]*)\s*:(?!//)\s*(.*)$")
-MARKDOWN_FENCE_RE = re.compile(r"^`{3,}(?:[^\S\r\n]*[^`\r\n]*)?$")
+MARKDOWN_FENCE_RE = re.compile(r"^(`{3,})(?:[^\S\r\n]*([^`\r\n]*))?$")
+MARKDOWN_CLOSING_FENCE_RE = re.compile(r"^(`{3,})[^\S\r\n]*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
     r"|\.env(?:\.[A-Za-z0-9_-]+)?"
@@ -746,7 +747,9 @@ def _strip_outer_markdown_fence(lines: list[str]) -> list[str]:
         return lines
     first = nonblank[0]
     last = nonblank[-1]
-    if MARKDOWN_FENCE_RE.match(lines[first].strip()) and MARKDOWN_FENCE_RE.match(lines[last].strip()):
+    opening = MARKDOWN_FENCE_RE.match(lines[first].strip())
+    closing = MARKDOWN_CLOSING_FENCE_RE.match(lines[last].strip())
+    if opening and closing and len(closing.group(1)) >= len(opening.group(1)):
         return lines[:first] + lines[first + 1 : last] + lines[last + 1 :]
     return lines
 
@@ -755,17 +758,27 @@ def parse_result_fields(text: str) -> dict[str, str]:
     fields: dict[str, list[str]] = {}
     current: str | None = None
     in_markdown_fence = False
+    markdown_fence_len = 0
     for raw_line in _strip_outer_markdown_fence(text.splitlines()):
         line = raw_line.rstrip()
         stripped = line.strip()
-        if MARKDOWN_FENCE_RE.match(stripped):
-            in_markdown_fence = not in_markdown_fence
-            if current:
-                fields[current].append(stripped)
-            continue
         if in_markdown_fence:
+            closing = MARKDOWN_CLOSING_FENCE_RE.match(stripped)
+            if closing and len(closing.group(1)) >= markdown_fence_len:
+                in_markdown_fence = False
+                markdown_fence_len = 0
+                if current:
+                    fields[current].append(stripped)
+                continue
             if current and line.strip():
                 fields[current].append(line.strip())
+            continue
+        opening = MARKDOWN_FENCE_RE.match(stripped)
+        if opening:
+            in_markdown_fence = True
+            markdown_fence_len = len(opening.group(1))
+            if current:
+                fields[current].append(stripped)
             continue
         match = FIELD_RE.match(stripped)
         if match:
@@ -1065,13 +1078,23 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
     )
     current_field: str | None = None
     in_markdown_fence = False
+    markdown_fence_len = 0
     for raw_line in _strip_outer_markdown_fence(text.splitlines()):
         line = raw_line.strip().lower()
-        if MARKDOWN_FENCE_RE.match(line):
-            in_markdown_fence = not in_markdown_fence
-            continue
-        if in_markdown_fence and current_field in {"findings", "evidence_paths"}:
-            continue
+        if in_markdown_fence:
+            closing = MARKDOWN_CLOSING_FENCE_RE.match(line)
+            if closing and len(closing.group(1)) >= markdown_fence_len:
+                in_markdown_fence = False
+                markdown_fence_len = 0
+                continue
+            if current_field in {"findings", "evidence_paths"}:
+                continue
+        else:
+            opening = MARKDOWN_FENCE_RE.match(line)
+            if opening:
+                in_markdown_fence = True
+                markdown_fence_len = len(opening.group(1))
+                continue
         field_match = FIELD_RE.match(line)
         if field_match:
             field = field_match.group(1)
