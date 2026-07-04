@@ -294,6 +294,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         for sentence in (
             "Codex does not allow workers to make final decisions.",
             "Workers are not allowed to make final decisions.",
+            "Workers may not make final decisions.",
+            "Workers are prohibited from making final decisions.",
         ):
             with self.subTest(sentence=sentence):
                 advisory = VALID_RESULT.replace("Codex still needs to review the result.", sentence)

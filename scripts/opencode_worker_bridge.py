@@ -900,6 +900,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         spans.append(parent_not_worker_appositive.span())
 
     authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
+    authority_action_gerund = r"(?:making|owning|holding|retaining|having|claiming|exercising)"
     parent_denies_worker_authority = re.search(
         rf"\b{parent_authority_owner}\b"
         rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
@@ -918,8 +919,15 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     )
     worker_denies_authority = re.search(
         rf"\bworkers?\b"
-        rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
+        rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|may not|do not|does not|don't|doesn't|never)\b"
         rf"\s+{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_prohibited_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*?\b(?:are|is|be)\b"
+        rf"\s+prohibited\s+from\s+{authority_action_gerund}\b"
         rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
         line,
     )
@@ -957,6 +965,8 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         spans.append(worker_not_allowed_authority.span())
     if worker_denies_authority and worker_denial_is_safe(worker_denies_authority.group(0)):
         spans.append(worker_denies_authority.span())
+    if worker_prohibited_authority and worker_denial_is_safe(worker_prohibited_authority.group(0)):
+        spans.append(worker_prohibited_authority.span())
     if worker_has_no_authority and worker_denial_is_safe(worker_has_no_authority.group(0)):
         spans.append(worker_has_no_authority.span())
     if authority_denied_to_workers and worker_denial_is_safe(authority_denied_to_workers.group(0)):
