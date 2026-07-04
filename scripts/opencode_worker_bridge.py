@@ -856,6 +856,9 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     leading_parent_boundary_unsafe = re.compile(r"\b(?:if|when|unless|after|once)\b[^.\n;:]*,\s*$")
     worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
     trailing_worker_denial = re.compile(r"\s*,\s*(?:not|never)\s+workers?\s*$")
+    trailing_worker_output_qualifier = re.compile(
+        r"(?:\s+and|\s*,)\s+workers?\s+outputs?\s+(?:is|are)\s+evidence\s+only\s*$"
+    )
     possessive_authority_owner = re.compile(
         rf"\b(?:(?:the|a|an)\s+)?(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){{0,2}})'s"
         rf"\s+{authority_phrase}\b"
@@ -870,7 +873,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         prefix = line[:start]
         if prefix and (parent_boundary_unsafe.search(prefix) or leading_parent_boundary_unsafe.search(prefix)):
             return False
-        safety_text = trailing_worker_denial.sub("", text)
+        safety_text = trailing_worker_output_qualifier.sub("", trailing_worker_denial.sub("", text))
         if parent_boundary_unsafe.search(safety_text):
             return False
         if len(re.findall(authority_phrase, safety_text)) > 1:
