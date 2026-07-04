@@ -1047,7 +1047,7 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
     )
     current_field: str | None = None
     in_markdown_fence = False
-    for raw_line in text.splitlines():
+    for raw_line in _strip_outer_markdown_fence(text.splitlines()):
         line = raw_line.strip().lower()
         if MARKDOWN_FENCE_RE.match(line):
             in_markdown_fence = not in_markdown_fence
