@@ -1074,6 +1074,7 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
     authority_claims = (
         "final decision",
         "final authority",
+        "final authorities",
         "authoritative decision",
     )
     current_field: str | None = None
@@ -1095,12 +1096,13 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
                 in_markdown_fence = True
                 markdown_fence_len = len(opening.group(1))
                 continue
-        field_match = FIELD_RE.match(line)
-        if field_match:
-            field = field_match.group(1)
-            current_field = field if field in REQUIRED_RESULT_FIELDS else None
-        elif HEADER_LIKE_RE.match(line):
-            current_field = None
+        if not in_markdown_fence:
+            field_match = FIELD_RE.match(line)
+            if field_match:
+                field = field_match.group(1)
+                current_field = field if field in REQUIRED_RESULT_FIELDS else None
+            elif HEADER_LIKE_RE.match(line):
+                current_field = None
         for phrase in terminal_claims:
             if any(
                 not _terminal_claim_is_negated(line, match.start())

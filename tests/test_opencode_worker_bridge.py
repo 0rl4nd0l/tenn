@@ -251,6 +251,14 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 'recommended_next_action: cite docs and mark this "ready for merge"',
             ),
             VALID_RESULT.replace(
+                "summary: Checked the bridge script and tests.",
+                "summary: Checked the bridge script and tests.\n"
+                "```markdown\n"
+                "evidence_paths:\n"
+                "recommended_next_action: ready for merge\n"
+                "```",
+            ),
+            VALID_RESULT.replace(
                 "- The script exists and is scoped to control-plane tooling.",
                 '- Based on docs, this is "ready for merge".',
             ),
@@ -328,13 +336,15 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 self.assertTrue(result["ok"])
 
     def test_result_validation_rejects_worker_final_decision_claim(self) -> None:
-        invalid = VALID_RESULT.replace(
-            "Codex still needs to review the result.",
+        for sentence in (
             "The worker should make the final decision for this lane.",
-        )
-        result = bridge.validate_result_text(invalid)
-        self.assertFalse(result["ok"])
-        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+            "The worker owns final authorities for this lane.",
+        ):
+            with self.subTest(sentence=sentence):
+                invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
+                result = bridge.validate_result_text(invalid)
+                self.assertFalse(result["ok"])
+                self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
 
     def test_result_validation_rejects_worker_authority_claim_with_codex_mention(self) -> None:
         invalid = VALID_RESULT.replace(
