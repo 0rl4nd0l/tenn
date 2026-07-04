@@ -1016,7 +1016,7 @@ def _terminal_claim_matches(line: str, phrase: str, *, field: str | None = None)
         while token_end < len(line) and path_token.fullmatch(line[token_end]):
             token_end += 1
         token = line[token_start:token_end].rstrip(".,;:)")
-        if "/" in token or re.search(r"\.[a-z0-9]{1,8}$", token):
+        if field in {"findings", "evidence_paths"} and ("/" in token or re.search(r"\.[a-z0-9]{1,8}$", token)):
             continue
         yield match
 

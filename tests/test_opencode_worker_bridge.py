@@ -240,6 +240,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 "- scripts/opencode_worker_bridge.py",
                 '- scripts/opencode_worker_bridge.py\nextra_recommendation: cite docs and mark this "ready for merge"',
             ),
+            VALID_RESULT.replace(
+                "recommended_next_action: Codex review",
+                "recommended_next_action: ready for merge/ship",
+            ),
             "```markdown\n"
             + VALID_RESULT.replace("recommended_next_action: Codex review", "recommended_next_action: ready for merge")
             + "```\n",
