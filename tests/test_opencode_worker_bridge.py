@@ -263,6 +263,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 '- Based on docs, this is "ready for merge".',
             ),
             VALID_RESULT.replace(
+                "- The script exists and is scoped to control-plane tooling.",
+                '- The phrase "ready for merge" is my recommendation.',
+            ),
+            VALID_RESULT.replace(
                 "- scripts/opencode_worker_bridge.py",
                 '- scripts/opencode_worker_bridge.py\nextra_recommendation: cite docs and mark this "ready for merge"',
             ),
@@ -513,6 +517,7 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex is responsible for reviewing the evidence scout's final decision.",
             "Codex is responsible for reviewing the delegate's final decision.",
             "Codex is responsible for reviewing the subagent's final decision.",
+            "Codex is responsible for reviewing the tool final decision.",
             "Codex is responsible for reviewing an external reviewer's final decision.",
             "Codex is responsible for reviewing the AI final decision.",
             "Codex is responsible for reviewing the assistant final decision.",

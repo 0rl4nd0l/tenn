@@ -888,6 +888,13 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
         r"\b(?:with|alongside)\s+(?:(?:the|a|an)\s+)?"
         r"(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){0,2})\b"
     )
+    reviewed_final_decision_owner = re.compile(
+        r"\b(?:review(?:s|ed|ing)?|accept(?:s|ed|ing)?)\s+"
+        r"(?:(?:the|a|an)\s+)?"
+        r"(?P<owner>(?!codex\b|parent\b|main\b|final\b|this\b|that\b)"
+        r"[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){0,2})"
+        r"\s+final decisions?\b"
+    )
     safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
 
     def parent_boundary_is_safe(text: str, *, start: int = 0) -> bool:
@@ -903,6 +910,9 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
             if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
                 return False
         for match in shared_authority_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
+        for match in reviewed_final_decision_owner.finditer(safety_text):
             if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
                 return False
         return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
@@ -1017,8 +1027,9 @@ def _span_is_quoted(line: str, start: int, end: int) -> bool:
 def _quoted_terminal_claim_is_evidence_context(line: str) -> bool:
     return bool(
         re.search(
-            r"\b(?:fixture|example|quoted?|phrase|language|"
-            r"must\s+not\s+use|invalid\s+worker\s+language)\b",
+            r"\b(?:docs?\s+list|documentation\s+lists?|test\s+fixture\s+cites?|fixture\s+cites?|"
+            r"example\s+contract\s+snippet|must\s+not\s+(?:use|claim)|"
+            r"workers?\s+must\s+not\s+(?:use|claim)|invalid\s+worker\s+language)\b",
             line,
         )
     )
