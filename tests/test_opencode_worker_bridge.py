@@ -180,6 +180,7 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         for sentence in (
             'The docs list "ready for merge" as a phrase workers must not use.',
             "The test fixture cites `merge-approved` as invalid worker language.",
+            'The docs list "final decision" as language workers must not claim.',
         ):
             with self.subTest(sentence=sentence):
                 advisory = VALID_RESULT.replace("- The script exists and is scoped to control-plane tooling.", f"- {sentence}")

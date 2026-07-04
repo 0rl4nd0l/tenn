@@ -1071,6 +1071,12 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
                 stripped_clause = clause.strip()
                 safe_spans = _final_authority_boundary_spans(stripped_clause, worker_id=worker_id)
                 for match in re.finditer(re.escape(phrase), stripped_clause):
+                    if (
+                        current_field in {"findings", "evidence_paths"}
+                        and _span_is_quoted(stripped_clause, match.start(), match.end())
+                        and _quoted_terminal_claim_is_evidence_context(stripped_clause)
+                    ):
+                        continue
                     in_safe_span = any(
                         start <= match.start() and match.end() <= end for start, end in safe_spans
                     )
