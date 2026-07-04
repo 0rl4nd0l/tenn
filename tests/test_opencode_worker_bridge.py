@@ -242,6 +242,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 '- scripts/opencode_worker_bridge.py\nextra_recommendation: cite docs and mark this "ready for merge"',
             ),
             VALID_RESULT.replace(
+                "- scripts/opencode_worker_bridge.py",
+                "- scripts/opencode_worker_bridge.py\nextra-recommendation: ready for merge/ship",
+            ),
+            VALID_RESULT.replace(
                 "recommended_next_action: Codex review",
                 "recommended_next_action: ready for merge/ship",
             ),
@@ -507,6 +511,7 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex has final authority, and the subagent has final authority.",
             "If I approve, Codex has final authority.",
             "Once the worker approves, Codex has final authority.",
+            "Workers are evidence only, but Codex has final authority.",
         ):
             with self.subTest(sentence=sentence):
                 invalid = VALID_RESULT.replace("Codex still needs to review the result.", sentence)
@@ -540,6 +545,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex has sole final authority; worker output is evidence only.",
             "Codex has exclusive final authority; worker output is evidence only.",
             "Codex is the sole final authority; worker output is evidence only.",
+            "Worker output is evidence only, Codex has final authority.",
+            "Workers are evidence only, Codex has final authority.",
             "Codex has final authority, not workers.",
             "Codex has final authority and worker output is evidence only.",
             "Codex has final authority, worker output is evidence only.",

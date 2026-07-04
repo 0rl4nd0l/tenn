@@ -43,6 +43,7 @@ MAX_PROBE_TEXT_BYTES = 16000
 MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
+HEADER_LIKE_RE = re.compile(r"^([a-z][a-z0-9_-]*)\s*:(?!//)\s*(.*)$")
 MARKDOWN_FENCE_RE = re.compile(r"^`{3,}\s*[A-Za-z0-9_-]*\s*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
@@ -778,6 +779,9 @@ def parse_result_fields(text: str) -> dict[str, str]:
             if value:
                 fields[current].append(value)
             continue
+        if HEADER_LIKE_RE.match(stripped):
+            current = None
+            continue
         if current and line.strip():
             fields[current].append(line.strip())
     return {key: "\n".join(value).strip() for key, value in fields.items()}
@@ -859,6 +863,10 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     trailing_worker_output_qualifier = re.compile(
         r"(?:\s+and|\s*,)\s+workers?\s+outputs?\s+(?:is|are)\s+evidence\s+only\s*$"
     )
+    leading_worker_evidence_qualifier = re.compile(
+        r"^\s*(?:[-*+]\s*|\d+[.)]\s*)?(?:(?:workers?\s+outputs?)|workers?)"
+        r"\s+(?:is|are)\s+evidence\s+only\s*,\s*"
+    )
     possessive_authority_owner = re.compile(
         rf"\b(?:(?:the|a|an)\s+)?(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){{0,2}})'s"
         rf"\s+{authority_phrase}\b"
@@ -870,7 +878,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
 
     def parent_boundary_is_safe(text: str, *, start: int = 0) -> bool:
-        prefix = line[:start]
+        prefix = leading_worker_evidence_qualifier.sub("", line[:start])
         if prefix and (parent_boundary_unsafe.search(prefix) or leading_parent_boundary_unsafe.search(prefix)):
             return False
         safety_text = trailing_worker_output_qualifier.sub("", trailing_worker_denial.sub("", text))
@@ -1068,6 +1076,8 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
         if field_match:
             field = field_match.group(1)
             current_field = field if field in REQUIRED_RESULT_FIELDS else None
+        elif HEADER_LIKE_RE.match(line):
+            current_field = None
         for phrase in terminal_claims:
             if any(
                 not _terminal_claim_is_negated(line, match.start())
