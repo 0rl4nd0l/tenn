@@ -993,7 +993,7 @@ def _quoted_terminal_claim_is_evidence_context(line: str) -> bool:
     )
 
 
-def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
+def _terminal_claim_matches(line: str, phrase: str, *, field: str | None = None) -> Iterable[re.Match[str]]:
     token_boundary = re.compile(r"[A-Za-z0-9_-]")
     path_token = re.compile(r"[A-Za-z0-9._~+/-]")
     for match in re.finditer(re.escape(phrase), line):
@@ -1002,7 +1002,11 @@ def _terminal_claim_matches(line: str, phrase: str) -> Iterable[re.Match[str]]:
             continue
         if end < len(line) and token_boundary.fullmatch(line[end]):
             continue
-        if _span_is_quoted(line, start, end) and _quoted_terminal_claim_is_evidence_context(line):
+        if (
+            field in {"findings", "evidence_paths"}
+            and _span_is_quoted(line, start, end)
+            and _quoted_terminal_claim_is_evidence_context(line)
+        ):
             continue
 
         token_start = start
@@ -1041,10 +1045,17 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
         "final authority",
         "authoritative decision",
     )
+    current_field: str | None = None
     for raw_line in text.splitlines():
         line = raw_line.strip().lower()
+        field_match = FIELD_RE.match(line)
+        if field_match and field_match.group(1) in REQUIRED_RESULT_FIELDS:
+            current_field = field_match.group(1)
         for phrase in terminal_claims:
-            if any(not _terminal_claim_is_negated(line, match.start()) for match in _terminal_claim_matches(line, phrase)):
+            if any(
+                not _terminal_claim_is_negated(line, match.start())
+                for match in _terminal_claim_matches(line, phrase, field=current_field)
+            ):
                 return phrase
         for phrase in authority_claims:
             if phrase not in line:
