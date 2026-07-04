@@ -243,6 +243,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 'recommended_next_action: cite docs and mark this "ready for merge"',
             ),
             VALID_RESULT.replace(
+                "- The script exists and is scoped to control-plane tooling.",
+                '- Based on docs, this is "ready for merge".',
+            ),
+            VALID_RESULT.replace(
                 "- scripts/opencode_worker_bridge.py",
                 '- scripts/opencode_worker_bridge.py\nextra_recommendation: cite docs and mark this "ready for merge"',
             ),
@@ -253,6 +257,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             VALID_RESULT.replace(
                 "recommended_next_action: Codex review",
                 "recommended_next_action: ready for merge/ship",
+            ),
+            VALID_RESULT.replace(
+                "- The script exists and is scoped to control-plane tooling.",
+                "- This is ready for merge/ship.",
             ),
             "```markdown\n"
             + VALID_RESULT.replace("recommended_next_action: Codex review", "recommended_next_action: ready for merge")

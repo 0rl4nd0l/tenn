@@ -1004,7 +1004,7 @@ def _span_is_quoted(line: str, start: int, end: int) -> bool:
 def _quoted_terminal_claim_is_evidence_context(line: str) -> bool:
     return bool(
         re.search(
-            r"\b(?:docs?|documentation|tests?|fixture|example|quoted?|phrase|language|"
+            r"\b(?:fixture|example|quoted?|phrase|language|"
             r"must\s+not\s+use|invalid\s+worker\s+language)\b",
             line,
         )
@@ -1034,7 +1034,7 @@ def _terminal_claim_matches(line: str, phrase: str, *, field: str | None = None)
         while token_end < len(line) and path_token.fullmatch(line[token_end]):
             token_end += 1
         token = line[token_start:token_end].rstrip(".,;:)")
-        if field in {"findings", "evidence_paths"} and ("/" in token or re.search(r"\.[a-z0-9]{1,8}$", token)):
+        if field == "evidence_paths" and ("/" in token or re.search(r"\.[a-z0-9]{1,8}$", token)):
             continue
         yield match
 
