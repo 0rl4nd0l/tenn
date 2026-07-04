@@ -1127,6 +1127,8 @@ def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = N
                     )
                     if not in_safe_span:
                         return phrase
+    if in_markdown_fence:
+        return "unterminated markdown fence"
     return None
 
 

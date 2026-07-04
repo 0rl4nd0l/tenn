@@ -270,6 +270,11 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 "- scripts/opencode_worker_bridge.py",
                 "- scripts/opencode_worker_bridge.py\nextra-recommendation: ready for merge/ship",
             ),
+            VALID_RESULT
+            + "\nevidence_paths:\n"
+            + "- reports/agent_jobs/worker-result.md\n"
+            + "```markdown\n"
+            + "recommended_next_action: ready for merge\n",
             VALID_RESULT.replace(
                 "recommended_next_action: Codex review",
                 "recommended_next_action: ready for merge/ship",
