@@ -866,7 +866,7 @@ def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) 
     parent_boundary_unsafe = re.compile(
         r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
         r"(?:evidence\s+)?scouts?'?s?|delegates?'?s?|subagents?'?s?|ai|assistants?|(?:external\s+)?reviewers?|"
-        r"apart\s+from|other\s+than|except|unless|but|however|"
+        r"apart\s+from|other\s+than|except|unless|excluding|save\s+for|but|however|"
         r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
         r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
     )

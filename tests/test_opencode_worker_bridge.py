@@ -528,6 +528,8 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             "Codex has final authority unless merge readiness is involved.",
             "Codex has final authority apart from merge readiness.",
             "Codex has final authority other than merge readiness.",
+            "Codex has final authority excluding merge readiness.",
+            "Codex has final authority save for merge readiness.",
             "Codex has final authority and the delegate has final authority.",
             "Codex has final authority, and the subagent has final authority.",
             "If I approve, Codex has final authority.",
