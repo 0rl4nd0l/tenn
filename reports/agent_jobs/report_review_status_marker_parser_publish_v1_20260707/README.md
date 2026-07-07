@@ -8,7 +8,7 @@ against `migration/clean-runtime-baseline-reconstruct-v1`.
 
 ## Current State
 
-RUNNING
+WAITING_ON_USER
 
 ## Scope
 
@@ -41,7 +41,35 @@ See `VALIDATION.md`.
 
 ## PR State
 
-Pending.
+Not created. Push was blocked by the local pre-push hook before the branch
+reached GitHub.
+
+## WAITING_ON_USER
+
+Needed: choose one publish path.
+
+Why: `git push` failed because the pre-push hook requires Ruff and pytest in
+`financial-engine_v2/.venv`, and that local venv does not currently provide
+them.
+
+Current safe state:
+
+- publish evidence is committed locally
+- branch is clean except ignored `scripts/__pycache__/`
+- branch is ahead of the base by local commits
+- no GitHub PR was opened
+- no runtime/data/extraction surfaces were touched
+
+Options:
+
+- A: approve intentional hook-tool bypass for this already-validated branch:
+  `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/report-review-status-marker-parser-v1-20260707`
+- B: approve installing/repairing `ruff` and `pytest` in
+  `financial-engine_v2/.venv`, then rerun push without bypass
+- C: stop here and leave the branch local
+
+Recommended: A, because focused validation already passed and repairing the
+repo venv is broader than this publish-only lane.
 
 ## Runtime Functionality Proof
 
@@ -49,9 +77,9 @@ Pending.
 - intended output: GitHub draft PR for existing control-plane helper commit.
 - live output location: GitHub pull request.
 - pre-run max timestamp or count: no existing PR for this branch.
-- post-run max timestamp or count: pending.
+- post-run max timestamp or count: zero PRs created.
 - rows/files inserted or updated after run start: none; GitHub PR only.
-- readiness/gate status: pending.
+- readiness/gate status: blocked by missing local pre-push hook tools.
 - exact command/query used: see `VALIDATION.md`.
 - result: DATA_MISSING until PR is created and verified.
-- remaining blocker: PR creation pending.
+- remaining blocker: owner approval for hook-tool bypass or venv repair.

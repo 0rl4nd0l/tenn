@@ -52,8 +52,22 @@
 
 ## Publish Actions
 
-Pending.
+- `git commit -m "Add parser publish task card"`:
+  exit 0; committed publish task card and report artifacts as
+  `3cf7097b`.
+- `git push -u origin control-plane/report-review-status-marker-parser-v1-20260707`:
+  exit 1; blocked by pre-push hook.
+
+```text
+[pre-push] missing required hook tool(s): ruff at /home/l4nd0/tenn-report-review-status-marker-parser-v1-20260707/financial-engine_v2/.venv/bin/ruff pytest at /home/l4nd0/tenn-report-review-status-marker-parser-v1-20260707/financial-engine_v2/.venv/bin/pytest
+[pre-push] set TENN_ALLOW_MISSING_HOOK_TOOLS=1 to bypass local tool checks intentionally
+error: failed to push some refs to 'https://github.com/0rl4nd0l/tenn.git'
+```
 
 ## Final State
 
-Pending.
+WAITING_ON_USER.
+
+Needed: owner approval either to intentionally set
+`TENN_ALLOW_MISSING_HOOK_TOOLS=1` for this push, or to repair/install the
+missing hook tools in `financial-engine_v2/.venv`.
