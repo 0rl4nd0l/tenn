@@ -80,5 +80,6 @@ error: failed to push some refs to 'https://github.com/0rl4nd0l/tenn.git'
 
 DONE_WITH_RISK.
 
-Remaining risk: CI was still running at first PR verification, and this report
-update still needs to be pushed to the PR branch.
+Final report updates were pushed to the PR branch after PR creation. Remaining
+risk: CI status must be rechecked on the current PR head before readiness or
+merge decisions.
