@@ -17,7 +17,9 @@ publish_approval: "USER_APPROVED_AFTER_VALIDATION_2026-07-07"
 task_scope: implementation_requires_owner_approval
 allowed_files:
   - docs/agent_tasks/cockpit_router_import_hardening_v1_20260707.md
+  - financial-engine_v2/backend/Dockerfile
   - financial-engine_v2/backend/app/main.py
+  - financial-engine_v2/backend/tests/test_backend_dockerfile_contract.py
   - financial-engine_v2/backend/tests/test_cockpit_router_import_contract.py
   - reports/agent_jobs/cockpit_router_import_hardening_v1_20260707/README.md
   - reports/agent_jobs/cockpit_router_import_hardening_v1_20260707/STATE.md
@@ -28,14 +30,14 @@ allowed_files:
   - reports/agent_jobs/cockpit_router_import_hardening_v1_20260707/status.json
   - reports/agent_jobs/cockpit_router_import_hardening_v1_20260707/validation.json
   - reports/agent_jobs/cockpit_router_import_hardening_v1_20260707/diff-check.json
-docs_impact: DOCS_FOLLOWUP
+docs_impact: DOCS_NOT_REQUIRED
 docs_checked:
   - AGENTS.md
   - docs/README.md
   - docs/entrypoints.md
   - docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md
 docs_changed: []
-docs_followup: "Decide during implementation whether startup/operator docs need to mention required Cockpit route visibility diagnostics."
+docs_followup: "No operator docs update required for the Docker packaging fix; backend image packaging is covered by a focused static contract test."
 reason: "The completed stateless-smoke proof found a backend route-visibility failure class: /api/health could be live while /api/cockpit/chat was absent because app.main swallowed a transitive Cockpit router import failure."
 task_tier: medium
 recommended_model: "standard coding model"
@@ -91,6 +93,11 @@ add unless a fresh guard/repro proves another missing dependency is canonical.
 - Change only `financial-engine_v2/backend/app/main.py` as needed to fail
   closed, log clearly, or otherwise expose required Cockpit router import
   failure without weakening validation.
+- After owner approval on the PR review, update
+  `financial-engine_v2/backend/Dockerfile` only as needed to package the
+  top-level `cockpit/` package required by `app.routes.cockpit_api`.
+- Add a focused static regression test that prevents the backend Docker image
+  from omitting the top-level Cockpit package again.
 - Keep optional route behavior for unrelated optional routers unchanged unless
   a failing focused test proves the same required-route contract applies.
 - Use an existing repo venv or an approved ephemeral validation venv only for
@@ -116,6 +123,8 @@ add unless a fresh guard/repro proves another missing dependency is canonical.
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_router_import_hardening_v1_20260707.md`
 - Focused backend route/import contract test, preferably:
   `python -m pytest financial-engine_v2/backend/tests/test_cockpit_router_import_contract.py -q`
+- Focused backend Dockerfile packaging contract test, preferably:
+  `python -m pytest financial-engine_v2/backend/tests/test_backend_dockerfile_contract.py -q`
 - Existing Cockpit stream route smoke/unit slice if affordable:
   `python -m pytest financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py -q`
 - `python -m py_compile financial-engine_v2/backend/app/main.py`
