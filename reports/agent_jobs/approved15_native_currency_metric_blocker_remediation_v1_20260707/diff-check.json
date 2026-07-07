@@ -1,0 +1,213 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/approved15_native_currency_metric_blocker_remediation_v1_20260707.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/DECISIONS.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/NEXT_GOAL.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/actual_payload_map_green.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/actual_payload_map_red.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/failure_classes_green.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/failure_classes_red.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/handoff/HANDOFF.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/handoff/NEXT_GOAL.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/payload_scorecard_green.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/payload_scorecard_red.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_gate_green.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_gate_red.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/source_proof/source_proof_summary.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": false,
+      "allowed_files": [
+        "docs/agent_tasks/approved15_native_currency_metric_blocker_remediation_v1_20260707.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/TASK_CARD.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/README.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/STATE.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/DECISIONS.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/VALIDATION.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/NEXT_GOAL.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/LEDGER_ENTRY.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/guard_preflight.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/registry_active_jobs.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/task_ledger_validate.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/task_card_validate.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/diff-check.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/diff-whitespace.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/focused_unit_test_red.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/focused_unit_test_green.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/source_proof/BHP_CSL_WORKER_RESULT.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/source_proof/FMG_QBE_WORKER_RESULT.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/source_proof/source_proof_summary.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/input_manifest.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/replay_results.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/side_effect_audit.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/validation.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_red/logs/replay.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/input_manifest.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/replay_results.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/side_effect_audit.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/validation.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/logs/replay.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/actual_payload_map_red.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/payload_scorecard_red.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_gate_red.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/failure_classes_red.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_build_red.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/actual_payload_map_green.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/payload_scorecard_green.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_gate_green.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/failure_classes_green.json",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_build_green.log",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/handoff/HANDOFF.md",
+        "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/handoff/NEXT_GOAL.md"
+      ],
+      "approval_required": true,
+      "base_commit": "94dedc2913d4dbfc1913ca6fae897ca2ce4a0579",
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        ".agents/skills/tenn-fix/SKILL.md",
+        ".agents/skills/tenn-git-guard/SKILL.md",
+        ".agents/skills/tenn-financial-metric-extraction/SKILL.md"
+      ],
+      "docs_followup": "none",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": false,
+      "job_id": "approved15_native_currency_metric_blocker_remediation_v1_20260707",
+      "lane": "Financial Truth",
+      "live_ledger_mutation_allowed": false,
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Owner approved retargeting the stale approved15 native-currency continuation into a fresh current-canonical task worktree. Scope is limited to the four-case BHP/CSL/FMG/QBE native-currency scorecard blockers and at most one deterministic source-proven metric failure class at a time.",
+      "recommended_model": "high reasoning",
+      "selected_family": "approved15_native_currency_BHP_CSL_FMG_QBE_metric_blockers",
+      "source_handoff": "/home/l4nd0/tenn-approved15-native-currency-status-policy-v1-20260702/reports/agent_jobs/approved15_low_confidence_status_policy_v1_20260701/handoff/remediation_orchestration_20260707/HANDOFF.md",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "task_scope": "safe_extension",
+      "task_tier": "critical",
+      "timeout_seconds": 21600,
+      "why_this_model": "Financial Truth metric remediation requires source-bound value/provenance reasoning, no-write replay discipline, and conservative stop states.",
+      "worker_decision_limit": "Workers may classify source evidence and recommend a failure class; the orchestrator owns all integration and readiness decisions.",
+      "worker_model_allowed": "read-only evidence only"
+    },
+    "ok": true
+  }
+}

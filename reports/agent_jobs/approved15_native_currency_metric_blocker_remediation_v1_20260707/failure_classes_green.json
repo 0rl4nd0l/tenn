@@ -1,0 +1,8 @@
+{
+  "artifact_type": "focused_failure_classes_v1",
+  "failure_count": 0,
+  "failures": [],
+  "gate": "/home/l4nd0/tenn-approved15-native-currency-metric-remediation-v1-20260707/reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/scorecard_gate_green.json",
+  "scorecard": "/home/l4nd0/tenn-approved15-native-currency-metric-remediation-v1-20260707/reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/payload_scorecard_green.json",
+  "source_replay": "/home/l4nd0/tenn-approved15-native-currency-metric-remediation-v1-20260707/reports/agent_jobs/approved15_native_currency_metric_blocker_remediation_v1_20260707/no_write_replay_green/replay_results.json"
+}

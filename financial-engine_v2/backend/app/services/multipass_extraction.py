@@ -816,6 +816,21 @@ _INCOME_STATEMENT_DISQUALIFY_PHRASES = [
     "financial report contents",
 ]
 
+_FORMAL_STATEMENT_SLOT_LABELS = (
+    "income_statement",
+    "cashflow_statement",
+    "balance_sheet",
+)
+
+_STATEMENT_SLOT_DISQUALIFY_PHRASES = [
+    "independentauditorsreviewreport",
+    "independentauditorreviewreport",
+    "independentauditorsreview",
+    "independentauditorreview",
+    "reportonthehalfyearfinancialreport",
+    "auditorsresponsibilitiesforthereview",
+]
+
 
 def _merge_cf_tables(
     candidates: list[tuple[int, Any]],
@@ -894,6 +909,8 @@ def _statement_precedence_rank(table: Any) -> int:
     """Prefer group/full statements over wrappers or component-entity tables."""
     text = _table_precedence_text(table)
     rank = 0
+    if any(marker in text for marker in _STATEMENT_SLOT_DISQUALIFY_PHRASES):
+        rank -= 120
     if any(
         marker in text
         for marker in (
@@ -927,6 +944,11 @@ def _statement_precedence_rank(table: Any) -> int:
     if any(marker in text for marker in ("thegroup", "groupstatement")):
         rank += 20
     return rank
+
+
+def _table_disqualified_from_formal_statement_slot(table: Any) -> bool:
+    text = _table_precedence_text(table)
+    return any(marker in text for marker in _STATEMENT_SLOT_DISQUALIFY_PHRASES)
 
 
 def _cashflow_candidate_is_appendix_fragment(table: Any) -> bool:
@@ -1041,6 +1063,11 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         for label, keywords in _TABLE_KEYWORDS.items():
             score = _score(table, label, keywords)
             if score > 0:
+                if (
+                    label in _FORMAL_STATEMENT_SLOT_LABELS
+                    and _table_disqualified_from_formal_statement_slot(table)
+                ):
+                    continue
                 # CF disqualification: tables whose headers/caption contain
                 # cash-flow-specific phrases must not claim income_statement
                 # or balance_sheet slots — they are cash-flow tables that
@@ -1070,7 +1097,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     # For each label: highest score wins; if tied, non-TOC beats TOC; if still tied,
     # earlier page wins (formal statements appear before notes in ASX filings).
     # Negate page_number so that lower pages win on tiebreak.
-    statement_precedence_labels = ("income_statement", "cashflow_statement", "balance_sheet")
+    statement_precedence_labels = _FORMAL_STATEMENT_SLOT_LABELS
     for label in _TABLE_KEYWORDS:
         if pools[label]:
             candidates = pools[label]
@@ -2444,6 +2471,12 @@ _NP_ATTRIBUTABLE_OWNER_MARKERS = (
     "attributabletomembers",
     "attributabletoequityholders",
 )
+_NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS = (
+    "shareholdersof",
+    "equityholdersof",
+    "ownersof",
+    "membersof",
+)
 _NP_ATTRIBUTABLE_REJECT_MARKERS = (
     "noncontrolling",
     "minority",
@@ -2470,6 +2503,173 @@ def _income_row_is_attributable_profit(
     return True
 
 
+def _income_owner_attributable_line_index(
+    label_lines: list[str],
+    previous_labels: list[str],
+) -> int | None:
+    context = _normalize_filter_text(" ".join(previous_labels[-6:]))
+    context_is_attributable_profit = "attributable" in context and "profit" in context
+    for index, label in enumerate(label_lines):
+        compact = _normalize_filter_text(label)
+        if not compact:
+            continue
+        if any(marker in compact for marker in _NP_ATTRIBUTABLE_REJECT_MARKERS):
+            continue
+        if any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS):
+            return index
+        if context_is_attributable_profit and any(
+            marker in compact for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+        ):
+            return index
+    return None
+
+
+def _row_ref_is_owner_attributable_np(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact or any(
+        marker in compact for marker in _NP_ATTRIBUTABLE_REJECT_MARKERS
+    ):
+        return False
+    return any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS) or any(
+        marker in compact for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+    )
+
+
+def _np_attributable_source_is_generic_profit(row_ref: Any, provenance: Any) -> bool:
+    compact = _normalize_filter_text(_combined_source_text(row_ref, provenance))
+    if not compact or _row_ref_is_owner_attributable_np(compact):
+        return False
+    return any(
+        marker in compact
+        for marker in (
+            "netprofitfortheperiod",
+            "profitfortheperiod",
+            "profitlossfortheperiod",
+            "profitaftertaxation",
+            "profitaftertax",
+            "profitafterincometax",
+            "profitlossaftertax",
+            "profitlossafterincometax",
+        )
+    )
+
+
+def _clean_income_statement_row_ref(label: Any) -> str:
+    row_ref = _normalise_fragmented_pdf_text(label)
+    return _re.sub(r"\s+\d+$", "", row_ref).strip()
+
+
+def _recover_revenue_from_multiline_income_row(
+    row: list[Any],
+    scale: str,
+) -> tuple[float, str] | None:
+    label_lines = _split_table_cell_lines(row[0]) if row else []
+    if len(label_lines) < 2:
+        return None
+
+    best_line_index: int | None = None
+    best_priority = -1
+    for index, label in enumerate(label_lines):
+        if _income_metric_for_row_label(label) != "revenue":
+            continue
+        priority = _income_metric_priority_for_row_label(label, "revenue", [])
+        if priority > best_priority:
+            best_line_index = index
+            best_priority = priority
+    if best_line_index is None:
+        return None
+
+    for cell in row[1:]:
+        value_lines = _split_table_cell_lines(cell)
+        if len(value_lines) <= best_line_index:
+            continue
+        value = _scaled_metric_value_from_text(
+            value_lines[best_line_index],
+            scale,
+        )
+        if value is not None:
+            return value, _clean_income_statement_row_ref(
+                label_lines[best_line_index]
+            )
+    return None
+
+
+def _parse_fragmented_income_statement_current_period_cell(
+    row: list[Any],
+    scale: str,
+) -> float | None:
+    parsed_cells: list[tuple[str, float, bool]] = []
+    for cell in row[1:]:
+        text = _normalise_fragmented_pdf_text(cell)
+        if not text:
+            continue
+        parsed = _parse_accounting_metric_number(text)
+        if parsed is None:
+            continue
+        raw_value, has_explicit_unit = parsed
+        parsed_cells.append((text, raw_value, has_explicit_unit))
+
+    if len(parsed_cells) >= 2:
+        first_text, first_raw, first_has_unit = parsed_cells[0]
+        second_text, second_raw, second_has_unit = parsed_cells[1]
+        if (
+            not first_has_unit
+            and not second_has_unit
+            and first_raw.is_integer()
+            and 0 < abs(first_raw) < 100
+            and abs(second_raw) >= 100
+            and "," in second_text
+        ):
+            second_digits = _re.sub(r"\D", "", second_text)
+            if len(second_digits) >= 3:
+                sign = -1 if first_raw < 0 or second_raw < 0 else 1
+                raw_value = sign * float(f"{int(abs(first_raw))}{second_digits}")
+                return raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+
+    return _parse_current_period_metric_cell(row, scale)
+
+
+def _recover_owner_np_attributable_from_income_row(
+    row: list[Any],
+    row_label: str,
+    previous_labels: list[str],
+    scale: str,
+) -> tuple[float, str] | None:
+    label_lines = _split_table_cell_lines(row[0]) if row else []
+    if not label_lines:
+        label_lines = [row_label]
+    owner_line_index = _income_owner_attributable_line_index(
+        label_lines,
+        previous_labels,
+    )
+    if owner_line_index is None and len(label_lines) == 1 and label_lines[0] != row_label:
+        label_lines = [row_label]
+        owner_line_index = _income_owner_attributable_line_index(
+            label_lines,
+            previous_labels,
+        )
+    if owner_line_index is None:
+        return None
+
+    row_ref = label_lines[owner_line_index].replace("BH P", "BHP")
+    if len(label_lines) > 1:
+        for cell in row[1:]:
+            value_lines = _split_table_cell_lines(cell)
+            if len(value_lines) <= owner_line_index:
+                continue
+            value = _scaled_metric_value_from_text(
+                value_lines[owner_line_index],
+                scale,
+            )
+            if value is not None:
+                return value, row_ref
+
+    value = _parse_fragmented_income_statement_current_period_cell(row, scale)
+    if value is None:
+        return None
+    return value, row_ref
+
+
 def _income_metric_priority_for_row_label(
     row_label: str,
     metric_name: str,
@@ -2477,6 +2677,8 @@ def _income_metric_priority_for_row_label(
 ) -> int:
     compact = _normalize_filter_text(row_label)
     if metric_name == "revenue":
+        if "totaloperatingrevenue" in compact:
+            return 110
         if "totalrevenuefromordinaryactivities" in compact:
             return 100
         if "revenuefromcontinuingoperations" in compact:
@@ -2489,6 +2691,12 @@ def _income_metric_priority_for_row_label(
             return 90
         return 50
     if metric_name == "np_attributable":
+        if _income_row_is_attributable_profit(row_label, previous_labels):
+            return 150
+        if _row_ref_is_owner_attributable_np(row_label):
+            return 140
+        if "netprofitattributable" in compact or "profitattributable" in compact:
+            return 130
         if "afterincometaxfromcontinuingoperations" in compact:
             return 110
         if "profitafterincometax" in compact or "profitaftertax" in compact:
@@ -2523,6 +2731,30 @@ def _recover_income_statement_metrics_from_table(
         row_label = _row_label_before_numeric_cells(row)
         if not row_label:
             continue
+
+        revenue_recovery = _recover_revenue_from_multiline_income_row(row, scale)
+        if revenue_recovery is not None:
+            value, row_ref = revenue_recovery
+            priority = _income_metric_priority_for_row_label(
+                row_ref,
+                "revenue",
+                previous_labels,
+            )
+            existing = recovered.get("revenue")
+            if existing is None or priority > existing[0]:
+                recovered["revenue"] = (priority, value, row_ref)
+
+        owner_np_recovery = _recover_owner_np_attributable_from_income_row(
+            row,
+            row_label,
+            previous_labels,
+            scale,
+        )
+        if owner_np_recovery is not None:
+            value, row_ref = owner_np_recovery
+            existing = recovered.get("np_attributable")
+            if existing is None or 150 > existing[0]:
+                recovered["np_attributable"] = (150, value, row_ref)
 
         metric_name = _income_metric_for_row_label(row_label)
         if metric_name == "np_attributable" and not any(
@@ -2619,29 +2851,60 @@ def _share_count_multiplier_from_table(table: Any) -> int:
     return 1
 
 
+def _share_count_table_surface(table: Any, *, row_limit: int = 10) -> str:
+    return " ".join(
+        [
+            str(getattr(table, "caption", "") or ""),
+            " ".join(str(header) for header in getattr(table, "headers", []) or []),
+            " ".join(
+                " ".join(str(cell) for cell in row)
+                for row in (getattr(table, "rows", []) or [])[:row_limit]
+                if row
+            ),
+        ]
+    )
+
+
+def _table_has_share_count_evidence(table: Any) -> bool:
+    text = _share_count_table_surface(table)
+    compact = _normalize_filter_text(text)
+    if any(
+        marker in compact
+        for marker in ("numberofshares", "ordinaryshares", "sharecapital")
+    ):
+        return True
+
+    words = set(_re.findall(r"[a-z]+", text.lower()))
+    return {"issued", "treasury", "contributed", "shares", "equity"}.issubset(
+        words
+    )
+
+
+def _share_row_period_match_rank(compact_label: str, period_end: Any) -> int:
+    parsed_period_end = parse_period_end(str(period_end) if period_end else None)
+    if parsed_period_end is None:
+        return 0
+    month_name = parsed_period_end.strftime("%B").lower()
+    exact = _normalize_filter_text(
+        f"At {parsed_period_end.day} {month_name} {parsed_period_end.year}"
+    )
+    without_year = _normalize_filter_text(f"At {parsed_period_end.day} {month_name}")
+    if exact in compact_label:
+        return 2
+    if without_year in compact_label:
+        return 1
+    return 0
+
+
 def _recover_preferred_shares_outstanding_from_table(
     table: Any,
+    *,
+    period_end: Any = None,
 ) -> tuple[float, str] | None:
     multiplier = _share_count_multiplier_from_table(table)
-    table_compact = _normalize_filter_text(
-        " ".join(
-            [
-                str(getattr(table, "caption", "") or ""),
-                " ".join(str(header) for header in getattr(table, "headers", []) or []),
-                " ".join(
-                    " ".join(str(cell) for cell in row)
-                    for row in (getattr(table, "rows", []) or [])[:10]
-                    if row
-                ),
-            ]
-        )
-    )
-    table_has_share_count_evidence = any(
-        marker in table_compact
-        for marker in ("numberofshares", "ordinaryshares", "sharecapital")
-    )
-    candidates: list[tuple[int, float, str]] = []
-    for row in getattr(table, "rows", []) or []:
+    table_has_share_count_evidence = _table_has_share_count_evidence(table)
+    candidates: list[tuple[int, int, int, float, str]] = []
+    for row_index, row in enumerate(getattr(table, "rows", []) or []):
         if not row:
             continue
         row_label = _row_label_before_numeric_cells(row)
@@ -2708,11 +2971,59 @@ def _recover_preferred_shares_outstanding_from_table(
                 for marker in ("beginning", "at1january", "atbeginning")
             ):
                 rank = 0
-            candidates.append((rank, value, row_label))
+            candidates.append(
+                (
+                    rank,
+                    _share_row_period_match_rank(compact_label, period_end),
+                    row_index,
+                    value,
+                    row_label,
+                )
+            )
     if not candidates:
         return None
-    _rank, value, row_label = max(candidates, key=lambda item: item[0])
+    _rank, _period_rank, _row_index, value, row_label = max(
+        candidates,
+        key=lambda item: (item[0], item[1], item[2]),
+    )
     return value, row_label
+
+
+def _recover_preferred_shares_outstanding_from_split_header_table(
+    previous_table: Any,
+    table: Any,
+    *,
+    period_end: Any = None,
+) -> tuple[float, str] | None:
+    if previous_table is None:
+        return None
+    if getattr(previous_table, "page_number", None) != getattr(
+        table, "page_number", None
+    ):
+        return None
+    if not _table_has_share_count_evidence(previous_table):
+        return None
+
+    from app.services.docling_extract import DoclingTable
+
+    combined = DoclingTable(
+        page_number=getattr(table, "page_number", None),
+        caption=" ".join(
+            part
+            for part in (
+                str(getattr(previous_table, "caption", "") or ""),
+                str(getattr(table, "caption", "") or ""),
+            )
+            if part
+        ),
+        headers=list(getattr(previous_table, "headers", []) or []),
+        rows=list(getattr(previous_table, "rows", []) or [])
+        + list(getattr(table, "rows", []) or []),
+    )
+    return _recover_preferred_shares_outstanding_from_table(
+        combined,
+        period_end=period_end,
+    )
 
 
 def _expand_income_statement_row_refs(
@@ -3016,7 +3327,10 @@ def _extract_single_table(
                         getattr(table, "page_number", "?"),
                     )
         if table_type == "share_capital":
-            recovered_shares = _recover_preferred_shares_outstanding_from_table(table)
+            recovered_shares = _recover_preferred_shares_outstanding_from_table(
+                table,
+                period_end=pass1_result.get("period_end"),
+            )
             if recovered_shares is not None:
                 recovered_value, recovered_row_ref = recovered_shares
                 extracted["shares_outstanding"] = recovered_value
@@ -3041,7 +3355,29 @@ def _extract_single_table(
             inferred_total_debt_ref = _infer_total_debt_row_ref(table)
             if inferred_total_debt_ref:
                 extracted["row_refs"]["total_debt"] = inferred_total_debt_ref
-        if table_type == "net_debt_note" and extracted.get("net_debt") is None:
+        if table_type == "balance_sheet":
+            recovered_total_debt = _recover_total_debt_from_balance_sheet_table(
+                table,
+                scale_for_table,
+            )
+            if recovered_total_debt is not None:
+                recovered_value, recovered_row_refs = recovered_total_debt
+                current_value = extracted.get("total_debt")
+                should_replace = current_value is None
+                if current_value is not None:
+                    try:
+                        should_replace = abs(float(current_value) - recovered_value) > 0.5
+                    except (TypeError, ValueError):
+                        should_replace = True
+                if should_replace:
+                    extracted["total_debt"] = recovered_value
+                    extracted["row_refs"]["total_debt"] = recovered_row_refs
+                    logger.info(
+                        "Recovered total_debt from balance-sheet debt rows on page %s rows=%r",
+                        getattr(table, "page_number", "?"),
+                        recovered_row_refs,
+                    )
+        if table_type in {"net_debt_note", "balance_sheet"} and extracted.get("net_debt") is None:
             recovered = _recover_explicit_net_debt_from_table(
                 table,
                 period_end=pass1_result.get("period_end"),
@@ -3052,13 +3388,14 @@ def _extract_single_table(
                 extracted["row_refs"]["net_debt"] = row_ref
                 extracted["period_col"] = period_col
                 logger.info(
-                    "Recovered explicit net_debt deterministically from page %s row=%r period_col=%r",
+                    "Recovered explicit net_debt deterministically from %s page %s row=%r period_col=%r",
+                    table_type,
                     getattr(table, "page_number", "?"),
                     row_ref,
                     period_col,
                 )
         if (
-            table_type == "net_debt_note"
+            table_type in {"net_debt_note", "balance_sheet"}
             and extracted.get("net_debt") is not None
             and not extracted["row_refs"].get("net_debt")
         ):
@@ -4342,6 +4679,7 @@ def classify_source_document(
 # ---------------------------------------------------------------------------
 
 _STRONG_TOTAL_DEBT_ROW_REFS = (
+    "total debt",
     "borrowings",
     "interest bearing liabilities",
     "interest-bearing liabilities",
@@ -4394,13 +4732,13 @@ def _select_preferred_evidence_row_ref(
         normalized = _normalise_evidence_row_ref(candidate)
         if not normalized:
             continue
-        if any(weak in normalized for weak in weak_markers):
-            continue
         for rank, marker in enumerate(strong_markers):
             if marker in normalized and rank < best_rank:
                 best_candidate = candidate
                 best_rank = rank
                 break
+        if best_candidate is None and any(weak in normalized for weak in weak_markers):
+            continue
     return best_candidate
 
 
@@ -4418,6 +4756,214 @@ def _infer_total_debt_row_ref(table) -> str | None:
         if preferred:
             return preferred
     return None
+
+
+def _recover_total_debt_from_balance_sheet_table(
+    table: Any,
+    scale: str,
+) -> tuple[float, str | list[str]] | None:
+    """Recover total financial debt from current-period balance-sheet debt rows."""
+    rows = getattr(table, "rows", []) or []
+    grouped_recovery = _total_debt_recovery_from_line_items(
+        _iter_grouped_balance_sheet_debt_line_items(rows, scale)
+    )
+    if grouped_recovery is not None:
+        return grouped_recovery
+
+    line_items: list[tuple[str, float]] = []
+    for row in rows:
+        line_items.extend(_iter_balance_sheet_debt_line_items(row, scale))
+    return _total_debt_recovery_from_line_items(line_items)
+
+
+def _total_debt_recovery_from_line_items(
+    line_items: list[tuple[str, float]],
+) -> tuple[float, str | list[str]] | None:
+    debt_components: list[tuple[str, float]] = []
+    explicit_total_debt: tuple[float, str] | None = None
+    for label, value in line_items:
+        normalized = _normalise_evidence_row_ref(label)
+        if normalized == "total debt":
+            explicit_total_debt = (value, label)
+            continue
+        debt_components.append((label, value))
+
+    if len(debt_components) >= 2:
+        return sum(value for _label, value in debt_components), [
+            label for label, _value in debt_components
+        ]
+    if debt_components:
+        label, value = debt_components[0]
+        return value, label
+    if explicit_total_debt is not None:
+        value, label = explicit_total_debt
+        return value, label
+    return None
+
+
+def _iter_grouped_balance_sheet_debt_line_items(
+    rows: list[list[Any]],
+    scale: str,
+) -> list[tuple[str, float]]:
+    line_items: list[tuple[str, float]] = []
+    for row_index, row in enumerate(rows):
+        if not row or not str(row[0] or "").strip():
+            continue
+
+        label_lines = _split_table_cell_lines(row[0])
+        if len(label_lines) < 2:
+            continue
+        if _is_balance_sheet_group_heading(label_lines[0]):
+            label_lines = label_lines[1:]
+
+        values: list[float | None] = []
+        cursor = row_index + 1
+        while cursor < len(rows) and len(values) < len(label_lines):
+            value_row = rows[cursor]
+            if value_row and str(value_row[0] or "").strip():
+                break
+            if value_row and any(str(cell or "").strip() for cell in value_row[1:]):
+                values.append(_parse_current_period_metric_cell(value_row, scale))
+            cursor += 1
+
+        if len(values) < 2:
+            continue
+        for label, value in zip(label_lines, values):
+            if value is None or value < 0:
+                continue
+            preferred = _select_preferred_evidence_row_ref(
+                label,
+                strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+                weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+            )
+            if preferred:
+                line_items.append((label, value))
+    return line_items
+
+
+def _iter_balance_sheet_debt_line_items(
+    row: list[Any],
+    scale: str,
+) -> list[tuple[str, float]]:
+    if not row or not any(_re.search(r"\d", str(cell or "")) for cell in row[1:]):
+        return []
+
+    label_lines = _split_table_cell_lines(row[0])
+    value_cell_index = _current_period_value_cell_index(row)
+    if value_cell_index is None:
+        return []
+
+    value_lines = _split_table_cell_lines(row[value_cell_index])
+    parsed_value_lines = [
+        _scaled_metric_value_from_text(line, scale) for line in value_lines
+    ]
+    parsed_value_lines = [value for value in parsed_value_lines if value is not None]
+
+    line_items: list[tuple[str, float]] = []
+    if label_lines and parsed_value_lines:
+        if _is_balance_sheet_group_heading(label_lines[0]):
+            label_lines = label_lines[1:]
+        offset = 0
+        if len(label_lines) == len(parsed_value_lines) + 1:
+            offset = 1
+        for label_index, label in enumerate(label_lines):
+            value_index = label_index - offset
+            if value_index < 0 or value_index >= len(parsed_value_lines):
+                continue
+            preferred = _select_preferred_evidence_row_ref(
+                label,
+                strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+                weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+            )
+            if not preferred:
+                continue
+            value = parsed_value_lines[value_index]
+            if value < 0:
+                continue
+            line_items.append((label, value))
+        if line_items:
+            return line_items
+
+    label = str(row[0] or "").strip()
+    preferred = _select_preferred_evidence_row_ref(
+        label,
+        strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+        weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+    )
+    if not preferred:
+        return []
+    value = _parse_current_period_metric_cell(row, scale)
+    if value is None or value < 0:
+        return []
+    return [(label, value)]
+
+
+_BALANCE_SHEET_GROUP_HEADINGS = {
+    "assets",
+    "current assets",
+    "non-current assets",
+    "non current assets",
+    "liabilities",
+    "current liabilities",
+    "non-current liabilities",
+    "non current liabilities",
+    "equity",
+}
+
+
+def _is_balance_sheet_group_heading(label: str) -> bool:
+    return _normalise_evidence_row_ref(label) in _BALANCE_SHEET_GROUP_HEADINGS
+
+
+def _split_table_cell_lines(cell: Any) -> list[str]:
+    return [
+        _normalise_fragmented_pdf_text(line)
+        for line in str(cell or "").splitlines()
+        if _normalise_fragmented_pdf_text(line)
+    ]
+
+
+def _current_period_value_cell_index(row: list[Any]) -> int | None:
+    parsed_values: list[tuple[int, tuple[float, bool]]] = []
+    for idx, cell in enumerate(row[1:], start=1):
+        parsed = _parse_first_metric_number_in_cell(cell)
+        if parsed is None:
+            continue
+        parsed_values.append((idx, parsed))
+
+    if not parsed_values:
+        return None
+
+    idx, (raw_value, has_explicit_unit) = parsed_values[0]
+    if (
+        len(parsed_values) >= 2
+        and not has_explicit_unit
+        and abs(raw_value) < 100
+        and abs(parsed_values[1][1][0]) >= 100
+    ):
+        idx = parsed_values[1][0]
+    return idx
+
+
+def _parse_first_metric_number_in_cell(cell: Any) -> tuple[float, bool] | None:
+    parsed = _parse_accounting_metric_number(cell)
+    if parsed is not None:
+        return parsed
+    for line in _split_table_cell_lines(cell):
+        parsed = _parse_accounting_metric_number(line)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _scaled_metric_value_from_text(text: Any, scale: str) -> float | None:
+    parsed = _parse_accounting_metric_number(text)
+    if parsed is None:
+        return None
+    raw_value, has_explicit_unit = parsed
+    if has_explicit_unit:
+        return raw_value
+    return raw_value * SCALE_MULTIPLIERS.get(scale, 1)
 
 
 def _parse_table_numeric_cell(cell: Any) -> float | None:
@@ -5835,6 +6381,14 @@ def _apply_preferred_income_statement_source_payload(
             existing_is_rejected = _existing_income_statement_metric_is_rejected(
                 metric_name
             )
+            existing_is_generic_np_attributable = (
+                metric_name == "np_attributable"
+                and _row_ref_is_owner_attributable_np(recovered_row_ref)
+                and _np_attributable_source_is_generic_profit(
+                    row_refs.get(metric_name),
+                    provenance.get(metric_name),
+                )
+            )
             existing_scale_conflicts_with_preferred = (
                 _existing_income_statement_metric_scale_conflicts(
                     metric_name,
@@ -5846,6 +6400,7 @@ def _apply_preferred_income_statement_source_payload(
                 existing_is_weak_wrapper
                 or existing_is_appendix_wrapper
                 or existing_is_rejected
+                or existing_is_generic_np_attributable
                 or existing_scale_conflicts_with_preferred
             ):
                 continue
@@ -6561,9 +7116,20 @@ def _apply_preferred_shares_source_payload(
     *,
     pass1_result: dict,
 ) -> None:
+    previous_table = None
     for table in tables or []:
-        recovered = _recover_preferred_shares_outstanding_from_table(table)
+        recovered = _recover_preferred_shares_outstanding_from_table(
+            table,
+            period_end=pass1_result.get("period_end"),
+        )
         if recovered is None:
+            recovered = _recover_preferred_shares_outstanding_from_split_header_table(
+                previous_table,
+                table,
+                period_end=pass1_result.get("period_end"),
+            )
+        if recovered is None:
+            previous_table = table
             continue
         recovered_value, recovered_row_ref = recovered
         metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
@@ -7290,6 +7856,84 @@ def _announcement_date_period_end_mismatch(
     return None
 
 
+def _source_bound_native_currency_status_can_be_ok(
+    payload: dict,
+    canonical_metrics: dict[str, Any],
+    currency: str,
+) -> bool:
+    """Allow source-bound native-currency reports to pass without FX conversion.
+
+    Non-AUD remains a structured warning. The status can be `ok` only when the
+    payload carries enough deterministic source binding to show values are in
+    the stated native currency and scale, not an unverified LLM guess.
+    """
+    if currency in {"AUD", "UNKNOWN", ""}:
+        return False
+    if _coerce_confidence(payload.get("confidence_metrics", 0.0), 0.0) < 0.70:
+        return False
+
+    source_bound = (
+        payload.get("source_bound")
+        if isinstance(payload.get("source_bound"), dict)
+        else {}
+    )
+    if not source_bound:
+        return False
+    if _normalize_currency_code(source_bound.get("currency")) != currency:
+        return False
+    for source_field in ("period_type", "period_end", "scale"):
+        payload_value = str(payload.get(source_field) or "").strip().lower()
+        source_value = str(source_bound.get(source_field) or "").strip().lower()
+        if not payload_value or source_value != payload_value:
+            return False
+    if str(payload.get("scale") or "").strip().lower() == "unknown":
+        return False
+
+    non_null_metrics = [
+        metric_name
+        for metric_name, value in canonical_metrics.items()
+        if value is not None
+    ]
+    if len(non_null_metrics) < (1 if payload.get("period_type") == "Q" else 3):
+        return False
+
+    payload_scale = str(payload.get("scale") or "").strip().lower()
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    scale_bound_metrics = [
+        metric_name
+        for metric_name in non_null_metrics
+        if str(metric_source_scales.get(metric_name) or "").strip().lower()
+        == payload_scale
+    ]
+    if len(scale_bound_metrics) < min(3, len(non_null_metrics)):
+        return False
+
+    row_refs = (
+        payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    )
+    provenance = (
+        payload.get("provenance")
+        if isinstance(payload.get("provenance"), dict)
+        else {}
+    )
+    evidenced_metrics = [
+        metric_name
+        for metric_name in non_null_metrics
+        if _normalize_filter_text(
+            _combined_source_text(
+                row_refs.get(metric_name),
+                provenance.get(metric_name),
+            )
+        )
+        not in {"", "unknown"}
+    ]
+    return len(evidenced_metrics) >= min(3, len(non_null_metrics))
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -7404,6 +8048,17 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     # A warning was already emitted at ingestion time in run_multipass_extraction.
     _currency = _normalize_currency_code(payload.get("currency"))
     if _currency != "AUD":
+        if _source_bound_native_currency_status_can_be_ok(
+            payload,
+            canonical_metrics,
+            _currency,
+        ):
+            logger.warning(
+                "validation_gate:non_aud_currency:%s — native-currency values "
+                "are source-bound; status remains ok",
+                _currency,
+            )
+            return "ok", None
         logger.warning(
             "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
             _currency,
