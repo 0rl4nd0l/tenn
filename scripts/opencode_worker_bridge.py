@@ -43,6 +43,9 @@ MAX_PROBE_TEXT_BYTES = 16000
 MAX_PROBE_ITEM_CHARS = 180
 WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FIELD_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*:\s*(.*)$")
+HEADER_LIKE_RE = re.compile(r"^([a-z][a-z0-9_-]*)\s*:(?!//)\s*(.*)$")
+MARKDOWN_FENCE_RE = re.compile(r"^(`{3,})(?:[^\S\r\n]*([^`\r\n]*))?$")
+MARKDOWN_CLOSING_FENCE_RE = re.compile(r"^(`{3,})[^\S\r\n]*$")
 PATHISH_RE = re.compile(
     r"(?:(?:\.\.?/|/)?[A-Za-z0-9._~+-]+(?:/[A-Za-z0-9._~+-]+)+"
     r"|\.env(?:\.[A-Za-z0-9_-]+)?"
@@ -738,12 +741,46 @@ def failure_result(
     ).lstrip()
 
 
+def _strip_outer_markdown_fence(lines: list[str]) -> list[str]:
+    nonblank = [idx for idx, line in enumerate(lines) if line.strip()]
+    if len(nonblank) < 2:
+        return lines
+    first = nonblank[0]
+    last = nonblank[-1]
+    opening = MARKDOWN_FENCE_RE.match(lines[first].strip())
+    closing = MARKDOWN_CLOSING_FENCE_RE.match(lines[last].strip())
+    if opening and closing and len(closing.group(1)) >= len(opening.group(1)):
+        return lines[:first] + lines[first + 1 : last] + lines[last + 1 :]
+    return lines
+
+
 def parse_result_fields(text: str) -> dict[str, str]:
     fields: dict[str, list[str]] = {}
     current: str | None = None
-    for raw_line in text.splitlines():
+    in_markdown_fence = False
+    markdown_fence_len = 0
+    for raw_line in _strip_outer_markdown_fence(text.splitlines()):
         line = raw_line.rstrip()
-        match = FIELD_RE.match(line.strip())
+        stripped = line.strip()
+        if in_markdown_fence:
+            closing = MARKDOWN_CLOSING_FENCE_RE.match(stripped)
+            if closing and len(closing.group(1)) >= markdown_fence_len:
+                in_markdown_fence = False
+                markdown_fence_len = 0
+                if current:
+                    fields[current].append(stripped)
+                continue
+            if current and line.strip():
+                fields[current].append(line.strip())
+            continue
+        opening = MARKDOWN_FENCE_RE.match(stripped)
+        if opening:
+            in_markdown_fence = True
+            markdown_fence_len = len(opening.group(1))
+            if current:
+                fields[current].append(stripped)
+            continue
+        match = FIELD_RE.match(stripped)
         if match:
             field = match.group(1)
             if field not in REQUIRED_RESULT_FIELDS:
@@ -754,6 +791,9 @@ def parse_result_fields(text: str) -> dict[str, str]:
             value = match.group(2).strip()
             if value:
                 fields[current].append(value)
+            continue
+        if HEADER_LIKE_RE.match(stripped):
+            current = None
             continue
         if current and line.strip():
             fields[current].append(line.strip())
@@ -784,11 +824,331 @@ def _evidence_paths_are_present(value: str | None) -> bool:
     return any("/" in line or "." in Path(line).name for line in concrete)
 
 
+def _worker_id_unsafe_owner_re(worker_id: str | None) -> re.Pattern[str] | None:
+    normalized = (worker_id or "").strip().lower()
+    if not normalized or not WORKER_ID_RE.fullmatch(normalized):
+        return None
+    escaped = re.escape(normalized)
+    return re.compile(rf"(?<![A-Za-z0-9_.-]){escaped}(?:'s)?(?![A-Za-z0-9_.-])")
+
+
+def _final_authority_boundary_spans(line: str, *, worker_id: str | None = None) -> list[tuple[int, int]]:
+    parent_authority_owner = r"(?:codex|parent(?: session| agent)?|main[- ]agent|orchestrator)"
+    authority_phrase = r"(?:final decisions?|final authorit(?:y|ies)|authoritative decisions?)"
+    spans: list[tuple[int, int]] = []
+    parent_owns_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"\s+(?:(?:must|should|still|explicitly)\s+)*"
+        rf"(?:own|owns|owned|retain|retains|retained|hold|holds|held|make|makes|made|is responsible for)\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    parent_is_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"\s+(?:(?:still|explicitly)\s+)*"
+        rf"(?:is|has|remain|remains)\b"
+        rf"\s+(?:the\s+)?(?:(?:sole|exclusive)\s+)?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    authority_remains_with_parent = re.search(
+        rf"\b{authority_phrase}\b"
+        rf"[^.\n;:]*?\b(?:remain|remains|rest|rests|belong|belongs|owned|held|retained|responsibility)\b"
+        rf"[^.\n;:]*?\b{parent_authority_owner}\b[^.\n;:]*",
+        line,
+    )
+    parent_not_worker_appositive = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"\s*,\s*(?:not|never)\s+workers?\s*,\s*"
+        rf"(?:is|has|remain|remains)\b"
+        rf"\s+(?:the\s+)?\b{authority_phrase}\b(?P<trailing>[^.\n;:]*)",
+        line,
+    )
+    parent_boundary_unsafe = re.compile(
+        r"\b(?:workers?|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|delegates?'?s?|subagents?'?s?|ai|assistants?|(?:external\s+)?reviewers?|"
+        r"apart\s+from|other\s+than|except|unless|excluding|save\s+for|but|however|"
+        r"i|me|my|mine|we|us|our|ours|no|not|never|cannot|can not|can't|"
+        r"do not|does not|don't|doesn't|must not|should not|outside|without|away from)\b"
+    )
+    leading_parent_boundary_unsafe = re.compile(r"\b(?:if|when|unless|after|once)\b[^.\n;:]*,\s*$")
+    worker_id_unsafe = _worker_id_unsafe_owner_re(worker_id)
+    trailing_worker_denial = re.compile(r"\s*,\s*(?:not|never)\s+workers?\s*$")
+    trailing_worker_output_qualifier = re.compile(
+        r"(?:\s+and|\s*,)\s+workers?\s+outputs?\s+(?:is|are)\s+evidence\s+only\s*$"
+    )
+    leading_worker_evidence_qualifier = re.compile(
+        r"^\s*(?:[-*+]\s*|\d+[.)]\s*)?(?:(?:workers?\s+outputs?)|workers?)"
+        r"\s+(?:is|are)\s+evidence\s+only\s*,\s*"
+    )
+    possessive_authority_owner = re.compile(
+        rf"\b(?:(?:the|a|an)\s+)?(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){{0,2}})'s"
+        rf"\s+{authority_phrase}\b"
+    )
+    shared_authority_owner = re.compile(
+        r"\b(?:with|alongside)\s+(?:(?:the|a|an)\s+)?"
+        r"(?P<owner>[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){0,2})\b"
+    )
+    reviewed_final_decision_owner = re.compile(
+        r"\b(?:review(?:s|ed|ing)?|accept(?:s|ed|ing)?)\s+"
+        r"(?:(?:the|a|an)\s+)?"
+        r"(?P<owner>(?!codex\b|parent\b|main\b|final\b|this\b|that\b)"
+        r"[a-z][a-z0-9_-]*(?:\s+[a-z][a-z0-9_-]*){0,2})"
+        r"\s+final decisions?\b"
+    )
+    safe_possessive_authority_owner = re.compile(rf"{parent_authority_owner}")
+
+    def parent_boundary_is_safe(text: str, *, start: int = 0) -> bool:
+        prefix = leading_worker_evidence_qualifier.sub("", line[:start])
+        if prefix and (parent_boundary_unsafe.search(prefix) or leading_parent_boundary_unsafe.search(prefix)):
+            return False
+        safety_text = trailing_worker_output_qualifier.sub("", trailing_worker_denial.sub("", text))
+        if parent_boundary_unsafe.search(safety_text):
+            return False
+        if len(re.findall(authority_phrase, safety_text)) > 1:
+            return False
+        for match in possessive_authority_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
+        for match in shared_authority_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
+        for match in reviewed_final_decision_owner.finditer(safety_text):
+            if not safe_possessive_authority_owner.fullmatch(match.group("owner")):
+                return False
+        return not (worker_id_unsafe and worker_id_unsafe.search(safety_text))
+
+    if parent_owns_authority and parent_boundary_is_safe(parent_owns_authority.group(0), start=parent_owns_authority.start()):
+        spans.append(parent_owns_authority.span())
+    if parent_is_authority and parent_boundary_is_safe(parent_is_authority.group(0), start=parent_is_authority.start()):
+        spans.append(parent_is_authority.span())
+    if authority_remains_with_parent and parent_boundary_is_safe(
+        authority_remains_with_parent.group(0), start=authority_remains_with_parent.start()
+    ):
+        spans.append(authority_remains_with_parent.span())
+    if parent_not_worker_appositive and parent_boundary_is_safe(
+        parent_not_worker_appositive.group("trailing"), start=parent_not_worker_appositive.start()
+    ):
+        spans.append(parent_not_worker_appositive.span())
+
+    authority_action = r"(?:make|makes|made|own|owns|hold|holds|retain|retains|have|has|claim|claims|exercise|exercises)"
+    authority_action_gerund = r"(?:making|owning|holding|retaining|having|claiming|exercising)"
+    parent_denies_worker_authority = re.search(
+        rf"\b{parent_authority_owner}\b"
+        rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|do not|does not|don't|doesn't|never)\b"
+        rf"\s+allow(?:s|ed)?\b"
+        rf"[^.\n;:]*?\bworkers?\b"
+        rf"[^.\n;:]*?\b{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_not_allowed_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*?\b(?:are|is|be)\b"
+        rf"\s+(?:not|never)\s+allowed\s+to\s+{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_denies_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*\b(?:cannot|can not|can't|must not|should not|may not|do not|does not|don't|doesn't|never)\b"
+        rf"\s+{authority_action}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_prohibited_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*?\b(?:are|is|be)\b"
+        rf"\s+prohibited\s+from\s+{authority_action_gerund}\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_has_no_authority = re.search(
+        rf"\bworkers?\b"
+        rf"[^.\n;:]*\b{authority_action}\b"
+        rf"[^.\n;:]*?\bno\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b[^.\n;:]*",
+        line,
+    )
+    worker_denial_unsafe = re.compile(
+        r"\b(?:(?:anything\s+)?less than|apart\s+from|other\s+than|except|unless|alongside|"
+        r"but|however|opencode|models?'?s?|(?<!main-)(?<!main )(?<!parent )agents?'?s?|"
+        r"(?:evidence\s+)?scouts?'?s?|"
+        r"i|me|my|mine|we|us|our|ours)\b"
+    )
+
+    def worker_denial_is_safe(text: str) -> bool:
+        if worker_denial_unsafe.search(text):
+            return False
+        if len(re.findall(authority_phrase, text)) > 1:
+            return False
+        return not (worker_id_unsafe and worker_id_unsafe.search(text))
+
+    authority_denied_to_workers = re.search(
+        rf"\b(?:no|never)\b"
+        rf"[^.\n;:]*?\b{authority_phrase}\b"
+        rf"[^.\n;:]*?\b(?:by|from|for)\b"
+        rf"[^.\n;:]*?\bworkers?\b[^.\n;:]*",
+        line,
+    )
+    if parent_denies_worker_authority and worker_denial_is_safe(parent_denies_worker_authority.group(0)):
+        spans.append(parent_denies_worker_authority.span())
+    if worker_not_allowed_authority and worker_denial_is_safe(worker_not_allowed_authority.group(0)):
+        spans.append(worker_not_allowed_authority.span())
+    if worker_denies_authority and worker_denial_is_safe(worker_denies_authority.group(0)):
+        spans.append(worker_denies_authority.span())
+    if worker_prohibited_authority and worker_denial_is_safe(worker_prohibited_authority.group(0)):
+        spans.append(worker_prohibited_authority.span())
+    if worker_has_no_authority and worker_denial_is_safe(worker_has_no_authority.group(0)):
+        spans.append(worker_has_no_authority.span())
+    if authority_denied_to_workers and worker_denial_is_safe(authority_denied_to_workers.group(0)):
+        spans.append(authority_denied_to_workers.span())
+    return spans
+
+
+def _final_authority_boundary_statement(line: str) -> bool:
+    return bool(_final_authority_boundary_spans(line))
+
+
+def _terminal_claim_is_negated(line: str, claim_start: int) -> bool:
+    prefix = line[:claim_start].rstrip()
+    return bool(
+        re.search(
+            r"\b(?:not(?:\s+(?:yet|currently|be|be\s+considered|mark\s+this(?:\s+as)?))?|"
+            r"no\s+longer|never|cannot|can not|can't|isn't|is\s+not|aren't|are\s+not)\s*$",
+            prefix,
+        )
+    )
+
+
+def _span_is_quoted(line: str, start: int, end: int) -> bool:
+    return any(line[:start].count(quote) % 2 == 1 and quote in line[end:] for quote in ('"', "`"))
+
+
+def _quoted_terminal_claim_is_evidence_context(line: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:docs?\s+list|documentation\s+lists?|test\s+fixture\s+cites?|fixture\s+cites?|"
+            r"example\s+contract\s+snippet|must\s+not\s+(?:use|claim)|"
+            r"workers?\s+must\s+not\s+(?:use|claim)|invalid\s+worker\s+language)\b",
+            line,
+        )
+    )
+
+
+def _terminal_claim_matches(line: str, phrase: str, *, field: str | None = None) -> Iterable[re.Match[str]]:
+    token_boundary = re.compile(r"[A-Za-z0-9_-]")
+    path_token = re.compile(r"[A-Za-z0-9._~+/-]")
+    for match in re.finditer(re.escape(phrase), line):
+        start, end = match.span()
+        if start > 0 and token_boundary.fullmatch(line[start - 1]):
+            continue
+        if end < len(line) and token_boundary.fullmatch(line[end]):
+            continue
+        if (
+            field in {"findings", "evidence_paths"}
+            and _span_is_quoted(line, start, end)
+            and _quoted_terminal_claim_is_evidence_context(line)
+        ):
+            continue
+
+        token_start = start
+        while token_start > 0 and path_token.fullmatch(line[token_start - 1]):
+            token_start -= 1
+        token_end = end
+        while token_end < len(line) and path_token.fullmatch(line[token_end]):
+            token_end += 1
+        token = line[token_start:token_end].rstrip(".,;:)")
+        if field == "evidence_paths" and ("/" in token or re.search(r"\.[a-z0-9]{1,8}$", token)):
+            continue
+        yield match
+
+
+def _evidence_only_final_authority_claim(text: str, *, worker_id: str | None = None) -> str | None:
+    terminal_claims = (
+        "approved to merge",
+        "approved-to-merge",
+        "approved for merge",
+        "approved-for-merge",
+        "merge approved",
+        "merge-approved",
+        "ready for merge",
+        "ready-for-merge",
+        "ready to merge",
+        "merge-ready",
+        "merge now",
+        "ship it",
+        "no further review needed",
+        "codex can skip review",
+        "this is fixed",
+        "this is complete",
+    )
+    authority_claims = (
+        "final decision",
+        "final authority",
+        "final authorities",
+        "authoritative decision",
+    )
+    current_field: str | None = None
+    in_markdown_fence = False
+    markdown_fence_len = 0
+    for raw_line in _strip_outer_markdown_fence(text.splitlines()):
+        line = raw_line.strip().lower()
+        if in_markdown_fence:
+            closing = MARKDOWN_CLOSING_FENCE_RE.match(line)
+            if closing and len(closing.group(1)) >= markdown_fence_len:
+                in_markdown_fence = False
+                markdown_fence_len = 0
+                continue
+            if current_field in {"findings", "evidence_paths"}:
+                continue
+        else:
+            opening = MARKDOWN_FENCE_RE.match(line)
+            if opening:
+                in_markdown_fence = True
+                markdown_fence_len = len(opening.group(1))
+                continue
+        if not in_markdown_fence:
+            field_match = FIELD_RE.match(line)
+            if field_match:
+                field = field_match.group(1)
+                current_field = field if field in REQUIRED_RESULT_FIELDS else None
+            elif HEADER_LIKE_RE.match(line):
+                current_field = None
+        for phrase in terminal_claims:
+            if any(
+                not _terminal_claim_is_negated(line, match.start())
+                for match in _terminal_claim_matches(line, phrase, field=current_field)
+            ):
+                return phrase
+        for phrase in authority_claims:
+            if phrase not in line:
+                continue
+            for clause in re.split(r"[.;:]", line):
+                stripped_clause = clause.strip()
+                safe_spans = _final_authority_boundary_spans(stripped_clause, worker_id=worker_id)
+                for match in re.finditer(re.escape(phrase), stripped_clause):
+                    if (
+                        current_field in {"findings", "evidence_paths"}
+                        and _span_is_quoted(stripped_clause, match.start(), match.end())
+                        and _quoted_terminal_claim_is_evidence_context(stripped_clause)
+                    ):
+                        continue
+                    in_safe_span = any(
+                        start <= match.start() and match.end() <= end for start, end in safe_spans
+                    )
+                    if not in_safe_span:
+                        return phrase
+    if in_markdown_fence:
+        return "unterminated markdown fence"
+    return None
+
+
 def validate_result_text(
     text: str,
     *,
     max_bytes: int = MAX_RESULT_BYTES,
     expected_decision_limit: str | None = None,
+    trusted_worker_id: str | None = None,
 ) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     encoded = text.encode("utf-8")
@@ -821,6 +1181,16 @@ def validate_result_text(
 
     reported_decision_limit = (fields.get("decision_limit") or "").strip().lower()
     requested_decision_limit = (expected_decision_limit or "").strip().lower()
+    trusted_worker_id = (trusted_worker_id or "").strip()
+    if trusted_worker_id:
+        reported_worker_id = (fields.get("worker_id") or "").strip()
+        if reported_worker_id and reported_worker_id != trusted_worker_id:
+            issues.append(
+                {
+                    "field": "worker_id",
+                    "message": f"worker_id {reported_worker_id} does not match trusted worker_id {trusted_worker_id}",
+                }
+            )
     if requested_decision_limit:
         if requested_decision_limit not in DECISION_LIMITS:
             issues.append(
@@ -843,29 +1213,17 @@ def validate_result_text(
 
     effective_decision_limit = requested_decision_limit or reported_decision_limit
     if effective_decision_limit == "evidence_only":
-        lower = text.lower()
-        authority_phrases = (
-            "final decision",
-            "final authority",
-            "authoritative decision",
-            "approved to merge",
-            "ready to merge",
-            "merge now",
-            "ship it",
-            "no further review needed",
-            "codex can skip review",
-            "this is fixed",
-            "this is complete",
+        authority_claim = _evidence_only_final_authority_claim(
+            text,
+            worker_id=trusted_worker_id or fields.get("worker_id"),
         )
-        for phrase in authority_phrases:
-            if phrase in lower:
-                issues.append(
-                    {
-                        "field": "decision_limit",
-                        "message": f"evidence_only result claims final authority: {phrase}",
-                    }
-                )
-                break
+        if authority_claim:
+            issues.append(
+                {
+                    "field": "decision_limit",
+                    "message": f"evidence_only result claims final authority: {authority_claim}",
+                }
+            )
 
     return {"ok": not issues, "fields": fields, "issues": issues}
 
@@ -888,14 +1246,20 @@ def validate_result_file(path: Path, *, expected_decision_limit: str | None = No
                 meta_read_error = "WORKER_META.json must be a JSON object"
 
     requested_decision_limit = expected_decision_limit
+    trusted_worker_id = None
     if requested_decision_limit is None and meta is not None:
         meta_decision_limit = meta.get("decision_limit")
         if isinstance(meta_decision_limit, str) and meta_decision_limit.strip():
             requested_decision_limit = meta_decision_limit
+    if meta is not None:
+        meta_worker_id = meta.get("worker_id")
+        if isinstance(meta_worker_id, str) and meta_worker_id.strip():
+            trusted_worker_id = meta_worker_id.strip()
 
     result = validate_result_text(
         path.read_text(encoding="utf-8"),
         expected_decision_limit=requested_decision_limit,
+        trusted_worker_id=trusted_worker_id,
     )
     fields = result.get("fields", {})
     effective_decision_limit = (
