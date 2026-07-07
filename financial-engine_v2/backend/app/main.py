@@ -48,8 +48,8 @@ from app.routes.marketplace_price_intelligence import (
 
 try:
     from app.routes.cockpit_api import router as cockpit_api_router
-except ImportError:
-    cockpit_api_router = None
+except ImportError as exc:
+    raise RuntimeError("Required Cockpit API router failed to import") from exc
 try:
     from app.routes.cockpit_claims import router as cockpit_claims_router
 except ImportError:
@@ -114,8 +114,7 @@ app.include_router(
     prefix="/api/extraction-review",
     tags=["extraction_review"],
 )
-if cockpit_api_router is not None:
-    app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
+app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
 if cockpit_claims_router is not None:
     app.include_router(cockpit_claims_router, prefix="/api/cockpit", tags=["cockpit"])
 if cockpit_feedback_router is not None:
