@@ -65,7 +65,20 @@ error: failed to push some refs to 'https://github.com/0rl4nd0l/tenn.git'
 ```
 - User approved option A: intentional hook-tool bypass for this already
   validated branch using `TENN_ALLOW_MISSING_HOOK_TOOLS=1`.
+- `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/report-review-status-marker-parser-v1-20260707`:
+  exit 0; branch pushed to origin. Pre-push hook reported missing Ruff/pytest,
+  ran markdown hygiene, and skipped lint/test checks because the approved
+  bypass flag was set.
+- GitHub draft PR created with the GitHub connector:
+  `https://github.com/0rl4nd0l/tenn/pull/485`.
+- `gh pr view 485 --json number,title,state,isDraft,headRefName,baseRefName,url,mergeable,commits,changedFiles,updatedAt,statusCheckRollup`:
+  exit 0; `state=OPEN`, `isDraft=true`, `mergeable=MERGEABLE`,
+  `changedFiles=10`, `scan=SUCCESS`, `lint-and-test=IN_PROGRESS` at first
+  verification.
 
 ## Final State
 
-RUNNING after owner approval for hook-tool bypass.
+DONE_WITH_RISK.
+
+Remaining risk: CI was still running at first PR verification, and this report
+update still needs to be pushed to the PR branch.

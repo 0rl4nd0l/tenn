@@ -8,7 +8,7 @@ against `migration/clean-runtime-baseline-reconstruct-v1`.
 
 ## Current State
 
-RUNNING
+DONE_WITH_RISK
 
 ## Scope
 
@@ -41,8 +41,16 @@ See `VALIDATION.md`.
 
 ## PR State
 
-Pending. User approved the explicit local pre-push hook-tool bypass after the
-first push attempt was blocked by missing local Ruff/pytest binaries.
+- PR: `https://github.com/0rl4nd0l/tenn/pull/485`
+- number: `485`
+- state: `OPEN`
+- draft: `true`
+- base: `migration/clean-runtime-baseline-reconstruct-v1`
+- head: `control-plane/report-review-status-marker-parser-v1-20260707`
+- mergeable: `MERGEABLE` at the time checked
+- checks at first verification:
+  - `scan`: success
+  - `lint-and-test`: in progress
 
 ## Bypass Approval
 
@@ -90,7 +98,8 @@ repo venv is broader than this publish-only lane.
 - pre-run max timestamp or count: no existing PR for this branch.
 - post-run max timestamp or count: zero PRs created.
 - rows/files inserted or updated after run start: none; GitHub PR only.
-- readiness/gate status: owner approved bypass; push/PR pending.
+- readiness/gate status: draft PR opened; CI still running at first
+  verification.
 - exact command/query used: see `VALIDATION.md`.
-- result: DATA_MISSING until PR is created and verified.
-- remaining blocker: push/PR pending.
+- result: PARTIAL.
+- remaining blocker: CI completion and owner review.
