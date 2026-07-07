@@ -63,11 +63,9 @@
 [pre-push] set TENN_ALLOW_MISSING_HOOK_TOOLS=1 to bypass local tool checks intentionally
 error: failed to push some refs to 'https://github.com/0rl4nd0l/tenn.git'
 ```
+- User approved option A: intentional hook-tool bypass for this already
+  validated branch using `TENN_ALLOW_MISSING_HOOK_TOOLS=1`.
 
 ## Final State
 
-WAITING_ON_USER.
-
-Needed: owner approval either to intentionally set
-`TENN_ALLOW_MISSING_HOOK_TOOLS=1` for this push, or to repair/install the
-missing hook tools in `financial-engine_v2/.venv`.
+RUNNING after owner approval for hook-tool bypass.

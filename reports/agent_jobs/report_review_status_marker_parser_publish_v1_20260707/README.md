@@ -8,7 +8,7 @@ against `migration/clean-runtime-baseline-reconstruct-v1`.
 
 ## Current State
 
-WAITING_ON_USER
+RUNNING
 
 ## Scope
 
@@ -41,10 +41,21 @@ See `VALIDATION.md`.
 
 ## PR State
 
-Not created. Push was blocked by the local pre-push hook before the branch
-reached GitHub.
+Pending. User approved the explicit local pre-push hook-tool bypass after the
+first push attempt was blocked by missing local Ruff/pytest binaries.
 
-## WAITING_ON_USER
+## Bypass Approval
+
+USER_APPROVED: Orlando selected option A, approving:
+
+```bash
+TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/report-review-status-marker-parser-v1-20260707
+```
+
+Scope remains limited to pushing this already-validated branch and opening a
+draft PR. No runtime/data/extraction/automation behavior changes are allowed.
+
+## Prior WAITING_ON_USER
 
 Needed: choose one publish path.
 
@@ -79,7 +90,7 @@ repo venv is broader than this publish-only lane.
 - pre-run max timestamp or count: no existing PR for this branch.
 - post-run max timestamp or count: zero PRs created.
 - rows/files inserted or updated after run start: none; GitHub PR only.
-- readiness/gate status: blocked by missing local pre-push hook tools.
+- readiness/gate status: owner approved bypass; push/PR pending.
 - exact command/query used: see `VALIDATION.md`.
 - result: DATA_MISSING until PR is created and verified.
-- remaining blocker: owner approval for hook-tool bypass or venv repair.
+- remaining blocker: push/PR pending.
