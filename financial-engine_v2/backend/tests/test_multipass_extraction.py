@@ -2315,6 +2315,44 @@ def test_pass4_reconciler_derives_net_debt_from_total_debt():
     )
 
 
+def test_pass4_reconciler_accepts_borrowings_and_finance_lease_liabilities():
+    """Borrowings rows remain strong debt evidence even when leases are included."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "cash_end": 4_743_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents at end of period"},
+        },
+        {
+            "_source": "balance_sheet",
+            "net_debt": None,
+            "total_debt": 5_756_000_000,
+            "shares_outstanding": None,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Borrowings and finance lease liabilities"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "USD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 1_013_000_000
+    assert (
+        payload["provenance"]["net_debt"]
+        == "derived:balance_sheet:total_debt(5756000000)-cash_end(4743000000)"
+    )
+
+
 def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
     """Explicitly extracted net_debt must not be overwritten by derivation."""
     from app.services.multipass_extraction import _run_pass4_reconciler
@@ -4630,6 +4668,161 @@ def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
     assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
+def test_income_source_overlay_prefers_bhp_shareholder_attributable_row():
+    """BHP split numeric cells should still bind NPAT to the shareholder row."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=44,
+        caption="",
+        headers=["", "", "", "BHP Results for the year ended 30 June 2021"],
+        rows=[
+            ["Consolidated Income Statement for the year ended 30 June 2021"],
+            ["", "", "", "", "", "", "2021", "", "2020", "2019"],
+            ["", "", "", "Notes", "", "", "US$M", "", "US$M", "US$M"],
+            ["Profit after taxation", "from Continuing", "operations", "", "", "1", "3,451", "", "8,736", "9,520"],
+            ["Attributable to non", "-controlling interests", "", "", "", "", "2,147", "", "780", "879"],
+            ["Attributable to BH", "P shareholders", "", "", "", "1", "1,304", "", "7,956", "8,306"],
+        ],
+    )
+    payload = {
+        "period_type": "A",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"np_attributable": 3_451_000_000},
+        "np_attributable": 3_451_000_000,
+        "row_refs": {"np_attributable": "Profit after taxation from Continuing operations"},
+        "provenance": {
+            "np_attributable": (
+                "income_statement:page_44:Profit after taxation from Continuing operations"
+            )
+        },
+        "metric_source_scales": {"np_attributable": "millions"},
+        "metric_scale_sources": {"np_attributable": "table"},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "A",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 11_304_000_000
+    assert payload["row_refs"]["np_attributable"] == "Attributable to BHP shareholders"
+
+
+def test_income_source_overlay_prefers_csl_shareholder_split_row():
+    """CSL shareholder split rows should beat generic net profit for the period."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=11,
+        caption="Consolidated Statement of Comprehensive Income",
+        headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        rows=[
+            ["Net profit for the period", "286", "2,056"],
+            ["Net profit/(loss) for the period attributable to:", "286", "2,056"],
+            ["- Shareholders of CSL Limited\n- Non-controlling interests", "401\n(115)", "2,007\n49"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"np_attributable": 286_000_000},
+        "np_attributable": 286_000_000,
+        "row_refs": {"np_attributable": "Net profit for the period"},
+        "provenance": {"np_attributable": "income_statement:page_11:Net profit for the period"},
+        "metric_source_scales": {"np_attributable": "millions"},
+        "metric_scale_sources": {"np_attributable": "table"},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 401_000_000
+    assert payload["row_refs"]["np_attributable"] == "- Shareholders of CSL Limited"
+
+
+def test_income_source_overlay_recovers_csl_total_operating_revenue_split_row():
+    """CSL split revenue/cost rows should bind revenue to Total operating revenue."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=11,
+        caption="Consolidated Statement of Comprehensive Income",
+        headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        rows=[
+            [
+                (
+                    "Sales and service revenue\n"
+                    "Influenza pandemic facility reservation fees\n"
+                    "Royalties and license revenue\n"
+                    "Other income"
+                ),
+                "8,092\n94\n101\n45",
+                "8,213\n89\n128\n53",
+            ],
+            [
+                "Total operating revenue 2\nCost of sales",
+                "8,332\n(3,870)",
+                "8,483\n(3,934)",
+            ],
+            ["Operating profit (EBIT)", "577", "2,762"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"ebit": 577_000_000},
+        "ebit": 577_000_000,
+        "row_refs": {"ebit": "Operating profit (EBIT)"},
+        "provenance": {"ebit": "income_statement:page_11:Operating profit (EBIT)"},
+        "metric_source_scales": {"ebit": "millions"},
+        "metric_scale_sources": {"ebit": "table"},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 8_332_000_000
+    assert payload["row_refs"]["revenue"] == "Total operating revenue"
+
+
 def test_income_source_overlay_replaces_ebitda_with_profit_before_tax_row():
     """FMG-style EBITDA should yield to formal profit-before-tax evidence."""
     from app.services.docling_extract import DoclingTable
@@ -5630,7 +5823,8 @@ def test_validate_gate_non_aud_returns_ok_low_confidence():
     """Non-AUD currency (e.g. USD, GBP) must downgrade to ok_low_confidence.
 
     There is no FX conversion policy — values are stored as-is, so downstream
-    consumers must not compare them directly with AUD-denominated peers.
+    consumers must not compare them directly with AUD-denominated peers. Payloads
+    without deterministic source binding remain low-confidence.
     """
     from app.services.multipass_extraction import _validate_gate
 
@@ -5642,6 +5836,43 @@ def test_validate_gate_non_aud_returns_ok_low_confidence():
         assert error is None, (
             f"error must be None for currency downgrade; got {error!r}"
         )
+
+
+def test_validate_gate_source_bound_native_currency_can_return_ok():
+    """Source-bound USD reports should not be downgraded by currency alone."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(currency="USD", scale="millions")
+    payload["period_type"] = "H"
+    payload["period_end"] = "2025-12-31"
+    payload["confidence_metrics"] = 0.93
+    payload["source_bound"] = {
+        "currency": "USD",
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "scale": "millions",
+        "document_title": "source-bound-usd-financial-report.pdf",
+    }
+    payload["metric_source_scales"] = {
+        "revenue": "millions",
+        "ebit": "millions",
+        "np_attributable": "millions",
+    }
+    payload["row_refs"] = {
+        "revenue": "Revenue",
+        "ebit": "Operating profit",
+        "np_attributable": "Net profit after tax",
+    }
+    payload["provenance"] = {
+        "revenue": "income_statement:page_1:Revenue",
+        "ebit": "income_statement:page_1:Operating profit",
+        "np_attributable": "income_statement:page_1:Net profit after tax",
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
 
 
 # ---------------------------------------------------------------------------
@@ -6183,6 +6414,140 @@ def test_shares_source_overlay_handles_parser_shape_without_header_units():
     assert payload["shares_outstanding"] == 1_510_000_000
 
 
+def test_shares_source_overlay_handles_fmg_split_share_count_header_table():
+    """FMG PyMuPDF output splits share-count headers from the data rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    split_header = DoclingTable(
+        page_number=30,
+        caption="For personal use only",
+        headers=[
+            "",
+            "Issued",
+            "Treasury",
+            "Contributed",
+            "Issued",
+            "Treasury",
+            "Contributed",
+        ],
+        rows=[
+            [
+                "",
+                "Issued",
+                "Treasury",
+                "Contributed",
+                "Issued",
+                "Treasury",
+                "Contributed",
+            ],
+            ["", "shares", "shares", "equity", "shares", "shares", "equity"],
+        ],
+    )
+    share_rows = DoclingTable(
+        page_number=30,
+        caption="For personal use only",
+        headers=[
+            "At 1 July 2024",
+            "3,078,964,918",
+            "(2,999,674)",
+            "3,075,965,244",
+            "1,195",
+            "(118)",
+            "1,077",
+        ],
+        rows=[
+            [
+                "At 1 July 2024",
+                "3,078,964,918",
+                "(2,999,674)",
+                "3,075,965,244",
+                "1,195",
+                "(118)",
+                "1,077",
+            ],
+            [
+                "Purchase of shares under\nemployee share plans",
+                "-",
+                "(14,140,364)",
+                "(14,140,364)",
+                "-",
+                "(163)",
+                "(163)",
+            ],
+            [
+                "Employee share awards vested",
+                "-",
+                "12,745,988",
+                "12,745,988",
+                "-",
+                "173",
+                "173",
+            ],
+            [
+                "At 30 June 2025",
+                "3,078,964,918",
+                "(4,394,050)",
+                "3,074,570,868",
+                "1,195",
+                "(108)",
+                "1,087",
+            ],
+            [
+                "Purchase of shares under\nemployee share plans",
+                "-",
+                "(8,769,251)",
+                "(8,769,251)",
+                "-",
+                "(109)",
+                "(109)",
+            ],
+            [
+                "Employee share awards vested",
+                "-",
+                "12,739,353",
+                "12,739,353",
+                "-",
+                "179",
+                "179",
+            ],
+            [
+                "At 31 December 2025",
+                "3,078,964,918",
+                "(423,948)",
+                "3,078,540,970",
+                "1,195",
+                "(38)",
+                "1,157",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [split_header, share_rows],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["shares_outstanding"] == 3_078_964_918
+    assert payload["shares_outstanding"] == 3_078_964_918
+    assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+
+
 def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance():
     """RMS share count is in the Number of shares note, not equity $000 balance rows."""
     from app.services.docling_extract import DoclingTable
@@ -6659,6 +7024,245 @@ def test_pass3a_infers_total_debt_row_ref_from_balance_sheet_rows():
     assert results[0]["row_refs"]["total_debt"] == "Interest bearing liabilities"
 
 
+def test_pass3a_recovers_total_debt_from_current_and_noncurrent_borrowings():
+    """Balance-sheet total_debt should include current plus non-current borrowings."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=12,
+        caption="Consolidated balance sheet",
+        rows=[
+            ["Cash and cash equivalents", "", "1,145", "2,157"],
+            ["Interest-bearing liabilities and borrowings", "7", "717", "804"],
+            ["Interest-bearing liabilities and borrowings", "7", "10,421", "10,694"],
+            ["Total liabilities", "", "17,442", "17,997"],
+        ],
+        headers=[
+            "",
+            "Notes",
+            "Consolidated Entity.December 2025 US$m",
+            "Consolidated Entity.June 2025 US$m",
+        ],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": 10_421,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {"total_debt": "Interest-bearing liabilities and borrowings"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["total_debt"] == 11_138_000_000
+    assert results[0]["row_refs"]["total_debt"] == [
+        "Interest-bearing liabilities and borrowings",
+        "Interest-bearing liabilities and borrowings",
+    ]
+
+
+def test_pass3a_recovers_total_debt_from_multiline_balance_sheet_groups():
+    """Grouped Docling rows should align labels with same-line current values."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=12,
+        caption="Consolidated balance sheet",
+        rows=[
+            [
+                (
+                    "CURRENT LIABILITIES\n"
+                    "Trade and other payables\n"
+                    "Interest-bearing liabilities and borrowings 7\n"
+                    "Current tax liabilities\n"
+                    "Provisions"
+                ),
+                "3,171\n717\n302\n418",
+                "3,461\n804\n280\n270",
+            ],
+            [
+                (
+                    "NON-CURRENT LIABILITIES\n"
+                    "Interest-bearing liabilities and borrowings 7\n"
+                    "Retirement benefit liabilities\n"
+                    "Deferred tax liabilities\n"
+                    "Provisions\n"
+                    "Other non-current liabilities"
+                ),
+                "10,421\n306",
+                "10,694\n308\n1,510\n155\n515",
+            ],
+        ],
+        headers=["", "December 2025 US$m", "June 2025 US$m"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": 10_421,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {"total_debt": "Interest-bearing liabilities and borrowings 7"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["total_debt"] == 11_138_000_000
+    assert results[0]["row_refs"]["total_debt"] == [
+        "Interest-bearing liabilities and borrowings 7",
+        "Interest-bearing liabilities and borrowings 7",
+    ]
+
+
+def test_pass3a_recovers_total_debt_from_pymupdf_blank_value_rows():
+    """PyMuPDF grouped rows should align labels with following current values."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=19,
+        caption="",
+        headers=[
+            (
+                "Assets\n"
+                "Cash and cash equivalents\n"
+                "Investments 3.2\n"
+                "Intangible assets"
+            ),
+            "",
+            "1,638\n28,932\n1,964",
+        ],
+        rows=[
+            [
+                (
+                    "Liabilities\n"
+                    "Derivative financial instruments 4.2\n"
+                    "Borrowings 4.1\n"
+                    "Total liabilities\n"
+                    "Net assets"
+                ),
+                "",
+                "402\n2,664\n33,115\n10,731",
+            ],
+            ["", "208", ""],
+            ["", "3,679", ""],
+            ["", "36,381", ""],
+            ["", "10,898", ""],
+        ],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": None,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["total_debt"] == 3_679_000_000
+    assert results[0]["row_refs"]["total_debt"] == "Borrowings 4.1"
+
+
+def test_pass3a_recovers_explicit_net_debt_from_balance_sheet_row():
+    """A direct current-period Net debt row in a balance sheet is source-bound."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=16,
+        caption="Balance sheet key metrics",
+        rows=[
+            ["Borrowings", "4", "5,150", "4,835"],
+            ["Lease liabilities", "4", "606", "604"],
+            ["Total debt", "", "5,756", "5,439"],
+            ["Cash and cash equivalents", "4", "4,743", "4,328"],
+            ["Net debt", "", "1,013", "1,111"],
+        ],
+        headers=["", "", "31 December 2025", "30 June 2025"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+    }
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": None,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["net_debt"] == 1_013_000_000
+    assert results[0]["row_refs"]["net_debt"] == "Net debt"
+
+
 def test_pass3a_prefers_strong_total_debt_row_ref_from_model_list():
     """Mixed model row_ref lists should keep the strongest debt label only."""
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
@@ -6812,6 +7416,84 @@ def test_pass2_cross_guarantee_note_cannot_claim_income_statement():
     assert labelled["income_statement"] is consolidated_table, (
         "Closed-group deed note must not win the canonical income_statement slot"
     )
+
+
+def test_pass2_auditor_review_report_cannot_claim_balance_sheet():
+    """Auditor review pages can mention statements but are not source tables."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    qbe_balance_sheet = DoclingTable(
+        page_number=19,
+        caption="",
+        headers=[
+            (
+                "Assets\n"
+                "Cash and cash equivalents\n"
+                "Investments 3.2\n"
+                "Intangible assets"
+            ),
+            "",
+            "1,638\n28,932\n1,964",
+        ],
+        rows=[
+            [
+                (
+                    "Assets\n"
+                    "Cash and cash equivalents\n"
+                    "Investments 3.2\n"
+                    "Intangible assets"
+                ),
+                "",
+                "1,638\n28,932\n1,964",
+            ],
+            ["", "2,124", ""],
+            ["", "31,822", ""],
+            ["", "2,072", ""],
+            [
+                (
+                    "Liabilities\n"
+                    "Derivative financial instruments\n"
+                    "Borrowings\n"
+                    "Total liabilities\n"
+                    "Net assets\n"
+                    "Equity\n"
+                    "Total equity"
+                ),
+                "",
+                "402\n2,664\n33,115\n10,731\n10,731",
+            ],
+            ["", "208", ""],
+            ["", "3,679", ""],
+            ["", "36,381", ""],
+            ["", "10,898", ""],
+            ["", "10,898", ""],
+        ],
+    )
+    auditor_review = DoclingTable(
+        page_number=36,
+        caption="",
+        headers=["32", "", "", "", "", "", "", ""],
+        rows=[
+            ["32", "", "", "", "", "", "", ""],
+            ["", "Independent a", "uditor's", "review", "repo", "rt", "", ""],
+            ["", "Report on the Half Year Financ", "ial Report", "", "", "", "", ""],
+            [
+                "",
+                "which comprises the consolidated balance sheet",
+                "as at 30 June 2025",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+        ],
+    )
+
+    labelled = _run_pass2_locator([auditor_review, qbe_balance_sheet])
+
+    assert labelled["balance_sheet"] is qbe_balance_sheet
 
 
 # ---------------------------------------------------------------------------

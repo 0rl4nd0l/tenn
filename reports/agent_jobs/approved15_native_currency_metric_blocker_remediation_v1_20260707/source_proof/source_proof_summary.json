@@ -1,0 +1,42 @@
+{
+  "artifact_type": "approved15_native_currency_metric_source_proof_summary_v1",
+  "date": "2026-07-07",
+  "selected_fix_class": "capital_structure_net_debt",
+  "proof": {
+    "CSL_H_2025-12-31": {
+      "source": "balance_sheet page 12",
+      "cash_end": 1145000000.0,
+      "current_borrowings": 717000000.0,
+      "noncurrent_borrowings": 10421000000.0,
+      "expected_net_debt": 9993000000.0,
+      "formula": "717000000 + 10421000000 - 1145000000"
+    },
+    "FMG_H_2025-12-31": {
+      "source": "balance_sheet page 22",
+      "cash_end": 4743000000.0,
+      "current_borrowings_and_finance_lease_liabilities": 257000000.0,
+      "noncurrent_borrowings_and_finance_lease_liabilities": 5499000000.0,
+      "expected_net_debt": 1013000000.0,
+      "formula": "257000000 + 5499000000 - 4743000000"
+    },
+    "QBE_H_2025-06-30": {
+      "source": "borrowings/cash evidence exists in source proof, but replay-selected balance_sheet is auditor review page",
+      "expected_net_debt": 1555000000.0,
+      "status": "remaining_source_selection_blocker"
+    }
+  },
+  "final_scorecard": {
+    "present_correct": 35,
+    "present_wrong_value": 2,
+    "missing_expected_metric": 3,
+    "failure_count": 5,
+    "gate_status": "fail"
+  },
+  "forbidden_actions": {
+    "mutated_canonical_truth": false,
+    "mutated_db_qdrant_redis_news_memory": false,
+    "mutated_gold_labels": false,
+    "mutated_source_pdfs": false,
+    "ran_broad_approved15_replay": false
+  }
+}
