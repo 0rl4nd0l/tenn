@@ -3132,6 +3132,9 @@ def _extract_single_table(
         if not isinstance(metrics_payload, dict):
             metrics_payload = raw_payload
 
+        raw_row_refs = raw_payload.get("row_refs")
+        row_refs = dict(raw_row_refs) if isinstance(raw_row_refs, dict) else {}
+
         # shares_outstanding is always an absolute count — the prompt instructs the LLM
         # to output the absolute number (e.g. 5057000000 not 5057 when the table says
         # "5,057 (Million)"). No post-hoc scale multiplication needed.
@@ -3143,7 +3146,7 @@ def _extract_single_table(
             "_scale_source": scale_source,
             "_thinking": raw_payload.get("thinking"),
             "_markdown": table_markdown,
-            "row_refs": raw_payload.get("row_refs", {}),
+            "row_refs": row_refs,
         }
         for metric_name in metrics:
             val = metrics_payload.get(metric_name)
@@ -3302,9 +3305,7 @@ def _extract_single_table(
                     extracted["shares_outstanding"],
                 )
 
-        extracted["row_refs"] = raw_payload.get("row_refs", {})
-        if not isinstance(extracted["row_refs"], dict):
-            extracted["row_refs"] = {}
+        extracted["row_refs"] = dict(raw_row_refs) if isinstance(raw_row_refs, dict) else {}
         extracted["period_col"] = raw_payload.get("period_col")
         if table_type == "income_statement":
             extracted["row_refs"] = _expand_income_statement_row_refs(
