@@ -21,7 +21,7 @@ active on a host.
 | Timer | Cadence | Job | Output |
 | --- | --- | --- | --- |
 | `tenn-codex-automation-health.timer` | Daily 07:45 | Automation Health Monitor | `~/.codex/automations/tenn/reports/*-automation-health.md` |
-| `tenn-codex-repo-hygiene.timer` | Daily 08:00 | Repo Hygiene / Collision Scanner | `~/.codex/automations/tenn/reports/*-repo-hygiene.md` |
+| `tenn-codex-repo-hygiene.timer` | Daily 08:00 | Daily Repo Hygiene / Collision Scanner | `~/.codex/automations/tenn/reports/*-repo-hygiene.md` |
 | `tenn-codex-extraction-regression.timer` | Daily 08:30 | Extraction Regression Scout | `~/.codex/automations/tenn/reports/*-extraction-regression.md` |
 | `tenn-codex-bug-regression.timer` | Daily 09:00 | Bug / Regression Finder | `~/.codex/automations/tenn/reports/*-bug-regression.md` |
 | `tenn-codex-memory-drift.timer` | Friday 11:00 | Project Memory Drift Scanner | `~/.codex/automations/tenn/reports/*-memory-drift.md` |

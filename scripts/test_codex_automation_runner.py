@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -14,8 +15,36 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import codex_automation_runner as runner
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+AUTOMATION_INDEX = REPO_ROOT / "docs/dev/automation_index.md"
+SYSTEMD_USER_DIR = REPO_ROOT / "systemd/user"
+
 
 class CodexAutomationRunnerTest(unittest.TestCase):
+    def _automation_index_rows(self) -> dict[str, dict[str, str]]:
+        text = AUTOMATION_INDEX.read_text(encoding="utf-8")
+        rows: dict[str, dict[str, str]] = {}
+        pattern = re.compile(
+            r"^\|\s*`tenn-codex-(?P<job>[^`]+)\.timer`\s*"
+            r"\|\s*(?P<cadence>[^|]+?)\s*"
+            r"\|\s*(?P<title>[^|]+?)\s*"
+            r"\|\s*`(?P<output>[^`]+)`\s*\|$",
+            re.MULTILINE,
+        )
+        for match in pattern.finditer(text):
+            job_name = match.group("job")
+            self.assertNotIn(
+                job_name,
+                rows,
+                f"duplicate automation index timer row for {job_name}",
+            )
+            rows[job_name] = {
+                "cadence": match.group("cadence").strip(),
+                "title": match.group("title").strip(),
+                "output": match.group("output").strip(),
+            }
+        return rows
+
     def test_expected_jobs_are_registered(self) -> None:
         expected_jobs = {
             "automation-health",
@@ -29,6 +58,52 @@ class CodexAutomationRunnerTest(unittest.TestCase):
         }
 
         self.assertEqual(expected_jobs, set(runner.JOBS))
+
+    def test_automation_index_timer_table_matches_registered_jobs(self) -> None:
+        index_rows = self._automation_index_rows()
+
+        self.assertEqual(set(runner.JOBS), set(index_rows))
+        for job_name, job in runner.JOBS.items():
+            with self.subTest(job=job_name):
+                self.assertEqual(job.title, index_rows[job_name]["title"])
+                self.assertIn(f"*-{job_name}.md", index_rows[job_name]["output"])
+
+    def test_systemd_templates_match_registered_jobs(self) -> None:
+        service_jobs = {
+            path.name.removeprefix("tenn-codex-").removesuffix(".service")
+            for path in SYSTEMD_USER_DIR.glob("tenn-codex-*.service")
+        }
+        timer_jobs = {
+            path.name.removeprefix("tenn-codex-").removesuffix(".timer")
+            for path in SYSTEMD_USER_DIR.glob("tenn-codex-*.timer")
+        }
+
+        self.assertEqual(set(runner.JOBS), service_jobs)
+        self.assertEqual(set(runner.JOBS), timer_jobs)
+
+        for job_name in runner.JOBS:
+            with self.subTest(job=job_name):
+                service_text = (SYSTEMD_USER_DIR / f"tenn-codex-{job_name}.service").read_text(
+                    encoding="utf-8"
+                )
+                timer_text = (SYSTEMD_USER_DIR / f"tenn-codex-{job_name}.timer").read_text(
+                    encoding="utf-8"
+                )
+                self.assertRegex(
+                    service_text,
+                    rf"(?m)^ExecStart=.*scripts/codex_automation_runner\.py {re.escape(job_name)}$",
+                )
+                self.assertIn(f"Unit=tenn-codex-{job_name}.service", timer_text)
+
+    def test_timer_persistence_policy_matches_automation_index(self) -> None:
+        index_text = AUTOMATION_INDEX.read_text(encoding="utf-8")
+        self.assertIn("Only the native `automation-health` timer is persistent", index_text)
+
+        for job_name in runner.JOBS:
+            with self.subTest(job=job_name):
+                timer_text = (SYSTEMD_USER_DIR / f"tenn-codex-{job_name}.timer").read_text(encoding="utf-8")
+                expected = "Persistent=true" if job_name == "automation-health" else "Persistent=false"
+                self.assertIn(expected, timer_text)
 
     def test_daily_closeout_prompt_is_audit_only(self) -> None:
         prompt = runner.JOBS["daily-closeout"].prompt_builder()
