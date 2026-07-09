@@ -1,6 +1,6 @@
 # State
 
-state: LOCAL_VALIDATED
+state: PR_OPENED
 
 ## Current State
 
@@ -15,6 +15,10 @@ state: LOCAL_VALIDATED
   `/home/l4nd0/tenn-automation-write-executor-plan-layer4-v0-20260709`
 - Helper: `scripts/automation_write_executor_plan.py`
 - Tests: `scripts/test_automation_write_executor_plan.py`
+- Draft PR: #495 `Add automation write executor plan`
+- PR URL: `https://github.com/0rl4nd0l/tenn/pull/495`
+- Local commits:
+  - `f7bccd63 Add automation write executor plan`
 
 ## Guard
 
@@ -80,3 +84,14 @@ state: LOCAL_VALIDATED
   cleanup by the helper.
 - No runtime, timer, service, DB, Qdrant, Redis, extraction, source-PDF,
   gold-label, Docker, model/GPU, or secret mutation.
+
+## Publish
+
+- Branch pushed:
+  `origin/control-plane/automation-write-executor-plan-layer4-v0-20260709`
+- First push attempt was blocked by missing local hook tools:
+  `financial-engine_v2/.venv/bin/ruff` and
+  `financial-engine_v2/.venv/bin/pytest`.
+- Retry used `TENN_ALLOW_MISSING_HOOK_TOOLS=1`; pre-push markdown hygiene
+  passed.
+- Draft PR opened with the GitHub connector, stacked on PR #494 branch.

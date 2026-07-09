@@ -50,8 +50,18 @@
   - result: no subprocess or shell execution surface in the helper
 - code-reviewer pass
   - result: no critical findings, warnings, or suggestions after cleanup
+- branch push
+  - first attempt: blocked by missing local hook tools `ruff` and `pytest`
+  - retry:
+    `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/automation-write-executor-plan-layer4-v0-20260709`
+  - retry exit status: 0
+  - result: branch pushed; pre-push markdown hygiene passed
+- draft PR creation
+  - method: GitHub connector
+  - result: PR #495 opened at
+    `https://github.com/0rl4nd0l/tenn/pull/495`
 
 ## Pending
 
 - final `git status --short --untracked-files=all`
-- branch push and draft PR creation
+- PR #495 review and checks

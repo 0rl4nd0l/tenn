@@ -1,6 +1,6 @@
 # Automation Write Executor Plan Layer 4 V0
 
-Status: LOCAL_VALIDATED
+Status: PR_OPENED
 
 ## Summary
 
@@ -31,3 +31,5 @@ run planner.
   manifests fail closed with no commands.
 - GitHub and git command plans are allowlisted and never executed by this
   helper.
+- Draft PR opened: #495 `Add automation write executor plan`
+  - URL: `https://github.com/0rl4nd0l/tenn/pull/495`
