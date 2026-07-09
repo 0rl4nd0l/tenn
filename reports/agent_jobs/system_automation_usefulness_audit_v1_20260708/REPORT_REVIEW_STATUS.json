@@ -1,0 +1,20 @@
+{
+    "schema_version": 1,
+    "job_id": "system_automation_usefulness_audit_v1_20260708",
+    "review_status": "SUPERSEDED",
+    "reviewed_at": "2026-07-09T20:42:07+10:00",
+    "reviewed_by": "Codex",
+    "review_evidence": [
+        "The original daily-closeout missing-timer blocker is superseded by the July 9 20:30 scheduled proof.",
+        "Read-only service proof: tenn-codex-daily-closeout.service started Thu 2026-07-09 20:30:28 AEST, exited 20:34:49 AEST, and reported Result=success with ExecMainStatus=0.",
+        "Read-only output proof: report /home/l4nd0/.codex/automations/tenn/reports/20260709T203028+1000-daily-closeout.md and log /home/l4nd0/.codex/automations/tenn/logs/20260709T203028+1000-daily-closeout.jsonl were produced at 2026-07-09 20:34:49 +1000.",
+        "The stale daily-closeout branch is parked as PARKED_SUPERSEDED; this marker refresh performed no timer, runtime, data, GitHub issue, branch, or worktree mutation."
+    ],
+    "source_report_paths": [
+        "PARKING_REVIEW.md"
+    ],
+    "summary": "Superseded/parked: the July 8 audit is historical scout evidence; the July 9 20:30 daily-closeout proof resolves the missing live timer blocker.",
+    "next_action": "none",
+    "runtime_functionality_proven": true,
+    "github_state_checked": false
+}
