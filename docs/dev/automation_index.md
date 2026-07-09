@@ -12,6 +12,35 @@ This file indexes Tenn automated audit/proposal jobs. These jobs are intended to
 - Mutation-capable work still requires task cards, registry coordination, allowed files, validation, and final reports.
 - Only the native `automation-health` timer is persistent across missed calendar events. Codex chat timers use `Persistent=false` to avoid reboot catch-up bursts.
 
+## Model Routing
+
+The runner uses explicit model routing for Codex child jobs so simple
+automations do not inherit the host's high-end interactive default.
+
+- `automation-health` is native Python and spends no Codex model tokens.
+- `repo-hygiene`, `daily-closeout`, `doc-drift`, `future-opportunities`, and
+  `memory-drift` use `gpt-5.4-mini` with `model_reasoning_effort="medium"` by
+  default.
+- `extraction-regression` and `bug-regression` keep the configured Codex
+  default model by default because they review higher-risk extraction,
+  financial-truth, route, and regression evidence.
+
+Operators can override routing without editing timer units:
+
+- `TENN_CODEX_AUTOMATION_SMALL_MODEL`
+- `TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT`
+- `TENN_CODEX_AUTOMATION_MODEL`
+- `TENN_CODEX_AUTOMATION_REASONING_EFFORT`
+- `TENN_CODEX_AUTOMATION_<JOB_NAME>_MODEL`
+- `TENN_CODEX_AUTOMATION_<JOB_NAME>_REASONING_EFFORT`
+
+For per-job overrides, uppercase the job name and replace hyphens with
+underscores, for example
+`TENN_CODEX_AUTOMATION_REPO_HYGIENE_MODEL=gpt-5.6-luna`.
+
+This policy only changes the Codex CLI invocation for repo-side automation
+agents. It does not change live Tenn model/GPU runtime configuration.
+
 ## Timer Templates
 
 This table indexes repository unit templates. Confirm live installed state with

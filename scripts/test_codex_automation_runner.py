@@ -21,6 +21,16 @@ SYSTEMD_USER_DIR = REPO_ROOT / "systemd/user"
 
 
 class CodexAutomationRunnerTest(unittest.TestCase):
+    def _runner_command(self, job_name: str, env: dict[str, str] | None = None) -> list[str]:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            codex_path = Path(temp_dir) / "codex"
+            codex_path.write_text("#!/bin/sh\n", encoding="utf-8")
+            with (
+                mock.patch.object(runner, "CODEX_CANDIDATES", (codex_path,)),
+                mock.patch.dict(runner.os.environ, env or {}, clear=True),
+            ):
+                return runner._command(runner.JOBS[job_name], Path("prompt.md"), "20260710T120000+1000")
+
     def _automation_index_rows(self) -> dict[str, dict[str, str]]:
         text = AUTOMATION_INDEX.read_text(encoding="utf-8")
         rows: dict[str, dict[str, str]] = {}
@@ -58,6 +68,51 @@ class CodexAutomationRunnerTest(unittest.TestCase):
         }
 
         self.assertEqual(expected_jobs, set(runner.JOBS))
+
+    def test_model_policies_are_explicit_for_registered_jobs(self) -> None:
+        expected_policies = {
+            "automation-health": runner.MODEL_POLICY_NATIVE,
+            "bug-regression": runner.MODEL_POLICY_DEFAULT,
+            "daily-closeout": runner.MODEL_POLICY_SMALL,
+            "doc-drift": runner.MODEL_POLICY_SMALL,
+            "extraction-regression": runner.MODEL_POLICY_DEFAULT,
+            "future-opportunities": runner.MODEL_POLICY_SMALL,
+            "memory-drift": runner.MODEL_POLICY_SMALL,
+            "repo-hygiene": runner.MODEL_POLICY_SMALL,
+        }
+
+        self.assertEqual(expected_policies, {name: job.model_policy for name, job in runner.JOBS.items()})
+
+    def test_small_model_viable_jobs_use_small_model_by_default(self) -> None:
+        for job_name in ("daily-closeout", "doc-drift", "future-opportunities", "memory-drift", "repo-hygiene"):
+            with self.subTest(job=job_name):
+                command = self._runner_command(job_name)
+                self.assertIn("--model", command)
+                self.assertEqual(runner.DEFAULT_SMALL_MODEL, command[command.index("--model") + 1])
+                self.assertIn("-c", command)
+                self.assertIn(
+                    f'model_reasoning_effort="{runner.DEFAULT_SMALL_REASONING_EFFORT}"',
+                    command,
+                )
+
+    def test_high_risk_regression_jobs_keep_default_model_by_default(self) -> None:
+        for job_name in ("bug-regression", "extraction-regression"):
+            with self.subTest(job=job_name):
+                command = self._runner_command(job_name)
+                self.assertNotIn("--model", command)
+                self.assertNotIn("-c", command)
+
+    def test_per_job_model_override_wins(self) -> None:
+        command = self._runner_command(
+            "bug-regression",
+            {
+                "TENN_CODEX_AUTOMATION_BUG_REGRESSION_MODEL": "gpt-5.6-luna",
+                "TENN_CODEX_AUTOMATION_BUG_REGRESSION_REASONING_EFFORT": "low",
+            },
+        )
+
+        self.assertEqual("gpt-5.6-luna", command[command.index("--model") + 1])
+        self.assertIn('model_reasoning_effort="low"', command)
 
     def test_automation_index_timer_table_matches_registered_jobs(self) -> None:
         index_rows = self._automation_index_rows()
