@@ -1,6 +1,6 @@
 # State
 
-state: DONE_WITH_RISK
+state: PR_OPENED
 
 ## Current State
 
@@ -19,5 +19,6 @@ state: DONE_WITH_RISK
   `DATA_MISSING`.
 - The host skill is installed locally and the repo helper now exists in
   `/home/l4nd0/tenn`.
-- Orlando approved publish prep. The repo files are on publish branch
-  `control-plane/tenn-system-brief-v0-20260709-adopt` pending commit/push/PR.
+- Orlando approved publish prep. The repo files were committed on publish branch
+  `control-plane/tenn-system-brief-v0-20260709-adopt` and opened as draft PR
+  #491.

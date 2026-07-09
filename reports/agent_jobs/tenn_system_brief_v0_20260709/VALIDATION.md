@@ -93,3 +93,15 @@
 - `git status --short --untracked-files=all` from `/home/l4nd0/tenn`
   - exit status: 0
   - result: clean
+
+## Publish Closeout
+
+- local commit: `da5317fe Add Tenn system brief helper`
+- branch push:
+  - first attempt blocked by missing local
+    `/home/l4nd0/tenn/financial-engine_v2/.venv/bin/pytest`
+  - second attempt used `TENN_ALLOW_MISSING_HOOK_TOOLS=1`
+  - remote branch:
+    `origin/control-plane/tenn-system-brief-v0-20260709-adopt`
+- draft PR: #491 `Add Tenn system brief helper`
+  - URL: `https://github.com/0rl4nd0l/tenn/pull/491`
