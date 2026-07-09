@@ -3728,6 +3728,248 @@ def test_cashflow_capex_prefers_ppe_row_over_multirow_investing_aggregate():
     assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
 
 
+def test_cashflow_capex_prefers_grouped_current_ppe_intangibles_row():
+    """WOW grouped cashflow rows should use current-period PP&E plus intangibles."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=12,
+        caption="8",
+        headers=["NOTE", "4 JANUARY\n2026\n$M", "5 JANUARY\n2025\n(RESTATED)1\n$M"],
+        rows=[
+            [
+                "Cash flows from investing activities\n"
+                "Proceeds from the sale of property, plant and equipment\n"
+                "Payments for property, plant and equipment and intangible assets\n"
+                "Proceeds from the sale of subsidiaries and investments, net of cash disposed\n"
+                "Payments for the purchase of businesses\n"
+                "Payments for the purchase of investments\n"
+                "Advances to non-related parties\n"
+                "Dividends received",
+                "",
+                "142\n(1,218)\n408\n-\n-\n(10)\n-",
+            ],
+            ["", "65", ""],
+            ["", "(1,304)", ""],
+            ["", "98", ""],
+            ["", "(11)", ""],
+            ["", "(35)", ""],
+            ["", "-", ""],
+            ["", "1", ""],
+            ["Net cash used in investing activities", "(1,186)", "(678)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(1,186)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(1,218)",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "investing_cf": "Net cash used in investing activities",
+            "capex": "Payments for property, plant and equipment",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2026-01-04",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -1_304_000_000
+    assert (
+        result["row_refs"]["capex"]
+        == "Payments for property, plant and equipment and intangible assets"
+    )
+
+
+def test_cashflow_capex_keeps_same_row_current_value_in_grouped_rows():
+    """CSL grouped cashflow rows can store the first current value on the label row."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=14,
+        caption="Consolidated Statement of Cash Flows",
+        headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        rows=[
+            [
+                "Cash flows from Investing Activities\n"
+                "Payments for property, plant and equipment\n"
+                "Proceeds from sale of property, plant and equipment\n"
+                "Payments for intangible assets",
+                "(296)",
+                "(378)\n-\n(155)",
+            ],
+            ["", "3", ""],
+            ["", "(360)", ""],
+            ["Net cash outflow from investing activities", "(652)", "(366)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(652)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(296)",
+        "pass3_confidence": 0.9,
+        "row_refs": {"capex": "Payments for property, plant and equipment"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -296_000_000
+    assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
+
+
+def test_cashflow_capex_grouped_rows_skip_note_column_for_current_value():
+    """Grouped cashflow recovery should not treat note numbers as amounts."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=14,
+        caption="Consolidated Statement of Cash Flows",
+        headers=["Notes", "Note", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        rows=[
+            [
+                "Cash flows from Investing Activities\n"
+                "Payments for property, plant and equipment\n"
+                "Proceeds from sale of property, plant and equipment\n"
+                "Payments for intangible assets",
+                "10",
+                "(296)",
+                "(378)",
+            ],
+            ["", "", "3", "-"],
+            ["", "", "(360)", "(155)"],
+            ["Net cash outflow from investing activities", "", "(652)", "(366)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(652)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(296)",
+        "pass3_confidence": 0.9,
+        "row_refs": {"capex": "Payments for property, plant and equipment"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -296_000_000
+    assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
+
+
+def test_cashflow_capex_grouped_rows_keep_small_current_value_without_note_column():
+    """Grouped rows without note columns should not choose comparative values."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=14,
+        caption="Consolidated Statement of Cash Flows",
+        headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        rows=[
+            [
+                "Cash flows from Investing Activities\n"
+                "Payments for property, plant and equipment\n"
+                "Payments for intangible assets",
+                "(65)",
+                "(142)",
+            ],
+            ["", "(3)", "(155)"],
+            ["Net cash outflow from investing activities", "(68)", "(297)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(68)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(65)",
+        "pass3_confidence": 0.9,
+        "row_refs": {"capex": "Payments for property, plant and equipment"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -65_000_000
+    assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
+
+
 def test_cashflow_cash_end_prefers_cash_equivalents_over_cash_and_gold():
     """RMS cash_end should bind to cash equivalents, not the broader cash-and-gold row."""
     from unittest.mock import patch

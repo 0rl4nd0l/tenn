@@ -1892,6 +1892,14 @@ _CASHFLOW_STRONG_CAPEX_LABELS = (
     "purchasesofppe",
     "purchaseofppe",
 )
+_CASHFLOW_GROUPED_SECTION_LABELS = (
+    "investingactivities",
+    "cashflowsfrominvestingactivities",
+    "cashflowsusedininvestingactivities",
+    "cashflowsfromusedininvestingactivities",
+    "cashflowsusedinfrominvestingactivities",
+)
+_CASHFLOW_NOTE_HEADER_LABELS = {"note", "notes"}
 _CASHFLOW_WEAK_CAPEX_ROW_MARKERS = (
     "acquisitionofsubsidiary",
     "acquisitionofbusiness",
@@ -2177,18 +2185,48 @@ def _cell_lines(value: Any) -> list[str]:
     ]
 
 
+def _grouped_cashflow_current_value_cell_index(table: Any) -> int:
+    headers = list(getattr(table, "headers", []) or [])
+    if (
+        len(headers) > 1
+        and _normalize_filter_text(headers[1]) in _CASHFLOW_NOTE_HEADER_LABELS
+    ):
+        return 2
+    return 1
+
+
+def _parse_grouped_cashflow_current_period_amount(
+    row: Sequence[Any],
+    scale: str,
+    value_cell_index: int,
+) -> float | None:
+    row_values = list(row)
+    if value_cell_index >= len(row_values):
+        return None
+    parsed_value = _parse_accounting_metric_number(row_values[value_cell_index])
+    if parsed_value is None:
+        return None
+    raw_float, has_explicit_unit = parsed_value
+    if has_explicit_unit:
+        return raw_float
+    return raw_float * SCALE_MULTIPLIERS.get(scale, 1)
+
+
 def _recover_grouped_cashflow_capex_from_table(
     table: Any, scale: str
 ) -> tuple[float, str] | None:
     rows = list(getattr(table, "rows", []) or [])
+    value_cell_index = _grouped_cashflow_current_value_cell_index(table)
     for row_index, row in enumerate(rows):
         if not row:
             continue
         label_lines = [
             line
             for line in _cell_lines(row[0])
-            if _normalize_filter_text(line) not in {"investingactivities"}
+            if _normalize_filter_text(line) not in _CASHFLOW_GROUPED_SECTION_LABELS
         ]
+        if len(label_lines) <= 1:
+            continue
         target_index: int | None = None
         target_label = ""
         for index, label in enumerate(label_lines):
@@ -2203,20 +2241,24 @@ def _recover_grouped_cashflow_capex_from_table(
             continue
 
         current_values: list[float] = []
+        same_row_current = _parse_grouped_cashflow_current_period_amount(
+            row,
+            scale,
+            value_cell_index,
+        )
+        if same_row_current is not None:
+            current_values.append(same_row_current)
+
         for follower in rows[row_index + 1 :]:
             if not follower or _normalise_fragmented_pdf_text(follower[0]):
                 break
-            parsed = _parse_accounting_metric_number(
-                follower[1] if len(follower) > 1 else None
+            value = _parse_grouped_cashflow_current_period_amount(
+                follower,
+                scale,
+                value_cell_index,
             )
-            if parsed is None:
+            if value is None:
                 break
-            raw_value, has_explicit_unit = parsed
-            value = (
-                raw_value
-                if has_explicit_unit
-                else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
-            )
             current_values.append(value)
             if len(current_values) >= len(label_lines):
                 break
@@ -2233,6 +2275,10 @@ def _recover_grouped_cashflow_capex_from_table(
 def _recover_preferred_cashflow_capex_from_table(
     table, scale: str
 ) -> tuple[float, str] | None:
+    grouped = _recover_grouped_cashflow_capex_from_table(table, scale)
+    if grouped is not None:
+        return grouped
+
     for row in table.rows or []:
         if not _cashflow_row_has_strong_capex_label(row):
             continue
@@ -2240,7 +2286,7 @@ def _recover_preferred_cashflow_capex_from_table(
         if value is None:
             continue
         return value, _cashflow_capex_row_ref(row)
-    return _recover_grouped_cashflow_capex_from_table(table, scale)
+    return None
 
 
 def _recover_preferred_cashflow_cash_end_from_table(
@@ -3422,21 +3468,26 @@ def _extract_single_table(
                     metric_name,
                     getattr(table, "page_number", "?"),
                 )
-        if table_type == "cashflow_statement" and (
-            extracted.get("capex") is None
-            or _cashflow_capex_row_is_weak(extracted["row_refs"].get("capex"))
-        ):
+        if table_type == "cashflow_statement":
             recovered_capex = _recover_preferred_cashflow_capex_from_table(
                 table, scale_for_table
             )
             if recovered_capex is not None:
                 recovered_value, recovered_row_ref = recovered_capex
-                extracted["capex"] = recovered_value
-                extracted["row_refs"]["capex"] = recovered_row_ref
-                logger.info(
-                    "Recovered cashflow capex from preferred PP&E row on page %s",
-                    getattr(table, "page_number", "?"),
+                current_capex = _coerce_cashflow_metric_float(extracted.get("capex"))
+                current_row_ref = extracted["row_refs"].get("capex")
+                should_replace_capex = (
+                    current_capex is None
+                    or _cashflow_capex_row_is_weak(current_row_ref)
+                    or abs(current_capex - recovered_value) > 0.5
                 )
+                if should_replace_capex:
+                    extracted["capex"] = recovered_value
+                    extracted["row_refs"]["capex"] = recovered_row_ref
+                    logger.info(
+                        "Recovered cashflow capex from preferred PP&E row on page %s",
+                        getattr(table, "page_number", "?"),
+                    )
         if table_type == "cashflow_statement" and (
             extracted.get("cash_end") is None
             or _cashflow_cash_end_row_is_weak(extracted["row_refs"].get("cash_end"))
