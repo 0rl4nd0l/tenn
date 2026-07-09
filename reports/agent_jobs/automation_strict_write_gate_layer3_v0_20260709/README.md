@@ -30,4 +30,6 @@ System functionality is not proven by this layer; this is a control-plane gate.
   be considered.
 - Draft PR manifests require branch, base, title, body, and validation
   metadata.
+- Draft PR opened: #494 `Add automation strict write gate`
+  - URL: `https://github.com/0rl4nd0l/tenn/pull/494`
 - No live state or GitHub writes were performed.

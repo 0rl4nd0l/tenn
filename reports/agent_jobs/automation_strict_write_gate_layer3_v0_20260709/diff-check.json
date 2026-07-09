@@ -1,28 +1,20 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/automation_strict_write_gate_layer3_v0_20260709.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/automation_strict_write_gate_layer3_v0_20260709/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/automation_strict_write_gate_layer3_v0_20260709/STATE.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/automation_strict_write_gate_layer3_v0_20260709/VALIDATION.md",
-      "status": "A"
+      "status": "M"
     },
     {
-      "path": "scripts/automation_write_gate.py",
-      "status": "A"
-    },
-    {
-      "path": "scripts/test_automation_write_gate.py",
-      "status": "A"
+      "path": "reports/agent_jobs/automation_strict_write_gate_layer3_v0_20260709/diff-check.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

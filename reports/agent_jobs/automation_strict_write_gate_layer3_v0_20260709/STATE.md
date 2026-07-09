@@ -1,6 +1,6 @@
 # State
 
-state: LOCAL_VALIDATED
+state: PR_OPENED
 
 ## Current State
 
@@ -13,7 +13,9 @@ state: LOCAL_VALIDATED
 - Worktree: `/home/l4nd0/tenn-automation-strict-write-gate-layer3-v0-20260709`
 - Helper: `scripts/automation_write_gate.py`
 - Tests: `scripts/test_automation_write_gate.py`
-- Local PR status: pending publish
+- Draft PR: #494 `Add automation strict write gate`
+- PR URL: `https://github.com/0rl4nd0l/tenn/pull/494`
+- Local commit: `329d0710 Add automation strict write gate`
 
 ## Guard
 
@@ -74,3 +76,14 @@ state: LOCAL_VALIDATED
 - No GitHub issue or PR write by the helper.
 - No runtime, timer, service, DB, Qdrant, Redis, extraction, source-PDF,
   gold-label, Docker, model/GPU, or secret mutation.
+
+## Publish
+
+- Branch pushed:
+  `origin/control-plane/automation-strict-write-gate-layer3-v0-20260709`
+- First push attempt was blocked by missing local hook tools:
+  `financial-engine_v2/.venv/bin/ruff` and
+  `financial-engine_v2/.venv/bin/pytest`.
+- Retry used `TENN_ALLOW_MISSING_HOOK_TOOLS=1`; pre-push markdown hygiene
+  passed.
+- Draft PR opened with the GitHub connector, stacked on PR #493 branch.
