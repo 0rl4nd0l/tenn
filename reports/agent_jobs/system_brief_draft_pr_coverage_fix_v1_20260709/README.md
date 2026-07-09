@@ -1,6 +1,6 @@
 # System Brief Draft PR Coverage Fix V1
 
-Status: LOCAL_VALIDATED
+Status: PR_OPENED_CI_IN_PROGRESS
 
 ## Summary
 
@@ -26,3 +26,5 @@ coverage fix.
 - Live read-only smoke shows #491-#495 as `draft_pr`.
 - Older unrelated draft PRs are shown as `stale_draft_pr` below active stack
   items.
+- Draft PR opened: https://github.com/0rl4nd0l/tenn/pull/496
+- PR #496 is stacked on draft PR #495 and remains review-gated.

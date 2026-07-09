@@ -1,31 +1,15 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/system_brief_draft_pr_coverage_fix_v1_20260709.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/STATE.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "scripts/system_brief.py",
       "status": "M"
     },
     {
-      "path": "scripts/test_system_brief.py",
+      "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/system_brief_draft_pr_coverage_fix_v1_20260709/VALIDATION.md",
       "status": "M"
     }
   ],

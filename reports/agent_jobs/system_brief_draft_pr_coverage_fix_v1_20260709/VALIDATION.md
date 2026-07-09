@@ -49,5 +49,21 @@
 
 ## Pending
 
-- final `git status --short --untracked-files=all`
-- branch push and draft PR creation
+- CI completion for PR #496 after publication.
+
+## Publication
+
+- `git push -u origin control-plane/system-brief-draft-pr-coverage-fix-v1-20260709`
+  - exit status: 1
+  - result: local pre-push hook blocked because
+    `financial-engine_v2/.venv/bin/ruff` and
+    `financial-engine_v2/.venv/bin/pytest` were missing
+- `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/system-brief-draft-pr-coverage-fix-v1-20260709`
+  - exit status: 0
+  - result: branch pushed; markdown hygiene hook passed
+- GitHub connector draft PR creation
+  - result: PR #496 opened against
+    `control-plane/automation-write-executor-plan-layer4-v0-20260709`
+- `gh pr list --repo 0rl4nd0l/tenn --head control-plane/system-brief-draft-pr-coverage-fix-v1-20260709 --json number,title,state,isDraft,mergeStateStatus,url,headRefName,baseRefName,statusCheckRollup`
+  - exit status: 0
+  - result: PR #496 open draft; `scan` passed; `lint-and-test` in progress
