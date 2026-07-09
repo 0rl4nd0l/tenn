@@ -214,6 +214,7 @@ def item_priority(status: str) -> int:
         "deferred": 70,
         "defer": 70,
         "token_anomaly": 80,
+        "stale_draft_pr": 85,
         "stale_report": 90,
         "data_missing": 95,
     }.get(status, 75)
@@ -580,23 +581,30 @@ def collect_github_pr_items(repo: str, pr_limit: int, runner: Runner = run_comma
             continue
         head = str(pr.get("headRefName") or "")
         title = str(pr.get("title") or "Untitled PR")
-        if "automation" not in f"{head} {title}".lower() and "[experiment]" not in title.lower():
-            continue
+        status, risk, detail = _classify_draft_pr(title=title, head=head)
         number = pr.get("number")
         items.append(
             _queue_item(
-                status="draft_pr",
+                status=status,
                 source="github_prs",
                 title=f"#{number} {title}",
-                detail=f"Draft PR head: {head}",
+                detail=detail,
                 owner_action="review this",
-                risk="medium",
+                risk=risk,
                 evidence=", ".join(sorted(label_names(pr))) or "draft",
                 recommended_command=f"gh pr view {number} --repo {repo}",
                 url=pr.get("url") if isinstance(pr.get("url"), str) else None,
             )
         )
     return items, "ok"
+
+
+def _classify_draft_pr(*, title: str, head: str) -> tuple[str, str, str]:
+    text = f"{head} {title}".lower()
+    current_terms = ("automation", "system brief", "tenn-system-brief", "[experiment]")
+    if head.startswith("control-plane/") or any(term in text for term in current_terms):
+        return "draft_pr", "medium", f"Draft PR head: {head}"
+    return "stale_draft_pr", "low", f"Older draft PR head: {head}"
 
 
 def collect_experiment_branch_items(repo_root: Path, runner: Runner = run_command) -> tuple[list[BriefItem], str]:

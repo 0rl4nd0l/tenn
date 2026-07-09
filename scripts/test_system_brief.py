@@ -197,6 +197,51 @@ class SystemBriefTests(unittest.TestCase):
 
         self.assertEqual("report_markers", items[0].source)
 
+    def test_draft_pr_queue_includes_system_brief_and_demotes_unrelated_drafts(self) -> None:
+        pr_payload = [
+            {
+                "number": 491,
+                "title": "Add Tenn system brief helper",
+                "isDraft": True,
+                "headRefName": "control-plane/tenn-system-brief-v0-20260709-adopt",
+                "labels": [],
+                "url": "https://github.com/0rl4nd0l/tenn/pull/491",
+            },
+            {
+                "number": 492,
+                "title": "Add automation candidate store layer",
+                "isDraft": True,
+                "headRefName": "control-plane/automation-candidate-store-layer1-v0-20260709",
+                "labels": [],
+                "url": "https://github.com/0rl4nd0l/tenn/pull/492",
+            },
+            {
+                "number": 489,
+                "title": "docs: document Sloppy CI workflows",
+                "isDraft": True,
+                "headRefName": "cursor/engineering-documentation-updates-f38d",
+                "labels": [],
+                "url": "https://github.com/0rl4nd0l/tenn/pull/489",
+            },
+        ]
+
+        items, status = sb.collect_github_pr_items("0rl4nd0l/tenn", 30, runner=FakeRunner(pr_payload=pr_payload))
+
+        self.assertEqual("ok", status)
+        titles = [item.title for item in items]
+        self.assertIn("#491 Add Tenn system brief helper", titles)
+        self.assertIn("#492 Add automation candidate store layer", titles)
+        self.assertIn("#489 docs: document Sloppy CI workflows", titles)
+        status_by_title = {item.title: item.status for item in items}
+        self.assertEqual("draft_pr", status_by_title["#491 Add Tenn system brief helper"])
+        self.assertEqual("draft_pr", status_by_title["#492 Add automation candidate store layer"])
+        self.assertEqual("stale_draft_pr", status_by_title["#489 docs: document Sloppy CI workflows"])
+        sorted_items = sorted(items, key=lambda item: (item.priority, sb.SOURCE_PRIORITY.get(item.source, 50), item.title))
+        self.assertLess(
+            sorted_items.index(next(item for item in sorted_items if item.title.startswith("#491"))),
+            sorted_items.index(next(item for item in sorted_items if item.title.startswith("#489"))),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
