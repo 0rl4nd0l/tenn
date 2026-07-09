@@ -20,6 +20,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - used when run as scripts/system_brief.py
     from report_review_status import load_report_review_status
 
+try:
+    from scripts.automation_candidate_store import candidate_items_for_brief
+except ModuleNotFoundError:  # pragma: no cover - used when run as scripts/system_brief.py
+    from automation_candidate_store import candidate_items_for_brief
+
 
 SAFE_ISSUE_RISKS = {"risk:low", "risk:medium"}
 SAFE_ISSUE_MODES = {"mode:safe-extension", "mode:audit", "mode:result-review"}
@@ -256,67 +261,36 @@ def collect_candidate_items(automation_root: Path) -> tuple[list[BriefItem], str
         )
         return [item], "DATA_MISSING"
 
-    items: list[BriefItem] = []
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
-        return [
-            _queue_item(
-                status="DATA_MISSING",
-                source="candidate_state",
-                title="Candidate state could not be read",
-                detail=str(exc),
-                owner_action="inspect candidate store",
-                risk="medium",
-                evidence=str(path),
-                recommended_command=f"sed -n '1,40p' {path}",
-            )
-        ], "DATA_MISSING"
-
-    for line_number, line in enumerate(lines, 1):
-        if not line.strip():
-            continue
-        try:
-            payload = json.loads(line)
-        except json.JSONDecodeError:
+    candidate_items, summary = candidate_items_for_brief(path)
+    items = [
+        _queue_item(
+            status=str(item.get("status") or "DATA_MISSING"),
+            source="candidate_state",
+            title=str(item.get("title") or "Candidate item"),
+            detail=str(item.get("detail") or item.get("status") or "DATA_MISSING"),
+            owner_action=str(item.get("owner_action") or "review this"),
+            risk=str(item.get("risk") or "unknown"),
+            evidence=str(item.get("evidence") or path),
+            recommended_command=str(item.get("recommended_command") or f"python3 scripts/automation_candidate_store.py --state-path {path} list --include-summary"),
+            url=item.get("url") if isinstance(item.get("url"), str) else None,
+        )
+        for item in candidate_items
+    ]
+    issues = summary.get("issues")
+    if isinstance(issues, list):
+        for issue in issues[:3]:
             items.append(
                 _queue_item(
                     status="failed_validation",
                     source="candidate_state",
-                    title=f"Candidate state line {line_number} is invalid JSON",
-                    detail="The candidate store needs repair or parking before more write-capable discovery.",
+                    title="Candidate state parse issue",
+                    detail=str(issue),
                     owner_action="review this",
                     risk="medium",
-                    evidence=f"{path}:{line_number}",
-                    recommended_command=f"sed -n '{line_number}p' {path}",
+                    evidence=str(path),
+                    recommended_command=f"python3 scripts/automation_candidate_store.py --state-path {path} summarize",
                 )
             )
-            continue
-        if not isinstance(payload, dict):
-            continue
-
-        status = normalize_status(
-            payload.get("status")
-            or payload.get("review_status")
-            or payload.get("outcome")
-            or payload.get("state")
-        )
-        if status in {"reviewed_accepted", "superseded", "rejected"}:
-            continue
-        title = str(payload.get("title") or payload.get("summary") or payload.get("fingerprint") or "Candidate item")
-        items.append(
-            _queue_item(
-                status=status,
-                source="candidate_state",
-                title=title,
-                detail=str(payload.get("detail") or payload.get("reason") or status),
-                owner_action=str(payload.get("owner_action") or "review this"),
-                risk=str(payload.get("risk") or "unknown"),
-                evidence=f"{path}:{line_number}",
-                recommended_command=str(payload.get("recommended_command") or f"sed -n '{line_number}p' {path}"),
-                url=payload.get("url") if isinstance(payload.get("url"), str) else None,
-            )
-        )
     return items, "ok"
 
 
