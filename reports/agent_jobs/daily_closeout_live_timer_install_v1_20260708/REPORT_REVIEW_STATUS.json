@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "job_id": "daily_closeout_live_timer_install_v1_20260708",
+  "review_status": "PARKED",
+  "reviewed_at": "2026-07-09T19:19:10+10:00",
+  "reviewed_by": "Codex",
+  "review_evidence": [
+    "Runtime proof is WORKING for the live daily-closeout install.",
+    "Daily-closeout closeout review board chose park, not merge.",
+    "Reviewed branch runtime/daily-closeout-live-install-v1-20260708 is stale against current canonical."
+  ],
+  "source_report_paths": [
+    "PARKING_REVIEW.md"
+  ],
+  "summary": "Live daily-closeout install proof is accepted as WORKING; stale branch is parked rather than merged.",
+  "next_action": "none",
+  "runtime_functionality_proven": true,
+  "github_state_checked": false
+}
