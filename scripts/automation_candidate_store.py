@@ -326,6 +326,78 @@ def summarize(path: Path, *, now: datetime | None = None) -> dict[str, object]:
     }
 
 
+def duplicate_record_from_dedupe(
+    candidate: dict[str, object],
+    dedupe_result: dict[str, object],
+    *,
+    now: datetime | None = None,
+) -> dict[str, object] | None:
+    status = normalize_status(dedupe_result.get("status"))
+    if status not in {"duplicate_issue", "duplicate_pr"}:
+        return None
+    best_match = dedupe_result.get("best_match")
+    if not isinstance(best_match, dict):
+        return None
+
+    kind = best_match.get("kind")
+    number = best_match.get("number")
+    number_text = _dedupe_number_text(number)
+    if kind == "issue":
+        related_issue = number_text
+        related_pr = _optional_string(candidate.get("related_pr"))
+    elif kind == "pr":
+        related_issue = _optional_string(candidate.get("related_issue"))
+        related_pr = number_text
+    else:
+        return None
+
+    timestamp = now or utc_now()
+    title = str(candidate.get("title") or best_match.get("title") or "Duplicate automation candidate")
+    detail = (
+        f"Read-only GitHub dedupe classified this candidate as {status}; "
+        f"best match: {kind} #{number_text or 'DATA_MISSING'} {best_match.get('title') or ''}."
+    )
+    record = build_record(
+        job=str(candidate.get("job") or "automation_github_dedupe"),
+        lane=str(candidate.get("lane") or "reporting"),
+        evidence_path=str(candidate.get("evidence_path") or best_match.get("url") or "gh read-only dedupe"),
+        root_cause=str(candidate.get("root_cause") or title),
+        status="duplicate",
+        title=title,
+        detail=detail,
+        risk=str(candidate.get("risk") or "low"),
+        owner_action="review existing GitHub item",
+        recommended_command=_dedupe_recommended_command(kind, number_text),
+        related_issue=related_issue,
+        related_pr=related_pr,
+        source_commit=_optional_string(candidate.get("source_commit")),
+        evidence_hash=_optional_string(candidate.get("evidence_hash")),
+        linked_state_hash=_optional_string(candidate.get("linked_state_hash")),
+        url=_optional_string(best_match.get("url")) or _optional_string(candidate.get("url")),
+        now=timestamp,
+    )
+    original_fingerprint = _optional_string(candidate.get("fingerprint"))
+    if original_fingerprint:
+        record["fingerprint"] = original_fingerprint
+    return record
+
+
+def _dedupe_recommended_command(kind: object, number_text: str | None) -> str:
+    if kind == "issue" and number_text:
+        return f"gh issue view {number_text} --repo 0rl4nd0l/tenn"
+    if kind == "pr" and number_text:
+        return f"gh pr view {number_text} --repo 0rl4nd0l/tenn"
+    return "python3 scripts/system_brief.py --json"
+
+
+def _dedupe_number_text(value: object) -> str | None:
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str) and value.strip().lstrip("#").isdigit():
+        return value.strip().lstrip("#")
+    return None
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-path", type=Path, default=DEFAULT_STATE_PATH)
