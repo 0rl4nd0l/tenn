@@ -43,6 +43,13 @@
     status: 0
   - result: no trailing whitespace in changed files or report artifacts
 
-## Pending Final Checks
+## Publish Closeout
 
-- Final git status.
+- local commit: `45e71d9a Add automation candidate store layer`
+- branch push:
+  - used `TENN_ALLOW_MISSING_HOOK_TOOLS=1` because local
+    `financial-engine_v2/.venv` lacks `ruff` and `pytest`
+  - remote branch:
+    `origin/control-plane/automation-candidate-store-layer1-v0-20260709`
+- draft PR: #492 `Add automation candidate store layer`
+  - URL: `https://github.com/0rl4nd0l/tenn/pull/492`

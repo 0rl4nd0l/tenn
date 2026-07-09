@@ -1,6 +1,6 @@
 # State
 
-state: DONE_WITH_RISK
+state: PR_OPENED
 
 ## Current State
 
@@ -11,6 +11,8 @@ state: DONE_WITH_RISK
 - Helper: `scripts/automation_candidate_store.py`
 - Tests: `scripts/test_automation_candidate_store.py`
 - Integration: `scripts/system_brief.py`
+- Draft PR: #492 `Add automation candidate store layer`
+- PR URL: `https://github.com/0rl4nd0l/tenn/pull/492`
 
 ## Docs Impact
 
