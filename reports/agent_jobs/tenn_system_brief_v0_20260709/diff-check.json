@@ -1,0 +1,52 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/tenn_system_brief_v0_20260709.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/system_brief.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/test_system_brief.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/tenn_system_brief_v0_20260709/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/tenn_system_brief_v0_20260709.md",
+        "scripts/system_brief.py",
+        "scripts/test_system_brief.py",
+        "reports/agent_jobs/tenn_system_brief_v0_20260709/README.md",
+        "reports/agent_jobs/tenn_system_brief_v0_20260709/STATE.md",
+        "reports/agent_jobs/tenn_system_brief_v0_20260709/VALIDATION.md",
+        "reports/agent_jobs/tenn_system_brief_v0_20260709/diff-check.json"
+      ],
+      "approval_required": true,
+      "approved_external_artifacts": [
+        "/home/l4nd0/.codex/skills/tenn-system-brief/SKILL.md",
+        "/home/l4nd0/.codex/skills/tenn-system-brief/agents/openai.yaml"
+      ],
+      "job_id": "tenn_system_brief_v0_20260709",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/tenn_system_brief_v0_20260709",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Query Orchestration"
+      ],
+      "task_scope": "control_plane_only",
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
