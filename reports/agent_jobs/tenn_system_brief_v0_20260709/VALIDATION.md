@@ -1,0 +1,95 @@
+# Validation
+
+## Completed
+
+- `python3 scripts/agent_job_contract.py validate docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: task card valid
+- `python3 -m unittest scripts.test_system_brief`
+  - exit status: 0
+  - result: 5 tests passed
+- `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn-system-brief-v0-20260709 --automation-root /home/l4nd0/.codex/automations/tenn --json`
+  - exit status: 0
+  - JSON parse status: 0
+- `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn-system-brief-v0-20260709 --automation-root /home/l4nd0/.codex/automations/tenn --max-items 8`
+  - exit status: 0
+  - result: printed a read-only queue and performed no writes
+- `python3 /home/l4nd0/tenn-system-brief-v0-20260709/scripts/system_brief.py --repo-root /home/l4nd0/tenn --automation-root /home/l4nd0/.codex/automations/tenn --max-items 5`
+  - exit status: 0
+  - result: printed a read-only queue for canonical `/home/l4nd0/tenn`
+- canonical adoption preflight:
+  - repo: `/home/l4nd0/tenn`
+  - branch: `local/home-tenn-canonical-current-v5-20260707`
+  - HEAD: `8da4ca0a90babff86c3c05107131eff6ce4ca733`
+  - guard decision: pass
+- canonical `python3 scripts/agent_job_contract.py validate docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: task card valid
+- canonical `python3 -m unittest scripts.test_system_brief`
+  - exit status: 0
+  - result: 5 tests passed before source tie-break improvement
+- canonical `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn --automation-root /home/l4nd0/.codex/automations/tenn --json`
+  - exit status: 0
+  - JSON parse status: 0
+- canonical `python3 /home/l4nd0/.codex/skills/.system/skill-creator/scripts/quick_validate.py /home/l4nd0/.codex/skills/tenn-system-brief`
+  - exit status: 0
+  - result: skill is valid
+- canonical source tie-break follow-up:
+  - change: direct report markers now sort before broad automation-report
+    mentions at the same queue priority
+- canonical rerun `python3 -m unittest scripts.test_system_brief`
+  - exit status: 0
+  - result: 6 tests passed
+- canonical rerun `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn --automation-root /home/l4nd0/.codex/automations/tenn --max-items 5`
+  - exit status: 0
+  - result: top queue item is the direct
+    `system_automation_usefulness_audit_v1_20260708` report marker
+- canonical rerun `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn --automation-root /home/l4nd0/.codex/automations/tenn --json`
+  - exit status: 0
+  - JSON parse status: 0
+- code-reviewer pass
+  - result: no critical findings, warnings, or suggestions after direct
+    report-marker tie-break fix
+- publish branch: `control-plane/tenn-system-brief-v0-20260709-adopt`
+- publish rerun `python3 scripts/agent_job_contract.py validate docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: task card valid after canonical path correction
+- publish rerun `python3 -m unittest scripts.test_system_brief`
+  - exit status: 0
+  - result: 6 tests passed
+- publish rerun `python3 scripts/system_brief.py --repo-root /home/l4nd0/tenn --automation-root /home/l4nd0/.codex/automations/tenn --json`
+  - exit status: 0
+  - JSON parse status: 0
+- publish rerun `python3 /home/l4nd0/.codex/skills/.system/skill-creator/scripts/quick_validate.py /home/l4nd0/.codex/skills/tenn-system-brief`
+  - exit status: 0
+  - result: skill is valid
+- `python3 /home/l4nd0/.codex/skills/.system/skill-creator/scripts/quick_validate.py /home/l4nd0/.codex/skills/tenn-system-brief`
+  - exit status: 0
+  - result: skill is valid
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: changed repo files are within `allowed_files`
+- `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: required report artifacts exist
+- `python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+  - exit status: 0
+  - result: closeout check passed
+- `git diff --check`
+  - exit status: 0
+  - result: no tracked-diff whitespace errors
+- `rg -n '[[:blank:]]$' docs/agent_tasks/tenn_system_brief_v0_20260709.md scripts/system_brief.py scripts/test_system_brief.py reports/agent_jobs/tenn_system_brief_v0_20260709/README.md reports/agent_jobs/tenn_system_brief_v0_20260709/STATE.md reports/agent_jobs/tenn_system_brief_v0_20260709/VALIDATION.md`
+  - exit status: 1 expected when wrapped with shell inversion, wrapper exit
+    status: 0
+  - result: no trailing whitespace in new untracked files or report artifacts
+- `python3 scripts/tenn_dev_status.py && git status --short --untracked-files=all`
+  - exit status: 0
+  - result: `STATE: BLOCKED` because this task's implementation files are
+    untracked and the report bundle is ignored
+  - visible status:
+    - `?? docs/agent_tasks/tenn_system_brief_v0_20260709.md`
+    - `?? scripts/system_brief.py`
+    - `?? scripts/test_system_brief.py`
+- `git status --short --untracked-files=all` from `/home/l4nd0/tenn`
+  - exit status: 0
+  - result: clean
