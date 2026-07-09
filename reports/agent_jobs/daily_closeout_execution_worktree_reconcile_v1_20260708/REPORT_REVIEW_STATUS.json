@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "job_id": "daily_closeout_execution_worktree_reconcile_v1_20260708",
+  "review_status": "PARKED",
+  "reviewed_at": "2026-07-09T19:19:10+10:00",
+  "reviewed_by": "Codex",
+  "review_evidence": [
+    "Daily-closeout closeout review board chose park, not merge.",
+    "Reviewed branch runtime/daily-closeout-live-install-v1-20260708 is stale against current canonical.",
+    "The reconcile task-card commit is preserved as historical evidence, not a direct merge candidate."
+  ],
+  "source_report_paths": [
+    "PARKING_REVIEW.md"
+  ],
+  "summary": "Execution-worktree reconcile evidence is parked; current canonical plus live installed timer/proof artifacts are the active truth surface.",
+  "next_action": "none",
+  "runtime_functionality_proven": false,
+  "github_state_checked": false
+}

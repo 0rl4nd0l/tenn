@@ -1,6 +1,6 @@
 # Merge Parking Registry
 
-Last updated: 2026-06-04
+Last updated: 2026-07-09
 
 This registry tracks evidence-backed Tenn work that should remain visible for
 later merge review, validation, human decision, supersede/reject handling, or
@@ -29,6 +29,7 @@ This surface is inventory-first. An entry here is not merge approval.
 | `PARKED_READY_FOR_REVIEW` | `safe/appendix5b-report-gate-refresh-v1-20260531` | Evaluation | [appendix5b-report-gate-refresh-v1-20260531.md](parked/appendix5b-report-gate-refresh-v1-20260531.md) | Clean report-only Appendix 5B no-regression evidence with validation |
 | `PARKED_NEEDS_VALIDATION` | `safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602` | Financial Truth | [extraction-appendix4d-profit-after-tax-alias-v1-20260602.md](parked/extraction-appendix4d-profit-after-tax-alias-v1-20260602.md) | Unit-test evidence exists, but targeted GPT Appendix 4D proof is missing |
 | `PARKED_NEEDS_HUMAN_DECISION` | `safe/extraction-live-contract-truth-gates-v1-20260603-nvme` | Financial Truth | [extraction-live-contract-truth-gates-v1-20260603-nvme.md](parked/extraction-live-contract-truth-gates-v1-20260603-nvme.md) | High-risk dirty parent batch with many staged reports and overlapping extraction code changes |
+| `PARKED_SUPERSEDED` | `runtime/daily-closeout-live-install-v1-20260708` | Query Orchestration | [daily-closeout-live-install-v1-20260709.md](parked/daily-closeout-live-install-v1-20260709.md) | Live timer proof is WORKING, but branch is stale and must not merge as-is |
 | `DATA_MISSING` | `multiple missing /tmp worktree paths` | Repo Hygiene | [extraction-data-missing-20260604.md](parked/extraction-data-missing-20260604.md) | Preserve missing Appendix 4D and extraction restore paths visibly |
 
 ## Not Parked Here
