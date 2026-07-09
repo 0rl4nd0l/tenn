@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/automation_write_executor_plan_layer4_v0_20260709.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/automation_write_executor_plan.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_automation_write_executor_plan.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/automation_write_executor_plan_layer4_v0_20260709.md",
+        "scripts/automation_write_executor_plan.py",
+        "scripts/test_automation_write_executor_plan.py",
+        "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/README.md",
+        "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/STATE.md",
+        "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/VALIDATION.md",
+        "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "automation_write_executor_plan_layer4_v0_20260709",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/automation_write_executor_plan_layer4_v0_20260709",
+      "owner": "Codex",
+      "production_data_access": false,
+      "stacked_on_pr": 494,
+      "supporting_lanes": [
+        "Evaluation",
+        "Query Orchestration"
+      ],
+      "task_scope": "control_plane_only",
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
