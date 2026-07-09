@@ -1,36 +1,20 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/automation_github_dedupe_layer2_v0_20260709.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/STATE.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "scripts/automation_candidate_store.py",
       "status": "M"
     },
     {
-      "path": "scripts/automation_github_dedupe.py",
-      "status": "A"
+      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/STATE.md",
+      "status": "M"
     },
     {
-      "path": "scripts/test_automation_github_dedupe.py",
-      "status": "A"
+      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/automation_github_dedupe_layer2_v0_20260709/diff-check.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

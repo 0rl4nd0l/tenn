@@ -24,5 +24,7 @@ System functionality is not proven by this layer; this is a control-plane gate.
 
 - Local helper/tests validated.
 - Live GitHub read-only smoke validated the installed `gh` command shape.
+- Draft PR opened: #493 `Add automation GitHub dedupe gate`
+  - URL: `https://github.com/0rl4nd0l/tenn/pull/493`
 - No live automation candidate state was written.
 - No GitHub issue/comment/merge/write operation was performed by the helper.

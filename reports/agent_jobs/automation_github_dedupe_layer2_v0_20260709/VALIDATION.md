@@ -38,8 +38,17 @@
   - result: no tracked-diff whitespace errors
 - code-reviewer pass
   - result: no critical findings, warnings, or suggestions after review fixes
+- branch push
+  - first attempt: blocked by missing local hook tools `ruff` and `pytest`
+  - retry: `TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push -u origin control-plane/automation-github-dedupe-layer2-v0-20260709`
+  - retry exit status: 0
+  - result: branch pushed; pre-push markdown hygiene passed
+- draft PR creation
+  - method: GitHub connector
+  - result: PR #493 opened at
+    `https://github.com/0rl4nd0l/tenn/pull/493`
 
 ## Pending
 
 - final `git status --short --untracked-files=all`
-- branch push and draft PR creation
+- PR #493 review and checks

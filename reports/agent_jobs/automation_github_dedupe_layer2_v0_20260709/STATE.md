@@ -1,6 +1,6 @@
 # State
 
-state: LOCAL_VALIDATED
+state: PR_OPENED
 
 ## Current State
 
@@ -14,7 +14,9 @@ state: LOCAL_VALIDATED
 - Helper: `scripts/automation_github_dedupe.py`
 - Tests: `scripts/test_automation_github_dedupe.py`
 - Candidate-store bridge: `scripts/automation_candidate_store.py`
-- Local PR status: pending publish
+- Draft PR: #493 `Add automation GitHub dedupe gate`
+- PR URL: `https://github.com/0rl4nd0l/tenn/pull/493`
+- Local commit: `14f6c121 Add automation GitHub dedupe gate`
 
 ## Guard
 
@@ -77,3 +79,14 @@ state: LOCAL_VALIDATED
 - No GitHub issue or PR write by the helper.
 - No runtime, timer, service, DB, Qdrant, Redis, extraction, source-PDF,
   gold-label, Docker, model/GPU, or secret mutation.
+
+## Publish
+
+- Branch pushed:
+  `origin/control-plane/automation-github-dedupe-layer2-v0-20260709`
+- First push attempt was blocked by missing local hook tools:
+  `financial-engine_v2/.venv/bin/ruff` and
+  `financial-engine_v2/.venv/bin/pytest`.
+- Retry used `TENN_ALLOW_MISSING_HOOK_TOOLS=1`; pre-push markdown hygiene
+  passed.
+- Draft PR opened with the GitHub connector, stacked on PR #492 branch.
