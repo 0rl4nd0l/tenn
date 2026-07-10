@@ -1,0 +1,60 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/automation_small_model_routing_v1_20260710.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev/automation_index.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/automation_small_model_routing_v1_20260710/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/automation_small_model_routing_v1_20260710/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "scripts/codex_automation_runner.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_codex_automation_runner.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/automation_small_model_routing_v1_20260710/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/automation_small_model_routing_v1_20260710.md",
+        "docs/dev/automation_index.md",
+        "scripts/codex_automation_runner.py",
+        "scripts/test_codex_automation_runner.py",
+        "reports/agent_jobs/automation_small_model_routing_v1_20260710/STATE.md",
+        "reports/agent_jobs/automation_small_model_routing_v1_20260710/VALIDATION.md",
+        "reports/agent_jobs/automation_small_model_routing_v1_20260710/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "automation_small_model_routing_v1_20260710",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/automation_small_model_routing_v1_20260710",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "task_scope": "control_plane_only",
+      "timeout_seconds": 1200
+    },
+    "ok": true
+  }
+}

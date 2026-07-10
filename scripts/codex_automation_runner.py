@@ -25,6 +25,12 @@ CODEX_CANDIDATES = (
     Path("/home/l4nd0/.nvm/versions/node/v22.22.0/bin/codex"),
 )
 FAILURE_LOG_TAIL_CHARS = 4000
+DEFAULT_SMALL_MODEL = "gpt-5.4-mini"
+DEFAULT_SMALL_REASONING_EFFORT = "medium"
+SUPPORTED_REASONING_EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
+MODEL_POLICY_NATIVE = "native"
+MODEL_POLICY_SMALL = "small"
+MODEL_POLICY_DEFAULT = "default"
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,14 @@ class AutomationJob:
     name: str
     title: str
     prompt_builder: Callable[[], str]
+    model_policy: str = MODEL_POLICY_DEFAULT
+
+
+@dataclass(frozen=True)
+class ModelSelection:
+    model: str | None
+    reasoning_effort: str | None
+    source: str
 
 
 @dataclass(frozen=True)
@@ -550,14 +564,44 @@ Do not create broad "do everything" tasks. Do not edit docs/dev/future_opportuni
 
 
 JOBS: dict[str, AutomationJob] = {
-    "automation-health": AutomationJob("automation-health", "Automation Health Monitor", _automation_health_prompt),
+    "automation-health": AutomationJob(
+        "automation-health",
+        "Automation Health Monitor",
+        _automation_health_prompt,
+        model_policy=MODEL_POLICY_NATIVE,
+    ),
     "bug-regression": AutomationJob("bug-regression", "Bug / Regression Finder", _bug_regression_prompt),
-    "daily-closeout": AutomationJob("daily-closeout", "Daily Closeout / Lock-Up Audit", _daily_closeout_prompt),
-    "doc-drift": AutomationJob("doc-drift", "Documentation Drift Updater", _doc_drift_prompt),
-    "repo-hygiene": AutomationJob("repo-hygiene", "Daily Repo Hygiene / Collision Scanner", _repo_hygiene_prompt),
+    "daily-closeout": AutomationJob(
+        "daily-closeout",
+        "Daily Closeout / Lock-Up Audit",
+        _daily_closeout_prompt,
+        model_policy=MODEL_POLICY_SMALL,
+    ),
+    "doc-drift": AutomationJob(
+        "doc-drift",
+        "Documentation Drift Updater",
+        _doc_drift_prompt,
+        model_policy=MODEL_POLICY_SMALL,
+    ),
+    "repo-hygiene": AutomationJob(
+        "repo-hygiene",
+        "Daily Repo Hygiene / Collision Scanner",
+        _repo_hygiene_prompt,
+        model_policy=MODEL_POLICY_SMALL,
+    ),
     "extraction-regression": AutomationJob("extraction-regression", "Extraction Regression Scout", _extraction_regression_prompt),
-    "future-opportunities": AutomationJob("future-opportunities", "Future Upgrade / Opportunity Scout", _future_opportunities_prompt),
-    "memory-drift": AutomationJob("memory-drift", "Project Memory Drift Scanner", _memory_drift_prompt),
+    "future-opportunities": AutomationJob(
+        "future-opportunities",
+        "Future Upgrade / Opportunity Scout",
+        _future_opportunities_prompt,
+        model_policy=MODEL_POLICY_SMALL,
+    ),
+    "memory-drift": AutomationJob(
+        "memory-drift",
+        "Project Memory Drift Scanner",
+        _memory_drift_prompt,
+        model_policy=MODEL_POLICY_SMALL,
+    ),
 }
 
 
@@ -576,24 +620,115 @@ def _write_prompt(job: AutomationJob, timestamp: str, prompt: str) -> Path:
     return prompt_path
 
 
+def _job_env_key(job_name: str) -> str:
+    return "".join(char if char.isalnum() else "_" for char in job_name).upper()
+
+
+def _env_value(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _validated_reasoning_effort(value: str, source: str) -> str:
+    normalized = value.lower()
+    if normalized not in SUPPORTED_REASONING_EFFORTS:
+        allowed = ", ".join(SUPPORTED_REASONING_EFFORTS)
+        raise ValueError(f"{source} must be one of: {allowed}; got {value!r}")
+    return normalized
+
+
+def _reasoning_effort_for_job(job: AutomationJob, default: str | None) -> tuple[str | None, str | None]:
+    job_key = _job_env_key(job.name)
+    job_env = f"TENN_CODEX_AUTOMATION_{job_key}_REASONING_EFFORT"
+    job_value = _env_value(job_env)
+    if job_value:
+        return _validated_reasoning_effort(job_value, job_env), job_env
+
+    global_value = _env_value("TENN_CODEX_AUTOMATION_REASONING_EFFORT")
+    if global_value:
+        global_env = "TENN_CODEX_AUTOMATION_REASONING_EFFORT"
+        return _validated_reasoning_effort(global_value, global_env), global_env
+
+    if default is None:
+        return None, None
+    return _validated_reasoning_effort(default, f"{job.name} model policy default"), None
+
+
+def _model_selection(job: AutomationJob) -> ModelSelection:
+    if job.model_policy == MODEL_POLICY_NATIVE:
+        return ModelSelection(model=None, reasoning_effort=None, source=MODEL_POLICY_NATIVE)
+
+    job_key = _job_env_key(job.name)
+    job_model_env = f"TENN_CODEX_AUTOMATION_{job_key}_MODEL"
+    job_model = _env_value(job_model_env)
+    if job_model:
+        reasoning_effort, reasoning_source = _reasoning_effort_for_job(job, default=None)
+        source = job_model_env if reasoning_source is None else f"{job_model_env}+{reasoning_source}"
+        return ModelSelection(model=job_model, reasoning_effort=reasoning_effort, source=source)
+
+    global_model = _env_value("TENN_CODEX_AUTOMATION_MODEL")
+    if global_model:
+        reasoning_effort, reasoning_source = _reasoning_effort_for_job(job, default=None)
+        source = "TENN_CODEX_AUTOMATION_MODEL" if reasoning_source is None else f"TENN_CODEX_AUTOMATION_MODEL+{reasoning_source}"
+        return ModelSelection(model=global_model, reasoning_effort=reasoning_effort, source=source)
+
+    if job.model_policy == MODEL_POLICY_SMALL:
+        small_model_override = _env_value("TENN_CODEX_AUTOMATION_SMALL_MODEL")
+        small_reasoning_override = _env_value("TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT")
+        small_model = small_model_override or DEFAULT_SMALL_MODEL
+        if small_reasoning_override:
+            small_reasoning = _validated_reasoning_effort(
+                small_reasoning_override,
+                "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT",
+            )
+        else:
+            small_reasoning = DEFAULT_SMALL_REASONING_EFFORT
+        reasoning_effort, reasoning_source = _reasoning_effort_for_job(job, default=small_reasoning)
+        source_parts = ["small_policy"]
+        if small_model_override:
+            source_parts.append("TENN_CODEX_AUTOMATION_SMALL_MODEL")
+        if reasoning_source:
+            source_parts.append(reasoning_source)
+        elif small_reasoning_override:
+            source_parts.append("TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT")
+        source = "+".join(source_parts)
+        return ModelSelection(model=small_model, reasoning_effort=reasoning_effort, source=source)
+
+    reasoning_effort, reasoning_source = _reasoning_effort_for_job(job, default=None)
+    return ModelSelection(model=None, reasoning_effort=reasoning_effort, source=reasoning_source or MODEL_POLICY_DEFAULT)
+
+
 def _command(job: AutomationJob, prompt_path: Path, timestamp: str) -> list[str]:
     codex_path = next((candidate for candidate in CODEX_CANDIDATES if candidate is not None and candidate.exists()), None)
     codex = str(codex_path) if codex_path is not None else shutil.which("codex")
     if not codex:
         raise RuntimeError("codex CLI not found on PATH")
 
-    return [
+    model_selection = _model_selection(job)
+    command = [
         codex,
         "exec",
-        "--cd",
-        str(AUTOMATION_WORKTREE),
-        "--sandbox",
-        "read-only",
-        "--json",
-        "--output-last-message",
-        str(OUTPUT_ROOT / "reports" / f"{timestamp}-{job.name}.md"),
-        "-",
     ]
+    if model_selection.model:
+        command.extend(["--model", model_selection.model])
+    if model_selection.reasoning_effort:
+        command.extend(["-c", f'model_reasoning_effort="{model_selection.reasoning_effort}"'])
+    command.extend(
+        [
+            "--cd",
+            str(AUTOMATION_WORKTREE),
+            "--sandbox",
+            "read-only",
+            "--json",
+            "--output-last-message",
+            str(OUTPUT_ROOT / "reports" / f"{timestamp}-{job.name}.md"),
+            "-",
+        ]
+    )
+    return command
 
 
 def _run_text_command(args: list[str]) -> tuple[int, str]:
@@ -889,10 +1024,17 @@ def run_job(job_name: str, dry_run: bool = False) -> int:
     log_path = OUTPUT_ROOT / "logs" / f"{timestamp}-{job.name}.jsonl"
     report_path = OUTPUT_ROOT / "reports" / f"{timestamp}-{job.name}.md"
     cmd = _command(job, prompt_path, timestamp)
+    model_selection = _model_selection(job)
 
     summary = {
         "job": job.name,
         "title": job.title,
+        "model_policy": job.model_policy,
+        "model_selection": {
+            "model": model_selection.model,
+            "reasoning_effort": model_selection.reasoning_effort,
+            "source": model_selection.source,
+        },
         "automation_worktree": str(AUTOMATION_WORKTREE),
         "target_worktree": str(TARGET_WORKTREE),
         "prompt_path": str(prompt_path),
@@ -935,8 +1077,27 @@ def run_job(job_name: str, dry_run: bool = False) -> int:
     return completed.returncode
 
 
+def _job_listing(job: AutomationJob) -> dict[str, object]:
+    model_selection = _model_selection(job)
+    return {
+        "title": job.title,
+        "model_policy": job.model_policy,
+        "model_selection": {
+            "model": model_selection.model,
+            "reasoning_effort": model_selection.reasoning_effort,
+            "source": model_selection.source,
+        },
+    }
+
+
 def list_jobs() -> int:
-    print(json.dumps({name: {"title": job.title} for name, job in JOBS.items()}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {name: _job_listing(job) for name, job in JOBS.items()},
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
