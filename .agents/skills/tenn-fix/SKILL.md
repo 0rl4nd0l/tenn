@@ -77,6 +77,37 @@ board decision, task card, handoff, or explicit fix request.
 19. When stopping before completion, run or follow `tenn-handoff` so the next
     session has git state, ledger state, validation, and a short next `/goal`.
 
+## External Waits
+
+When GitHub checks or an already-authorized command are expected to take more
+than 30 seconds, prefer the repo waiter over repeated model-driven polling:
+
+```bash
+python3 scripts/codex_event_waiter.py github-pr \
+  --repo OWNER/REPO --pr NUMBER --head-sha SHA \
+  --output reports/agent_jobs/<job_id>/WAIT_RESULT.json
+
+python3 scripts/codex_event_waiter.py command \
+  --output reports/agent_jobs/<job_id>/WAIT_RESULT.json -- COMMAND ARG...
+```
+
+- Keep the waiter attached to the current tool turn. It stays silent while
+  waiting and emits one terminal JSON record.
+- For command waits, allowlist both `WAIT_RESULT.json` and the derived
+  `WAIT_RESULT.json.log` artifact in the task card.
+- Before waiting, record `waiting_on_timer` in the Task Ledger when live ledger
+  mutation is allowed, including the exact target and result artifact.
+- The result does not grant authority. It must not cause a merge, GitHub write,
+  runtime/data mutation, or extraction execution that was not already approved.
+- Bind PR waits to the exact expected head SHA. Treat `STALE_TARGET` as a stop
+  and re-plan signal, never as permission to follow the new head automatically.
+- After wake-up, refresh the live PR/check state or intended runtime output
+  before continuing. A successful command wait proves process completion only;
+  runtime-like work still needs the Runtime Functionality Proof table.
+- Detached thread wake-up is not a supported V1 path. Do not improvise
+  `codex exec resume`, App Server injection, background services, or host-global
+  hooks unless a separate approved task proves and documents that transport.
+
 ## Action-First Small Fix Mode
 
 Use this mode for `FAST_PROGRESS`: small docs/control-plane fixes or narrow
