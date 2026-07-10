@@ -1892,6 +1892,9 @@ _CASHFLOW_STRONG_CAPEX_LABELS = (
     "purchasesofppe",
     "purchaseofppe",
 )
+_CASHFLOW_BANK_CAPEX_LABELS = (
+    "netinvestmentsinotherassets",
+)
 _CASHFLOW_GROUPED_SECTION_LABELS = (
     "investingactivities",
     "cashflowsfrominvestingactivities",
@@ -1910,6 +1913,17 @@ _CASHFLOW_WEAK_CAPEX_ROW_MARKERS = (
     "undergroundmines",
     "minedevelopment",
     "exploration",
+)
+_CASHFLOW_DISALLOWED_CAPEX_ROW_MARKERS = (
+    "investmentsecurities",
+    "securitiesassets",
+    "securitiespurchase",
+    "securitiespurchases",
+    "purchaseofsecurities",
+    "purchasesofsecurities",
+    "financialassets",
+    "financialasset",
+    "interestbearingfinancialassets",
 )
 _CASHFLOW_CAPEX_OUTFLOW_MARKERS = (
     "payment",
@@ -1958,6 +1972,8 @@ def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
     compact = _normalize_filter_text(str(row_ref or ""))
     if not compact:
         return True
+    if _cashflow_capex_row_is_disallowed_financial_asset(row_ref):
+        return True
     if (
         len(_re.findall(r"payments?for", compact)) > 1
         or len(_re.findall(r"purchases?of", compact)) > 1
@@ -1966,6 +1982,19 @@ def _cashflow_capex_row_is_weak(row_ref: Any) -> bool:
     if any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS):
         return False
     return any(marker in compact for marker in _CASHFLOW_WEAK_CAPEX_ROW_MARKERS)
+
+
+def _cashflow_capex_row_is_disallowed_financial_asset(row_ref: Any) -> bool:
+    compact = _normalize_filter_text(str(row_ref or ""))
+    if not compact:
+        return False
+    if any(marker in compact for marker in _CASHFLOW_BANK_CAPEX_LABELS):
+        return False
+    financial_asset_text = _re.sub(r"nonfinancialassets?", "", compact)
+    return any(
+        marker in financial_asset_text
+        for marker in _CASHFLOW_DISALLOWED_CAPEX_ROW_MARKERS
+    )
 
 
 def _cashflow_cash_end_row_is_weak(row_ref: Any) -> bool:
@@ -1977,11 +2006,56 @@ def _cashflow_cash_end_row_is_weak(row_ref: Any) -> bool:
     return any(marker in compact for marker in _CASHFLOW_WEAK_CASH_END_ROW_MARKERS)
 
 
-def _cashflow_row_has_strong_capex_label(row: list[Any]) -> bool:
+def _cashflow_row_has_strong_capex_label(
+    row: list[Any],
+    *,
+    bank_cashflow_context: bool = False,
+) -> bool:
     compact = _normalize_filter_text(
         _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
     )
-    return any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS)
+    if any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS):
+        return True
+    return bank_cashflow_context and any(
+        marker in compact for marker in _CASHFLOW_BANK_CAPEX_LABELS
+    )
+
+
+def _cashflow_table_has_bank_capex_context(table: Any) -> bool:
+    compact = _normalize_filter_text(
+        " ".join(
+            [
+                str(getattr(table, "caption", "") or ""),
+                " ".join(str(header) for header in getattr(table, "headers", []) or []),
+                " ".join(
+                    " ".join(str(cell) for cell in row)
+                    for row in (getattr(table, "rows", []) or [])
+                    if row
+                ),
+            ]
+        )
+    )
+    return any(
+        marker in compact
+        for marker in (*_CASHFLOW_BANK_CAPEX_LABELS, "investmentsecurities", "securitiesassets")
+    )
+
+
+def _cashflow_row_capex_label_priority(
+    row: list[Any],
+    *,
+    bank_cashflow_context: bool = False,
+) -> int:
+    compact = _normalize_filter_text(
+        _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+    )
+    if any(marker in compact for marker in _CASHFLOW_STRONG_CAPEX_LABELS):
+        return 100
+    if bank_cashflow_context and any(
+        marker in compact for marker in _CASHFLOW_BANK_CAPEX_LABELS
+    ):
+        return 90
+    return 0
 
 
 def _cashflow_row_has_strong_cash_end_label(row: list[Any]) -> bool:
@@ -2217,6 +2291,7 @@ def _recover_grouped_cashflow_capex_from_table(
 ) -> tuple[float, str] | None:
     rows = list(getattr(table, "rows", []) or [])
     value_cell_index = _grouped_cashflow_current_value_cell_index(table)
+    bank_cashflow_context = _cashflow_table_has_bank_capex_context(table)
     for row_index, row in enumerate(rows):
         if not row:
             continue
@@ -2230,9 +2305,9 @@ def _recover_grouped_cashflow_capex_from_table(
         target_index: int | None = None
         target_label = ""
         for index, label in enumerate(label_lines):
-            if any(
-                marker in _normalize_filter_text(label)
-                for marker in _CASHFLOW_STRONG_CAPEX_LABELS
+            if _cashflow_row_has_strong_capex_label(
+                [label],
+                bank_cashflow_context=bank_cashflow_context,
             ):
                 target_index = index
                 target_label = label
@@ -2279,14 +2354,29 @@ def _recover_preferred_cashflow_capex_from_table(
     if grouped is not None:
         return grouped
 
+    best: tuple[int, float, str] | None = None
+    bank_cashflow_context = _cashflow_table_has_bank_capex_context(table)
     for row in table.rows or []:
-        if not _cashflow_row_has_strong_capex_label(row):
+        if _cashflow_capex_row_is_disallowed_financial_asset(
+            _normalise_fragmented_pdf_text(" ".join(str(cell) for cell in row))
+        ):
+            continue
+        priority = _cashflow_row_capex_label_priority(
+            row,
+            bank_cashflow_context=bank_cashflow_context,
+        )
+        if priority <= 0:
             continue
         value = _parse_cashflow_capex_row_amount(row, scale)
         if value is None:
             continue
-        return value, _cashflow_capex_row_ref(row)
-    return None
+        row_ref = _cashflow_capex_row_ref(row)
+        if best is None or priority > best[0]:
+            best = (priority, value, row_ref)
+    if best is None:
+        return None
+    _, value, row_ref = best
+    return value, row_ref
 
 
 def _recover_preferred_cashflow_cash_end_from_table(
@@ -2467,11 +2557,19 @@ def _split_row_ref_candidates(value: Any) -> list[str]:
     return [str(item or "").strip() for item in raw_items if str(item or "").strip()]
 
 
-def _income_metric_for_row_label(row_label: str) -> str | None:
+def _income_metric_for_row_label(
+    row_label: str, *, bank_operating_income_total: bool = False
+) -> str | None:
     compact = _normalize_filter_text(row_label)
     if not compact:
         return None
-    if compact in {"netinterestincome", "totaloperatingincome"}:
+    if compact == "operatingincome" and bank_operating_income_total:
+        return "revenue"
+    if compact in {
+        "netinterestincome",
+        "totaloperatingincome",
+        "netoperatingincome",
+    }:
         return "revenue"
     if "ebitda" not in compact and (
         compact == "ebit"
@@ -2481,7 +2579,7 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
         or "profitlossfromoperatingactivities" in compact
         or "operatingprofit" in compact
         or "statutoryebit" in compact
-        or "operatingincome" in compact
+        or compact == "operatingincome"
         or "profitbeforeincometax" in compact
         or "profitbeforetax" in compact
         or "profitfortheperiodbeforetax" in compact
@@ -2608,6 +2706,8 @@ def _clean_income_statement_row_ref(label: Any) -> str:
 def _recover_revenue_from_multiline_income_row(
     row: list[Any],
     scale: str,
+    *,
+    bank_operating_income_total: bool = False,
 ) -> tuple[float, str] | None:
     label_lines = _split_table_cell_lines(row[0]) if row else []
     if len(label_lines) < 2:
@@ -2616,7 +2716,13 @@ def _recover_revenue_from_multiline_income_row(
     best_line_index: int | None = None
     best_priority = -1
     for index, label in enumerate(label_lines):
-        if _income_metric_for_row_label(label) != "revenue":
+        if (
+            _income_metric_for_row_label(
+                label,
+                bank_operating_income_total=bank_operating_income_total,
+            )
+            != "revenue"
+        ):
             continue
         priority = _income_metric_priority_for_row_label(label, "revenue", [])
         if priority > best_priority:
@@ -2716,6 +2822,31 @@ def _recover_owner_np_attributable_from_income_row(
     return value, row_ref
 
 
+def _income_metric_row_ref_for_row(
+    row: list[Any],
+    row_label: str,
+    metric_name: str,
+    *,
+    bank_operating_income_total: bool = False,
+) -> str:
+    if metric_name != "ebit":
+        return row_label
+    for label in _split_table_cell_lines(row[0]) if row else []:
+        if (
+            _income_metric_for_row_label(
+                label,
+                bank_operating_income_total=bank_operating_income_total,
+            )
+            != metric_name
+        ):
+            continue
+        compact = _normalize_filter_text(label)
+        if any(blocker in compact for blocker, _source_label in _EBIT_LABEL_BLOCKERS):
+            continue
+        return _clean_income_statement_row_ref(label)
+    return row_label
+
+
 def _income_metric_priority_for_row_label(
     row_label: str,
     metric_name: str,
@@ -2723,6 +2854,8 @@ def _income_metric_priority_for_row_label(
 ) -> int:
     compact = _normalize_filter_text(row_label)
     if metric_name == "revenue":
+        if compact in {"operatingincome", "totaloperatingincome", "netoperatingincome"}:
+            return 95
         if "totaloperatingrevenue" in compact:
             return 110
         if "totalrevenuefromordinaryactivities" in compact:
@@ -2758,6 +2891,19 @@ def _income_metric_priority_for_row_label(
     return 0
 
 
+def _table_has_bank_operating_income_total_context(table: Any) -> bool:
+    text = _table_precedence_text(table)
+    if "netinterestincome" not in text:
+        return False
+    return any(
+        marker in text
+        for marker in (
+            "creditimpairment",
+            "profitbeforecreditimpairmentandincometax",
+        )
+    )
+
+
 def _recover_income_statement_metrics_from_table(
     table: Any, scale: str, rows_override: list[list[Any]] | None = None
 ) -> dict[str, tuple[float, str]]:
@@ -2770,6 +2916,7 @@ def _recover_income_statement_metrics_from_table(
             "statementofprofitorloss",
         )
     )
+    bank_operating_income_total = _table_has_bank_operating_income_total_context(table)
     rows = rows_override if rows_override is not None else getattr(table, "rows", [])
     for row in rows or []:
         if not row:
@@ -2778,7 +2925,11 @@ def _recover_income_statement_metrics_from_table(
         if not row_label:
             continue
 
-        revenue_recovery = _recover_revenue_from_multiline_income_row(row, scale)
+        revenue_recovery = _recover_revenue_from_multiline_income_row(
+            row,
+            scale,
+            bank_operating_income_total=bank_operating_income_total,
+        )
         if revenue_recovery is not None:
             value, row_ref = revenue_recovery
             priority = _income_metric_priority_for_row_label(
@@ -2802,7 +2953,10 @@ def _recover_income_statement_metrics_from_table(
             if existing is None or 150 > existing[0]:
                 recovered["np_attributable"] = (150, value, row_ref)
 
-        metric_name = _income_metric_for_row_label(row_label)
+        metric_name = _income_metric_for_row_label(
+            row_label,
+            bank_operating_income_total=bank_operating_income_total,
+        )
         if metric_name == "np_attributable" and not any(
             marker in _normalize_filter_text(row_label)
             for marker in (
@@ -2833,14 +2987,20 @@ def _recover_income_statement_metrics_from_table(
         if metric_name in {"revenue", "ebit", "np_attributable"}:
             value = _parse_current_period_metric_cell(row, scale)
             if value is not None:
-                priority = _income_metric_priority_for_row_label(
+                row_ref = _income_metric_row_ref_for_row(
+                    row,
                     row_label,
+                    metric_name,
+                    bank_operating_income_total=bank_operating_income_total,
+                )
+                priority = _income_metric_priority_for_row_label(
+                    row_ref,
                     metric_name,
                     previous_labels,
                 )
                 existing = recovered.get(metric_name)
                 if existing is None or priority > existing[0]:
-                    recovered[metric_name] = (priority, value, row_label)
+                    recovered[metric_name] = (priority, value, row_ref)
 
         previous_labels.append(row_label)
     return {
@@ -3472,10 +3632,10 @@ def _extract_single_table(
             recovered_capex = _recover_preferred_cashflow_capex_from_table(
                 table, scale_for_table
             )
+            current_row_ref = extracted["row_refs"].get("capex")
             if recovered_capex is not None:
                 recovered_value, recovered_row_ref = recovered_capex
                 current_capex = _coerce_cashflow_metric_float(extracted.get("capex"))
-                current_row_ref = extracted["row_refs"].get("capex")
                 should_replace_capex = (
                     current_capex is None
                     or _cashflow_capex_row_is_weak(current_row_ref)
@@ -3488,6 +3648,13 @@ def _extract_single_table(
                         "Recovered cashflow capex from preferred PP&E row on page %s",
                         getattr(table, "page_number", "?"),
                     )
+            elif _cashflow_capex_row_is_disallowed_financial_asset(current_row_ref):
+                extracted["capex"] = None
+                extracted["row_refs"].pop("capex", None)
+                logger.info(
+                    "Rejected cashflow capex from financial-asset row on page %s",
+                    getattr(table, "page_number", "?"),
+                )
         if table_type == "cashflow_statement" and (
             extracted.get("cash_end") is None
             or _cashflow_cash_end_row_is_weak(extracted["row_refs"].get("cash_end"))
@@ -4192,6 +4359,7 @@ _EBIT_LABEL_BLOCKERS = (
     ("earnings before interest and tax depreciation", "ebitda"),
     ("earnings before interest, taxes, depreciation", "ebitda"),
     ("net operating income", "net_operating_income"),
+    ("profitbeforecreditimpairmentandincometax", "credit_impairment_pre_tax"),
 )
 
 
@@ -6336,6 +6504,8 @@ def _table_has_income_statement_source_rows(table: Any) -> bool:
             "profitlossforthehalfyearisattributableto",
             "attributabletobhpshareholders",
             "equityholdersoftheparent",
+            "profitbeforecreditimpairmentandincometax",
+            "profitattributabletoshareholdersofthecompany",
         )
     )
 
@@ -6412,6 +6582,27 @@ def _apply_preferred_income_statement_source_payload(
         existing_provenance = str(provenance.get(metric_name) or "").strip().lower()
         return existing_provenance.startswith("income_statement:")
 
+    def _existing_income_statement_metric_has_lower_priority(
+        metric_name: str,
+        recovered_row_ref: str,
+    ) -> bool:
+        if metric_name != "revenue":
+            return False
+        existing_provenance = str(provenance.get(metric_name) or "").strip().lower()
+        if not existing_provenance.startswith("income_statement:"):
+            return False
+        existing_priority = _income_metric_priority_for_row_label(
+            str(row_refs.get(metric_name) or ""),
+            metric_name,
+            [],
+        )
+        recovered_priority = _income_metric_priority_for_row_label(
+            recovered_row_ref,
+            metric_name,
+            [],
+        )
+        return recovered_priority > existing_priority
+
     for table in _preferred_statement_tables(tables):
         if not _table_has_income_statement_source_rows(table):
             continue
@@ -6448,12 +6639,19 @@ def _apply_preferred_income_statement_source_payload(
                     table_scale,
                 )
             )
+            existing_has_lower_priority = (
+                _existing_income_statement_metric_has_lower_priority(
+                    metric_name,
+                    recovered_row_ref,
+                )
+            )
             if metrics.get(metric_name) is not None and not (
                 existing_is_weak_wrapper
                 or existing_is_appendix_wrapper
                 or existing_is_rejected
                 or existing_is_generic_np_attributable
                 or existing_scale_conflicts_with_preferred
+                or existing_has_lower_priority
             ):
                 continue
             metrics[metric_name] = recovered_value
@@ -6966,7 +7164,19 @@ def _apply_appendix5b_source_text_payload(
     payload["metric_scale_sources"] = metric_scale_sources
 
 
-def _cashflow_metric_for_statement_text_label(label: str) -> str | None:
+def _cashflow_statement_text_has_bank_capex_context(lines: list[str]) -> bool:
+    compact = _normalize_filter_text(" ".join(lines))
+    return any(
+        marker in compact
+        for marker in (*_CASHFLOW_BANK_CAPEX_LABELS, "investmentsecurities", "securitiesassets")
+    )
+
+
+def _cashflow_metric_for_statement_text_label(
+    label: str,
+    *,
+    bank_cashflow_context: bool = False,
+) -> str | None:
     compact = _normalize_filter_text(label)
     if "netoperatingcashflowsprovidedbyoperatingactivities" in compact:
         return "operating_cf"
@@ -6978,7 +7188,10 @@ def _cashflow_metric_for_statement_text_label(label: str) -> str | None:
         return "financing_cf"
     if _cashflow_row_has_strong_cash_end_label([label]):
         return "cash_end"
-    if _cashflow_row_has_strong_capex_label([label]):
+    if _cashflow_row_has_strong_capex_label(
+        [label],
+        bank_cashflow_context=bank_cashflow_context,
+    ):
         return "capex"
     return None
 
@@ -6988,18 +7201,29 @@ def _recover_cashflow_metrics_from_statement_text(
     scale: str,
 ) -> dict[str, tuple[float, str]]:
     recovered: dict[str, tuple[float, str]] = {}
+    bank_cashflow_context = _cashflow_statement_text_has_bank_capex_context(lines)
     for index, label in enumerate(lines):
-        metric_name = _cashflow_metric_for_statement_text_label(label)
+        metric_name = _cashflow_metric_for_statement_text_label(
+            label,
+            bank_cashflow_context=bank_cashflow_context,
+        )
         if metric_name is None:
             continue
         row = [label] + lines[index + 1 : index + 7]
         if metric_name == "capex":
-            value = _parse_cashflow_capex_row_amount(row, scale)
+            value = _statement_text_inline_value(label, scale)
+            if value is None:
+                value = _parse_cashflow_capex_row_amount(row, scale)
         else:
             value = _parse_current_period_metric_cell(row, scale)
         if value is None:
             continue
-        recovered[metric_name] = (value, label)
+        row_ref = (
+            _statement_text_label_without_inline_values(label)
+            if metric_name == "capex"
+            else label
+        )
+        recovered[metric_name] = (value, row_ref)
     return recovered
 
 
@@ -7114,6 +7338,7 @@ def _apply_preferred_statement_text_source_payload(
         sections,
         ("consolidatedstatementofcashflows", "statementofcashflows"),
     ):
+        bank_cashflow_context = _cashflow_statement_text_has_bank_capex_context(lines)
         recovered = _recover_cashflow_metrics_from_statement_text(lines, scale_for_text)
         if not recovered:
             continue
@@ -7121,8 +7346,14 @@ def _apply_preferred_statement_text_source_payload(
             current_row = row_refs.get(metric_name)
             should_replace_capex = (
                 metric_name == "capex"
-                and _cashflow_row_has_strong_capex_label([row_ref])
-                and not _cashflow_row_has_strong_capex_label([current_row])
+                and _cashflow_row_has_strong_capex_label(
+                    [row_ref],
+                    bank_cashflow_context=bank_cashflow_context,
+                )
+                and not _cashflow_row_has_strong_capex_label(
+                    [current_row],
+                    bank_cashflow_context=bank_cashflow_context,
+                )
             )
             if (
                 metrics.get(metric_name) is not None
@@ -7152,6 +7383,82 @@ def _apply_preferred_statement_text_source_payload(
                 scale_source="source_text",
                 pass1_result=pass1_result,
             )
+        break
+
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
+    payload["metric_source_scales"] = metric_source_scales
+    payload["metric_scale_sources"] = metric_scale_sources
+
+
+def _apply_bank_cashflow_capex_source_text_payload(
+    payload: dict[str, Any],
+    source_path: Any,
+    *,
+    scale: Any,
+    pass1_result: dict,
+) -> None:
+    scale_for_text = str(scale or "unknown")
+    if scale_for_text == "unknown":
+        return
+
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    metric_scale_sources = (
+        payload.get("metric_scale_sources")
+        if isinstance(payload.get("metric_scale_sources"), dict)
+        else {}
+    )
+
+    for page, lines in _read_pdf_pages_for_statement_text(source_path):
+        compact_page = _normalize_filter_text(" ".join(lines))
+        if (
+            "cashflowsfrominvestingactivities" not in compact_page
+            and "statementofcashflows" not in compact_page
+        ):
+            continue
+        if not _cashflow_statement_text_has_bank_capex_context(lines):
+            continue
+        recovered = _recover_cashflow_metrics_from_statement_text(lines, scale_for_text)
+        if "capex" not in recovered:
+            continue
+        current_row = row_refs.get("capex")
+        if metrics.get("capex") is not None and not _cashflow_capex_row_is_weak(
+            current_row
+        ):
+            return
+
+        value, row_ref = recovered["capex"]
+        metrics["capex"] = value
+        payload["capex"] = value
+        row_refs["capex"] = row_ref
+        provenance["capex"] = f"cashflow_statement:page_{page}:{row_ref}"
+        metric_source_scales["capex"] = scale_for_text
+        metric_scale_sources["capex"] = "source_text"
+        field_provenance["capex"] = _build_field_provenance_entry(
+            metric_name="capex",
+            source="cashflow_statement",
+            page=page,
+            row_ref=row_ref,
+            scale=scale_for_text,
+            scale_source="source_text",
+            pass1_result=pass1_result,
+        )
         break
 
     payload["metrics"] = metrics
@@ -8654,6 +8961,12 @@ def run_multipass_extraction(
     _apply_preferred_statement_text_source_payload(
         payload,
         structured_doc.sections,
+        scale=payload.get("scale") or pass1.get("scale", "unknown"),
+        pass1_result=pass1,
+    )
+    _apply_bank_cashflow_capex_source_text_payload(
+        payload,
+        pdf_path,
         scale=payload.get("scale") or pass1.get("scale", "unknown"),
         pass1_result=pass1,
     )

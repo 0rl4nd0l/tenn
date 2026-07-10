@@ -3728,6 +3728,156 @@ def test_cashflow_capex_prefers_ppe_row_over_multirow_investing_aggregate():
     assert result["row_refs"]["capex"] == "Payments for property, plant and equipment"
 
 
+def test_cashflow_capex_prefers_bank_other_assets_over_investment_securities():
+    """ANZ-style bank capex binds to other assets, not security purchases."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=28,
+        caption="Condensed consolidated statement of cash flows",
+        headers=["", "Mar 2025 $m", "Mar 2024 $m"],
+        rows=[
+            ["Cash flows from investing activities", "", ""],
+            ["Investment securities assets: Purchases", "(1,073)", "(872)"],
+            ["Investment securities assets: Sales and maturities", "974", "649"],
+            ["Net investments in other assets", "(242)", "(381)"],
+            ["Net cash used in investing activities", "(341)", "(604)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(341)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(1,073)",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "investing_cf": "Net cash used in investing activities",
+            "capex": "Investment securities assets:Purchases",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-03-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] == -242_000_000
+    assert result["row_refs"]["capex"] == "Net investments in other assets"
+
+
+def test_cashflow_capex_rejects_securities_purchase_row_without_bank_capex():
+    """A securities-purchase row alone is not a capex source."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=28,
+        caption="Condensed consolidated statement of cash flows",
+        headers=["", "Mar 2025 $m", "Mar 2024 $m"],
+        rows=[
+            ["Cash flows from investing activities", "", ""],
+            ["Investment securities assets: Purchases", "(1,073)", "(872)"],
+            ["Investment securities assets: Sales and maturities", "974", "649"],
+            ["Net cash used in investing activities", "(99)", "(223)"],
+        ],
+    )
+    raw_response = {
+        "operating_cf": None,
+        "investing_cf": "(99)",
+        "financing_cf": None,
+        "cash_end": None,
+        "capex": "(1,073)",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "investing_cf": "Net cash used in investing activities",
+            "capex": "Investment securities assets:Purchases",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "cashflow_statement",
+            table,
+            {
+                "report_type": "H",
+                "period_end": "2025-03-31",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["capex"] is None
+    assert "capex" not in result["row_refs"]
+
+
+def test_cashflow_capex_distinguishes_financial_from_non_financial_assets():
+    from app.services.multipass_extraction import (
+        _cashflow_capex_row_is_disallowed_financial_asset,
+    )
+
+    assert _cashflow_capex_row_is_disallowed_financial_asset(
+        "Purchase of financial assets"
+    )
+    assert _cashflow_capex_row_is_disallowed_financial_asset(
+        "Net payments for purchase of interest-bearing financial assets"
+    )
+    assert not _cashflow_capex_row_is_disallowed_financial_asset(
+        "Payments for non-financial assets"
+    )
+    assert _cashflow_capex_row_is_disallowed_financial_asset(
+        "Purchases of financial assets and non-financial assets"
+    )
+
+
+def test_cashflow_statement_text_recovers_bank_other_assets_capex():
+    from app.services.multipass_extraction import (
+        _recover_cashflow_metrics_from_statement_text,
+    )
+
+    recovered = _recover_cashflow_metrics_from_statement_text(
+        [
+            "Condensed Consolidated Statement of Cash Flows",
+            "Cash flows from investing activities",
+            "Investment securities assets:",
+            "Purchases (41,649) (40,877) (43,900)",
+            "Proceeds from sale or maturity 31,629 24,546 22,996",
+            "Net investments in other assets (242) (153) (451)",
+            "Net cash provided by/(used in) investing activities (10,262) (21,380) (20,687)",
+        ],
+        "millions",
+    )
+
+    assert recovered["capex"] == (
+        -242_000_000,
+        "Net investments in other assets",
+    )
+
+
 def test_cashflow_capex_prefers_grouped_current_ppe_intangibles_row():
     """WOW grouped cashflow rows should use current-period PP&E plus intangibles."""
     from unittest.mock import patch
@@ -5228,6 +5378,127 @@ def test_income_source_overlay_prefers_total_rows_in_full_statement():
     assert payload["metrics"]["ebit"] == 347_600_000
     assert payload["metrics"]["np_attributable"] == 348_500_000
     assert payload["row_refs"]["revenue"] == "Total revenue from ordinary activities"
+
+
+def test_income_source_overlay_prefers_bank_operating_income_over_net_interest_income():
+    """ANZ-style bank statements use Operating income as the revenue-equivalent total."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    bank_statement = DoclingTable(
+        page_number=5,
+        caption="",
+        headers=[
+            "Net interest income\nOther operating income",
+            "Mar 25",
+            "Sep 24 Mar 24 Mar 25 Mar 25\n$M $M v. Sep 24 v. Mar 24\n8,137 7,900 9% 12%\n2,236 2,248 4% 3%",
+        ],
+        rows=[
+            [
+                "Net interest income\nOther operating income",
+                "Mar 25",
+                "Sep 24 Mar 24 Mar 25 Mar 25\n$M $M v. Sep 24 v. Mar 24\n8,137 7,900 9% 12%\n2,236 2,248 4% 3%",
+            ],
+            ["", "$M", ""],
+            ["", "8,838", ""],
+            ["", "2,315", ""],
+            [
+                "Operating income\nOperating expenses",
+                "11,153",
+                "10,373 10,148 8% 10%\n(5,490) (5,179) 5% 12%",
+            ],
+            ["", "(5,788)", ""],
+            [
+                "Profit before credit impairment and income tax\nCredit impairment (charge)/release",
+                "5,365",
+                "4,883 4,969 10% 8%\n(336) (70) -57% large",
+            ],
+            ["", "(143)", ""],
+            [
+                "Profit before income tax\nIncome tax expense\nNon-controlling interests",
+                "5,222",
+                "4,547 4,899 15% 7%\n(1,381) (1,435) 11% 7%\n(21) (14) 0% 50%",
+            ],
+            ["", "(1,538)", ""],
+            ["", "(21)", ""],
+            [
+                "Profit attributable to shareholders of the Company",
+                "3,663",
+                "3,145 3,450 16% 6%",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 8_838_000_000,
+            "ebit": 5_365_000_000,
+            "np_attributable": 3_663_000_000,
+        },
+        "revenue": 8_838_000_000,
+        "ebit": 5_365_000_000,
+        "np_attributable": 3_663_000_000,
+        "row_refs": {
+            "revenue": "Net interest income",
+            "ebit": "Profit before credit impairment and income tax",
+            "np_attributable": "Profit attributable to shareholders of the Company",
+        },
+        "provenance": {
+            "revenue": "income_statement:page_5:Net interest income",
+            "ebit": "income_statement:page_5:Profit before credit impairment and income tax",
+            "np_attributable": (
+                "income_statement:page_5:"
+                "Profit attributable to shareholders of the Company"
+            ),
+        },
+        "metric_source_scales": {
+            "revenue": "millions",
+            "ebit": "millions",
+            "np_attributable": "millions",
+        },
+        "metric_scale_sources": {
+            "revenue": "table",
+            "ebit": "table",
+            "np_attributable": "table",
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [bank_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-03-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 11_153_000_000
+    assert payload["row_refs"]["revenue"] == "Operating income"
+    assert payload["provenance"]["revenue"] == "income_statement:page_5:Operating income"
+    assert payload["metrics"]["ebit"] == 5_222_000_000
+    assert payload["row_refs"]["ebit"] == "Profit before income tax"
+    assert payload["provenance"]["ebit"] == "income_statement:page_5:Profit before income tax"
+
+
+def test_income_metric_label_scopes_bank_operating_income_revenue_context():
+    from app.services.multipass_extraction import _income_metric_for_row_label
+
+    assert _income_metric_for_row_label("Operating income") == "ebit"
+    assert (
+        _income_metric_for_row_label(
+            "Operating income",
+            bank_operating_income_total=True,
+        )
+        == "revenue"
+    )
+    assert _income_metric_for_row_label("Other operating income") is None
 
 
 def test_income_source_overlay_replaces_conflicting_component_scale_rows():
