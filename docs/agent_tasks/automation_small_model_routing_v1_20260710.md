@@ -28,6 +28,11 @@ allowed_files:
 USER_APPROVED: Orlando asked Codex to ensure Tenn automations use a smaller
 model when viable.
 
+USER_APPROVED_PUBLISH: After local implementation and validation, Orlando
+explicitly approved pushing the task branch and opening draft PR #499. Later
+review-fix approval covers updates to that existing PR, but not merge or live
+execution-surface mutation.
+
 ## Objective
 
 Route low-risk audit/proposal Codex automation jobs to an explicit smaller
@@ -42,7 +47,9 @@ default model unless an operator explicitly overrides them.
 - Preserve default model routing for higher-risk extraction and bug-regression
   scouts.
 - Document the routing policy and environment overrides.
-- Add focused tests for command construction and policy classification.
+- Validate reasoning-effort overrides before launching Codex.
+- Add focused tests for command construction, policy classification, override
+  precedence, blank-value fallback, and invalid reasoning values.
 
 task scope: `control_plane_only`
 
@@ -52,7 +59,8 @@ task scope: `control_plane_only`
   unit edit.
 - No mutation of runtime, data stores, extraction prompts, source PDFs, gold
   labels, model/GPU runtime config, Docker, or secrets.
-- No GitHub issue, PR, label, comment, close/reopen, or merge mutation.
+- No GitHub issue, label, comment, close/reopen, ready-for-review, or merge
+  mutation. Branch push and draft PR #499 publication are explicitly approved.
 - No broad automation redesign or changes to automation job prompts beyond
   model routing metadata.
 

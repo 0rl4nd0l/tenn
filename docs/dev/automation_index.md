@@ -34,9 +34,19 @@ Operators can override routing without editing timer units:
 - `TENN_CODEX_AUTOMATION_<JOB_NAME>_MODEL`
 - `TENN_CODEX_AUTOMATION_<JOB_NAME>_REASONING_EFFORT`
 
+Override precedence is per-job, then global, then small-policy, then the
+built-in default. Blank values are ignored. Native `automation-health` ignores
+all model overrides because it does not launch a Codex child.
+
 For per-job overrides, uppercase the job name and replace hyphens with
 underscores, for example
 `TENN_CODEX_AUTOMATION_REPO_HYGIENE_MODEL=gpt-5.6-luna`.
+
+Supported reasoning values are `low`, `medium`, `high`, `xhigh`, `max`, and
+`ultra`. Invalid values fail before the Codex child starts and identify the
+offending environment variable. Individual models may support only a subset;
+the Codex CLI remains the final compatibility check for a selected model and
+reasoning combination.
 
 This policy only changes the Codex CLI invocation for repo-side automation
 agents. It does not change live Tenn model/GPU runtime configuration.

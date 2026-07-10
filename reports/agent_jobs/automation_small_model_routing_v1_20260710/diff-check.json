@@ -1,7 +1,19 @@
 {
   "changed_files": [
     {
+      "path": "docs/agent_tasks/automation_small_model_routing_v1_20260710.md",
+      "status": "M"
+    },
+    {
       "path": "docs/dev/automation_index.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/automation_small_model_routing_v1_20260710/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/automation_small_model_routing_v1_20260710/VALIDATION.md",
       "status": "M"
     },
     {
@@ -11,10 +23,6 @@
     {
       "path": "scripts/test_codex_automation_runner.py",
       "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/automation_small_model_routing_v1_20260710.md",
-      "status": "??"
     }
   ],
   "disallowed_files": [],

@@ -114,6 +114,90 @@ class CodexAutomationRunnerTest(unittest.TestCase):
         self.assertEqual("gpt-5.6-luna", command[command.index("--model") + 1])
         self.assertIn('model_reasoning_effort="low"', command)
 
+    def test_model_override_precedence_and_blank_fallback(self) -> None:
+        cases = (
+            (
+                "per-job beats global and small policy",
+                {
+                    "TENN_CODEX_AUTOMATION_REPO_HYGIENE_MODEL": "job-model",
+                    "TENN_CODEX_AUTOMATION_REPO_HYGIENE_REASONING_EFFORT": "low",
+                    "TENN_CODEX_AUTOMATION_MODEL": "global-model",
+                    "TENN_CODEX_AUTOMATION_REASONING_EFFORT": "high",
+                    "TENN_CODEX_AUTOMATION_SMALL_MODEL": "small-model",
+                    "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT": "xhigh",
+                },
+                "job-model",
+                "low",
+            ),
+            (
+                "global beats small policy",
+                {
+                    "TENN_CODEX_AUTOMATION_MODEL": "global-model",
+                    "TENN_CODEX_AUTOMATION_REASONING_EFFORT": "high",
+                    "TENN_CODEX_AUTOMATION_SMALL_MODEL": "small-model",
+                    "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT": "xhigh",
+                },
+                "global-model",
+                "high",
+            ),
+            (
+                "small policy overrides defaults",
+                {
+                    "TENN_CODEX_AUTOMATION_SMALL_MODEL": "small-model",
+                    "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT": "low",
+                },
+                "small-model",
+                "low",
+            ),
+            (
+                "blank higher-priority values fall through",
+                {
+                    "TENN_CODEX_AUTOMATION_REPO_HYGIENE_MODEL": "  ",
+                    "TENN_CODEX_AUTOMATION_REPO_HYGIENE_REASONING_EFFORT": " ",
+                    "TENN_CODEX_AUTOMATION_MODEL": "",
+                    "TENN_CODEX_AUTOMATION_REASONING_EFFORT": "  ",
+                    "TENN_CODEX_AUTOMATION_SMALL_MODEL": "small-model",
+                    "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT": "low",
+                },
+                "small-model",
+                "low",
+            ),
+        )
+
+        for label, env, expected_model, expected_effort in cases:
+            with self.subTest(case=label):
+                command = self._runner_command("repo-hygiene", env)
+                self.assertEqual(expected_model, command[command.index("--model") + 1])
+                self.assertIn(f'model_reasoning_effort="{expected_effort}"', command)
+
+    def test_native_job_ignores_model_overrides(self) -> None:
+        with mock.patch.dict(
+            runner.os.environ,
+            {
+                "TENN_CODEX_AUTOMATION_MODEL": "global-model",
+                "TENN_CODEX_AUTOMATION_REASONING_EFFORT": "high",
+                "TENN_CODEX_AUTOMATION_AUTOMATION_HEALTH_MODEL": "job-model",
+                "TENN_CODEX_AUTOMATION_AUTOMATION_HEALTH_REASONING_EFFORT": "low",
+            },
+            clear=True,
+        ):
+            selection = runner._model_selection(runner.JOBS["automation-health"])
+
+        self.assertIsNone(selection.model)
+        self.assertIsNone(selection.reasoning_effort)
+        self.assertEqual(runner.MODEL_POLICY_NATIVE, selection.source)
+
+    def test_invalid_reasoning_effort_names_the_environment_variable(self) -> None:
+        with (
+            mock.patch.dict(
+                runner.os.environ,
+                {"TENN_CODEX_AUTOMATION_REASONING_EFFORT": "medum"},
+                clear=True,
+            ),
+            self.assertRaisesRegex(ValueError, "TENN_CODEX_AUTOMATION_REASONING_EFFORT"),
+        ):
+            runner._model_selection(runner.JOBS["repo-hygiene"])
+
     def test_automation_index_timer_table_matches_registered_jobs(self) -> None:
         index_rows = self._automation_index_rows()
 

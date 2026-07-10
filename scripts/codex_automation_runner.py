@@ -27,6 +27,7 @@ CODEX_CANDIDATES = (
 FAILURE_LOG_TAIL_CHARS = 4000
 DEFAULT_SMALL_MODEL = "gpt-5.4-mini"
 DEFAULT_SMALL_REASONING_EFFORT = "medium"
+SUPPORTED_REASONING_EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
 MODEL_POLICY_NATIVE = "native"
 MODEL_POLICY_SMALL = "small"
 MODEL_POLICY_DEFAULT = "default"
@@ -631,18 +632,29 @@ def _env_value(name: str) -> str | None:
     return stripped or None
 
 
+def _validated_reasoning_effort(value: str, source: str) -> str:
+    normalized = value.lower()
+    if normalized not in SUPPORTED_REASONING_EFFORTS:
+        allowed = ", ".join(SUPPORTED_REASONING_EFFORTS)
+        raise ValueError(f"{source} must be one of: {allowed}; got {value!r}")
+    return normalized
+
+
 def _reasoning_effort_for_job(job: AutomationJob, default: str | None) -> tuple[str | None, str | None]:
     job_key = _job_env_key(job.name)
     job_env = f"TENN_CODEX_AUTOMATION_{job_key}_REASONING_EFFORT"
     job_value = _env_value(job_env)
     if job_value:
-        return job_value, job_env
+        return _validated_reasoning_effort(job_value, job_env), job_env
 
     global_value = _env_value("TENN_CODEX_AUTOMATION_REASONING_EFFORT")
     if global_value:
-        return global_value, "TENN_CODEX_AUTOMATION_REASONING_EFFORT"
+        global_env = "TENN_CODEX_AUTOMATION_REASONING_EFFORT"
+        return _validated_reasoning_effort(global_value, global_env), global_env
 
-    return default, None
+    if default is None:
+        return None, None
+    return _validated_reasoning_effort(default, f"{job.name} model policy default"), None
 
 
 def _model_selection(job: AutomationJob) -> ModelSelection:
@@ -667,7 +679,13 @@ def _model_selection(job: AutomationJob) -> ModelSelection:
         small_model_override = _env_value("TENN_CODEX_AUTOMATION_SMALL_MODEL")
         small_reasoning_override = _env_value("TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT")
         small_model = small_model_override or DEFAULT_SMALL_MODEL
-        small_reasoning = small_reasoning_override or DEFAULT_SMALL_REASONING_EFFORT
+        if small_reasoning_override:
+            small_reasoning = _validated_reasoning_effort(
+                small_reasoning_override,
+                "TENN_CODEX_AUTOMATION_SMALL_REASONING_EFFORT",
+            )
+        else:
+            small_reasoning = DEFAULT_SMALL_REASONING_EFFORT
         reasoning_effort, reasoning_source = _reasoning_effort_for_job(job, default=small_reasoning)
         source_parts = ["small_policy"]
         if small_model_override:
