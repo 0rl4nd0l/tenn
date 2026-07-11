@@ -51,6 +51,9 @@ jobs:
       - name: Ruff
         run: python -m ruff check autodev financial-engine_v2/backend scripts
 
+      - name: Pytest (Codex event waiter)
+        run: pytest -c pytest.ini scripts/test_codex_event_waiter.py -q
+
       - name: Pytest (backend + cockpit)
         run: pytest -c pytest.ini financial-engine_v2/backend/tests financial-engine_v2/cockpit/tests -q
 

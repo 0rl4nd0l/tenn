@@ -13,6 +13,7 @@ production_data_access: false
 closeout_scope: control_plane_only
 allowed_files:
   - docs/agent_tasks/codex_event_waiter_v1_20260710.md
+  - .github/workflows/ci.yml
   - scripts/codex_event_waiter.py
   - scripts/test_codex_event_waiter.py
   - .agents/skills/tenn-fix/SKILL.md
@@ -46,6 +47,12 @@ requested implementation. This approval covers the repo-local control-plane
 files and report artifacts listed above. It does not authorize GitHub writes,
 runtime/data/extraction mutation, persistent services, or host-global config.
 
+USER_APPROVED_FOLLOWUP: On 2026-07-11 Orlando explicitly approved extending
+draft PR #500 with the exact CI workflow path above, updating this allowlist,
+running a bounded command-mode proof, and pushing the existing draft branch.
+This does not authorize marking the PR ready, resolving review threads, or
+merging.
+
 ## Scope
 
 - Add `github-pr` and `command` waiter modes with one terminal JSON result.
@@ -65,7 +72,8 @@ runtime/data/extraction mutation, persistent services, or host-global config.
   model/GPU config, or secrets.
 - Do not install dependencies or persistent systemd services.
 - Do not mutate host-global Codex files or configuration.
-- Do not create, update, comment on, push, merge, or otherwise mutate GitHub.
+- Do not create a new PR, comment, resolve threads, mark ready, or merge. The
+  approved follow-up may update only the existing draft PR #500 branch.
 - Do not merge, rebase, reset, stash, clean, delete, prune, or remove worktrees.
 - Wait completion is activity evidence only. Extraction/runtime functionality
   still requires the Runtime Functionality Proof table.
@@ -77,6 +85,8 @@ runtime/data/extraction mutation, persistent services, or host-global config.
 - `python3 -m unittest scripts.test_codex_event_waiter`
 - `python3 -m py_compile scripts/codex_event_waiter.py scripts/test_codex_event_waiter.py`
 - Focused `ruff` check through an existing or ephemeral environment.
+- `pytest -c pytest.ini scripts/test_codex_event_waiter.py -q` through the CI
+  workflow and an equivalent local environment.
 - Attached wait proof with one terminal record and no intermediate model poll.
 - Detached wake proof, or an explicit fail-closed `DATA_MISSING` result that
   leaves the experimental path disabled.
@@ -89,6 +99,7 @@ runtime/data/extraction mutation, persistent services, or host-global config.
 ## Definition Of Done
 
 - Attached GitHub and command waits are implemented and focused tests pass.
+- The focused waiter suite is a required CI step.
 - Waiting emits one terminal JSON record and an atomic evidence artifact.
 - GitHub waits fail closed on head drift and never write to GitHub.
 - Command waits use `shell=False` and clean up timed-out children.
