@@ -195,6 +195,46 @@ The closeout gate is:
 python3 scripts/agent_job_contract.py check-closeout <task-card> --repo-root .
 ```
 
+## Wait Without Model Polling
+
+For GitHub checks or a long-running command, keep Codex in the same turn and
+use the repo event waiter instead of repeatedly asking the model to check:
+
+```bash
+python3 scripts/codex_event_waiter.py github-pr \
+  --repo 0rl4nd0l/tenn \
+  --pr <number> \
+  --head-sha <exact-pr-head-sha> \
+  --output reports/agent_jobs/<job_id>/WAIT_RESULT.json
+```
+
+For an already-authorized extraction or evaluation command, let the waiter own
+the child process without invoking a shell:
+
+```bash
+python3 scripts/codex_event_waiter.py command \
+  --timeout-seconds 2700 \
+  --output reports/agent_jobs/<job_id>/WAIT_RESULT.json \
+  -- python3 scripts/<approved-command>.py <args>
+```
+
+Operator rules:
+
+- Ensure the wait artifact is in the active task-card allowlist. Command mode
+  also writes `<wait-artifact>.log`, which must be allowlisted separately.
+- Record `waiting_on_timer` before a meaningful wait when ledger mutation is
+  approved.
+- A `SUCCESS` record means the wait condition completed. It is not proof that
+  a daemon, extraction, ingestion, or pipeline produced the intended output.
+- On return, Codex must re-read the exact PR head and checks, or run the Runtime
+  Functionality Proof query for runtime-like work.
+- `STALE_TARGET`, `FAILURE`, `CANCELLED`, `TIMEOUT`, and `ERROR` are stop or
+  diagnosis states. They never authorize a merge, rerun, or runtime mutation.
+- Draft PRs should normally be opened immediately when that GitHub write is
+  approved; wait only when readiness or a later action depends on check status.
+- Detached thread wake-up is not supported in V1. Keep waits attached rather
+  than installing services or modifying host-global Codex configuration.
+
 This gate also validates any `BOARD_DECISION.json` report artifact listed in
 the task card `allowed_files` under `output_dir`.
 
