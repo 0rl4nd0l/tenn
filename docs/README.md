@@ -84,8 +84,8 @@ Confirmed during this audit:
 
 - `AGENTS.md` is the top-level agent constitution.
 - `CLAUDE.md` is intentionally narrow and defers to `AGENTS.md`.
-- `.agents/skills/` has 12 repo-backed key and narrative-support skill
-  entrypoints after the 2026-06-24 skill-surface trim.
+- `.agents/skills/` has 13 repo-backed key, diagnostic, and narrative-support
+  skill entrypoints after the 2026-07-11 control-plane doctor addition.
 - The docs tree is large: 717 files under `docs/`, including 433 task cards.
 - `reports/agent_jobs/` is a large evidence archive and is gitignored.
 - The active registry accepted
