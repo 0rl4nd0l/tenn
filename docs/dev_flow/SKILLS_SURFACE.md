@@ -1,19 +1,21 @@
 # Tenn Skill Surface
 
-last_verified_at: 2026-06-25T06:32:20Z
-last_verified_commit: b3b3a154590f36e61d297c1ac79fe623526f0b28
-last_verified_pr: 409
+last_verified_at: 2026-07-11T08:06:21Z
+last_verified_commit: a7ad68df941aeb6b58de763ac16de28d647cf83f
+last_verified_pr: 504
 freshness_model: ancestor_plus_behavior_stale_files
-freshness_checked_at: 2026-06-26T05:30:36Z
-freshness_checked_against: c877da6eb114826365339379f10a8a06e82221a5
+freshness_checked_at: 2026-07-11T07:41:22Z
+freshness_checked_against: 2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c
 maintenance: hand_maintained
-verification_scope: repo-visible key and narrative-support skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
+verification_scope: repo-visible key, diagnostic, and narrative-support skill routing, portable guard preflight guidance, and source-map freshness only; host picker visibility not probed
 freshness_evidence:
 - `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` -> `b3b3a154590f36e61d297c1ac79fe623526f0b28`
 - `gh pr view 409 --json number,state,mergedAt,mergeCommit` -> PR #409 `MERGED`, merge commit `b3b3a154590f36e61d297c1ac79fe623526f0b28`
 - `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` at freshness check -> `c877da6eb114826365339379f10a8a06e82221a5`
 - `git merge-base --is-ancestor b3b3a154590f36e61d297c1ac79fe623526f0b28 origin/migration/clean-runtime-baseline-reconstruct-v1` -> exit `0`
-- `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `12`
+- `git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1` -> `2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c`
+- `gh pr view 504` and GitHub REST at review-fix preflight -> PR #504 `OPEN`, `DRAFT`, exact head `a7ad68df941aeb6b58de763ac16de28d647cf83f`, base `2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c`, required checks passed
+- `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `13` in the validated local skill candidate
 - `[ ! -d .codex/skills ] || find .codex/skills -maxdepth 2 -name SKILL.md | sort` -> no output; `.codex/skills` is absent in this snapshot
 data_missing:
 - Host picker/autocomplete visibility was not probed.
@@ -83,6 +85,7 @@ Use these as the normal user-facing entrypoints:
 | `tenn-goal-report` | A long `/goal` run needs state, validation, report, or handoff discipline. |
 | `tenn-handoff` | Work must be packaged for a fresh session with git, ledger, validation, and next-goal context. |
 | `tenn-financial-metric-extraction` | Issue-backed Financial Truth extraction work is explicitly in scope. |
+| `tenn-control-plane-doctor` | A strictly read-only effective-state diagnostic and plain-language drift classification is requested. |
 | `zoom-out` | Orlando asks to step up a layer, map the bigger problem, or check whether the current work is solving the right problem. |
 | `caveman` | Orlando asks for ultra-terse communication. |
 
@@ -251,6 +254,13 @@ This trim is reversible:
 - Any new visible skill must update this file, preserve the old count in the
   report bundle, explain why the count increased, and pass the visible skill
   count check.
+
+`tenn-control-plane-doctor` is the approved exception after the 2026-06-24
+trim. It preserves distinct operator intent and a strict no-remediation
+boundary around the deterministic `scripts/control_plane_doctor.py` backend.
+Embedding it in `tenn-explain` or `tenn-fix` would make the safe diagnostic
+entrypoint less discoverable and blur diagnosis with mutation. The entrypoint
+adds no backend script or duplicated checking logic.
 
 ## Validation Checklist
 
