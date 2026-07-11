@@ -7661,6 +7661,99 @@ def test_pass3a_recovers_total_debt_from_multiline_balance_sheet_groups():
     ]
 
 
+def test_total_debt_recovery_aligns_unicode_hyphenated_liability_groups():
+    """Unicode non-breaking hyphens must not shift grouped debt values."""
+    from app.services.multipass_extraction import (
+        _recover_total_debt_from_balance_sheet_table,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=10,
+        caption="Statement of financial position",
+        rows=[
+            [
+                (
+                    "Current liabilities\n"
+                    "Trade and other payables\n"
+                    "Lease liabilities\n"
+                    "Borrowings\n"
+                    "Current tax payable\n"
+                    "Other financial liabilities\n"
+                    "Provisions\n"
+                    "Other liabilities"
+                ),
+                "",
+                "8,083\n1,699\n244\n127\n342\n1,791\n11",
+            ],
+            ["", "8,487", ""],
+            ["", "1,724", ""],
+            ["", "422", ""],
+            ["", "114", ""],
+            ["", "226", ""],
+            ["", "2,475", ""],
+            ["", "13", ""],
+            ["Total current liabilities", "13,461", "12,297"],
+            [
+                (
+                    "Non‑current liabilities\n"
+                    "Lease liabilities\n"
+                    "Borrowings\n"
+                    "Other financial liabilities\n"
+                    "Provisions\n"
+                    "Deferred tax liability\n"
+                    "Other liabilities"
+                ),
+                "",
+                "10,175\n5,267\n46\n963\n61\n58",
+            ],
+            ["", "9,788", ""],
+            ["", "5,264", ""],
+            ["", "96", ""],
+            ["", "915", ""],
+            ["", "53", ""],
+            ["", "53", ""],
+            ["Total non‑current liabilities", "16,169", "16,570"],
+        ],
+        headers=["", "4 January 2026 $m", "29 June 2025 $m"],
+    )
+
+    recovered = _recover_total_debt_from_balance_sheet_table(table, "millions")
+
+    assert recovered == (
+        5_686_000_000,
+        ["Borrowings", "Borrowings"],
+    )
+
+
+def test_total_debt_recovery_avoids_double_counting_and_excludes_leases():
+    """Component rows beat explicit totals without adding leases or the total twice."""
+    from app.services.multipass_extraction import (
+        _recover_total_debt_from_balance_sheet_table,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=10,
+        caption="Statement of financial position",
+        rows=[
+            ["Lease liabilities", "1,724", "1,699"],
+            ["Borrowings", "422", "244"],
+            ["Lease liabilities", "9,788", "10,175"],
+            ["Borrowings", "5,264", "5,267"],
+            ["Total debt", "5,686", "5,511"],
+        ],
+        headers=["", "4 January 2026 $m", "29 June 2025 $m"],
+    )
+
+    recovered = _recover_total_debt_from_balance_sheet_table(table, "millions")
+
+    assert recovered == (
+        5_686_000_000,
+        ["Borrowings", "Borrowings"],
+    )
+
+
 def test_pass3a_recovers_total_debt_from_pymupdf_blank_value_rows():
     """PyMuPDF grouped rows should align labels with following current values."""
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
