@@ -126,6 +126,16 @@ class GitHubWaitTests(unittest.TestCase):
 
 
 class CommandWaitTests(unittest.TestCase):
+    def test_redact_text_covers_real_github_pat_prefixes(self) -> None:
+        classic = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        fine_grained = "github_pat_11AA0_example_token_value"
+
+        redacted = waiter.redact_text(f"classic={classic} fine={fine_grained}")
+
+        self.assertNotIn(classic, redacted)
+        self.assertNotIn(fine_grained, redacted)
+        self.assertEqual(redacted.count("[REDACTED]"), 2)
+
     def test_command_success_captures_bounded_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             result_path = Path(directory) / "result.json"
@@ -181,6 +191,35 @@ class CommandWaitTests(unittest.TestCase):
             self.assertNotIn("do-not-log-this", log_text)
             self.assertIn("token=[REDACTED]", log_text)
 
+    def test_redaction_expansion_still_respects_log_byte_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = waiter.run_command_wait(
+                [sys.executable, "-c", "print('token=x')"],
+                timeout_seconds=5.0,
+                max_log_bytes=8,
+                output_path=Path(directory) / "result.json",
+            )
+            log_text = Path(result["evidence"]["log_path"]).read_text(encoding="utf-8")
+            self.assertLessEqual(len(log_text.encode("utf-8")), 8)
+            self.assertNotIn("x", log_text)
+
+    def test_truncated_log_drops_partial_line_before_redaction(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = waiter.run_command_wait(
+                [
+                    sys.executable,
+                    "-c",
+                    "print('token=' + 'A' * 200); print('safe-tail')",
+                ],
+                timeout_seconds=5.0,
+                max_log_bytes=64,
+                output_path=Path(directory) / "result.json",
+            )
+            log_text = Path(result["evidence"]["log_path"]).read_text(encoding="utf-8")
+            self.assertLessEqual(len(log_text.encode("utf-8")), 64)
+            self.assertNotIn("AAAAAAAA", log_text)
+            self.assertIn("safe-tail", log_text)
+
     def test_command_timeout_terminates_child(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             result = waiter.run_command_wait(
@@ -191,6 +230,58 @@ class CommandWaitTests(unittest.TestCase):
             )
             self.assertEqual(result["state"], "TIMEOUT")
             self.assertTrue(result["observed"]["termination_attempted"])
+
+    @unittest.skipUnless(os.name == "posix", "process-group cleanup is POSIX-specific")
+    def test_command_timeout_kills_sigterm_resistant_descendant(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            group_pid_path = Path(directory) / "group.pid"
+            child_pid_path = Path(directory) / "child.pid"
+            heartbeat_path = Path(directory) / "heartbeat"
+            child_code = "\n".join(
+                [
+                    "import os",
+                    "import signal",
+                    "import time",
+                    "signal.signal(signal.SIGTERM, signal.SIG_IGN)",
+                    f"open({str(child_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    "while True:",
+                    f"    with open({str(heartbeat_path)!r}, 'a', encoding='utf-8') as handle:",
+                    "        handle.write('x')",
+                    "    time.sleep(0.02)",
+                ]
+            )
+            leader_code = "\n".join(
+                [
+                    "import os",
+                    "import subprocess",
+                    "import sys",
+                    "import time",
+                    f"open({str(group_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    f"subprocess.Popen([sys.executable, '-c', {child_code!r}])",
+                    "time.sleep(30)",
+                ]
+            )
+
+            try:
+                result = waiter.run_command_wait(
+                    [sys.executable, "-c", leader_code],
+                    timeout_seconds=0.2,
+                    max_log_bytes=1024,
+                    output_path=Path(directory) / "result.json",
+                )
+                self.assertEqual(result["state"], "TIMEOUT")
+                self.assertTrue(group_pid_path.exists())
+                self.assertTrue(child_pid_path.exists())
+                self.assertTrue(heartbeat_path.exists())
+                size_after_wait = heartbeat_path.stat().st_size
+                time.sleep(0.15)
+                self.assertEqual(heartbeat_path.stat().st_size, size_after_wait)
+            finally:
+                if group_pid_path.exists():
+                    try:
+                        os.killpg(int(group_pid_path.read_text(encoding="utf-8")), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
 
 class OutputAndCliTests(unittest.TestCase):

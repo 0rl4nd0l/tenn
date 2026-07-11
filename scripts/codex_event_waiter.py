@@ -96,6 +96,7 @@ class RollingBytes:
     def __init__(self, limit: int) -> None:
         self.limit = max(int(limit), 1)
         self._value = bytearray()
+        self._truncated = False
         self._lock = threading.Lock()
 
     def append(self, chunk: bytes) -> None:
@@ -105,11 +106,16 @@ class RollingBytes:
             self._value.extend(chunk)
             overflow = len(self._value) - self.limit
             if overflow > 0:
+                self._truncated = True
                 del self._value[:overflow]
 
     def value(self) -> bytes:
         with self._lock:
             return bytes(self._value)
+
+    def truncated(self) -> bool:
+        with self._lock:
+            return self._truncated
 
 
 def utc_now() -> str:
@@ -128,10 +134,21 @@ def redact_text(value: str) -> str:
         redacted,
     )
     return re.sub(
-        r"\b(?:ghp|github_pat|sk)-[A-Za-z0-9_-]+\b",
+        r"\b(?:gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+|sk-[A-Za-z0-9_-]+)\b",
         "[REDACTED]",
         redacted,
     )
+
+
+def bounded_redacted_log(value: bytes, *, limit: int, truncated: bool) -> str:
+    if truncated:
+        line_breaks = [index for marker in (b"\n", b"\r") if (index := value.find(marker)) >= 0]
+        value = value[min(line_breaks) + 1 :] if line_breaks else b""
+    redacted = redact_text(value.decode("utf-8", errors="replace"))
+    encoded = redacted.encode("utf-8")
+    if len(encoded) > limit:
+        encoded = encoded[-limit:]
+    return encoded.decode("utf-8", errors="ignore")
 
 
 def parse_repo(repo: str) -> tuple[str, str]:
@@ -445,16 +462,45 @@ def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
     if os.name == "posix":
-        os.killpg(process.pid, signal.SIGTERM)
-    else:
-        process.terminate()
+        process_group = process.pid
+
+        def group_exists() -> bool:
+            try:
+                os.killpg(process_group, 0)
+            except ProcessLookupError:
+                return False
+            except PermissionError:
+                return True
+            return True
+
+        try:
+            os.killpg(process_group, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        deadline = time.monotonic() + 2.0
+        while group_exists() and time.monotonic() < deadline:
+            process.poll()
+            time.sleep(0.05)
+        if group_exists():
+            try:
+                os.killpg(process_group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process_group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=2)
+        return
+
+    process.terminate()
     try:
         process.wait(timeout=2)
     except subprocess.TimeoutExpired:
-        if os.name == "posix":
-            os.killpg(process.pid, signal.SIGKILL)
-        else:
-            process.kill()
+        process.kill()
         process.wait(timeout=2)
 
 
@@ -535,7 +581,11 @@ def run_command_wait(
         if process is not None and process.stdout is not None:
             process.stdout.close()
 
-    log_text = redact_text(rolling.value().decode("utf-8", errors="replace"))
+    log_text = bounded_redacted_log(
+        rolling.value(),
+        limit=max_log_bytes,
+        truncated=rolling.truncated(),
+    )
     _atomic_write_text(log_path, log_text)
     duration_seconds = round(time.monotonic() - started_monotonic, 3)
     return build_terminal_result(
