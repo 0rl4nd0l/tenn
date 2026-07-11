@@ -36,3 +36,11 @@ for ordinary invocation unless requested or required by an active `/goal`.
 - scope check: only the exact task-card files are intended
 - safety check: the skill explicitly forbids implicit fetch/retarget and all
   remediation or protected mutation
+
+## PR #504 Review Fix
+
+- Preserve `a7ad68df` as the audited implementation commit.
+- Record PR #504 as the verification PR and add exact current head/base/check
+  evidence before changing the PR head.
+- Keep the follow-up commit metadata-only; do not alter the skill, backend,
+  task card, host installation, or runtime surfaces.

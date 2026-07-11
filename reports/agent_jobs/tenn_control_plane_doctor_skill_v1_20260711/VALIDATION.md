@@ -15,6 +15,8 @@
 | Real doctor command | exit `1`, summary `WARN`, eight checks |
 | Doctor JSON contract | schema, `read_only`, process/summary exit parity, status set, and check shape; pass |
 | `git diff --check` | pass |
+| PR #504 exact-head review | Draft at `a7ad68df`; required CI and scan passed |
+| Skill-surface freshness metadata | `last_verified_commit=a7ad68df`, `last_verified_pr=504`, and current PR/head/base evidence aligned in the bounded review fix |
 
 The real doctor reported `PASS=2`, `WARN=5`, `FAIL=0`, and
 `DATA_MISSING=1`. This is valid diagnostic behavior, not proof that all

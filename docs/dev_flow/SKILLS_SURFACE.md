@@ -1,8 +1,8 @@
 # Tenn Skill Surface
 
-last_verified_at: 2026-07-11T07:41:22Z
-last_verified_commit: b3b3a154590f36e61d297c1ac79fe623526f0b28
-last_verified_pr: 409
+last_verified_at: 2026-07-11T08:06:21Z
+last_verified_commit: a7ad68df941aeb6b58de763ac16de28d647cf83f
+last_verified_pr: 504
 freshness_model: ancestor_plus_behavior_stale_files
 freshness_checked_at: 2026-07-11T07:41:22Z
 freshness_checked_against: 2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c
@@ -14,6 +14,7 @@ freshness_evidence:
 - `git rev-parse origin/migration/clean-runtime-baseline-reconstruct-v1` at freshness check -> `c877da6eb114826365339379f10a8a06e82221a5`
 - `git merge-base --is-ancestor b3b3a154590f36e61d297c1ac79fe623526f0b28 origin/migration/clean-runtime-baseline-reconstruct-v1` -> exit `0`
 - `git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1` -> `2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c`
+- `gh pr view 504` and GitHub REST at review-fix preflight -> PR #504 `OPEN`, `DRAFT`, exact head `a7ad68df941aeb6b58de763ac16de28d647cf83f`, base `2c9324a9e69d6c0a66d7a3f2090e39f5e6a5a35c`, required checks passed
 - `find .agents/skills -maxdepth 2 -name SKILL.md | sort | wc -l` -> `13` in the validated local skill candidate
 - `[ ! -d .codex/skills ] || find .codex/skills -maxdepth 2 -name SKILL.md | sort` -> no output; `.codex/skills` is absent in this snapshot
 data_missing:
