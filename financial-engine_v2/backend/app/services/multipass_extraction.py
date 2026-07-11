@@ -5132,7 +5132,9 @@ _BALANCE_SHEET_GROUP_HEADINGS = {
 
 
 def _is_balance_sheet_group_heading(label: str) -> bool:
-    return _normalise_evidence_row_ref(label) in _BALANCE_SHEET_GROUP_HEADINGS
+    normalized = _normalise_evidence_row_ref(label)
+    normalized = _re.sub(r"[\u2010-\u2015\u2212]", "-", normalized)
+    return normalized in _BALANCE_SHEET_GROUP_HEADINGS
 
 
 def _split_table_cell_lines(cell: Any) -> list[str]:
