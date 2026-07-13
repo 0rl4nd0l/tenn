@@ -51,7 +51,7 @@ give the next safe action.
 Portable git guard preflight:
 
 ```bash
-python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --task-card <task-card> --json
 ```
 
 This default is the fast/summarized shape: it keeps blocking fields but caps
@@ -98,6 +98,7 @@ python3 .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo
 | `STANDARD_FIX` | Normal bounded implementation. | Task card, guard, allowed-files check, validation, docs impact, final diff review. |
 | `FULL_GUARD` | Stale path, dirty overlap, duplicate-work risk, merge/parking, owner-boundary, architecture, or broad cleanup. | `--fallback-detail full`, stop on unresolved risk. |
 | `RUNTIME_PROOF` | Runtime-like work may be called working, functional, complete, or `DONE`. | Runtime Functionality Proof table and closeout gate. |
+| `V2_SEMANTIC_CONTROL` | Non-trivial new work declares a proof question and evidence scope. | `--task-card` preflight, decision reuse/loop guard, explicit capabilities, and `RUN_OUTCOME.json`. |
 
 When in doubt, use `FULL_GUARD`. When the lane is clearly `FAST_PROGRESS`,
 avoid review boards, handoffs, workers, and broad report packets unless the
@@ -151,7 +152,9 @@ Use Runtime Functionality Proof before any DONE claim for runtime/product/data b
 ```text
 Use tenn-review-board.
 Read .agents/skills/tenn-review-board/SKILL.md fully.
-Produce BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md in a report bundle.
+Produce BOARD.md and BOARD_DECISION.json in a report bundle. V1 boards also
+produce NEXT_GOAL.md. V2 produces it only for an ADVANCED outcome targeting a
+materially different transition; terminal outcomes record resume_only_if.
 Validate the decision with python3 scripts/check_board_decision.py <report-dir>/BOARD_DECISION.json.
 If the task card lists BOARD_DECISION.json under output_dir, check-closeout validates it automatically too.
 Do not use host/global review as a substitute.
@@ -163,11 +166,12 @@ Do not use host/global review as a substitute.
 Use tenn-fix.
 Read .agents/skills/tenn-fix/SKILL.md fully.
 Run the portable Tenn git guard preflight:
-python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --task-card <task-card> --json
 Create or validate the task card.
 Only edit allowed files.
 Run validation, check-diff, check-closeout, and check-report-artifacts.
-Treat check-closeout as the final report gate for Runtime Functionality Proof and listed BOARD_DECISION.json artifacts.
+Treat check-closeout as the final report gate for V2 RUN_OUTCOME semantics,
+Runtime Functionality Proof, and listed BOARD_DECISION.json artifacts.
 For `FAST_PROGRESS`, keep the report/direct closeout compact and skip board,
 handoff, and worker delegation unless a blocker appears.
 Open a PR only if the task card explicitly permits it.

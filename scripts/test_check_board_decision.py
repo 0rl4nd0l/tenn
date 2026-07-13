@@ -52,12 +52,125 @@ def valid_payload(**overrides: object) -> dict[str, object]:
     return payload
 
 
+def valid_v2_payload(**overrides: object) -> dict[str, object]:
+    payload = valid_payload(
+        schema_version="tenn_review_board_decision_v2",
+        run_outcome_status="ADVANCED",
+        target_transition="validated_v2_control",
+        next_goal_permitted=True,
+        next_goal_target_transition="pilot_v2_control",
+        resume_only_if="",
+        next_goal="Pilot the validated control on a newly authorized repository.",
+    )
+    payload.update(overrides)
+    return payload
+
+
 def issue_fields(result: check_board_decision.BoardDecisionValidationResult) -> set[str]:
     return {issue.field for issue in result.issues}
 
 
 def test_valid_large_zoom_out_decision_passes() -> None:
     result = check_board_decision.validate_board_decision_payload(valid_payload())
+
+    assert result.ok
+    assert result.issues == []
+
+
+def test_v1_decision_still_requires_next_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(valid_payload(next_goal=""))
+
+    assert not result.ok
+    assert "next_goal" in issue_fields(result)
+
+
+def test_v2_terminal_outcome_accepts_reopen_condition_without_next_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(
+            run_outcome_status="LOOP_GUARD_STOP",
+            next_goal_permitted=False,
+            next_goal_target_transition="",
+            resume_only_if="The dataset version, evidence hash, or hypothesis ID changes.",
+            next_goal="",
+        )
+    )
+
+    assert result.ok
+    assert result.issues == []
+
+
+def test_v2_terminal_outcome_accepts_list_reopen_conditions() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(
+            run_outcome_status="LOOP_GUARD_STOP",
+            next_goal_permitted=False,
+            next_goal_target_transition="",
+            resume_only_if=[
+                "The dataset version changes.",
+                "The evidence hash changes.",
+            ],
+            next_goal="",
+        )
+    )
+
+    assert result.ok
+    assert result.issues == []
+
+
+def test_v2_terminal_outcome_rejects_continuation_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(
+            run_outcome_status="DATA_MISSING",
+            next_goal_permitted=False,
+            next_goal_target_transition="collect_the_same_report",
+            resume_only_if="The named prospective evidence becomes available.",
+        )
+    )
+
+    assert not result.ok
+    assert "next_goal" in issue_fields(result)
+    assert "next_goal_target_transition" in issue_fields(result)
+
+
+def test_v2_terminal_outcome_requires_exact_resume_condition() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(
+            run_outcome_status="BLOCKED_NO_NEW_INPUT",
+            next_goal_permitted=False,
+            next_goal_target_transition="",
+            resume_only_if="DATA_MISSING",
+            next_goal="",
+        )
+    )
+
+    assert not result.ok
+    assert "resume_only_if" in issue_fields(result)
+
+
+def test_v2_advanced_outcome_permits_materially_different_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(valid_v2_payload())
+
+    assert result.ok
+    assert result.issues == []
+
+
+def test_v2_advanced_outcome_rejects_same_transition_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(next_goal_target_transition="validated_v2_control")
+    )
+
+    assert not result.ok
+    assert "next_goal_target_transition" in issue_fields(result)
+
+
+def test_v2_advanced_outcome_can_finish_without_next_goal() -> None:
+    result = check_board_decision.validate_board_decision_payload(
+        valid_v2_payload(
+            next_goal_permitted=False,
+            next_goal_target_transition="",
+            next_goal="",
+        )
+    )
 
     assert result.ok
     assert result.issues == []

@@ -1,6 +1,6 @@
 ---
 name: tenn-goal-report
-description: Use for Tenn /goal work that needs a visible state machine, report or handoff under reports/agent_jobs, validation tracking, blocked/approval state capture, raw-log pointers, and a next recommended prompt.
+description: Use for Tenn /goal work that needs a visible state machine, report or handoff under reports/agent_jobs, validation tracking, blocked/approval state capture, raw-log pointers, and conditional continuation guidance.
 ---
 
 # Tenn Goal Report
@@ -73,8 +73,13 @@ Required frame-mode artifacts:
 - Unsafe actions avoided
 - Ignored or untracked artifact note
 - Remaining risk
-- Next recommended prompt
+- Next recommended prompt only when continuation is permitted; V2 terminal
+  outcomes instead record reused evidence and `resume_only_if`
 - Links to Frame artifacts, if used
+
+V2 runs must also write `RUN_OUTCOME.json`. Do not create `NEXT_GOAL.md` for a
+terminal/no-progress V2 status. An `ADVANCED` run may create one only when it
+names a materially different authorized target transition.
 
 ## Waiting Protocol
 

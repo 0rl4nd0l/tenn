@@ -1,6 +1,6 @@
 ---
 name: tenn-review-board
-description: Tenn multi-perspective and contrarian review wrapper for issues, PRs, branches, reports, plans, and risky decisions. Produces BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md with an actionable decision.
+description: Tenn multi-perspective and contrarian review wrapper for issues, PRs, branches, reports, plans, and risky decisions. Produces BOARD.md, BOARD_DECISION.json, and conditional continuation guidance.
 ---
 
 # Tenn Review Board
@@ -130,7 +130,13 @@ Write:
 
 - `BOARD.md`
 - `BOARD_DECISION.json`
-- `NEXT_GOAL.md`
+- `NEXT_GOAL.md` for V1 boards and for V2 `ADVANCED` outcomes only when the
+  target transition is materially different
+
+V2 terminal/no-progress boards must use `tenn_review_board_decision_v2`, set
+`next_goal_permitted=false`, leave `next_goal` and
+`next_goal_target_transition` empty, and state an exact `resume_only_if`.
+They must not create `NEXT_GOAL.md`.
 
 `BOARD_DECISION.json` must choose exactly one:
 
@@ -164,5 +170,6 @@ insufficient.
 ## Boundaries
 
 Do not mutate code, data, GitHub, registry state, branches, or worktrees. Do not
-turn a board into another report-only loop; the next goal must be executable,
-blocked on a named owner decision, or parked with evidence.
+turn a board into another report-only loop. When V2 permits a next goal, it
+must be executable and target a materially different transition. Otherwise
+stop on the recorded decision, evidence, and reopen condition.

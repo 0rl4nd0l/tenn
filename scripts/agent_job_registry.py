@@ -8,6 +8,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import re
 import socket
 import subprocess
 import tempfile
@@ -29,6 +30,17 @@ SHARED_REGISTRY_DIR_NAME = "tenn-agent-registry"
 DEFAULT_STALE_AFTER_SECONDS = 30 * 60
 LOCK_TIMEOUT_SECONDS = 10.0
 SCHEMA_VERSION = 1
+V2_ACTIVE_RECORD_FIELDS = (
+    "control_contract_version",
+    "project_id",
+    "claim_id",
+    "hypothesis_id",
+    "program_track",
+    "source_class",
+    "dataset_version",
+    "evidence_hash",
+    "target_transition",
+)
 
 
 @dataclass(frozen=True)
@@ -287,6 +299,15 @@ def _registry_validation_issues(metadata: dict[str, Any]) -> list[RegistryIssue]
     return []
 
 
+def _v2_active_record_fields(metadata: dict[str, Any]) -> dict[str, Any]:
+    if metadata.get("control_contract_version") != contract.CONTROL_CONTRACT_VERSION_V2:
+        return {}
+    return {
+        **{field: metadata[field] for field in V2_ACTIVE_RECORD_FIELDS},
+        "scope_fingerprint": metadata["computed_scope_fingerprint"],
+    }
+
+
 def _read_task_card(task_card: Path, repo_root: Path) -> tuple[str, str]:
     candidate = task_card.expanduser()
     if not candidate.is_absolute():
@@ -295,12 +316,15 @@ def _read_task_card(task_card: Path, repo_root: Path) -> tuple[str, str]:
     return candidate.read_text(encoding="utf-8"), display_path
 
 
-def _validate_task_card(markdown: str) -> tuple[bool, dict[str, Any], list[RegistryIssue], dict[str, Any]]:
+def _validate_task_card(
+    markdown: str,
+) -> tuple[bool, dict[str, Any], list[RegistryIssue], list[RegistryIssue], dict[str, Any]]:
     validation = contract.validate_task_card_markdown(markdown)
     issues = [RegistryIssue(issue.field, issue.message) for issue in validation.issues]
+    warnings = [RegistryIssue(warning.field, warning.message) for warning in validation.warnings]
     if validation.ok:
         issues.extend(_registry_validation_issues(validation.metadata))
-    return not issues, validation.metadata, issues, validation.to_dict()
+    return not issues, validation.metadata, issues, warnings, validation.to_dict()
 
 
 def _active_record_path(registry_root: Path, job_id: str) -> Path:
@@ -361,8 +385,64 @@ def _load_active_jobs(registry_root: Path, repo_root: Path) -> tuple[list[Loaded
         if not isinstance(loaded, dict):
             warnings.append(RegistryIssue("active_jobs", f"{_display_path(path, repo_root)} must contain a JSON object"))
             continue
+        warnings.extend(_v2_active_record_issues(loaded, path=path, repo_root=repo_root))
         jobs.append(LoadedJob(path=path, record=loaded))
     return jobs, warnings
+
+
+def _v2_active_record_issues(
+    record: dict[str, Any],
+    *,
+    path: Path,
+    repo_root: Path,
+) -> list[RegistryIssue]:
+    """Validate semantic identity on active records that claim V2 scope."""
+
+    version = record.get("control_contract_version")
+    has_v2_identity = "scope_fingerprint" in record or any(
+        field in record for field in V2_ACTIVE_RECORD_FIELDS[1:]
+    )
+    if version != contract.CONTROL_CONTRACT_VERSION_V2:
+        if not has_v2_identity:
+            return []
+        return [
+            RegistryIssue(
+                "active_jobs",
+                f"{_display_path(path, repo_root)} has V2 semantic fields without control_contract_version: 2",
+                job_id=str(record.get("job_id") or "") or None,
+            )
+        ]
+
+    problems: list[str] = []
+    for field in V2_ACTIVE_RECORD_FIELDS[1:]:
+        value = record.get(field)
+        if not isinstance(value, str) or not value.strip():
+            problems.append(f"{field} must be a non-empty string")
+    if record.get("program_track") not in contract.PROGRAM_TRACKS:
+        problems.append("program_track is invalid")
+
+    fingerprint = record.get("scope_fingerprint")
+    if not isinstance(fingerprint, str) or re.fullmatch(r"[0-9a-f]{64}", fingerprint.strip()) is None:
+        problems.append("scope_fingerprint must be a lowercase SHA-256 digest")
+    else:
+        try:
+            expected = contract.compute_scope_fingerprint(record)
+        except ValueError:
+            expected = None
+        if expected is not None and fingerprint.strip() != expected:
+            problems.append(f"scope_fingerprint does not match semantic fields; expected {expected}")
+
+    if not problems:
+        return []
+    display = _display_path(path, repo_root)
+    job_id = str(record.get("job_id") or "") or None
+    return [
+        RegistryIssue(
+            "active_jobs",
+            f"{display} has an invalid V2 active record: {'; '.join(problems)}",
+            job_id=job_id,
+        )
+    ]
 
 
 def _read_active_record(path: Path, repo_root: Path) -> tuple[dict[str, Any] | None, RegistryIssue | None]:
@@ -559,14 +639,14 @@ def _check_overlap_for_task_card_locked(
             "active_jobs": [],
         }
 
-    valid, metadata, validation_issues, validation = _validate_task_card(markdown)
+    valid, metadata, validation_issues, validation_warnings, validation = _validate_task_card(markdown)
     if not valid:
         return {
             "ok": False,
             **location.metadata(),
             "validation": validation,
             "issues": [issue.to_dict() for issue in validation_issues],
-            "warnings": [issue.to_dict() for issue in location.warnings],
+            "warnings": [issue.to_dict() for issue in [*location.warnings, *validation_warnings]],
             "active_jobs": [],
         }
 
@@ -587,7 +667,7 @@ def _check_overlap_for_task_card_locked(
     ]
 
     issues: list[RegistryIssue] = []
-    warnings = [*location.warnings, *load_warnings]
+    warnings = [*location.warnings, *validation_warnings, *load_warnings]
     for active in active_jobs:
         active_job_id = str(active.get("job_id") or "")
         if active_job_id == job_id:
@@ -683,6 +763,7 @@ def _write_status(location: RegistryLocation, record: dict[str, Any], *, status:
         "heartbeat_at": record.get("heartbeat_at"),
         "updated_at": _to_iso(now),
         "active_record": _display_path(active_path, repo_root),
+        **{field: record[field] for field in (*V2_ACTIVE_RECORD_FIELDS, "scope_fingerprint") if field in record},
         **location.metadata(),
     }
     if status == "released":
@@ -714,14 +795,14 @@ def claim_task_card(
             "warnings": [issue.to_dict() for issue in location.warnings],
         }
 
-    valid, metadata, validation_issues, validation = _validate_task_card(markdown)
+    valid, metadata, validation_issues, validation_warnings, validation = _validate_task_card(markdown)
     if not valid:
         return {
             "ok": False,
             **location.metadata(),
             "validation": validation,
             "issues": [issue.to_dict() for issue in validation_issues],
-            "warnings": [issue.to_dict() for issue in location.warnings],
+            "warnings": [issue.to_dict() for issue in [*location.warnings, *validation_warnings]],
         }
 
     job_id = str(metadata["job_id"])
@@ -744,7 +825,10 @@ def claim_task_card(
                     "issues": [
                         RegistryIssue("job_id", f"active job already exists for {job_id}", job_id=job_id).to_dict()
                     ],
-                    "warnings": [issue.to_dict() for issue in [*location.warnings, *load_warnings]],
+                    "warnings": [
+                        issue.to_dict()
+                        for issue in [*location.warnings, *validation_warnings, *load_warnings]
+                    ],
                 }
 
         overlap = _check_overlap_for_task_card_locked(
@@ -789,6 +873,7 @@ def claim_task_card(
             "stale_after_seconds": fallback_stale_after,
             "hostname": socket.gethostname(),
             "pid": os.getpid(),
+            **_v2_active_record_fields(metadata),
         }
         active_path = _active_record_path(location.root, job_id)
         _atomic_write_json(active_path, record)

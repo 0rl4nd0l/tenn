@@ -225,7 +225,10 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py pref
 - Review board output must include `BOARD_DECISION.json`, not just opinions. It
   should search for credible objections but never fabricate dissent.
 - Reports must end in implementation, PR/merge, issue closeout, cleanup
-  approval, owner decision, blocked state, or an exact next goal.
+  approval, owner decision, blocked state, or an exact next goal. For V2,
+  terminal/no-progress outcomes end with reused evidence and an exact reopen
+  condition, not `NEXT_GOAL.md`; only an `ADVANCED` outcome may authorize a
+  materially different target transition.
 - Financial metric extraction is highest priority only when live issue or
   registry evidence confirms it for the task. Canonical financial numbers must
   be source-bound, deterministic, auditable, and provenance-linked.

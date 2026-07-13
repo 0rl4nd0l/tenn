@@ -25,6 +25,7 @@ python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
   preflight \
   --repo-root <repo-root> \
   --topic "<topic-or-path>" \
+  --task-card <task-card> \
   --json
 ```
 
@@ -60,6 +61,19 @@ The runner lives in the skill surface and inspects the target repo through
 `scripts/agent_job_registry.py`, `scripts/agent_task_ledger.py`, or
 `scripts/agent_job_contract.py` for guard preflight to run.
 
+Repo-local Codex hook configuration can use the installed runner without
+vendoring Tenn scripts:
+
+```bash
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py \
+  hook --repo-root <repo-root> --platform codex --event Stop
+```
+
+The dispatcher skips control-plane roots that do not contain the V2 contract,
+registry, task-ledger, decision-ledger, and hook helpers. The selected hook
+runs with the target repo as its working directory and validates the target
+repo's V2 outcome and decision ledger at Stop or SessionEnd.
+
 The runner resolves control-plane support in this order:
 
 1. `TENN_CONTROL_PLANE_ROOT`
@@ -69,9 +83,10 @@ The runner resolves control-plane support in this order:
 The runner resolves registry state in this order:
 
 1. `TENN_AGENT_REGISTRY_ROOT`
-2. `git config --global tenn.agentRegistryRoot`
-3. target repo git common dir plus `tenn-agent-registry`
-4. target repo `.tenn/agent_jobs` fallback
+2. target repo local `git config tenn.agentRegistryRoot`
+3. `git config --global tenn.agentRegistryRoot`
+4. target repo git common dir plus `tenn-agent-registry`
+5. target repo `.tenn/agent_jobs` fallback
 
 If control-plane support is unavailable, record `DATA_MISSING` for that
 source and continue with the runner's fallback git/artifact evidence. Missing
@@ -118,6 +133,29 @@ The preflight output includes `path_ownership`, `canonical_branch`,
 `--audit-path <path>` and use
 `docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md` as the
 classification source of truth.
+
+## V2 Semantic Control
+
+Pass `--task-card` for implementation-capable or non-trivial report work. A
+card without `control_contract_version` remains a legacy V1 card and receives a
+migration warning. A V2 card is validated before substantive work and uses the
+shared `decision-ledger.jsonl` to classify the semantic scope:
+
+- `REUSED_COMPLETE`: an exact resolved fingerprint already exists; stop before
+  producing another substantive report.
+- `ACTIVE_DUPLICATE`: another non-stale active job owns the fingerprint; stop.
+- `LOOP_GUARD_STOP`: two consecutive same-claim, unchanged-evidence outcomes
+  had no decision delta; do not start a third continuation.
+- `DATA_MISSING` or `EVIDENCE_CONFLICT`: the requested transition remains
+  blocked by its recorded decision and reopen condition.
+- `ALLOW_CHANGED_EVIDENCE`, `ALLOW_NEW_HYPOTHESIS`, or another `ALLOW_*`
+  status: the new scope is materially different and may proceed if the normal
+  Git/registry/path guards also pass.
+
+For V2, a missing or invalid decision ledger is `DATA_MISSING` and a hard stop.
+Task completion remains separate from decision state. Prospective-readiness
+decisions block only transitions named in `blocks`; they do not block offline
+research transitions named in `does_not_block`.
 
 ## Task Ledger Preflight
 

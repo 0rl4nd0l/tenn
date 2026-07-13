@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 HOOK_SCRIPT = REPO_ROOT / "scripts" / "agent_job_hook.py"
 CONTRACT_SCRIPT = REPO_ROOT / "scripts" / "agent_job_contract.py"
 REGISTRY_SCRIPT = REPO_ROOT / "scripts" / "agent_job_registry.py"
+DECISION_LEDGER_SCRIPT = REPO_ROOT / "scripts" / "agent_decision_ledger.py"
 
 
 @pytest.fixture(autouse=True)
@@ -42,11 +43,35 @@ def task_card(
     lane: str = "Evaluation",
     filename: str = "test-task.md",
     body: str = "Test task card.",
+    control_contract_version: int | None = None,
 ) -> Path:
     card = repo / "docs" / "agent_tasks" / filename
     card.parent.mkdir(parents=True, exist_ok=True)
     production_access = "true" if production_data_access else "false"
     allowed = "\n".join(f"  - {path}" for path in allowed_files)
+    v2_fields: list[str] = []
+    if control_contract_version is not None:
+        v2_fields.append(f"control_contract_version: {control_contract_version}")
+    if control_contract_version == 2:
+        v2_fields.extend(
+            [
+                "project_id: hook_test",
+                f"claim_id: {job_id}",
+                "proof_question: Does the hook enforce V2 closeout failures?",
+                "hypothesis_id: hook_v2_hard_stop",
+                "program_track: offline_development",
+                "entry_state: contract_unchecked",
+                "target_transition: contract_checked",
+                "exit_predicate: The V2 closeout contract passes.",
+                "source_class: focused_test_fixture",
+                "dataset_version: fixture_v1",
+                f"evidence_hash: sha256:{'a' * 64}",
+                "capabilities:",
+                "  - READ",
+                "  - REPORT_WRITE",
+                "resume_only_if: The fixture or contract changes.",
+            ]
+        )
     card.write_text(
         "\n".join(
             [
@@ -61,6 +86,7 @@ def task_card(
                 f"output_dir: reports/agent_jobs/{job_id}",
                 "mutation_mode: safe_extension",
                 f"production_data_access: {production_access}",
+                *v2_fields,
                 "---",
                 "",
                 body,
@@ -72,7 +98,7 @@ def task_card(
     return card
 
 
-def git_repo(tmp_path: Path) -> Path:
+def git_repo(tmp_path: Path, *, vendor_control_plane_scripts: bool = True) -> Path:
     repo = tmp_path
     repo.mkdir(parents=True, exist_ok=True)
     run_git(repo, "init")
@@ -80,9 +106,10 @@ def git_repo(tmp_path: Path) -> Path:
     run_git(repo, "config", "user.name", "Agent Job Hook Tests")
 
     scripts = repo / "scripts"
-    scripts.mkdir()
-    (scripts / "agent_job_contract.py").write_text(CONTRACT_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
-    (scripts / "agent_job_registry.py").write_text(REGISTRY_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    if vendor_control_plane_scripts:
+        scripts.mkdir()
+        (scripts / "agent_job_contract.py").write_text(CONTRACT_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+        (scripts / "agent_job_registry.py").write_text(REGISTRY_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
     (repo / ".gitignore").write_text(".tenn/\nreports/agent_jobs/\n__pycache__/\n", encoding="utf-8")
 
     src = repo / "src"
@@ -91,16 +118,17 @@ def git_repo(tmp_path: Path) -> Path:
     (src / "outside.py").write_text("outside = 1\n", encoding="utf-8")
     task_card(repo, allowed_files=["src/allowed.py"])
 
-    run_git(
-        repo,
-        "add",
+    tracked = [
         ".gitignore",
-        "scripts/agent_job_contract.py",
-        "scripts/agent_job_registry.py",
         "src/allowed.py",
         "src/outside.py",
         "docs/agent_tasks/test-task.md",
-    )
+    ]
+    if vendor_control_plane_scripts:
+        tracked.extend(
+            ["scripts/agent_job_contract.py", "scripts/agent_job_registry.py"]
+        )
+    run_git(repo, "add", *tracked)
     run_git(repo, "commit", "-m", "init")
     return repo
 
@@ -149,6 +177,121 @@ def run_repo_registry(
     return completed, json.loads(completed.stdout)
 
 
+def write_valid_v2_outcome(repo: Path, card: Path) -> None:
+    validated = subprocess.run(
+        [sys.executable, str(CONTRACT_SCRIPT), "validate", str(card)],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    fingerprint = json.loads(validated.stdout)["metadata"][
+        "computed_scope_fingerprint"
+    ]
+    output = repo / "reports" / "agent_jobs" / "hook-test-job" / "RUN_OUTCOME.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(
+            {
+                "status": "ADVANCED",
+                "scope_fingerprint": fingerprint,
+                "state_before": "contract_unchecked",
+                "state_after": "contract_checked",
+                "decision_delta": "The portable closeout contract passed.",
+                "reused_claims": [],
+                "changed_claims": ["portable V2 closeout is valid"],
+                "new_evidence": ["focused hook fixture"],
+                "produced_artifacts": [
+                    "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
+                ],
+                "resume_only_if": "",
+                "new_goal_permitted": False,
+                "used_capabilities": ["READ", "REPORT_WRITE"],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def claim_v2_job(repo: Path, card: Path) -> dict[str, object]:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(REGISTRY_SCRIPT),
+            "claim",
+            str(card),
+            "--repo-root",
+            str(repo),
+        ],
+        cwd=repo,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    return json.loads(completed.stdout)
+
+
+def append_matching_v2_decision(repo: Path, card: Path, *, run_id: str, **overrides: object) -> None:
+    validated = subprocess.run(
+        [sys.executable, str(CONTRACT_SCRIPT), "validate", str(card)],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    metadata = json.loads(validated.stdout)["metadata"]
+    entry: dict[str, object] = {
+        "decision_id": "hook-test-decision",
+        "scope_fingerprint": metadata["computed_scope_fingerprint"],
+        "task_id": metadata["job_id"],
+        "run_id": run_id,
+        "project_id": metadata["project_id"],
+        "claim_id": metadata["claim_id"],
+        "hypothesis_id": metadata["hypothesis_id"],
+        "program_track": metadata["program_track"],
+        "source_class": metadata["source_class"],
+        "dataset_version": metadata["dataset_version"],
+        "evidence_hash": metadata["evidence_hash"],
+        "target_transition": metadata["target_transition"],
+        "phase_before": "contract_unchecked",
+        "phase_after": "contract_checked",
+        "decision": "PASS",
+        "outcome_status": "ADVANCED",
+        "decision_delta": "The portable closeout contract passed.",
+        "evidence_refs": ["reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"],
+        "blocks": [],
+        "does_not_block": [],
+        "validated_at": "2026-07-13T00:00:00Z",
+        "invalidation_conditions": ["The scope fingerprint changes."],
+        "reopen_conditions": ["The evidence changes."],
+    }
+    entry.update(overrides)
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(DECISION_LEDGER_SCRIPT),
+            "append",
+            "--repo-root",
+            str(repo),
+            "--entry-json",
+            json.dumps(entry, sort_keys=True),
+        ],
+        cwd=repo,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
 def test_no_active_task_card_exits_success_with_valid_json(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
@@ -156,6 +299,125 @@ def test_no_active_task_card_exits_success_with_valid_json(tmp_path: Path) -> No
     assert completed.returncode == 0
     assert payload == {}
     assert completed.stderr == ""
+
+
+def test_hook_uses_own_control_plane_when_target_vendors_no_tenn_scripts(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+    )
+
+    assert completed.returncode == 0
+    assert payload == {}
+    assert not (repo / "scripts").exists()
+
+
+def test_portable_v2_stop_validates_target_decision_ledger(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
+    outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
+    card = task_card(
+        repo,
+        allowed_files=["src/allowed.py", outcome],
+        control_contract_version=2,
+    )
+    write_valid_v2_outcome(repo, card)
+
+    missing_completed, missing_payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+    )
+
+    assert missing_completed.returncode == 0
+    assert missing_payload["decision"] == "block"
+    assert "decision-ledger-validate" in str(missing_payload["reason"])
+
+    initialized = subprocess.run(
+        [
+            sys.executable,
+            str(DECISION_LEDGER_SCRIPT),
+            "initialize",
+            "--repo-root",
+            str(repo),
+            "--authorize-create-empty-ledger",
+        ],
+        cwd=repo,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert initialized.returncode == 0
+    assert json.loads(initialized.stdout)["created"] is True
+
+    claim = claim_v2_job(repo, card)
+    run_id = str(claim["record"]["session_id"])
+
+    empty_completed, empty_payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+    )
+
+    assert empty_completed.returncode == 0
+    assert empty_payload["decision"] == "block"
+    assert "no validated entry matches" in str(empty_payload["reason"])
+
+    append_matching_v2_decision(repo, card, run_id=run_id)
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+    )
+
+    assert completed.returncode == 0
+    assert payload == {}
+    assert not (repo / "scripts").exists()
+
+
+def test_v2_stop_rejects_decision_entry_with_mismatched_phases(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
+    outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
+    card = task_card(
+        repo,
+        allowed_files=["src/allowed.py", outcome],
+        control_contract_version=2,
+    )
+    write_valid_v2_outcome(repo, card)
+    subprocess.run(
+        [
+            sys.executable,
+            str(DECISION_LEDGER_SCRIPT),
+            "initialize",
+            "--repo-root",
+            str(repo),
+            "--authorize-create-empty-ledger",
+        ],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    claim = claim_v2_job(repo, card)
+    append_matching_v2_decision(
+        repo,
+        card,
+        run_id=str(claim["record"]["session_id"]),
+        phase_after="different_phase",
+    )
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "no validated entry matches" in str(payload["reason"])
 
 
 def test_no_active_task_card_stays_silent_with_shared_registry_jobs(tmp_path: Path) -> None:
@@ -247,6 +509,89 @@ def test_stop_invalid_task_card_warns_without_blocking(tmp_path: Path) -> None:
     assert completed.returncode == 0
     assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
     assert "production_data_access" in str(payload["systemMessage"])
+    assert "decision" not in payload
+
+
+def test_explicit_v1_stop_contract_failure_still_warns_without_blocking(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    task_card(
+        repo,
+        allowed_files=["src/allowed.py"],
+        production_data_access=True,
+        control_contract_version=1,
+    )
+
+    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+
+    assert completed.returncode == 0
+    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
+    assert "production_data_access" in str(payload["systemMessage"])
+    assert "decision" not in payload
+
+
+@pytest.mark.parametrize("event", ["Stop", "SessionEnd"])
+def test_v2_terminal_event_contract_failure_hard_blocks(tmp_path: Path, event: str) -> None:
+    repo = git_repo(tmp_path)
+    outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
+    task_card(
+        repo,
+        allowed_files=["src/allowed.py", outcome],
+        control_contract_version=2,
+    )
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event=event,
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "RUN_OUTCOME.json" in str(payload["reason"])
+
+
+def test_invalid_v2_task_card_stop_hard_blocks(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
+    task_card(
+        repo,
+        allowed_files=["src/allowed.py", outcome],
+        production_data_access=True,
+        control_contract_version=2,
+    )
+
+    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "production_data_access" in str(payload["reason"])
+
+
+@pytest.mark.parametrize("declared", ["", "null", "~", "2.0", "true", "'2'", "3"])
+def test_malformed_declared_contract_version_stop_hard_blocks(
+    tmp_path: Path, declared: str
+) -> None:
+    repo = git_repo(tmp_path)
+    card = task_card(
+        repo,
+        allowed_files=["src/allowed.py"],
+        control_contract_version=2,
+    )
+    card.write_text(
+        card.read_text(encoding="utf-8").replace(
+            "control_contract_version: 2",
+            f"control_contract_version: {declared}",
+        ),
+        encoding="utf-8",
+    )
+
+    completed, payload = run_hook(
+        repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"}
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "control_contract_version" in str(payload["reason"])
 
 
 def test_stop_runtime_task_card_missing_closeout_proof_warns(tmp_path: Path) -> None:

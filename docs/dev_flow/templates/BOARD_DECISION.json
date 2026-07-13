@@ -1,5 +1,5 @@
 {
-  "schema_version": "tenn_review_board_decision_v1",
+  "schema_version": "tenn_review_board_decision_v2",
   "decision": "ask_owner",
   "evidence_grade": "UNKNOWN",
   "allowed_evidence_grades": [
@@ -18,6 +18,18 @@
     "supersede",
     "park"
   ],
+  "run_outcome_status": "DATA_MISSING",
+  "allowed_run_outcome_statuses": [
+    "ADVANCED",
+    "REUSED_COMPLETE",
+    "ACTIVE_DUPLICATE",
+    "WAITING_ON_AUTHORIZATION",
+    "DATA_MISSING",
+    "EVIDENCE_CONFLICT",
+    "BLOCKED_NO_NEW_INPUT",
+    "LOOP_GUARD_STOP"
+  ],
+  "target_transition": "",
   "reason": "",
   "selected_milestone": "",
   "task_tier": "small",
@@ -49,5 +61,8 @@
   "financial_extraction_breadth_provenance_confidence_regression_check": "",
   "required_changes": [],
   "owner_approval_needed": [],
+  "next_goal_permitted": false,
+  "next_goal_target_transition": "",
+  "resume_only_if": "",
   "next_goal": ""
 }
