@@ -1,6 +1,6 @@
 # PR Review
 
-Status: pre-publication review complete; GitHub fields pending
+Status: draft PR open; checks running
 
 ## Local Scope
 
@@ -17,5 +17,16 @@ the diff.
 - `git diff --check`: passed.
 - Secret-pattern review: no credentials reported by the integrated reviewer.
 
-The PR number, exact head, check state, and merge evidence will be added after
-the branch is published. This file does not yet claim publication or merge.
+## GitHub Publication
+
+- Draft PR: `#506`, `https://github.com/0rl4nd0l/tenn/pull/506`
+- Base: `migration/clean-runtime-baseline-reconstruct-v1` at
+  `871c8566d05c318a7089e496eb2190287a21db06`
+- Published implementation head observed before this report-only metadata
+  update: `cc976c2df9eddc7ca4c46fc507ecbb0f100e5a23`
+- GitHub classification: mergeable, draft, `lint-and-test` and `scan` in
+  progress.
+
+The report-only metadata commit necessarily advances the PR head. Final head,
+check, readiness, and merge ancestry are verified from GitHub rather than
+self-referentially embedded here.
