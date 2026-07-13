@@ -1,0 +1,44 @@
+{
+  "blocked_by": [],
+  "changed_claims": [
+    "Portable canonical branch, ref, head, and path ownership now derive from the selected target upstream or base.",
+    "A Greyhound-style origin/master canonical checkout is classified as VALID_CANONICAL_WORKTREE and an ahead pilot branch as VALID_TASK_WORKTREE.",
+    "The Tenn migration canonical identity remains the no-upstream fallback.",
+    "A portable Stop hook without an environment or marker override selects the sole non-stale active V2 registry record for the target worktree.",
+    "Missing V2 closeout evidence blocks and a matching outcome plus decision passes through automatic registry selection.",
+    "A declared V2 task card remains fail-closed authority when its active record loses the version, fingerprint, card hash, and all semantic identity fields, including when worktree identity is missing or invalid, while genuine V1 records remain silent.",
+    "Portable V2 discovery deterministically prefers the stable semantic anti-loop canonical root before arbitrary Tenn glob worktrees and falls through when that root is absent."
+  ],
+  "decision_delta": "Cross-repository enforcement advanced in two bounded places: the portable guard now uses selected-target canonical identity, and the Stop hook now enforces the sole active target-worktree V2 claim without requiring an environment or marker override. The Tenn fallback and legacy V1 silence remain preserved.",
+  "new_evidence": [
+    "The cross-repository regression failed before the patch and passed after it.",
+    "40 portable guard unit tests passed, including stable canonical control-plane precedence and fallthrough, published feature refs, and non-origin remote canonical selection.",
+    "The focused hook suite passed 76 tests, including Stop and BeforeTool combined fully stripped V2 identity plus missing card hash and worktree, claimed unchanged, missing-card, and invalid-worktree V1 controls, explicit env/marker card and contract-version drift, corrupt and stale-named invalid registry records, ambiguity, and automatic V2 selection.",
+    "251 Tenn control-plane tests and 13 subtests passed.",
+    "Ruff, py_compile, and git diff --check passed."
+  ],
+  "new_goal_permitted": false,
+  "next_goal_target_transition": "",
+  "produced_artifacts": [
+    "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/STATE.md",
+    "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/DECISIONS.md",
+    "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/VALIDATION.md",
+    "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/CODE_REVIEW.md"
+  ],
+  "resume_only_if": "",
+  "reused_claims": [
+    "V2 semantic classifications and fail-closed ledger behavior are unchanged.",
+    "V1 workflows retain the existing Tenn fallback when no upstream/base exists.",
+    "Legacy V1 shared-registry jobs remain silent when no explicit task-card override exists."
+  ],
+  "scope_fingerprint": "2379538a7a034c661a6e2af90d5615fc1622e5be57699d88ecb3b0e80e84a758",
+  "state_after": "portable_cross_repo_guard_and_active_v2_hook_enforced",
+  "state_before": "cross_repo_guard_and_stop_hook_not_target_aware",
+  "status": "ADVANCED",
+  "used_capabilities": [
+    "READ",
+    "REPORT_WRITE",
+    "CODE_EDIT",
+    "PUBLISH"
+  ]
+}

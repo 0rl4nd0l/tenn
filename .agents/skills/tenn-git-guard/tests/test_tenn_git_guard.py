@@ -41,6 +41,44 @@ def make_repo(base: Path) -> Path:
     return repo
 
 
+def make_repo_with_remote_default(
+    base: Path,
+    *,
+    remote_name: str = "origin",
+    default_branch: str = "master",
+) -> Path:
+    remote = base / f"greyhound-{remote_name}.git"
+    remote.mkdir()
+    run(["git", "init", "--bare"], cwd=remote)
+
+    repo = base / "greyhound-repo"
+    repo.mkdir()
+    run(["git", "init"], cwd=repo)
+    run(["git", "config", "user.email", "test@example.com"], cwd=repo)
+    run(["git", "config", "user.name", "Test User"], cwd=repo)
+    (repo / "README.md").write_text("greyhound\n", encoding="utf-8")
+    run(["git", "add", "README.md"], cwd=repo)
+    run(["git", "commit", "-m", "initial"], cwd=repo)
+    run(["git", "branch", "-M", default_branch], cwd=repo)
+    run(["git", "remote", "add", remote_name, str(remote)], cwd=repo)
+    run(["git", "push", "-u", remote_name, default_branch], cwd=repo)
+    run(["git", "symbolic-ref", "HEAD", f"refs/heads/{default_branch}"], cwd=remote)
+    run(
+        [
+            "git",
+            "symbolic-ref",
+            f"refs/remotes/{remote_name}/HEAD",
+            f"refs/remotes/{remote_name}/{default_branch}",
+        ],
+        cwd=repo,
+    )
+    return repo
+
+
+def make_repo_with_origin_master(base: Path) -> Path:
+    return make_repo_with_remote_default(base)
+
+
 def make_fake_control_plane(
     base: Path,
     *,
@@ -225,6 +263,33 @@ def v2_active_job(metadata: dict[str, object], **overrides: object) -> dict[str,
 
 
 class TennGitGuardTest(unittest.TestCase):
+    def test_stable_v2_canonical_root_precedes_and_falls_through_to_glob(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            home = base / "home"
+            home.mkdir()
+            stable_source = make_fake_control_plane(base / "stable-source")
+            stable = home / "tenn-semantic-anti-loop-v2-canonical"
+            stable_source.rename(stable)
+            arbitrary_source = make_fake_control_plane(base / "arbitrary-source")
+            arbitrary = home / "tenn-aaa-stale-worktree"
+            arbitrary_source.rename(arbitrary)
+
+            with mock.patch.object(
+                guard.Path,
+                "home",
+                return_value=home,
+            ), mock.patch.object(guard, "git_config_global", return_value=None):
+                selected, _ = guard.discover_control_plane_root({}, require_v2=True)
+                stable.rename(base / "stable-absent")
+                fallback, checked = guard.discover_control_plane_root({}, require_v2=True)
+
+            self.assertEqual(selected, stable.resolve())
+            self.assertEqual(fallback, arbitrary.resolve())
+            self.assertIn(str(stable.resolve()), checked)
+
     def test_portable_hook_skips_stale_root_and_dispatches_v2_capable_root(
         self,
     ) -> None:
@@ -428,6 +493,194 @@ class TennGitGuardTest(unittest.TestCase):
             self.assertEqual(fallback["detail"], "full")
             self.assertIsInstance(fallback["local_and_remote_branches"], list)
             self.assertIsInstance(fallback["worktrees"], list)
+
+    def test_cross_repo_origin_master_owns_canonical_identity_and_path_classification(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo_with_origin_master(base)
+            control_plane = make_fake_control_plane(base)
+            canonical_head = subprocess.check_output(
+                ["git", "rev-parse", "origin/master"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            run(
+                [
+                    "git",
+                    "update-ref",
+                    "refs/remotes/origin/migration/clean-runtime-baseline-reconstruct-v1",
+                    canonical_head,
+                ],
+                cwd=repo,
+            )
+
+            canonical_payload = guard.preflight(
+                repo_root=repo,
+                topic="cross repo canonical ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(canonical_payload["base"], "origin/master")
+            self.assertEqual(canonical_payload["upstream"], "origin/master")
+            self.assertEqual(canonical_payload["canonical_branch"], "origin/master")
+            self.assertEqual(
+                canonical_payload["canonical_branch_ref"],
+                "refs/remotes/origin/master",
+            )
+            self.assertEqual(canonical_payload["canonical_head"], canonical_head)
+            self.assertEqual(
+                canonical_payload["path_ownership"]["classification"],
+                "VALID_CANONICAL_WORKTREE",
+            )
+
+            run(["git", "checkout", "-b", "greyhound-pilot"], cwd=repo)
+            (repo / "pilot.txt").write_text("pilot\n", encoding="utf-8")
+            run(["git", "add", "pilot.txt"], cwd=repo)
+            run(["git", "commit", "-m", "pilot"], cwd=repo)
+            run(["git", "branch", "--set-upstream-to", "origin/master"], cwd=repo)
+
+            task_payload = guard.preflight(
+                repo_root=repo,
+                topic="cross repo canonical ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(task_payload["canonical_branch"], "origin/master")
+            self.assertEqual(task_payload["canonical_head"], canonical_head)
+            self.assertEqual(task_payload["merge_base"], canonical_head)
+            self.assertEqual(
+                task_payload["path_ownership"]["classification"],
+                "VALID_TASK_WORKTREE",
+            )
+
+    def test_no_upstream_retains_tenn_canonical_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo(base)
+            control_plane = make_fake_control_plane(base)
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            run(
+                [
+                    "git",
+                    "update-ref",
+                    "refs/remotes/origin/migration/clean-runtime-baseline-reconstruct-v1",
+                    head,
+                ],
+                cwd=repo,
+            )
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="fallback canonical ownership",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["base"], guard.DEFAULT_FALLBACK_BASE)
+            self.assertIsNone(payload["upstream"])
+            self.assertEqual(payload["canonical_branch"], guard.DEFAULT_FALLBACK_BASE)
+            self.assertEqual(payload["canonical_branch_ref"], guard.CANONICAL_BRANCH_REF)
+            self.assertEqual(payload["canonical_head"], head)
+
+    def test_published_feature_upstream_does_not_override_tenn_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo_with_origin_master(base)
+            control_plane = make_fake_control_plane(base)
+            canonical_head = git_head = subprocess.check_output(
+                ["git", "rev-parse", "origin/master"],
+                cwd=repo,
+                text=True,
+            ).strip()
+            run(
+                ["git", "update-ref", f"refs/remotes/origin/{guard.DEFAULT_FALLBACK_BASE.removeprefix('origin/')}", canonical_head],
+                cwd=repo,
+            )
+            run(["git", "checkout", "-b", "published-feature"], cwd=repo)
+            (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+            run(["git", "add", "feature.txt"], cwd=repo)
+            run(["git", "commit", "-m", "feature"], cwd=repo)
+            run(["git", "push", "-u", "origin", "published-feature"], cwd=repo)
+            self.assertNotEqual(git_head, subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=repo, text=True
+            ).strip())
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="published feature canonical safety",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["base"], guard.DEFAULT_FALLBACK_BASE)
+            self.assertEqual(payload["canonical_head"], canonical_head)
+            self.assertNotEqual(payload["base"], "origin/published-feature")
+
+    def test_published_feature_uses_remote_default_without_tenn_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo_with_origin_master(base)
+            control_plane = make_fake_control_plane(base)
+            canonical_head = subprocess.check_output(
+                ["git", "rev-parse", "origin/master"], cwd=repo, text=True
+            ).strip()
+            run(["git", "checkout", "-b", "published-feature"], cwd=repo)
+            (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+            run(["git", "add", "feature.txt"], cwd=repo)
+            run(["git", "commit", "-m", "feature"], cwd=repo)
+            run(["git", "push", "-u", "origin", "published-feature"], cwd=repo)
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="published feature canonical safety",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["base"], "origin/master")
+            self.assertEqual(payload["canonical_head"], canonical_head)
+            self.assertEqual(
+                payload["path_ownership"]["classification"],
+                "VALID_TASK_WORKTREE",
+            )
+
+    def test_non_origin_remote_symbolic_default_owns_canonical_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = make_repo_with_remote_default(
+                base,
+                remote_name="upstream",
+                default_branch="main",
+            )
+            control_plane = make_fake_control_plane(base)
+            canonical_head = subprocess.check_output(
+                ["git", "rev-parse", "upstream/main"], cwd=repo, text=True
+            ).strip()
+            run(["git", "checkout", "-b", "published-feature"], cwd=repo)
+            (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+            run(["git", "add", "feature.txt"], cwd=repo)
+            run(["git", "commit", "-m", "feature"], cwd=repo)
+            run(["git", "push", "-u", "upstream", "published-feature"], cwd=repo)
+
+            payload = guard.preflight(
+                repo_root=repo,
+                topic="non origin canonical safety",
+                env={**os.environ, "TENN_CONTROL_PLANE_ROOT": str(control_plane)},
+            )
+
+            self.assertEqual(payload["base"], "upstream/main")
+            self.assertEqual(
+                payload["canonical_branch_ref"],
+                "refs/remotes/upstream/main",
+            )
+            self.assertEqual(payload["canonical_head"], canonical_head)
+            self.assertEqual(
+                payload["path_ownership"]["classification"],
+                "VALID_TASK_WORKTREE",
+            )
 
     def test_branch_not_based_on_current_canonical_blocks_as_stale_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
