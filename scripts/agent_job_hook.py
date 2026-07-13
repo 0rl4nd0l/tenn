@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -17,6 +18,31 @@ ACTIVE_TASK_MARKER = Path(".tenn/active_agent_task")
 CONTRACT_SCRIPT = Path("scripts/agent_job_contract.py")
 REGISTRY_SCRIPT = Path("scripts/agent_job_registry.py")
 DECISION_LEDGER_SCRIPT = Path("scripts/agent_decision_ledger.py")
+V2_ACTIVE_SELECTOR_FIELDS = (
+    "job_id",
+    "session_id",
+    "task_card",
+    "task_card_sha256",
+    "scope_fingerprint",
+    "project_id",
+    "claim_id",
+    "hypothesis_id",
+    "program_track",
+    "source_class",
+    "dataset_version",
+    "evidence_hash",
+    "target_transition",
+)
+V2_SEMANTIC_IDENTITY_FIELDS = (
+    "project_id",
+    "claim_id",
+    "hypothesis_id",
+    "program_track",
+    "source_class",
+    "dataset_version",
+    "evidence_hash",
+    "target_transition",
+)
 
 
 @dataclass(frozen=True)
@@ -91,6 +117,389 @@ def find_active_task_card(repo_root: Path, env: Mapping[str, str] | None = None)
     if not marker_value:
         return None
     return _resolve_card_path(repo_root, marker_value[0], ACTIVE_TASK_MARKER.as_posix())
+
+
+def _resolved_worktree_matches(repo_root: Path, raw_worktree: object) -> bool | None:
+    if not isinstance(raw_worktree, str) or not raw_worktree.strip():
+        return None
+    try:
+        candidate = Path(raw_worktree.strip()).expanduser()
+        if not candidate.is_absolute():
+            candidate = repo_root / candidate
+        return candidate.resolve(strict=False) == repo_root.resolve()
+    except (OSError, ValueError):
+        return None
+
+
+def _v2_registry_warning_state(
+    list_active: ContractRun,
+) -> tuple[dict[str, list[str]], list[str]]:
+    warnings_by_job: dict[str, list[str]] = {}
+    unscoped_active_warnings: list[str] = []
+    warnings = list_active.parsed.get("warnings") if list_active.parsed else None
+    if not isinstance(warnings, list):
+        return warnings_by_job, unscoped_active_warnings
+    for warning in warnings:
+        if not isinstance(warning, Mapping) or warning.get("field") != "active_jobs":
+            continue
+        job_id = warning.get("job_id")
+        message = warning.get("message")
+        if not isinstance(message, str) or not message.strip():
+            continue
+        normalized = message.strip()
+        if isinstance(job_id, str) and job_id.strip():
+            warnings_by_job.setdefault(job_id, []).append(normalized)
+        else:
+            unscoped_active_warnings.append(normalized)
+    return warnings_by_job, unscoped_active_warnings
+
+
+def _active_record_is_v2_like(
+    active: Mapping[str, Any],
+    warnings_by_job: Mapping[str, list[str]],
+) -> bool:
+    job_id = active.get("job_id")
+    return (
+        "control_contract_version" in active
+        or "scope_fingerprint" in active
+        or any(field in active for field in V2_SEMANTIC_IDENTITY_FIELDS)
+        or (isinstance(job_id, str) and bool(warnings_by_job.get(job_id)))
+    )
+
+
+def _task_card_declares_v2(card_bytes: bytes) -> bool:
+    """Read the top-level contract version without trusting registry identity."""
+
+    try:
+        lines = card_bytes.decode("utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"task card is not UTF-8: {exc}") from exc
+    if not lines or lines[0].strip() != "---":
+        return False
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith((" ", "\t")):
+            continue
+        key, separator, raw_value = line.partition(":")
+        if separator and key.strip() == "control_contract_version":
+            value = raw_value.split("#", 1)[0].strip()
+            return value == "2"
+    return False
+
+
+def _select_active_v2_task_card(
+    repo_root: Path,
+    list_active: ContractRun,
+) -> tuple[ActiveTaskCard | None, ContractRun | None]:
+    """Select the sole current target-worktree V2 card."""
+
+    if (
+        list_active.returncode != 0
+        or list_active.parsed is None
+        or list_active.parsed.get("ok") is not True
+    ):
+        return None, _synthetic_run(
+            "active-v2-task-selector",
+            ok=False,
+            issues=[
+                {
+                    "field": "active_jobs",
+                    "message": "could not read the active registry while selecting a V2 task",
+                }
+            ],
+        )
+
+    active_jobs = list_active.parsed.get("active_jobs")
+    if not isinstance(active_jobs, list):
+        return None, _synthetic_run(
+            "active-v2-task-selector",
+            ok=False,
+            issues=[{"field": "active_jobs", "message": "registry active_jobs must be a list"}],
+        )
+
+    warnings_by_job, unscoped_active_warnings = _v2_registry_warning_state(list_active)
+
+    if unscoped_active_warnings:
+        return None, _synthetic_run(
+            "active-v2-task-selector",
+            ok=False,
+            issues=[
+                {
+                    "field": "active_jobs",
+                    "message": "unscoped active registry parse/schema warning: " + message,
+                }
+                for message in unscoped_active_warnings
+            ],
+        )
+
+    candidates: list[ActiveTaskCard] = []
+    selector_issues: list[dict[str, str]] = []
+    for active in active_jobs:
+        if not isinstance(active, Mapping):
+            continue
+        if active.get("status", "active") != "active" or active.get("stale") is True:
+            continue
+        registry_v2_like = _active_record_is_v2_like(active, warnings_by_job)
+        job_id = active.get("job_id")
+        raw_task_card = active.get("task_card")
+        card: ActiveTaskCard | None = None
+        card_bytes: bytes | None = None
+        card_declares_v2 = False
+        if not isinstance(raw_task_card, str) or not raw_task_card.strip():
+            card_error = "has no task card, so its contract version cannot be inspected"
+        else:
+            try:
+                card = _resolve_card_path(
+                    repo_root,
+                    raw_task_card,
+                    f"target-worktree active registry job {job_id}",
+                )
+                card_bytes = card.path.read_bytes()
+                card_declares_v2 = _task_card_declares_v2(card_bytes)
+                card_error = None
+            except (OSError, ValueError) as exc:
+                card_error = f"task card cannot be safely inspected: {exc}"
+
+        expected_card_hash = active.get("task_card_sha256")
+        observed_card_hash = (
+            hashlib.sha256(card_bytes).hexdigest() if card_bytes is not None else None
+        )
+        card_hash_matches = (
+            isinstance(expected_card_hash, str)
+            and observed_card_hash is not None
+            and expected_card_hash.strip().lower() == observed_card_hash
+        )
+        card_v2_authority = card_declares_v2
+        worktree_matches = _resolved_worktree_matches(repo_root, active.get("worktree"))
+        if worktree_matches is None:
+            if registry_v2_like or card_v2_authority:
+                selector_issues.append(
+                    {
+                        "field": "worktree",
+                        "message": (
+                            f"V2-like active selector {job_id or '<unknown>'} "
+                            "has a missing or invalid worktree and cannot be safely scoped"
+                        ),
+                    }
+                )
+            continue
+        if not worktree_matches:
+            continue
+        if card is None:
+            if registry_v2_like:
+                selector_issues.append(
+                    {
+                        "field": "task_card",
+                        "message": (
+                            f"target-worktree active selector {job_id or '<unknown>'} "
+                            f"{card_error}"
+                        ),
+                    }
+                )
+            continue
+        if not registry_v2_like and not card_declares_v2:
+            continue
+        if card_declares_v2 and not card_hash_matches:
+            selector_issues.append(
+                {
+                    "field": "task_card_sha256",
+                    "message": (
+                        f"matching V2 selector task card changed after claim: "
+                        f"{card.display_path}; release and reclaim the task before continuing"
+                    ),
+                }
+            )
+            continue
+
+        invalid_fields = [
+            field
+            for field in V2_ACTIVE_SELECTOR_FIELDS
+            if not isinstance(active.get(field), str) or not str(active.get(field)).strip()
+        ]
+        if active.get("control_contract_version") != 2:
+            invalid_fields.append("control_contract_version")
+        if isinstance(job_id, str) and warnings_by_job.get(job_id):
+            invalid_fields.append("registry_validation")
+        if invalid_fields:
+            selector_issues.append(
+                {
+                    "field": "active_jobs",
+                    "message": (
+                        f"matching V2 selector {job_id or '<unknown>'} is invalid: "
+                        + ", ".join(sorted(set(invalid_fields)))
+                    ),
+                }
+            )
+            continue
+        if not card_hash_matches:
+            selector_issues.append(
+                {
+                    "field": "task_card_sha256",
+                    "message": (
+                        f"matching V2 selector task card changed after claim: {card.display_path}; "
+                        "release and reclaim the task before continuing"
+                    ),
+                }
+            )
+            continue
+        candidates.append(card)
+
+    if selector_issues:
+        return None, _synthetic_run(
+            "active-v2-task-selector",
+            ok=False,
+            issues=selector_issues,
+        )
+    if len(candidates) > 1:
+        return None, _synthetic_run(
+            "active-v2-task-selector",
+            ok=False,
+            issues=[
+                {
+                    "field": "active_jobs",
+                    "message": "multiple non-stale V2 jobs select this worktree; resolve the ambiguity before continuing",
+                }
+            ],
+        )
+    return (candidates[0] if candidates else None), None
+
+
+def _explicit_v2_claim_binding_run(
+    repo_root: Path,
+    *,
+    card: ActiveTaskCard,
+    metadata: Mapping[str, Any],
+    list_active: ContractRun,
+) -> ContractRun:
+    """Bind an explicit V2 selector to one current claimed card."""
+
+    if (
+        list_active.returncode != 0
+        or list_active.parsed is None
+        or list_active.parsed.get("ok") is not True
+        or not isinstance(list_active.parsed.get("active_jobs"), list)
+    ):
+        return _synthetic_run(
+            "explicit-v2-claim-binding",
+            ok=False,
+            issues=[{"field": "active_jobs", "message": "active registry is unreadable"}],
+        )
+
+    try:
+        observed_card_hash = hashlib.sha256(card.path.read_bytes()).hexdigest()
+    except OSError as exc:
+        return _synthetic_run(
+            "explicit-v2-claim-binding",
+            ok=False,
+            issues=[{"field": "task_card", "message": f"cannot read selected card: {exc}"}],
+        )
+
+    warnings_by_job, unscoped_warnings = _v2_registry_warning_state(list_active)
+    issues = [
+        {
+            "field": "active_jobs",
+            "message": "unscoped active registry parse/schema warning: " + warning,
+        }
+        for warning in unscoped_warnings
+    ]
+    matches: list[str] = []
+    for active in list_active.parsed["active_jobs"]:
+        if not isinstance(active, Mapping):
+            issues.append(
+                {"field": "active_jobs", "message": "active registry entry must be an object"}
+            )
+            continue
+        if active.get("status", "active") != "active" or active.get("stale") is True:
+            continue
+        if not _active_record_is_v2_like(active, warnings_by_job):
+            continue
+        worktree_matches = _resolved_worktree_matches(repo_root, active.get("worktree"))
+        if worktree_matches is None:
+            issues.append(
+                {
+                    "field": "worktree",
+                    "message": (
+                        f"V2-like active record {active.get('job_id') or '<unknown>'} "
+                        "has a missing or invalid worktree and cannot be safely scoped"
+                    ),
+                }
+            )
+            continue
+        if not worktree_matches:
+            continue
+
+        job_id = active.get("job_id")
+        invalid_fields = [
+            field
+            for field in V2_ACTIVE_SELECTOR_FIELDS
+            if not isinstance(active.get(field), str) or not str(active.get(field)).strip()
+        ]
+        if active.get("control_contract_version") != 2:
+            invalid_fields.append("control_contract_version")
+        if isinstance(job_id, str) and warnings_by_job.get(job_id):
+            invalid_fields.append("registry_validation")
+        if invalid_fields:
+            issues.append(
+                {
+                    "field": "active_jobs",
+                    "message": (
+                        f"target-worktree V2-like claim {job_id or '<unknown>'} is invalid: "
+                        + ", ".join(sorted(set(invalid_fields)))
+                    ),
+                }
+            )
+            continue
+
+        raw_task_card = active.get("task_card")
+        assert isinstance(raw_task_card, str)
+        try:
+            active_card = _resolve_card_path(
+                repo_root,
+                raw_task_card,
+                f"active V2 registry job {active.get('job_id') or '<unknown>'}",
+            )
+        except ValueError as exc:
+            issues.append({"field": "task_card", "message": str(exc)})
+            continue
+        if active_card.path != card.path:
+            continue
+
+        expected_job_id = metadata.get("job_id")
+        expected_fingerprint = metadata.get("computed_scope_fingerprint")
+        expected_card_hash = active.get("task_card_sha256")
+        mismatch_fields: list[str] = []
+        if active.get("job_id") != expected_job_id:
+            mismatch_fields.append("job_id")
+        if active.get("scope_fingerprint") != expected_fingerprint:
+            mismatch_fields.append("scope_fingerprint")
+        if expected_card_hash != observed_card_hash:
+            mismatch_fields.append("task_card_sha256")
+        if mismatch_fields:
+            issues.append(
+                {
+                    "field": "active_jobs",
+                    "message": (
+                        "explicit V2 card does not match its active claim: "
+                        + ", ".join(sorted(set(mismatch_fields)))
+                        + "; release and reclaim the task"
+                    ),
+                }
+            )
+            continue
+        matches.append(str(active.get("session_id") or active.get("job_id")))
+
+    if len(matches) != 1:
+        issues.append(
+            {
+                "field": "active_jobs",
+                "message": (
+                    "explicit V2 selection requires exactly one non-stale matching "
+                    f"target-worktree claim; found {len(matches)}"
+                ),
+            }
+        )
+    return _synthetic_run("explicit-v2-claim-binding", ok=not issues, issues=issues)
 
 
 def _run_script(
@@ -445,8 +854,50 @@ def build_hook_payload(
 ) -> dict[str, Any]:
     control_plane_root = _resolve_control_plane_root()
     card = find_active_task_card(repo_root, env=env)
-    if card is None:
-        return _allow_payload(platform)
+    explicitly_selected = card is not None
+    list_active = _run_registry(
+        control_plane_root,
+        repo_root,
+        "list-active",
+        ["list-active", "--read-only", "--repo-root", str(repo_root)],
+    )
+    active_v2_card, selector_failure = _select_active_v2_task_card(repo_root, list_active)
+    if selector_failure is not None:
+        selected_card = card or ActiveTaskCard(
+            source="active V2 registry selector",
+            display_path="<active-v2-registry-selector>",
+            path=repo_root,
+        )
+        return _blocking_payload(
+            _summarize_failure(selected_card, [list_active, selector_failure]),
+            platform=platform,
+        )
+
+    active_v2_authority = active_v2_card is not None
+    if explicitly_selected:
+        assert card is not None
+        if active_v2_card is not None and active_v2_card.path != card.path:
+            path_mismatch = _synthetic_run(
+                "explicit-v2-claim-binding",
+                ok=False,
+                issues=[
+                    {
+                        "field": "task_card",
+                        "message": (
+                            f"active V2 claim selects {active_v2_card.display_path}, but the "
+                            f"explicit selector chooses {card.display_path}"
+                        ),
+                    }
+                ],
+            )
+            return _blocking_payload(
+                _summarize_failure(card, [list_active, path_mismatch]),
+                platform=platform,
+            )
+    else:
+        card = active_v2_card
+        if card is None:
+            return _allow_payload(platform)
 
     if not card.path.exists():
         message = f"Tenn agent-job contract warning: task card not found: {card.display_path}"
@@ -460,14 +911,39 @@ def build_hook_payload(
         "validate",
         ["validate", card.display_path],
     )
-    strict_contract = _task_card_requires_strict_closeout(card, validate)
-    list_active = _run_registry(
-        control_plane_root,
-        repo_root,
-        "list-active",
-        ["list-active", "--read-only", "--repo-root", str(repo_root)],
-    )
+    strict_contract = active_v2_authority or _task_card_requires_strict_closeout(card, validate)
     runs = [validate, list_active]
+    metadata = validate.parsed.get("metadata") if validate.parsed else None
+    validated_v2 = (
+        validate.returncode == 0
+        and validate.parsed is not None
+        and validate.parsed.get("ok") is True
+        and isinstance(metadata, Mapping)
+        and type(metadata.get("control_contract_version")) is int
+        and metadata.get("control_contract_version") == 2
+    )
+    if active_v2_authority and not validated_v2:
+        runs.append(
+            _synthetic_run(
+                "active-v2-card-validation",
+                ok=False,
+                issues=[
+                    {
+                        "field": "control_contract_version",
+                        "message": "the active V2 claim requires its selected task card to validate as V2",
+                    }
+                ],
+            )
+        )
+    if explicitly_selected and validated_v2:
+        runs.append(
+            _explicit_v2_claim_binding_run(
+                repo_root,
+                card=card,
+                metadata=metadata,
+                list_active=list_active,
+            )
+        )
 
     if event == "BeforeTool":
         check_diff = _run_contract(
@@ -485,12 +961,8 @@ def build_hook_payload(
             ["check-closeout", card.display_path, "--repo-root", str(repo_root)],
         )
         runs.append(closeout)
-        metadata = validate.parsed.get("metadata") if validate.parsed else None
-        if (
-            isinstance(metadata, Mapping)
-            and type(metadata.get("control_contract_version")) is int
-            and metadata.get("control_contract_version") == 2
-        ):
+        if validated_v2:
+            assert isinstance(metadata, Mapping)
             decision_ledger = _run_decision_ledger(
                 control_plane_root,
                 repo_root,

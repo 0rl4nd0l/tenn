@@ -33,6 +33,7 @@ REQUIRED_V2_CONTROL_PLANE_FILES = (
     "scripts/agent_job_hook.py",
 )
 KNOWN_CONTROL_PLANE_ROOTS = (
+    "tenn-semantic-anti-loop-v2-canonical",
     "tenn-control-plane-task-ledger-status-refresh-v1-20260623",
     "tenn-control-plane-runtime-functionality-proof-v1-20260622",
     "tenn-agent-ledger-runtime-handoff-replay-v1-20260618",
@@ -381,6 +382,7 @@ def resolve_registry_root(
 
 def selected_base(repo_root: Path) -> tuple[str | None, str | None, list[str]]:
     checked: list[str] = []
+    branch = git_text(repo_root, "branch", "--show-current")
     upstream = git_text(
         repo_root,
         "rev-parse",
@@ -388,12 +390,43 @@ def selected_base(repo_root: Path) -> tuple[str | None, str | None, list[str]]:
         "--symbolic-full-name",
         "@{u}",
     )
-    if upstream:
+    remote = (
+        git_text(repo_root, "config", "--get", f"branch.{branch}.remote")
+        if branch
+        else None
+    )
+    merge_ref = (
+        git_text(repo_root, "config", "--get", f"branch.{branch}.merge")
+        if branch
+        else None
+    )
+    tracked_branch = (
+        merge_ref.removeprefix("refs/heads/")
+        if merge_ref and merge_ref.startswith("refs/heads/")
+        else merge_ref
+    )
+    self_published_upstream = bool(
+        upstream
+        and branch
+        and remote
+        and remote != "."
+        and tracked_branch == branch
+    )
+    remote_default = (
+        remote_default_head(repo_root, remote)
+        if self_published_upstream and remote
+        else None
+    )
+
+    if upstream and (not self_published_upstream or upstream == remote_default):
         checked.append(f"upstream={upstream}")
         merge_base = git_text(repo_root, "merge-base", "HEAD", upstream)
         return upstream, merge_base, checked
 
-    checked.append("upstream=DATA_MISSING")
+    if upstream:
+        checked.append(f"upstream={upstream}:SELF_PUBLISHED_TOPIC")
+    else:
+        checked.append("upstream=DATA_MISSING")
     fallback_exists = git_command(
         repo_root,
         "rev-parse",
@@ -407,7 +440,42 @@ def selected_base(repo_root: Path) -> tuple[str | None, str | None, list[str]]:
         return DEFAULT_FALLBACK_BASE, merge_base, checked
 
     checked.append(f"fallback={DEFAULT_FALLBACK_BASE}:DATA_MISSING")
+    if remote_default:
+        checked.append(f"remote_default={remote_default}")
+        merge_base = git_text(repo_root, "merge-base", "HEAD", remote_default)
+        return remote_default, merge_base, checked
     return None, None, checked
+
+
+def remote_default_head(repo_root: Path, remote: str) -> str | None:
+    """Resolve a tracking remote's symbolic default without assuming origin."""
+
+    if not remote or remote == ".":
+        return None
+    symbolic = git_text(
+        repo_root,
+        "symbolic-ref",
+        "--quiet",
+        "--short",
+        f"refs/remotes/{remote}/HEAD",
+    )
+    if symbolic:
+        return symbolic
+
+    advertised = git_command(repo_root, "ls-remote", "--symref", remote, "HEAD")
+    if advertised["returncode"] != 0:
+        return None
+    prefix = "ref: refs/heads/"
+    for line in str(advertised["stdout"]).splitlines():
+        if not line.startswith(prefix) or not line.endswith("\tHEAD"):
+            continue
+        branch = line[len(prefix) : -len("\tHEAD")]
+        candidate = f"{remote}/{branch}"
+        if git_command(repo_root, "rev-parse", "--verify", "--quiet", candidate)[
+            "returncode"
+        ] == 0:
+            return candidate
+    return None
 
 
 def canonical_head(repo_root: Path, base: str | None) -> str | None:
@@ -416,13 +484,25 @@ def canonical_head(repo_root: Path, base: str | None) -> str | None:
     return git_text(repo_root, "rev-parse", "--verify", base)
 
 
+def canonical_ref(repo_root: Path, base: str | None) -> str:
+    if not base or base == DEFAULT_FALLBACK_BASE:
+        return CANONICAL_BRANCH_REF
+    return (
+        git_text(repo_root, "rev-parse", "--symbolic-full-name", base)
+        or base
+    )
+
+
 def local_branch_name(ref: str | None) -> str | None:
     if not ref:
         return None
     if ref.startswith("refs/heads/"):
         return ref.removeprefix("refs/heads/")
-    if ref.startswith("origin/"):
-        return ref.removeprefix("origin/")
+    if ref.startswith("refs/remotes/"):
+        remote_ref = ref.removeprefix("refs/remotes/")
+        return remote_ref.split("/", 1)[1] if "/" in remote_ref else remote_ref
+    if "/" in ref:
+        return ref.split("/", 1)[1]
     return ref
 
 
@@ -459,7 +539,7 @@ def path_ownership_for_git_worktree(
     elif (
         canonical_head_value
         and head == canonical_head_value
-        and branch == "migration/clean-runtime-baseline-reconstruct-v1"
+        and branch == local_branch_name(canonical_branch)
     ):
         classification = "VALID_CANONICAL_WORKTREE"
         reasons.append("checked-out branch is canonical and HEAD equals canonical head")
@@ -1171,7 +1251,9 @@ def preflight(
     remotes = git_command(repo_root, "remote", "-v")
     status_result = git_command(repo_root, "status", "--short", "--untracked-files=all")
     base, merge_base, base_checked = selected_base(repo_root)
-    canonical_head_value = canonical_head(repo_root, DEFAULT_CANONICAL_BRANCH)
+    canonical_branch_value = base or DEFAULT_CANONICAL_BRANCH
+    canonical_branch_ref_value = canonical_ref(repo_root, base)
+    canonical_head_value = canonical_head(repo_root, canonical_branch_value)
     task_card_path = (
         resolve_task_card_path(repo_root, task_card)
         if task_card is not None
@@ -1275,14 +1357,14 @@ def preflight(
     path_ownership = path_ownership_for_path(
         repo_root,
         topic=topic,
-        canonical_branch=DEFAULT_CANONICAL_BRANCH,
+        canonical_branch=canonical_branch_value,
         canonical_head_value=canonical_head_value,
     )
     audited_paths = [
         path_ownership_for_path(
             candidate,
             topic=topic,
-            canonical_branch=DEFAULT_CANONICAL_BRANCH,
+            canonical_branch=canonical_branch_value,
             canonical_head_value=canonical_head_value,
         )
         for candidate in (audit_paths or [])
@@ -1349,8 +1431,8 @@ def preflight(
         "head": head,
         "upstream": base if base and base != DEFAULT_FALLBACK_BASE else None,
         "base": base,
-        "canonical_branch": DEFAULT_CANONICAL_BRANCH,
-        "canonical_branch_ref": CANONICAL_BRANCH_REF,
+        "canonical_branch": canonical_branch_value,
+        "canonical_branch_ref": canonical_branch_ref_value,
         "canonical_head": canonical_head_value,
         "merge_base": merge_base,
         "remotes": remotes["stdout"].splitlines() if remotes["returncode"] == 0 else [],

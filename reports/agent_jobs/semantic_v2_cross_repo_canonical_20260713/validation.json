@@ -1,0 +1,53 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      ".agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
+      ".agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
+      "docs/agent_tasks/semantic_v2_cross_repo_canonical_20260713.md",
+      "scripts/agent_job_hook.py",
+      "scripts/test_agent_job_hook.py",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/CODE_REVIEW.md",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/DECISION_ENTRY.json",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/DECISIONS.md",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/PR_REVIEW.md",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/RUN_OUTCOME.json",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/STATE.md",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/VALIDATION.md",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/diff-check.json",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/status.json",
+      "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/validation.json"
+    ],
+    "approval_required": true,
+    "capabilities": [
+      "READ",
+      "REPORT_WRITE",
+      "CODE_EDIT",
+      "PUBLISH"
+    ],
+    "claim_id": "semantic_v2_cross_repo_enforcement",
+    "closeout_scope": "control_plane_only",
+    "computed_scope_fingerprint": "2379538a7a034c661a6e2af90d5615fc1622e5be57699d88ecb3b0e80e84a758",
+    "control_contract_version": 2,
+    "dataset_version": "migration_canonical_c18935634cf91d1ef80985bce29be846a601be7a_cross_repo_review_v2",
+    "entry_state": "cross_repo_guard_and_stop_hook_not_target_aware",
+    "evidence_hash": "sha256:39ad7ec0974ce3b513a8877dc3868b0ca84b996e6a7146b4765b357f4484c242",
+    "exit_predicate": "Cross-repo origin/master guard coverage and active target-worktree V2 hook coverage pass, including missing-outcome blocking, matching closeout acceptance, and legacy V1 silence.",
+    "hypothesis_id": "selected_target_and_active_v2_registry_enforce_cross_repo_v2_v1_compat",
+    "job_id": "semantic_v2_cross_repo_canonical_20260713",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713",
+    "owner": "Codex",
+    "production_data_access": false,
+    "program_track": "offline_development",
+    "project_id": "tenn",
+    "proof_question": "Do portable preflight and Stop hooks enforce target-repository canonical identity and the sole active target-worktree V2 claim while preserving V1 behavior?",
+    "resume_only_if": "Canonical guard source, active-registry selector semantics, or focused cross-repo regression evidence changes after a blocked closeout.",
+    "source_class": "tenn_portable_guard_and_hook_source",
+    "target_transition": "portable_cross_repo_guard_and_active_v2_hook_enforced",
+    "timeout_seconds": 7200
+  },
+  "ok": true,
+  "warnings": []
+}
