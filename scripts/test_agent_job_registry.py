@@ -74,6 +74,38 @@ def task_card(
     return card
 
 
+def v2_task_card(repo: Path, *, job_id: str = "job-v2") -> tuple[Path, dict[str, object]]:
+    metadata: dict[str, object] = {
+        "control_contract_version": 2,
+        "project_id": "greyhound",
+        "claim_id": "historical_market_floor",
+        "proof_question": "Does the recorded historical snapshot clear the floor?",
+        "hypothesis_id": "thedogs_floor_v1",
+        "program_track": "offline_development",
+        "entry_state": "floor_unverified",
+        "target_transition": "floor_verified",
+        "exit_predicate": "The immutable evidence snapshot contains at least 300 complete races.",
+        "source_class": "thedogs_published_market_history",
+        "dataset_version": "thedogs_20260709_v1",
+        "evidence_hash": "sha256:" + "a" * 64,
+        "capabilities": ["READ", "REPORT_WRITE"],
+        "resume_only_if": "The dataset version, evidence hash, or hypothesis changes.",
+    }
+    card = task_card(repo, job_id=job_id)
+    lines = card.read_text(encoding="utf-8").splitlines()
+    closing_index = lines.index("---", 1)
+    rendered: list[str] = []
+    for key, value in metadata.items():
+        if isinstance(value, list):
+            rendered.append(f"{key}:")
+            rendered.extend(f"  - {item}" for item in value)
+        else:
+            rendered.append(f"{key}: {value}")
+    lines[closing_index:closing_index] = rendered
+    card.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return card, metadata
+
+
 def git_repo(tmp_path: Path) -> Path:
     tmp_path.mkdir(parents=True, exist_ok=True)
     run_git(tmp_path, "init")
@@ -314,6 +346,85 @@ def test_claim_valid_task_card_creates_active_and_status_records(tmp_path: Path)
     assert record["worktree"] == str(repo.resolve())
     assert record["started_at"] == record["last_seen_at"]
     assert record["status"] == "active"
+
+
+def test_claim_v2_task_card_persists_semantic_identity_across_active_surfaces(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    card, metadata = v2_task_card(repo)
+    expected_fingerprint = registry.contract.compute_scope_fingerprint(metadata)
+
+    claim = registry.claim_task_card(card, repo_root=repo)
+
+    assert claim["ok"] is True
+    active = json.loads(active_record_path(repo, "job-v2").read_text(encoding="utf-8"))
+    listed = registry.list_active_jobs(repo_root=repo)["active_jobs"][0]
+    status = json.loads(
+        (repo / "reports" / "agent_jobs" / "job-v2" / "status.json").read_text(encoding="utf-8")
+    )
+    expected = {
+        "control_contract_version": 2,
+        "scope_fingerprint": expected_fingerprint,
+        "project_id": "greyhound",
+        "claim_id": "historical_market_floor",
+        "hypothesis_id": "thedogs_floor_v1",
+        "program_track": "offline_development",
+        "source_class": "thedogs_published_market_history",
+        "dataset_version": "thedogs_20260709_v1",
+        "evidence_hash": "sha256:" + "a" * 64,
+        "target_transition": "floor_verified",
+    }
+    assert expected.items() <= claim["record"].items()
+    assert expected.items() <= active.items()
+    assert expected.items() <= listed.items()
+    assert expected.items() <= status.items()
+
+
+def test_list_active_warns_on_invalid_v2_semantic_identity(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    card, _ = v2_task_card(repo)
+    claim = registry.claim_task_card(card, repo_root=repo)
+    assert claim["ok"] is True
+    path = active_record_path(repo, "job-v2")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    del record["project_id"]
+    path.write_text(json.dumps(record), encoding="utf-8")
+
+    listed = registry.list_active_jobs(repo_root=repo, read_only=True)
+
+    assert any(
+        warning["field"] == "active_jobs" and "invalid V2 active record" in warning["message"]
+        for warning in listed["warnings"]
+    )
+
+
+def test_claim_v1_task_card_succeeds_with_migration_warning(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+
+    claim = registry.claim_task_card(repo / "docs" / "agent_tasks" / "job-a.md", repo_root=repo)
+
+    assert claim["ok"] is True
+    assert claim.get("issues", []) == []
+    assert any(warning["field"] == "control_contract_version" for warning in claim["warnings"])
+    assert "scope_fingerprint" not in claim["record"]
+
+
+@pytest.mark.parametrize("declared", ["", "null", "~"])
+def test_claim_rejects_explicit_empty_contract_version(tmp_path: Path, declared: str) -> None:
+    repo = git_repo(tmp_path)
+    card, _ = v2_task_card(repo, job_id="job-invalid-version")
+    card.write_text(
+        card.read_text(encoding="utf-8").replace(
+            "control_contract_version: 2",
+            f"control_contract_version: {declared}",
+        ),
+        encoding="utf-8",
+    )
+
+    claim = registry.claim_task_card(card, repo_root=repo)
+
+    assert claim["ok"] is False
+    assert "control_contract_version" in str(claim["issues"])
+    assert not active_record_path(repo, "job-invalid-version").exists()
 
 
 def test_claim_invalid_task_card_fails_without_active_record(tmp_path: Path) -> None:

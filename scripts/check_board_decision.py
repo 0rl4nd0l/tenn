@@ -14,6 +14,20 @@ ALLOWED_DECISIONS = {"proceed", "revise_plan", "block", "ask_owner", "supersede"
 ALLOWED_EVIDENCE_GRADES = {"VERIFIED", "USER_REPORTED", "INFERRED", "UNKNOWN", "CONFLICT", "DATA_MISSING"}
 ALLOWED_TASK_TIERS = {"small", "medium", "large", "critical"}
 ALLOWED_FUNCTIONALITY_STATUSES = {"WORKING", "PARTIAL", "BROKEN", "DATA_MISSING", "not_applicable"}
+SCHEMA_VERSION_V1 = "tenn_review_board_decision_v1"
+SCHEMA_VERSION_V2 = "tenn_review_board_decision_v2"
+ALLOWED_SCHEMA_VERSIONS = {SCHEMA_VERSION_V1, SCHEMA_VERSION_V2}
+RUN_OUTCOME_STATUSES = {
+    "ADVANCED",
+    "REUSED_COMPLETE",
+    "ACTIVE_DUPLICATE",
+    "WAITING_ON_AUTHORIZATION",
+    "DATA_MISSING",
+    "EVIDENCE_CONFLICT",
+    "BLOCKED_NO_NEW_INPUT",
+    "LOOP_GUARD_STOP",
+}
+TERMINAL_NO_PROGRESS_STATUSES = RUN_OUTCOME_STATUSES - {"ADVANCED"}
 
 REQUIRED_FIELDS = {
     "schema_version": str,
@@ -53,6 +67,13 @@ REQUIRED_FIELDS = {
 LARGE_CRITICAL_FIELDS = {
     "final_decision_authority": str,
     "lower_tier_decision_insufficient": str,
+}
+
+V2_REQUIRED_FIELDS = {
+    "run_outcome_status": str,
+    "target_transition": str,
+    "next_goal_permitted": bool,
+    "next_goal_target_transition": str,
 }
 
 
@@ -95,6 +116,20 @@ def _require_text(payload: Mapping[str, Any], field: str, issues: list[Validatio
         issues.append(ValidationIssue(field, "must be concrete non-placeholder text"))
 
 
+def _has_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _has_condition(value: Any) -> bool:
+    if isinstance(value, str):
+        return not _is_missing_text(value)
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(isinstance(item, str) and not _is_missing_text(item) for item in value)
+    )
+
+
 def validate_board_decision_payload(
     payload: Mapping[str, Any],
     *,
@@ -103,6 +138,23 @@ def validate_board_decision_payload(
 ) -> BoardDecisionValidationResult:
     issues: list[ValidationIssue] = []
     _require_fields(payload, REQUIRED_FIELDS, issues)
+
+    schema_version = payload.get("schema_version")
+    if isinstance(schema_version, str) and schema_version not in ALLOWED_SCHEMA_VERSIONS:
+        issues.append(ValidationIssue("schema_version", f"must be one of {sorted(ALLOWED_SCHEMA_VERSIONS)}"))
+
+    is_v2 = schema_version == SCHEMA_VERSION_V2
+    if is_v2:
+        _require_fields(payload, V2_REQUIRED_FIELDS, issues)
+        if "resume_only_if" not in payload:
+            issues.append(ValidationIssue("resume_only_if", "missing required field"))
+        elif not isinstance(payload.get("resume_only_if"), (str, list)):
+            issues.append(ValidationIssue("resume_only_if", "must be str or list"))
+        run_outcome_status = payload.get("run_outcome_status")
+        if isinstance(run_outcome_status, str) and run_outcome_status not in RUN_OUTCOME_STATUSES:
+            issues.append(
+                ValidationIssue("run_outcome_status", f"must be one of {sorted(RUN_OUTCOME_STATUSES)}")
+            )
 
     decision = payload.get("decision")
     if isinstance(decision, str) and decision not in ALLOWED_DECISIONS:
@@ -134,9 +186,71 @@ def validate_board_decision_payload(
         "duplicate_work_classification",
         "duplicate_work_decision",
         "minority_objection",
-        "next_goal",
     ):
         _require_text(payload, field, issues)
+
+    if not is_v2:
+        _require_text(payload, "next_goal", issues)
+    else:
+        _require_text(payload, "target_transition", issues)
+        run_outcome_status = payload.get("run_outcome_status")
+        next_goal_permitted = payload.get("next_goal_permitted")
+        next_goal = payload.get("next_goal")
+        next_goal_target = payload.get("next_goal_target_transition")
+
+        if run_outcome_status in TERMINAL_NO_PROGRESS_STATUSES:
+            if next_goal_permitted is not False:
+                issues.append(
+                    ValidationIssue(
+                        "next_goal_permitted",
+                        f"{run_outcome_status} must set next_goal_permitted to false",
+                    )
+                )
+            if _has_text(next_goal):
+                issues.append(
+                    ValidationIssue("next_goal", f"{run_outcome_status} must not create a continuation goal")
+                )
+            if _has_text(next_goal_target):
+                issues.append(
+                    ValidationIssue(
+                        "next_goal_target_transition",
+                        f"{run_outcome_status} must not name a continuation transition",
+                    )
+                )
+            if not _has_condition(payload.get("resume_only_if")):
+                issues.append(
+                    ValidationIssue(
+                        "resume_only_if",
+                        f"{run_outcome_status} requires an exact non-placeholder reopen condition",
+                    )
+                )
+        elif run_outcome_status == "ADVANCED":
+            if next_goal_permitted is True:
+                _require_text(payload, "next_goal", issues)
+                _require_text(payload, "next_goal_target_transition", issues)
+                if (
+                    _has_text(next_goal_target)
+                    and _has_text(payload.get("target_transition"))
+                    and str(next_goal_target).strip() == str(payload["target_transition"]).strip()
+                ):
+                    issues.append(
+                        ValidationIssue(
+                            "next_goal_target_transition",
+                            "must be materially different from target_transition",
+                        )
+                    )
+            elif next_goal_permitted is False:
+                if _has_text(next_goal):
+                    issues.append(
+                        ValidationIssue("next_goal", "next_goal_permitted=false requires an empty next_goal")
+                    )
+                if _has_text(next_goal_target):
+                    issues.append(
+                        ValidationIssue(
+                            "next_goal_target_transition",
+                            "next_goal_permitted=false requires an empty next_goal_target_transition",
+                        )
+                    )
 
     ledger_sources = payload.get("ledger_sources_checked")
     if isinstance(ledger_sources, list) and not ledger_sources:

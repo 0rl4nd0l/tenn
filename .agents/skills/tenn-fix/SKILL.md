@@ -296,7 +296,15 @@ Produce or update:
 - `STATE.md`
 - `DECISIONS.md`
 - validation notes
-- `NEXT_GOAL.md`
+- `RUN_OUTCOME.json` for V2 runs
+- `NEXT_GOAL.md` only when a V1 workflow requires it or a V2 `ADVANCED`
+  outcome authorizes a materially different target transition
+
+For V2 terminal/no-progress outcomes (`REUSED_COMPLETE`, `ACTIVE_DUPLICATE`,
+`WAITING_ON_AUTHORIZATION`, `DATA_MISSING`, `EVIDENCE_CONFLICT`,
+`BLOCKED_NO_NEW_INPUT`, or `LOOP_GUARD_STOP`), do not create `NEXT_GOAL.md`.
+Reference the reused evidence and record the exact `resume_only_if` condition
+instead. File creation alone is not a decision delta.
 
 `STATE.md` or `DECISIONS.md` must record Task Ledger availability, current
 ledger status, duplicate-work classification, ledger update result, and any

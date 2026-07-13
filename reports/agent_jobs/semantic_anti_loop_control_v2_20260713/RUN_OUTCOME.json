@@ -1,0 +1,39 @@
+{
+  "blocked_by": [],
+  "changed_claims": [
+    "Tenn now has a validated V2 semantic run contract, decision ledger, portable preflight, and fail-closed closeout path.",
+    "Resolved decisions can be reused while changed evidence or a new hypothesis remains admissible.",
+    "A third unchanged no-delta continuation is stopped before substantive report work."
+  ],
+  "decision_delta": "The control plane advanced from task-level duplicate checks to validated semantic scope reuse, two-run no-delta enforcement, program-track isolation, capability-aware closeout, and portable target-repository hooks.",
+  "new_evidence": [
+    "208 focused control-plane tests and 13 subtests passed.",
+    "34 portable guard unit tests passed.",
+    "Ruff, py_compile, and git diff --check passed.",
+    "A live portable preflight selected this V2-capable control plane, validated the initialized decision ledger, and admitted the new semantic scope before the expected dirty-worktree gate."
+  ],
+  "new_goal_permitted": false,
+  "next_goal_target_transition": "",
+  "produced_artifacts": [
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/STATE.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/DECISIONS.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/CODE_REVIEW.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/VALIDATION.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/PR_REVIEW.md"
+  ],
+  "resume_only_if": "",
+  "reused_claims": [
+    "Legacy V1 task cards remain warning-compatible.",
+    "The existing task ledger and active-job registry remain separate sources of task ownership truth.",
+    "Runtime Functionality Proof and existing board validation remain active closeout gates."
+  ],
+  "scope_fingerprint": "583fb5953d20739245440776196b1a03d82cd161a6d4d9543cbbf13b5cf25779",
+  "state_after": "v2_control_plane_implementation_validated",
+  "state_before": "v1_task_and_duplicate_control",
+  "status": "ADVANCED",
+  "used_capabilities": [
+    "READ",
+    "REPORT_WRITE",
+    "CODE_EDIT"
+  ]
+}

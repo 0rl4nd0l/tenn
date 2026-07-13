@@ -43,6 +43,19 @@ Legacy hygiene hooks are non-blocking (`|| true`); they warn without interruptin
 
 **Task cards:** A task card is the explicit scope file for an implementation-capable agent job. It declares the `job_id`, `lane`, `owner`, `allowed_files`, `output_dir`, `mutation_mode`, timeout, approval flag, and `production_data_access: false`. The contract validator checks that metadata before work starts, and `check-diff` checks that the current git diff stays inside the card's `allowed_files`. The task card selected by `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is session-local; the registry claim created from that card is the shared visibility record.
 
+**V2 semantic control:** A card with `control_contract_version: 2` also declares
+the proof question, track, phase transition, evidence identity, capabilities,
+and reopen condition described in
+`docs/dev_flow/SEMANTIC_ANTI_LOOP_CONTROL_V2.md`. Run portable preflight with
+`--task-card` before substantive work. Its fingerprint is computed, persisted
+in active V2 claims, and checked against the shared
+`decision-ledger.jsonl`. Invalid V2 contracts and closeouts hard-block the
+repo hook; legacy V1 Stop failures retain warning-compatible behavior.
+
+At V2 closeout, `RUN_OUTCOME.json` is mandatory. Terminal/no-progress outcomes
+must not create `NEXT_GOAL.md`; they name the evidence already reused and the
+exact `resume_only_if` condition.
+
 **Agent job registry:** `scripts/agent_job_registry.py` is the shared dev-agent source of truth for active Codex/Claude/Gemini task-card claims. The registry root is resolved in this order:
 
 1. `TENN_AGENT_REGISTRY_ROOT`

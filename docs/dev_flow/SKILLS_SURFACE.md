@@ -111,18 +111,20 @@ These behaviors are modes inside existing commands, not new visible skills:
 | Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `HANDOFF_NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
 | Regression adjudication | `docs/dev_flow/REGRESSION_ADJUDICATION.md`, `tenn-fix`, and `tenn-review-board` | A bug, metric, gate, route, extraction result, or runtime behavior appears broken again after a prior claimed fix. |
 | Zoom-out / contrarian check | `zoom-out`, `tenn-explain`, `tenn-review-board`, `EXPLAIN.md`, and board templates | The workflow may be solving the wrong problem, overfitting, looping on reports, or missing broader production-readiness value. |
+| Semantic anti-loop V2 | V2 task card, `tenn-git-guard`, decision ledger, and `RUN_OUTCOME.json` | Non-trivial new work must distinguish changed evidence/hypotheses from duplicate or no-delta continuation work. |
 
 Fast progress is action-first, not safety-free. It still needs current path
 proof, exact task-card scope when editing, focused validation, and honest
 closeout. It skips review boards, handoffs, workers, broad reports, and full
 branch/worktree fallback detail unless a real blocker appears.
 
-Handoff owns fresh-session continuation. Its report-local `NEXT_GOAL.md` should
+Handoff owns fresh-session continuation when work remains. Its report-local `NEXT_GOAL.md` should
 be produced from `HANDOFF_NEXT_GOAL.md`: short, handoff-specific, and explicit
 that the next session reads `HANDOFF.md` first, runs preflight, then acts as
 orchestrator when work remains. The shared `NEXT_GOAL.md` template stays
 generic for `tenn-issue`, `tenn-review-board`, `tenn-fix`, and other
-non-handoff producers.
+non-handoff producers. V2 terminal/no-progress outcomes do not invoke handoff
+or create a next goal; they reference reused evidence and `resume_only_if`.
 
 Orchestration is a mode, not a broad new skill. `tenn-fix` owns delegation
 discipline: split independent lanes, give each worker exact allowed files,
@@ -153,7 +155,7 @@ one-off PDF fixes.
 `tenn-git-guard` remains a visible repo skill because wrappers need a shared,
 current preflight contract. It is not a user-facing cleanup command. It owns
 branch, worktree, path ownership, dirty-state, registry, task-ledger,
-duplicate-work, task-card, and allowed-file preflight.
+decision-ledger, duplicate-work, task-card, and allowed-file preflight.
 
 The guard must use the portable skill runner before requiring repo-local Tenn
 scripts. Runtime/product repos are valid guard targets even when they do not
@@ -169,7 +171,7 @@ implementation from `NOT_GIT_REPO`, `SPARSE_EVIDENCE_DIR`, `RUNTIME_DIR`,
 First-class preflight command:
 
 ```bash
-python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --json
+python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root <repo-root> --topic "<topic-or-path>" --task-card <task-card> --json
 ```
 
 The default preflight uses summarized branch/worktree fallback output. Use full

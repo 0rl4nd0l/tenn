@@ -1,0 +1,37 @@
+{
+  "blocks": [],
+  "claim_id": "semantic_anti_loop_control_v2",
+  "dataset_version": "migration_clean_runtime_baseline_871c8566d05c",
+  "decision": "PASS",
+  "decision_delta": "The validated control plane now distinguishes semantic reuse from changed evidence, isolates offline and prospective tracks, stops a third no-delta continuation, and enforces meaningful V2 closeout.",
+  "decision_id": "tenn-semantic-anti-loop-v2-20260713",
+  "does_not_block": [
+    "legacy_v1_task_execution"
+  ],
+  "evidence_hash": "sha256:902e6cfb852435dec1b4d49d292ff37b0d04ea82cb08b51d5c0065c835a21388",
+  "evidence_refs": [
+    "docs/dev_flow/SEMANTIC_ANTI_LOOP_CONTROL_V2.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/VALIDATION.md",
+    "reports/agent_jobs/semantic_anti_loop_control_v2_20260713/CODE_REVIEW.md"
+  ],
+  "hypothesis_id": "control_contract_decision_ledger_outcome_v2",
+  "invalidation_conditions": [
+    "A later exact-scope decision records DATA_MISSING or CONFLICT.",
+    "The merged contract or portable guard differs from the reviewed implementation."
+  ],
+  "outcome_status": "ADVANCED",
+  "phase_after": "v2_control_plane_implementation_validated",
+  "phase_before": "v1_task_and_duplicate_control",
+  "program_track": "offline_development",
+  "project_id": "tenn",
+  "reopen_conditions": [
+    "The dataset version or evidence hash changes.",
+    "A genuinely new hypothesis ID targets a different semantic control behavior."
+  ],
+  "run_id": "l4nd0-System-Product-Name:2157589:semantic_anti_loop_control_v2_20260713",
+  "scope_fingerprint": "583fb5953d20739245440776196b1a03d82cd161a6d4d9543cbbf13b5cf25779",
+  "source_class": "tenn_control_plane_source",
+  "target_transition": "merged_v2_semantic_anti_loop_control",
+  "task_id": "semantic_anti_loop_control_v2_20260713",
+  "validated_at": "2026-07-13T17:36:10+10:00"
+}

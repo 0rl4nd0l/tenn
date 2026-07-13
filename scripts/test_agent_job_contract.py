@@ -39,6 +39,57 @@ def task_card(body: str = "Task body.", **overrides: object) -> str:
     return "\n".join(lines) + "\n"
 
 
+def v2_fields(**overrides: object) -> dict[str, object]:
+    fields: dict[str, object] = {
+        "control_contract_version": 2,
+        "project_id": "greyhound",
+        "claim_id": "historical_market_floor",
+        "proof_question": "Does the recorded historical snapshot clear the floor?",
+        "hypothesis_id": "thedogs_floor_v1",
+        "program_track": "offline_development",
+        "entry_state": "floor_unverified",
+        "target_transition": "floor_verified",
+        "exit_predicate": "The immutable evidence snapshot contains at least 300 complete races.",
+        "source_class": "thedogs_published_market_history",
+        "dataset_version": "thedogs_20260709_v1",
+        "evidence_hash": "sha256:" + "a" * 64,
+        "capabilities": ["READ", "REPORT_WRITE"],
+        "resume_only_if": "The dataset version, evidence hash, or hypothesis changes.",
+    }
+    fields.update(overrides)
+    return fields
+
+
+def v2_task_card(body: str = "Task body.", **overrides: object) -> str:
+    fields = v2_fields()
+    fields.update(overrides)
+    return task_card(body=body, **fields)
+
+
+def write_v2_outcome(repo: Path, **overrides: object) -> Path:
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] = {
+        "status": "ADVANCED",
+        "scope_fingerprint": ajc.compute_scope_fingerprint(v2_fields()),
+        "state_before": "floor_unverified",
+        "state_after": "floor_verified",
+        "decision_delta": "The immutable snapshot clears the floor.",
+        "reused_claims": [],
+        "changed_claims": ["historical_market_floor"],
+        "new_evidence": ["artifacts/floor.json"],
+        "produced_artifacts": ["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"],
+        "resume_only_if": "",
+        "new_goal_permitted": False,
+        "used_capabilities": ["READ", "REPORT_WRITE"],
+        "blocked_by": [],
+    }
+    payload.update(overrides)
+    path = report_dir / "RUN_OUTCOME.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
 def runtime_proof_report(*, proof_result: str = "WORKING", state: str = "DONE") -> str:
     return "\n".join(
         [
@@ -136,6 +187,100 @@ def test_valid_task_card_passes() -> None:
     result = ajc.validate_task_card_markdown(task_card())
     assert result.ok
     assert result.issues == []
+
+
+def test_v1_task_card_passes_with_migration_warning() -> None:
+    result = ajc.validate_task_card_markdown(task_card())
+
+    assert result.ok
+    assert result.issues == []
+    assert any(warning.field == "control_contract_version" for warning in result.warnings)
+
+
+def test_valid_v2_task_card_computes_scope_fingerprint() -> None:
+    result = ajc.validate_task_card_markdown(v2_task_card())
+
+    assert result.ok
+    assert result.warnings == []
+    assert result.metadata["computed_scope_fingerprint"] == ajc.compute_scope_fingerprint(v2_fields())
+    assert len(str(result.metadata["computed_scope_fingerprint"])) == 64
+
+
+@pytest.mark.parametrize("declared", ["", "null", "~", "2.0", "true", "'2'", "3"])
+def test_declared_contract_version_must_be_strict_integer(declared: str) -> None:
+    markdown = v2_task_card().replace("control_contract_version: 2", f"control_contract_version: {declared}")
+
+    result = ajc.validate_task_card_markdown(markdown)
+
+    assert not result.ok
+    assert "control_contract_version" in issue_fields(result)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "project_id",
+        "claim_id",
+        "proof_question",
+        "hypothesis_id",
+        "program_track",
+        "entry_state",
+        "target_transition",
+        "exit_predicate",
+        "source_class",
+        "dataset_version",
+        "evidence_hash",
+        "capabilities",
+        "resume_only_if",
+    ],
+)
+def test_v2_task_card_missing_required_control_field_fails(field: str) -> None:
+    markdown = v2_task_card()
+    parsed = ajc.parse_task_card(markdown)
+    metadata = dict(parsed.metadata)
+    metadata.pop(field)
+
+    # Use YAML directly here so removal is independent of the task-card rendering helper.
+    malformed = "---\n" + __import__("yaml").safe_dump(metadata, sort_keys=False) + "---\n\nTask body.\n"
+    result = ajc.validate_task_card_markdown(malformed)
+
+    assert not result.ok
+    assert field in issue_fields(result)
+
+
+def test_v2_task_card_rejects_invalid_or_missing_capabilities() -> None:
+    empty = ajc.validate_task_card_markdown(v2_task_card(capabilities=[]))
+    unknown = ajc.validate_task_card_markdown(v2_task_card(capabilities=["READ", "TRAIN_MODEL"]))
+
+    assert not empty.ok
+    assert "capabilities" in issue_fields(empty)
+    assert not unknown.ok
+    assert "capabilities[1]" in issue_fields(unknown)
+
+
+def test_scope_fingerprint_is_stable_across_field_order_and_yaml_whitespace() -> None:
+    fields = v2_fields()
+    reverse_order = dict(reversed(list(fields.items())))
+    padded = dict(fields)
+    for key in ajc.SCOPE_FINGERPRINT_FIELDS:
+        padded[key] = f"  {fields[key]}  "
+
+    assert ajc.compute_scope_fingerprint(fields) == ajc.compute_scope_fingerprint(reverse_order)
+    assert ajc.compute_scope_fingerprint(fields) == ajc.compute_scope_fingerprint(padded)
+
+
+def test_scope_fingerprint_canonicalizes_evidence_hash_spelling() -> None:
+    bare = v2_fields(evidence_hash="A" * 64)
+    prefixed = v2_fields(evidence_hash="  SHA256:" + "a" * 64 + "  ")
+
+    assert ajc.compute_scope_fingerprint(bare) == ajc.compute_scope_fingerprint(prefixed)
+
+
+def test_v2_task_card_rejects_manually_supplied_scope_fingerprint() -> None:
+    result = ajc.validate_task_card_markdown(v2_task_card(scope_fingerprint="0" * 64))
+
+    assert not result.ok
+    assert "scope_fingerprint" in issue_fields(result)
 
 
 def test_missing_lane_fails() -> None:
@@ -694,6 +839,297 @@ def test_check_closeout_non_runtime_valid_board_decision_passes(tmp_path) -> Non
     assert [artifact.path for artifact in result.artifacts] == [
         "reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json"
     ]
+
+
+def test_check_closeout_valid_v2_advanced_outcome_passes(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"],
+            closeout_scope="control_plane_only",
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert [artifact.path for artifact in result.artifacts] == [
+        "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"
+    ]
+
+
+def test_check_closeout_v2_advanced_requires_decision_delta(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo, decision_delta="")
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "decision_delta" for issue in result.issues)
+
+
+@pytest.mark.parametrize("decision_delta", [False, 0, "UNCHANGED", "no-change", [], {}])
+def test_check_closeout_v2_rejects_invalid_or_noop_decision_delta(
+    tmp_path: Path, decision_delta: object
+) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo, decision_delta=decision_delta)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "decision_delta" for issue in result.issues)
+
+
+def test_check_closeout_v2_rejects_v1_board_decision(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    (report_dir / "BOARD_DECISION.json").write_text(
+        json.dumps(board_decision_payload(), indent=2) + "\n", encoding="utf-8"
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json",
+                "reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json",
+            ]
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any("schema_version" in issue.message for issue in result.issues)
+
+
+def test_check_closeout_v2_cross_checks_board_against_run_outcome(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    board = board_decision_payload(
+        schema_version="tenn_review_board_decision_v2",
+        run_outcome_status="DATA_MISSING",
+        target_transition="different_transition",
+        next_goal_permitted=True,
+        next_goal_target_transition="another_transition",
+        resume_only_if="Different evidence arrives.",
+    )
+    (report_dir / "BOARD_DECISION.json").write_text(
+        json.dumps(board, indent=2) + "\n", encoding="utf-8"
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json",
+                "reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json",
+            ]
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    messages = "\n".join(issue.message for issue in result.issues)
+    assert "run_outcome_status" in messages
+    assert "target_transition" in messages
+    assert "next_goal_permitted" in messages
+    assert "resume_only_if" in messages
+
+
+def test_check_closeout_v2_normalizes_string_and_list_resume_conditions(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    condition = "The exact prospective evidence becomes available."
+    write_v2_outcome(
+        repo,
+        status="DATA_MISSING",
+        state_after="floor_unverified",
+        decision_delta="NO_CHANGE",
+        changed_claims=[],
+        new_evidence=[],
+        resume_only_if=condition,
+        new_goal_permitted=False,
+    )
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    board = board_decision_payload(
+        schema_version="tenn_review_board_decision_v2",
+        run_outcome_status="DATA_MISSING",
+        target_transition="floor_verified",
+        next_goal_permitted=False,
+        next_goal_target_transition="",
+        resume_only_if=[condition],
+        next_goal="",
+    )
+    (report_dir / "BOARD_DECISION.json").write_text(
+        json.dumps(board, indent=2) + "\n", encoding="utf-8"
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json",
+                "reports/agent_jobs/codex-dev-job-1/BOARD_DECISION.json",
+            ]
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+
+
+def test_check_closeout_v2_report_creation_alone_is_not_progress(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(
+        repo,
+        state_after="floor_unverified",
+        decision_delta="A report file was created.",
+        changed_claims=[],
+        new_evidence=[],
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "status" and "artifact" in issue.message for issue in result.issues)
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "REUSED_COMPLETE",
+        "ACTIVE_DUPLICATE",
+        "WAITING_ON_AUTHORIZATION",
+        "DATA_MISSING",
+        "EVIDENCE_CONFLICT",
+        "BLOCKED_NO_NEW_INPUT",
+        "LOOP_GUARD_STOP",
+    ],
+)
+def test_check_closeout_v2_terminal_outcome_rejects_next_goal(tmp_path, status: str) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(
+        repo,
+        status=status,
+        state_after="floor_unverified",
+        decision_delta="",
+        changed_claims=[],
+        new_evidence=[],
+        resume_only_if="The immutable evidence changes.",
+        new_goal_permitted=True,
+        next_goal_target_transition="try_the_same_report_again",
+    )
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    (report_dir / "NEXT_GOAL.md").write_text("repeat\n", encoding="utf-8")
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json",
+                "reports/agent_jobs/codex-dev-job-1/NEXT_GOAL.md",
+            ]
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "new_goal_permitted" for issue in result.issues)
+    assert any(issue.field == "NEXT_GOAL.md" for issue in result.issues)
+
+
+def test_check_closeout_v2_blocked_outcome_requires_resume_condition(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(
+        repo,
+        status="DATA_MISSING",
+        state_after="floor_unverified",
+        decision_delta="",
+        changed_claims=[],
+        new_evidence=[],
+        resume_only_if="",
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "resume_only_if" for issue in result.issues)
+
+
+def test_check_closeout_v2_rejects_undeclared_capability_use(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(repo, used_capabilities=["READ", "REPORT_WRITE", "RESEARCH_FIT"])
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "used_capabilities" and "RESEARCH_FIT" in issue.message for issue in result.issues)
+
+
+def test_check_closeout_v2_offline_transition_rejects_implicit_prospective_blocker(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(
+        repo,
+        status="DATA_MISSING",
+        state_after="floor_unverified",
+        decision_delta="",
+        changed_claims=[],
+        new_evidence=[],
+        resume_only_if="Prospective Sportsbet evidence is captured.",
+        blocked_by=[
+            {
+                "claim_id": "strict_sportsbet_same_floor",
+                "program_track": "prospective_readiness",
+                "explicit_dependency": False,
+            }
+        ],
+    )
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "blocked_by" and "prospective" in issue.message for issue in result.issues)
+
+
+def test_check_closeout_v2_new_goal_must_target_different_transition(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    write_v2_outcome(
+        repo,
+        new_goal_permitted=True,
+        next_goal_target_transition="floor_verified",
+    )
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    (report_dir / "NEXT_GOAL.md").write_text("advance\n", encoding="utf-8")
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        v2_task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/RUN_OUTCOME.json",
+                "reports/agent_jobs/codex-dev-job-1/NEXT_GOAL.md",
+            ]
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "next_goal_target_transition" for issue in result.issues)
 
 
 def test_check_artifacts_alias_still_outputs_json(tmp_path) -> None:
