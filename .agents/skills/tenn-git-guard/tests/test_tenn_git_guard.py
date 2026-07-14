@@ -966,6 +966,31 @@ class TennGitGuardTest(unittest.TestCase):
             self.assertEqual(payload["no_delta_outcomes"], 2)
             self.assertFalse(payload["substantive_work_permitted"])
 
+    def test_does_not_block_cannot_bypass_third_no_delta_stop(self) -> None:
+        metadata = v2_metadata()
+        entries = []
+        for index in range(2):
+            entry = decision_entry(
+                decision_id=f"not-blocked-no-delta-{index}",
+                scope_fingerprint=str(index) * 64,
+                target_transition=f"related-transition-{index}",
+                phase_after="floor_unverified",
+                decision="DATA_MISSING",
+                outcome_status="BLOCKED_NO_NEW_INPUT",
+                decision_delta="NO_CHANGE",
+                does_not_block=[metadata["target_transition"]],
+            )
+            entries.append({"entry": entry, "is_no_delta": True})
+
+        result = guard.classify_v2_scope(
+            metadata,
+            active_jobs=[],
+            decision_matches=entries,
+        )
+
+        self.assertEqual(result["status"], "LOOP_GUARD_STOP")
+        self.assertFalse(result["scope_admitted"])
+
     def test_changed_evidence_hash_admits_related_v2_scope(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)

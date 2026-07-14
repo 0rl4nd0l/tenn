@@ -1,0 +1,37 @@
+{
+  "blocks": [],
+  "claim_id": "semantic_anti_loop_v2_claim_and_closeout_enforcement",
+  "dataset_version": "canonical_ac5a56c1_plus_greyhound_first_five_audit_20260714",
+  "decision": "PASS",
+  "decision_delta": "V2 opted-in repositories now bind claim-time semantic classification, fail-closed pre-tool admission, and release-owned decision publication under the shared registry lock while Tenn V1 remains warning-compatible.",
+  "decision_id": "semantic-anti-loop-v2-enforcement-correction-20260714-pass-v1",
+  "does_not_block": [
+    "Greyhound offline research fitting",
+    "Greyhound prospective evidence collection"
+  ],
+  "evidence_hash": "sha256:404fb3c4cb7832c9976799f8ae0aa06dd6fe9b49538f4a7840d41f652192dae1",
+  "evidence_refs": [
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/RUN_OUTCOME.json",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/VALIDATION.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/CODE_REVIEW.md"
+  ],
+  "hypothesis_id": "repo_opt_in_v2_bootstrap_shell_release_and_semantic_replay_v1",
+  "invalidation_conditions": [
+    "A focused enforcement regression fails on the merged canonical Tenn revision.",
+    "A reviewed counterexample bypasses claim-time admission or release-time semantic reclassification."
+  ],
+  "outcome_status": "ADVANCED",
+  "phase_after": "v2_required_repositories_fail_closed_without_breaking_v1",
+  "phase_before": "v2_claim_and_closeout_can_be_bypassed",
+  "program_track": "offline_development",
+  "project_id": "tenn",
+  "reopen_conditions": [
+    "Canonical control-plane source, Greyhound first-five evidence, or focused enforcement regression evidence changes after a blocked closeout."
+  ],
+  "run_id": "l4nd0-System-Product-Name:2302840:semantic_anti_loop_v2_enforcement_correction_20260714",
+  "scope_fingerprint": "96bc7ef849f5973cbaddf3226596b219e85f05b6c723dd81a53adff75c4258ce",
+  "source_class": "tenn_control_plane_source",
+  "target_transition": "v2_required_repositories_fail_closed_without_breaking_v1",
+  "task_id": "semantic_anti_loop_v2_enforcement_correction_20260714",
+  "validated_at": "2026-07-14T10:37:38Z"
+}

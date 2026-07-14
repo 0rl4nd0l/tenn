@@ -2,6 +2,16 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Bash|apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent_job_hook.py\" --platform codex --event BeforeTool --repo-root \"$(git rev-parse --show-toplevel)\"",
+            "statusMessage": "Checking Tenn V2 task admission..."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -16,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 scripts/agent_job_hook.py --platform codex --event Stop",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent_job_hook.py\" --platform codex --event Stop --repo-root \"$(git rev-parse --show-toplevel)\"",
             "statusMessage": "Checking Tenn task card..."
           }
         ]

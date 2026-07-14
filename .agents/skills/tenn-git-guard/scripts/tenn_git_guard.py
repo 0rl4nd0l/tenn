@@ -1100,17 +1100,6 @@ def classify_v2_scope(
             "matching_decision_ids": [entry.get("decision_id") for entry in blocking_entries],
         }
 
-    explicitly_not_blocked = any(
-        target_transition in _entry_list(entry.get("does_not_block"))
-        for _, entry in same_track_current_pair
-    )
-    if explicitly_not_blocked:
-        return {
-            "status": "ALLOW_EXPLICITLY_NOT_BLOCKED",
-            "scope_admitted": True,
-            "no_delta_outcomes": 0,
-        }
-
     if not same_track_current_pair:
         return {"status": "ALLOW_NEW_SCOPE", "scope_admitted": True, "no_delta_outcomes": 0}
 
@@ -1132,6 +1121,17 @@ def classify_v2_scope(
         return {
             "status": "LOOP_GUARD_STOP",
             "scope_admitted": False,
+            "no_delta_outcomes": no_delta_count,
+        }
+
+    explicitly_not_blocked = any(
+        target_transition in _entry_list(entry.get("does_not_block"))
+        for _, entry in same_track_current_pair
+    )
+    if explicitly_not_blocked:
+        return {
+            "status": "ALLOW_EXPLICITLY_NOT_BLOCKED",
+            "scope_admitted": True,
             "no_delta_outcomes": no_delta_count,
         }
 

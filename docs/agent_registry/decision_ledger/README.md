@@ -38,6 +38,12 @@ Every JSONL object contains:
 `outcome_status` uses the V2 `RUN_OUTCOME.json` statuses. `program_track` is
 `offline_development` or `prospective_readiness`.
 
+Material decision state consists of the semantic phase/result, transition
+effects, invalidation conditions, and reopen conditions. `task_id`, `run_id`,
+`outcome_status`, timestamps, and report/evidence references are provenance
+only: changing them does not create a decision delta or permit a semantic
+replay.
+
 The `scope_fingerprint` is the lowercase 64-character SHA-256 value computed
 from the V2 task contract. The helper recomputes it from the seven semantic
 scope fields and rejects mismatches. It is recorded here, never supplied
@@ -51,9 +57,12 @@ An `ADVANCED` entry must contain a semantic delta. Search results expose
 `has_decision_delta` and `is_no_delta` so callers do not need to reinterpret
 free text.
 
-Decision IDs are unique. Validation rejects duplicate IDs, and append checks
-the existing ledger under the shared registry lock before writing one complete
-JSONL line. Existing records are never rewritten or deleted.
+Decision IDs are unique. Validation rejects duplicate IDs, and every live
+append checks the existing ledger under the shared registry lock before
+writing one complete JSONL line. Existing records are never rewritten or
+deleted. Within the same program track, evidence hash, and hypothesis, the
+two-outcome no-delta check runs before `does_not_block`; that annotation cannot
+admit a third unchanged continuation.
 
 Example entry:
 
@@ -104,11 +113,32 @@ Validate a proposed entry without touching the live registry:
 python3 scripts/agent_decision_ledger.py validate --repo-root . --entry-file reports/agent_jobs/<job_id>/DECISION_ENTRY.json
 ```
 
-Append only when the task card or owner explicitly permits registry mutation:
+For a claimed V2 run, write exactly one candidate at
+`<output_dir>/DECISION_ENTRY.json` and use normal registry release:
 
 ```bash
-python3 scripts/agent_decision_ledger.py append --repo-root . --entry-file reports/agent_jobs/<job_id>/DECISION_ENTRY.json
+python3 scripts/agent_job_registry.py release <job_id> --repo-root .
 ```
+
+Release validates the claimed card, `RUN_OUTCOME.json`, candidate identity and
+delta, and live-ledger lineage while holding the registry lock. It appends the
+candidate (or recognizes an identical retry), writes the release receipt, and
+then removes the active claim. Claimed runs must not invoke standalone
+`append`.
+
+Standalone append exists only for a bounded, explicitly authorized unclaimed
+seed. It refuses an entry whose run or semantic scope matches an active claim:
+
+```bash
+python3 scripts/agent_decision_ledger.py append --repo-root . \
+  --entry-file <seed.json> --authorize-unclaimed-seed
+```
+
+Valid blocked and no-delta claimed runs still write `RUN_OUTCOME.json` and
+`DECISION_ENTRY.json`, then use normal release. This preserves their history
+for the two-run loop guard. `release --abandon-reason` is administrative
+recovery only for a stale/corrupt claim or task-card/semantic-identity drift;
+it is never normal terminal/no-progress closeout.
 
 An authorized pilot may initialize an absent ledger explicitly:
 
