@@ -24,7 +24,7 @@ These fire automatically during Claude Code sessions.
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.py` file | Runs `ruff check --fix` on the file; silent on non-Python files |
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.sh` file | Runs `chmod +x` on the file |
 | `PostToolUse` / `Write\|Edit` | After Claude edits a file under `backend/app/` | Runs `pytest backend/tests/ -x -q --tb=short`; silent if venv not found |
-| `Stop` | When Claude finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
+| `Stop` | When Claude finishes a task | Runs `scripts/agent_job_hook.py`; default enforcement follows the selected task card, while V2-required repos also check no-card terminal state |
 | `Stop` | When Claude finishes a task | Runs `git diff --stat HEAD` — shows all files changed since last commit |
 | `Stop` | When Claude finishes a task | Checks if infrastructure/config files changed without corresponding `docs/claude/` updates — prints WARNING if so |
 
@@ -39,7 +39,15 @@ Legacy hygiene hooks are non-blocking (`|| true`); they warn without interruptin
 
 **Doc coverage warning:** The doc-coverage `Stop` hook detects when infrastructure files (`.mcp.json`, `settings.json`, `scripts/mcp/`, `.claude/commands/`, etc.) were modified but no `docs/claude/` files were updated. This is a non-blocking JSON `systemMessage` warning — the agent must act on it before concluding the task. See CLAUDE.md "Post-Write Documentation" for the mapping of changed surfaces to required doc updates.
 
-**Tenn task-card hook:** `scripts/agent_job_hook.py` reads hook stdin JSON, resolves the repo root, finds the current session task card from `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task`, then runs `scripts/agent_job_contract.py validate`, registry `list-active`, registry `check-overlap`, and contract `check-diff`. With no active task card it returns valid empty JSON (`{}`) and must not block exploratory sessions. With an active task card it emits valid JSON for pass or block results.
+**Tenn task-card hook:** `scripts/agent_job_hook.py` reads hook stdin JSON, resolves the repo root, and finds the current session task card from `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task`. `BeforeTool` validates the card and active-registry selector, classifies the proposed tool/capability/path, and runs `check-diff`; registry `claim` performs the atomic lane/file/output overlap check. `Stop` runs `check-closeout` plus decision-ledger matching for a claim, or verifies a semantic no-run state/release receipt for an explicitly selected unclaimed V2 card. By default, no-card sessions and V1 terminal failures retain warning-compatible legacy behavior; selected V1 `BeforeTool` violations can still block. A pilot repository may set `TENN_V2_REQUIRED=1`; its pre-tool hook admits only a narrow task-card/ledger-initialization/claim bootstrap and conservative read-only commands before a V2 claim. With a claim, proposed file paths must be exact `allowed_files`, shell admission is fail-closed, and every classified capability must be declared. A no-card terminal event only confirms that no active target-worktree V2 claim remains and relies on configured pre-tool coverage; it does not independently prove that prior work was trivial or read-only. An explicitly selected unclaimed V2 card must instead prove a report-free semantic stop such as `REUSED_COMPLETE` or present a validated release receipt.
+
+V2 Python/pytest admission trusts repo-local executable code; it classifies
+command intent and explicit outputs but is not an OS sandbox. Pytest must disable
+bytecode writes, plugin autoload, and its cache provider; `uv run` must use
+`--no-sync --frozen`. V2 publication suppresses repository Git hooks and signing
+with the exact admitted commit/push forms, so run required lint and tests
+explicitly before publishing. See the semantic-control document for the command
+constraints and trust boundary.
 
 **Task cards:** A task card is the explicit scope file for an implementation-capable agent job. It declares the `job_id`, `lane`, `owner`, `allowed_files`, `output_dir`, `mutation_mode`, timeout, approval flag, and `production_data_access: false`. The contract validator checks that metadata before work starts, and `check-diff` checks that the current git diff stays inside the card's `allowed_files`. The task card selected by `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is session-local; the registry claim created from that card is the shared visibility record.
 
@@ -50,11 +58,20 @@ and reopen condition described in
 `--task-card` before substantive work. Its fingerprint is computed, persisted
 in active V2 claims, and checked against the shared
 `decision-ledger.jsonl`. Invalid V2 contracts and closeouts hard-block the
-repo hook; legacy V1 Stop failures retain warning-compatible behavior.
+repo hook; legacy V1 terminal failures retain warning-compatible behavior,
+while a selected V1 card's `BeforeTool` contract or diff violation may still
+block the proposed tool. For the same track, evidence hash, and hypothesis,
+classification applies the two-outcome no-delta loop guard before considering
+`does_not_block`; outcome status and task/run/report references remain
+provenance rather than decision delta.
 
-At V2 closeout, `RUN_OUTCOME.json` is mandatory. Terminal/no-progress outcomes
-must not create `NEXT_GOAL.md`; they name the evidence already reused and the
-exact `resume_only_if` condition.
+Every claimed V2 run admitted to substantive work must close with
+`RUN_OUTCOME.json` and exactly one `<output_dir>/DECISION_ENTRY.json` candidate.
+Normal registry release validates both and appends the candidate under the
+shared registry lock. Pre-claim semantic stops such as `REUSED_COMPLETE` create
+no new outcome/report. Claimed terminal/no-progress outcomes must not create
+`NEXT_GOAL.md`; they name the evidence already reused and the exact
+`resume_only_if` condition.
 
 **Agent job registry:** `scripts/agent_job_registry.py` is the shared dev-agent source of truth for active Codex/Claude/Gemini task-card claims. The registry root is resolved in this order:
 
@@ -74,14 +91,19 @@ python scripts/agent_job_registry.py claim <task_card>
 export TENN_AGENT_TASK_CARD=<task_card>
 # work inside the task card scope
 python scripts/agent_job_contract.py check-diff <task_card>
+# write <output_dir>/RUN_OUTCOME.json and <output_dir>/DECISION_ENTRY.json
 python scripts/agent_job_registry.py release <job_id>
+# Administrative recovery only (stale/corrupt claim or task-card/identity drift):
+python scripts/agent_job_registry.py release <job_id> --abandon-reason "<reason>"
 ```
 
 - `list-active` is the first visibility check. Confirm `registry_root`, `registry_scope`, and current active jobs before claiming work.
-- `claim` validates the task card, checks active lane/file/output overlap, writes `<registry_root>/active/<job_id>.json`, and writes `reports/agent_jobs/<job_id>/status.json`.
+- V1 `claim` validates the task card and active lane/file/output overlap. V2 `claim` additionally requires a readable decision ledger and runs semantic scope classification under the registry lock; exact resolved scopes, active fingerprints, decision blocks, and the third unchanged no-delta continuation stop before an active record is written.
 - `heartbeat <job_id>` refreshes `last_seen_at` for a long-running claimed job.
-- `release <job_id>` removes the active registry record and updates the status report to `released`; run it when the job is complete or abandoned.
-- The Stop hook still runs `check-overlap` and `check-diff` for the selected card. A manual `claim` is what makes the job visible to other agents before Stop.
+- V1 `release <job_id>` preserves the legacy removal behavior. V2 normal release validates the claimed card, `RUN_OUTCOME.json`, and exactly one current-run `DECISION_ENTRY.json` candidate; under the registry lock it validates the live ledger, appends the candidate, writes a receipt, and then removes the active record. A failure leaves the claim active.
+- Claimed runs never call standalone decision-ledger `append`. That command is reserved for `--authorize-unclaimed-seed` and refuses a seed matching an active run or semantic scope.
+- `release <job_id> --abandon-reason "<reason>"` is limited to administrative recovery for a stale/corrupt V2 claim or task-card/semantic-identity drift. Unreadable active records are quarantined with an abandonment receipt instead of being silently discarded. `DATA_MISSING`, `BLOCKED_NO_NEW_INPUT`, and other valid terminal outcomes are not abandonment: they require `RUN_OUTCOME.json`, a decision candidate, and normal release so no-delta history counts toward the loop guard.
+- `BeforeTool` runs card validation, active-registry selection, capability/proposed-path admission, and `check-diff`. Lane/file/output overlap is enforced atomically by `claim`. `Stop` runs closeout and decision-ledger matching for a claimed card, or semantic no-run/release-receipt validation for an explicitly selected unclaimed V2 card.
 
 **Linked worktrees:** Linked worktrees from the same clone normally share one `git-common-dir`, so the default `<git-common-dir>/tenn-agent-registry` fallback gives Codex, Claude, and Gemini shared active-job visibility even when each agent is launched from a different linked worktree. The active record stores the physical `worktree`, `branch`, `git_common_dir`, and repo-relative `allowed_files`, so overlap checks compare the same logical paths across worktrees.
 
@@ -103,10 +125,10 @@ Without that shared env/config, each clone will use its own git-common-dir regis
 |---------|-------|-----|
 | Active job not visible | Run `python scripts/agent_job_registry.py list-active` in both sessions and compare `registry_root`, `registry_scope`, and `git_common_dir`. | Point both sessions at the same root with `TENN_AGENT_REGISTRY_ROOT` or `git config tenn.agentRegistryRoot`, then re-run `claim`. |
 | Wrong registry root | `list-active` shows an unexpected root or `repo_local_fallback`. | Set an absolute shared root via env/config. For linked worktrees, confirm `git rev-parse --git-common-dir` is the expected common directory. |
-| Stale active job | `list-active` reports a stale active job warning or an owner is known to be done. | If the owner is still working, run `heartbeat <job_id>`. If the work is abandoned or complete, run `release <job_id>` from a session using the same registry root. |
+| Stale active job | `list-active` reports a stale active job warning. | If the owner is still working, run `heartbeat <job_id>`. Otherwise, V2 permits `release <job_id> --abandon-reason "<reason>"` only for stale/corrupt or card/semantic-identity-drift recovery; a valid terminal result uses normal release with its outcome and decision candidate. |
 | Stale registry lock | Registry commands fail with a timeout waiting for `<registry_root>/.lock`. | Inspect `<registry_root>/.lock/owner.json`; only remove the `.lock` directory after confirming that owner process is gone. |
 | Unrelated dirty files blocked | Hook or `check-overlap` reports dirty paths outside the current card. | Commit, clean, move to a separate worktree, or update the task card scope before continuing. Do not hide unrelated work inside the current card. |
-| Overlapping `allowed_files` blocked | `claim` or Stop reports an active job overlap by lane, `allowed_files`, or `output_dir`. | Coordinate with the active job owner, wait for `release`, or narrow one task card so the repo-relative paths no longer overlap. |
+| Overlapping `allowed_files` blocked | `claim` reports an active job overlap by lane, `allowed_files`, or `output_dir`. | Coordinate with the active job owner, wait for `release`, or narrow one task card so the repo-relative paths no longer overlap. Overlap is an atomic claim-time check, not a Stop-time check. |
 
 **Stop hook JSON:** Claude Stop hooks that produce output now emit JSON objects such as `{"systemMessage": "..."}`. The previous raw `git diff --stat` and plain text doc-coverage output were replaced to avoid invalid Stop hook JSON output.
 
@@ -118,8 +140,9 @@ Repo-local Codex hooks are enabled with `codex_hooks = true`.
 
 | Event | Trigger | What It Does |
 |-------|---------|--------------|
+| `PreToolUse` / `Bash\|apply_patch\|Edit\|Write` | Before shell/file mutation tools | Runs V2 task admission and capability checks; Tenn does not set the repository-wide V2-required flag, so V1 remains compatible |
 | `PreToolUse` / `Bash` | Before shell commands | Emits a graphify reminder via `systemMessage` when `graphify-out/graph.json` exists |
-| `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
+| `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py`; default enforcement follows the selected task card, while V2-required repos also check no-card terminal state |
 
 ---
 
@@ -130,9 +153,9 @@ Repo-local Gemini hooks use Gemini-compatible JSON decisions (`allow` / `block`)
 | Event | Trigger | What It Does |
 |-------|---------|--------------|
 | `BeforeTool` / `read_file\|list_directory` | Before Gemini broad file reads | Emits a graphify reminder via `additionalContext` when `graphify-out/graph.json` exists |
-| `BeforeTool` / `write_file\|replace\|run_shell_command` | Before Gemini file mutations or shell commands | Runs `scripts/agent_job_hook.py --platform gemini --event BeforeTool` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
+| `BeforeTool` / `write_file\|replace\|run_shell_command` | Before Gemini file mutations or shell commands | Runs `scripts/agent_job_hook.py --platform gemini --event BeforeTool`; selected cards are enforced by default and V2-required repos also gate pre-claim substantive tools |
 
-The Gemini task-card hook runs the same validator, shared registry visibility check, overlap check, and diff-scope check as the Codex/Claude Stop hook. Because this hook runs before mutating/shell tool calls, it passes `--no-write-report` to `check-diff`; this prevents repeated per-tool checks from creating their own `reports/agent_jobs/<job_id>/diff-check.json` dirty artifact. Task-card jobs should still run the normal final `python scripts/agent_job_contract.py check-diff <task_card>` before release/final report.
+The Gemini task-card hook uses the same `BeforeTool` admission flow as the other configured agent surfaces: it resolves and validates the selected card and active claim, classifies the proposed tool/capability/path, and runs `check-diff --no-write-report`. This prevents repeated pre-tool checks from creating their own `reports/agent_jobs/<job_id>/diff-check.json` dirty artifact. Lane/file/output overlap is checked atomically by registry `claim`, not by `BeforeTool` or `Stop`. Task-card jobs still run the normal final `python scripts/agent_job_contract.py check-diff <task_card>` before writing closeout artifacts and using normal release.
 
 ---
 
@@ -140,7 +163,9 @@ The Gemini task-card hook runs the same validator, shared registry visibility ch
 
 ### `pre-commit` (`.git/hooks/pre-commit`)
 
-Fires on every `git commit`. Blocks the commit if lint fails.
+Fires on ordinary `git commit` commands. Blocks the commit if lint fails. A V2
+admitted publication deliberately sets `core.hooksPath=/dev/null`; its explicit
+validation must already be green before that commit.
 
 - Collects staged `.py` files only
 - Runs `ruff check` (no auto-fix; fix manually then re-stage)
@@ -155,7 +180,8 @@ git commit
 
 ### `pre-push` (`.git/hooks/pre-push`)
 
-Fires on every `git push`. Blocks the push if any gate fails.
+Fires on ordinary `git push` commands. Blocks the push if any gate fails. V2
+admitted pushes use `--no-verify` after the same gates have run explicitly.
 
 Runs in order:
 1. `ruff check autodev financial-engine_v2/backend scripts`

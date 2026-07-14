@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import runpy
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 from scripts import agent_decision_ledger as ledger
 
@@ -44,6 +47,16 @@ def sample_entry(**overrides: object) -> dict[str, object]:
     if "scope_fingerprint" not in overrides:
         entry["scope_fingerprint"] = ledger.compute_scope_fingerprint(entry)
     return entry
+
+
+def sample_scope_metadata(**overrides: object) -> dict[str, object]:
+    entry = sample_entry(**overrides)
+    return {
+        "job_id": overrides.get("job_id", "candidate-job"),
+        "computed_scope_fingerprint": entry["scope_fingerprint"],
+        **{field: entry[field] for field in ledger.SCOPE_FINGERPRINT_FIELDS},
+        "program_track": entry["program_track"],
+    }
 
 
 def write_entries(path: Path, *entries: dict[str, object]) -> None:
@@ -137,7 +150,7 @@ def test_initialize_is_idempotent_and_never_truncates_existing_ledger(
     tmp_path: Path,
 ) -> None:
     repo = make_git_repo(tmp_path / "repo")
-    decision_ledger = tmp_path / "registry" / "decision-ledger.jsonl"
+    decision_ledger = ledger.resolve_live_ledger_path(repo)
 
     first, first_payload = run_cli(
         repo,
@@ -318,7 +331,7 @@ def test_append_search_and_summarize_use_validated_append_only_records(
     tmp_path: Path,
 ) -> None:
     repo = make_git_repo(tmp_path / "repo")
-    decision_ledger = tmp_path / "registry" / "decision-ledger.jsonl"
+    decision_ledger = ledger.resolve_live_ledger_path(repo)
     entry_file = tmp_path / "entry.json"
     write_entries(entry_file, sample_entry())
 
@@ -327,8 +340,7 @@ def test_append_search_and_summarize_use_validated_append_only_records(
         "append",
         "--entry-file",
         str(entry_file),
-        "--ledger-path",
-        str(decision_ledger),
+        "--authorize-unclaimed-seed",
     )
     searched, search_payload = run_cli(
         repo,
@@ -362,11 +374,32 @@ def test_append_search_and_summarize_use_validated_append_only_records(
     assert summary_payload["by_decision"]["PASS"] == 1
 
 
+def test_standalone_append_requires_explicit_unclaimed_seed_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = make_git_repo(tmp_path / "repo")
+    decision_ledger = ledger.resolve_live_ledger_path(repo)
+    entry_file = tmp_path / "entry.json"
+    write_entries(entry_file, sample_entry())
+
+    completed, payload = run_cli(
+        repo,
+        "append",
+        "--entry-file",
+        str(entry_file),
+    )
+
+    assert completed.returncode == 1
+    assert payload["ok"] is False
+    assert "--authorize-unclaimed-seed" in str(payload["issues"])
+    assert not decision_ledger.exists()
+
+
 def test_append_rejects_duplicate_id_without_writing_a_second_line(
     tmp_path: Path,
 ) -> None:
     repo = make_git_repo(tmp_path / "repo")
-    decision_ledger = tmp_path / "decision-ledger.jsonl"
+    decision_ledger = ledger.resolve_live_ledger_path(repo)
     entry_file = tmp_path / "entry.json"
     write_entries(decision_ledger, sample_entry())
     write_entries(entry_file, sample_entry(run_id="run-2"))
@@ -376,13 +409,427 @@ def test_append_rejects_duplicate_id_without_writing_a_second_line(
         "append",
         "--entry-file",
         str(entry_file),
-        "--ledger-path",
-        str(decision_ledger),
+        "--authorize-unclaimed-seed",
     )
 
     assert completed.returncode == 1
     assert payload["ok"] is False
     assert any("duplicate" in issue for issue in payload["issues"])
+    assert len(decision_ledger.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_standalone_seed_append_rejects_custom_ledger_path(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path / "repo")
+    outside = tmp_path / "outside.jsonl"
+    entry_file = tmp_path / "entry.json"
+    write_entries(entry_file, sample_entry())
+
+    completed, payload = run_cli(
+        repo,
+        "append",
+        "--entry-file",
+        str(entry_file),
+        "--ledger-path",
+        str(outside),
+        "--authorize-unclaimed-seed",
+    )
+
+    assert completed.returncode == 1
+    assert payload["ok"] is False
+    assert "live shared ledger" in str(payload["issues"])
+    assert not outside.exists()
+
+
+def test_append_rejects_semantic_replay_with_new_identity(
+    tmp_path: Path,
+) -> None:
+    decision_ledger = tmp_path / "decision-ledger.jsonl"
+    original = sample_entry()
+    ledger.append_entry(decision_ledger, original, seed_authorized=True)
+    replay = sample_entry(
+        decision_id="greyhound-floor-663-reclaimed-v2",
+        task_id="greyhound_historical_floor_review_reclaimed_v2",
+        run_id="run-2",
+        validated_at="2026-07-13T02:00:00Z",
+        evidence_refs=["reports/weekly/copied_report.json"],
+        supersedes_decision_id=original["decision_id"],
+    )
+
+    with pytest.raises(ledger.DecisionLedgerError, match="semantic replay"):
+        ledger.append_entry(decision_ledger, replay, seed_authorized=True)
+
+    assert len(decision_ledger.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_append_does_not_treat_outcome_status_toggle_as_material_change(
+    tmp_path: Path,
+) -> None:
+    decision_ledger = tmp_path / "decision-ledger.jsonl"
+    original = sample_entry()
+    ledger.append_entry(decision_ledger, original, seed_authorized=True)
+    replay = sample_entry(
+        decision_id="greyhound-floor-663-reused-v2",
+        task_id="greyhound_historical_floor_reuse_v2",
+        run_id="run-2",
+        outcome_status="REUSED_COMPLETE",
+        decision_delta="The prior decision was reused without changing proof state.",
+        supersedes_decision_id=original["decision_id"],
+        validated_at="2026-07-13T02:00:00Z",
+    )
+
+    with pytest.raises(ledger.DecisionLedgerError, match="semantic replay"):
+        ledger.append_entry(decision_ledger, replay, seed_authorized=True)
+
+
+def test_validate_rejects_no_delta_explicit_supersession() -> None:
+    original = sample_entry()
+    successor = sample_entry(
+        decision_id="greyhound-floor-663-conflict-v2",
+        run_id="run-2",
+        phase_before=original["phase_after"],
+        phase_after="historical_floor_conflicted",
+        decision="CONFLICT",
+        outcome_status="EVIDENCE_CONFLICT",
+        decision_delta="NO_DELTA",
+        supersedes_decision_id=original["decision_id"],
+        validated_at="2026-07-13T02:00:00Z",
+    )
+
+    issues = ledger.validate_entries([original, successor])
+
+    assert any(
+        "explicit supersession requires a semantic decision delta" in issue
+        for issue in issues
+    )
+
+
+def test_classify_v2_scope_exact_resolved_and_active_duplicate() -> None:
+    entry = sample_entry()
+    metadata = sample_scope_metadata()
+
+    resolved = ledger.classify_v2_scope(
+        metadata,
+        active_jobs=[],
+        decision_matches=[entry],
+    )
+    duplicate = ledger.classify_v2_scope(
+        metadata,
+        active_jobs=[
+            {
+                "job_id": "other-job",
+                "scope_fingerprint": metadata["computed_scope_fingerprint"],
+                "status": "active",
+                "stale": False,
+            }
+        ],
+        decision_matches=[],
+    )
+
+    assert resolved["status"] == "REUSED_COMPLETE"
+    assert resolved["scope_admitted"] is False
+    assert duplicate["status"] == "ACTIVE_DUPLICATE"
+    assert duplicate["scope_admitted"] is False
+
+
+def test_classify_v2_scope_admits_changed_evidence_and_new_hypothesis() -> None:
+    prior = sample_entry()
+    changed_evidence = sample_scope_metadata(
+        dataset_version="663-race-snapshot-20260714",
+        evidence_hash="sha256:" + "3" * 64,
+    )
+    new_hypothesis = sample_scope_metadata(hypothesis_id="feature_repair_v2")
+
+    changed = ledger.classify_v2_scope(
+        changed_evidence,
+        active_jobs=[],
+        decision_matches=[prior],
+    )
+    hypothesis = ledger.classify_v2_scope(
+        new_hypothesis,
+        active_jobs=[],
+        decision_matches=[prior],
+    )
+
+    assert changed["status"] == "ALLOW_CHANGED_EVIDENCE"
+    assert changed["scope_admitted"] is True
+    assert hypothesis["status"] == "ALLOW_NEW_HYPOTHESIS"
+    assert hypothesis["scope_admitted"] is True
+
+
+def test_classify_v2_scope_stops_third_unchanged_no_delta_continuation() -> None:
+    first = sample_entry(
+        decision_id="no-delta-1",
+        target_transition="related_transition_one",
+        decision="DATA_MISSING",
+        outcome_status="DATA_MISSING",
+        decision_delta="NO_DELTA",
+    )
+    second = sample_entry(
+        decision_id="no-delta-2",
+        target_transition="related_transition_two",
+        decision="DATA_MISSING",
+        outcome_status="DATA_MISSING",
+        decision_delta="UNCHANGED",
+    )
+
+    classified = ledger.classify_v2_scope(
+        sample_scope_metadata(),
+        active_jobs=[],
+        decision_matches=[first, second],
+    )
+
+    assert classified["status"] == "LOOP_GUARD_STOP"
+    assert classified["scope_admitted"] is False
+    assert classified["no_delta_outcomes"] == 2
+
+
+def test_loop_guard_precedes_explicit_does_not_block_on_same_track() -> None:
+    first = sample_entry(
+        decision_id="no-delta-explicit-nonblock-1",
+        target_transition="related_transition_one",
+        decision="DATA_MISSING",
+        outcome_status="DATA_MISSING",
+        decision_delta="NO_DELTA",
+        does_not_block=["historical_sample_floor_cleared"],
+    )
+    second = sample_entry(
+        decision_id="no-delta-explicit-nonblock-2",
+        target_transition="related_transition_two",
+        decision="DATA_MISSING",
+        outcome_status="DATA_MISSING",
+        decision_delta="UNCHANGED",
+        does_not_block=["historical_sample_floor_cleared"],
+    )
+
+    classified = ledger.classify_v2_scope(
+        sample_scope_metadata(),
+        active_jobs=[],
+        decision_matches=[first, second],
+    )
+
+    assert classified["status"] == "LOOP_GUARD_STOP"
+    assert classified["scope_admitted"] is False
+    assert classified["no_delta_outcomes"] == 2
+
+
+def test_classify_v2_scope_keeps_prospective_gate_off_offline_track() -> None:
+    prospective = sample_entry(
+        decision_id="prospective-gate-missing",
+        program_track="prospective_readiness",
+        target_transition="promotion_ready",
+        phase_after="promotion_blocked",
+        decision="DATA_MISSING",
+        outcome_status="DATA_MISSING",
+        decision_delta="NO_DELTA",
+        blocks=["promotion_ready"],
+        does_not_block=["historical_sample_floor_cleared"],
+    )
+
+    classified = ledger.classify_v2_scope(
+        sample_scope_metadata(),
+        active_jobs=[],
+        decision_matches=[prospective],
+    )
+
+    assert classified["status"] == "ALLOW_NEW_SCOPE"
+    assert classified["scope_admitted"] is True
+
+
+def test_classify_v2_scope_stays_in_parity_with_portable_git_guard() -> None:
+    guard_namespace = runpy.run_path(
+        str(
+            REPO_ROOT
+            / ".agents"
+            / "skills"
+            / "tenn-git-guard"
+            / "scripts"
+            / "tenn_git_guard.py"
+        )
+    )
+    guard_classifier = guard_namespace["classify_v2_scope"]
+    metadata = sample_scope_metadata()
+    scenarios = [
+        ([], [sample_entry()]),
+        (
+            [
+                {
+                    "job_id": "other-job",
+                    "scope_fingerprint": metadata["computed_scope_fingerprint"],
+                    "status": "active",
+                    "stale": False,
+                }
+            ],
+            [],
+        ),
+        (
+            [],
+            [
+                sample_entry(
+                    decision_id="no-delta-1",
+                    target_transition="related-one",
+                    decision="DATA_MISSING",
+                    outcome_status="DATA_MISSING",
+                    decision_delta="NO_DELTA",
+                ),
+                sample_entry(
+                    decision_id="no-delta-2",
+                    target_transition="related-two",
+                    decision="DATA_MISSING",
+                    outcome_status="DATA_MISSING",
+                    decision_delta="UNCHANGED",
+                ),
+            ],
+        ),
+    ]
+
+    for active_jobs, entries in scenarios:
+        decision_matches = [
+            {
+                "entry": entry,
+                "is_no_delta": not ledger.has_decision_delta(
+                    entry.get("decision_delta")
+                ),
+            }
+            for entry in entries
+        ]
+        assert ledger.classify_v2_scope(
+            metadata,
+            active_jobs=active_jobs,
+            decision_matches=decision_matches,
+        ) == guard_classifier(
+            metadata,
+            active_jobs=active_jobs,
+            decision_matches=decision_matches,
+        )
+
+
+def test_append_requires_explicit_latest_head_for_material_same_scope_change(
+    tmp_path: Path,
+) -> None:
+    decision_ledger = tmp_path / "decision-ledger.jsonl"
+    original = sample_entry()
+    ledger.append_entry(decision_ledger, original, seed_authorized=True)
+    conflict = sample_entry(
+        decision_id="greyhound-floor-663-conflict-v2",
+        run_id="run-2",
+        phase_before=original["phase_after"],
+        phase_after="historical_floor_conflicted",
+        decision="CONFLICT",
+        outcome_status="EVIDENCE_CONFLICT",
+        decision_delta="A source-integrity check disproved the recorded floor.",
+        blocks=["historical sample-floor claim"],
+        does_not_block=["offline parser research"],
+        validated_at="2026-07-13T02:00:00Z",
+    )
+
+    with pytest.raises(ledger.DecisionLedgerError, match="supersedes_decision_id"):
+        ledger.append_entry(decision_ledger, conflict, seed_authorized=True)
+
+    conflict["supersedes_decision_id"] = original["decision_id"]
+    ledger.append_entry(decision_ledger, conflict, seed_authorized=True)
+    assert [
+        entry["decision"] for entry in ledger.load_entries(decision_ledger)
+    ] == ["PASS", "CONFLICT"]
+
+
+def test_append_rejects_stale_supersession_and_phase_discontinuity(
+    tmp_path: Path,
+) -> None:
+    decision_ledger = tmp_path / "decision-ledger.jsonl"
+    original = sample_entry()
+    conflict = sample_entry(
+        decision_id="greyhound-floor-663-conflict-v2",
+        run_id="run-2",
+        phase_before=original["phase_after"],
+        phase_after="historical_floor_conflicted",
+        decision="CONFLICT",
+        outcome_status="EVIDENCE_CONFLICT",
+        decision_delta="The source-integrity check changed the decision.",
+        blocks=["historical sample-floor claim"],
+        validated_at="2026-07-13T02:00:00Z",
+        supersedes_decision_id=original["decision_id"],
+    )
+    ledger.append_entry(decision_ledger, original, seed_authorized=True)
+    ledger.append_entry(decision_ledger, conflict, seed_authorized=True)
+
+    stale = sample_entry(
+        decision_id="greyhound-floor-663-reopened-v3",
+        run_id="run-3",
+        phase_before="wrong_phase",
+        phase_after="historical_floor_reopened",
+        decision="PASS",
+        outcome_status="ADVANCED",
+        decision_delta="New integrity evidence restored the decision.",
+        supersedes_decision_id=original["decision_id"],
+        validated_at="2026-07-13T03:00:00Z",
+    )
+    with pytest.raises(ledger.DecisionLedgerError, match="latest decision"):
+        ledger.append_entry(decision_ledger, stale, seed_authorized=True)
+
+    stale["supersedes_decision_id"] = conflict["decision_id"]
+    with pytest.raises(ledger.DecisionLedgerError, match="phase_before"):
+        ledger.append_entry(decision_ledger, stale, seed_authorized=True)
+
+
+def test_validate_keeps_legacy_same_scope_rows_compatible(tmp_path: Path) -> None:
+    original = sample_entry()
+    legacy_duplicate = sample_entry(
+        decision_id="legacy-reclaimed-copy",
+        task_id="legacy-reclaimed-task",
+        run_id="legacy-run-2",
+        validated_at="2026-07-13T02:00:00Z",
+    )
+
+    issues = ledger.validate_entries(
+        [original, legacy_duplicate], source=str(tmp_path / "legacy-ledger.jsonl")
+    )
+
+    assert issues == []
+
+
+def test_validate_rejects_invalid_explicit_lineage(tmp_path: Path) -> None:
+    original = sample_entry()
+    invalid_successor = sample_entry(
+        decision_id="invalid-explicit-successor",
+        run_id="run-2",
+        phase_before="wrong-phase",
+        phase_after="historical_floor_conflicted",
+        decision="CONFLICT",
+        outcome_status="EVIDENCE_CONFLICT",
+        decision_delta="The decision changed.",
+        supersedes_decision_id="not-the-current-head",
+        validated_at="2026-07-13T02:00:00Z",
+    )
+
+    issues = ledger.validate_entries(
+        [original, invalid_successor], source=str(tmp_path / "ledger.jsonl")
+    )
+
+    assert any("latest chain head" in issue for issue in issues)
+    assert any("phase_before" in issue for issue in issues)
+
+
+def test_concurrent_semantic_replays_append_exactly_once(tmp_path: Path) -> None:
+    decision_ledger = tmp_path / "registry" / "decision-ledger.jsonl"
+    candidates = (
+        sample_entry(decision_id="scope-race-1", run_id="run-1"),
+        sample_entry(decision_id="scope-race-2", run_id="run-2"),
+    )
+
+    def append(candidate: dict[str, object]) -> str:
+        try:
+            ledger.append_entry(
+                decision_ledger, candidate, seed_authorized=True
+            )
+        except ledger.DecisionLedgerError as exc:
+            return str(exc)
+        return "ok"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(append, candidates))
+
+    assert results.count("ok") == 1
+    assert sum("semantic replay" in result for result in results) == 1
     assert len(decision_ledger.read_text(encoding="utf-8").splitlines()) == 1
 
 

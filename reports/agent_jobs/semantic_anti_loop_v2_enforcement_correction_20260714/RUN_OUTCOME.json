@@ -1,0 +1,34 @@
+{
+  "blocked_by": [],
+  "changed_claims": [
+    "semantic_anti_loop_v2_claim_and_closeout_enforcement"
+  ],
+  "decision_delta": "V2 opted-in repositories now bind claim-time semantic classification, fail-closed pre-tool admission, and release-owned decision publication under the shared registry lock while Tenn V1 remains warning-compatible.",
+  "new_evidence": [
+    "368 focused V2 control-plane tests passed",
+    "136 legacy control-plane and runtime-contract tests passed",
+    "Final skeptical review reported no critical blockers"
+  ],
+  "new_goal_permitted": false,
+  "produced_artifacts": [
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/STATE.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/VALIDATION.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/CODE_REVIEW.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/DECISIONS.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/PR_REVIEW.md",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/RUN_OUTCOME.json",
+    "reports/agent_jobs/semantic_anti_loop_v2_enforcement_correction_20260714/DECISION_ENTRY.json"
+  ],
+  "resume_only_if": "Canonical control-plane source, Greyhound first-five evidence, or focused enforcement regression evidence changes after a blocked closeout.",
+  "reused_claims": [],
+  "scope_fingerprint": "96bc7ef849f5973cbaddf3226596b219e85f05b6c723dd81a53adff75c4258ce",
+  "state_after": "v2_required_repositories_fail_closed_without_breaking_v1",
+  "state_before": "v2_claim_and_closeout_can_be_bypassed",
+  "status": "ADVANCED",
+  "used_capabilities": [
+    "READ",
+    "REPORT_WRITE",
+    "CODE_EDIT",
+    "PUBLISH"
+  ]
+}

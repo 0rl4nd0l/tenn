@@ -10,7 +10,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
 try:
     from scripts import agent_job_registry
@@ -71,9 +71,11 @@ STRING_FIELDS = (
     "phase_before",
     "phase_after",
 )
+OPTIONAL_STRING_FIELDS = ("supersedes_decision_id",)
 HEX_64_RE = re.compile(r"^[0-9a-f]{64}$")
 EVIDENCE_HASH_RE = re.compile(r"^(?:sha256:)?[0-9a-fA-F]{64}$", re.IGNORECASE)
 NO_DELTA_SENTINELS = {"", "NONE", "NO_CHANGE", "NO_DELTA", "UNCHANGED"}
+V2_RESOLVED_DECISIONS = {"PASS", "FAIL", "PARKED"}
 DECISION_OUTCOME_COMPATIBILITY = {
     "PASS": {"ADVANCED", "REUSED_COMPLETE"},
     "FAIL": {"ADVANCED", "REUSED_COMPLETE"},
@@ -315,6 +317,25 @@ def validate_entry(entry: Mapping[str, Any], *, source: str = "<entry>") -> list
     for field in STRING_FIELDS:
         if field in entry:
             _require_non_empty_string(entry, field, issues)
+    for field in OPTIONAL_STRING_FIELDS:
+        if field in entry:
+            _require_non_empty_string(entry, field, issues)
+
+    supersedes = entry.get("supersedes_decision_id")
+    if (
+        isinstance(supersedes, str)
+        and supersedes.strip()
+        and supersedes.strip() == str(entry.get("decision_id", "")).strip()
+    ):
+        issues.append("supersedes_decision_id: cannot reference the entry itself")
+    if (
+        isinstance(supersedes, str)
+        and supersedes.strip()
+        and not has_decision_delta(entry.get("decision_delta"))
+    ):
+        issues.append(
+            "decision_delta: explicit supersession requires a semantic decision delta"
+        )
 
     fingerprint = entry.get("scope_fingerprint")
     if "scope_fingerprint" in entry and (
@@ -410,11 +431,12 @@ def validate_entry(entry: Mapping[str, Any], *, source: str = "<entry>") -> list
 def validate_entries(
     entries: Iterable[Mapping[str, Any]], *, source: str = "ledger"
 ) -> list[str]:
-    """Validate all entries and reject duplicate decision identifiers."""
+    """Validate entries, identifiers, and any explicitly declared lineage."""
 
     materialized = list(entries)
     issues: list[str] = []
     seen_ids: dict[str, int] = {}
+    chain_heads: dict[tuple[Any, Any], tuple[int, Mapping[str, Any]]] = {}
     for line_no, entry in enumerate(materialized, start=1):
         issues.extend(validate_entry(entry, source=f"{source}:{line_no}"))
         decision_id = entry.get("decision_id")
@@ -427,6 +449,32 @@ def validate_entries(
             )
         else:
             seen_ids[decision_id] = line_no
+
+        chain_key = (entry.get("scope_fingerprint"), entry.get("program_track"))
+        supersedes = entry.get("supersedes_decision_id")
+        head = chain_heads.get(chain_key)
+        if isinstance(supersedes, str) and supersedes.strip():
+            if head is None:
+                issues.append(
+                    f"{source}:{line_no}: supersedes_decision_id: no earlier decision exists in this scope and program track"
+                )
+            else:
+                head_line, head_entry = head
+                if supersedes != head_entry.get("decision_id"):
+                    issues.append(
+                        f"{source}:{line_no}: supersedes_decision_id: must reference latest chain head at line {head_line}"
+                    )
+                if _normalized_text(entry.get("phase_before")) != _normalized_text(
+                    head_entry.get("phase_after")
+                ):
+                    issues.append(
+                        f"{source}:{line_no}: phase_before: must equal superseded phase_after"
+                    )
+                if _decision_state(entry) == _decision_state(head_entry):
+                    issues.append(
+                        f"{source}:{line_no}: supersedes_decision_id: explicit lineage must carry a material decision-state change"
+                    )
+        chain_heads[chain_key] = (line_no, entry)
     return issues
 
 
@@ -456,28 +504,469 @@ def _append_bytes(path: Path, entry: Mapping[str, Any]) -> None:
         os.close(fd)
 
 
-def append_entry(path: Path, entry: Mapping[str, Any]) -> None:
-    """Append one validated, uniquely identified entry under the registry lock."""
+def _normalized_text(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return re.sub(r"\s+", " ", value.strip())
+
+
+def _normalized_conditions(value: Any) -> tuple[str, ...]:
+    if isinstance(value, str):
+        candidates = [value]
+    elif isinstance(value, list):
+        candidates = value
+    else:
+        candidates = []
+    return tuple(
+        sorted(
+            {
+                normalized
+                for item in candidates
+                if (normalized := _normalized_text(item))
+            }
+        )
+    )
+
+
+def _decision_state(entry: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Return the material decision state, excluding run/report provenance."""
+
+    return (
+        _normalized_text(entry.get("phase_after")),
+        _normalized_text(entry.get("decision")),
+        _normalized_conditions(entry.get("blocks")),
+        _normalized_conditions(entry.get("does_not_block")),
+        _normalized_conditions(entry.get("invalidation_conditions")),
+        _normalized_conditions(entry.get("reopen_conditions")),
+    )
+
+
+def _decision_entry(match: Any) -> Mapping[str, Any] | None:
+    if not isinstance(match, Mapping):
+        return None
+    entry = match.get("entry")
+    if isinstance(entry, Mapping):
+        return entry
+    return match
+
+
+def _is_no_delta_match(match: Any, entry: Mapping[str, Any]) -> bool:
+    if isinstance(match, Mapping) and isinstance(match.get("is_no_delta"), bool):
+        return bool(match.get("is_no_delta"))
+    return not has_decision_delta(entry.get("decision_delta"))
+
+
+def _entry_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [
+        str(item).strip()
+        for item in value
+        if isinstance(item, str) and item.strip()
+    ]
+
+
+def _normalize_classifier_evidence_hash(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower()
+    if normalized.startswith("sha256:"):
+        normalized = normalized.removeprefix("sha256:")
+    if re.fullmatch(r"[0-9a-f]{64}", normalized) is None:
+        return ""
+    return f"sha256:{normalized}"
+
+
+def _normalize_classifier_fingerprint(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip()
+    if HEX_64_RE.fullmatch(normalized) is None:
+        return ""
+    return normalized
+
+
+def classify_v2_scope(
+    metadata: Mapping[str, Any],
+    *,
+    active_jobs: Sequence[Mapping[str, Any]],
+    decision_matches: Sequence[Any],
+) -> dict[str, Any]:
+    """Classify one validated V2 scope without reading or mutating state.
+
+    The ordering and statuses intentionally match the portable Git-guard V2
+    classifier: exact resolved decisions win first, then active duplicates,
+    changed evidence, explicit transition blocks, track isolation, genuinely
+    new hypotheses, the two-no-delta continuation guard, and explicit non-block
+    admission.
+    """
+
+    fingerprint = _normalize_classifier_fingerprint(
+        metadata.get("computed_scope_fingerprint")
+    )
+    job_id = str(metadata.get("job_id") or "")
+    claim_entries = [
+        (match, entry)
+        for match in decision_matches
+        if (entry := _decision_entry(match)) is not None
+        and entry.get("project_id") == metadata.get("project_id")
+        and entry.get("claim_id") == metadata.get("claim_id")
+    ]
+    current_track = metadata.get("program_track")
+    same_track_entries = [
+        pair for pair in claim_entries if pair[1].get("program_track") == current_track
+    ]
+    exact = [
+        pair
+        for pair in same_track_entries
+        if _normalize_classifier_fingerprint(pair[1].get("scope_fingerprint"))
+        == fingerprint
+    ]
+
+    if exact:
+        latest_match, latest_exact = exact[-1]
+        latest_decision = latest_exact.get("decision")
+        if latest_decision in V2_RESOLVED_DECISIONS:
+            return {
+                "status": "REUSED_COMPLETE",
+                "scope_admitted": False,
+                "no_delta_outcomes": 0,
+                "matching_decision_ids": [latest_exact.get("decision_id")],
+            }
+        if latest_decision == DATA_MISSING:
+            return {
+                "status": DATA_MISSING,
+                "scope_admitted": False,
+                "no_delta_outcomes": (
+                    1 if _is_no_delta_match(latest_match, latest_exact) else 0
+                ),
+                "matching_decision_ids": [latest_exact.get("decision_id")],
+            }
+        if latest_decision == "CONFLICT":
+            return {
+                "status": "EVIDENCE_CONFLICT",
+                "scope_admitted": False,
+                "no_delta_outcomes": (
+                    1 if _is_no_delta_match(latest_match, latest_exact) else 0
+                ),
+                "matching_decision_ids": [latest_exact.get("decision_id")],
+            }
+
+    active_matches = [
+        active
+        for active in active_jobs
+        if _normalize_classifier_fingerprint(active.get("scope_fingerprint"))
+        == fingerprint
+        and str(active.get("job_id") or "") != job_id
+        and active.get("status", "active") == "active"
+        and active.get("stale") is not True
+    ]
+    if active_matches:
+        return {
+            "status": "ACTIVE_DUPLICATE",
+            "scope_admitted": False,
+            "no_delta_outcomes": 0,
+            "matching_active_jobs": [
+                active.get("job_id") for active in active_matches
+            ],
+        }
+
+    if not claim_entries:
+        return {
+            "status": "ALLOW_NEW_SCOPE",
+            "scope_admitted": True,
+            "no_delta_outcomes": 0,
+        }
+
+    current_evidence = _normalize_classifier_evidence_hash(
+        metadata.get("evidence_hash")
+    )
+    current_dataset = str(metadata.get("dataset_version") or "").strip()
+    evidence_versions = {
+        (
+            str(entry.get("dataset_version") or "").strip(),
+            _normalize_classifier_evidence_hash(entry.get("evidence_hash")),
+        )
+        for _, entry in claim_entries
+    }
+    if (current_dataset, current_evidence) not in evidence_versions:
+        return {
+            "status": "ALLOW_CHANGED_EVIDENCE",
+            "scope_admitted": True,
+            "no_delta_outcomes": 0,
+        }
+
+    current_pair_entries = [
+        pair
+        for pair in claim_entries
+        if _normalize_classifier_evidence_hash(pair[1].get("evidence_hash"))
+        == current_evidence
+        and str(pair[1].get("dataset_version") or "").strip()
+        == current_dataset
+    ]
+    same_track_current_pair = [
+        pair
+        for pair in current_pair_entries
+        if pair[1].get("program_track") == current_track
+    ]
+
+    target_transition = str(metadata.get("target_transition") or "")
+    blocking_entries = [
+        entry
+        for _, entry in current_pair_entries
+        if target_transition in _entry_list(entry.get("blocks"))
+    ]
+    if blocking_entries:
+        decisions = {entry.get("decision") for entry in blocking_entries}
+        if DATA_MISSING in decisions:
+            status = DATA_MISSING
+        elif "CONFLICT" in decisions:
+            status = "EVIDENCE_CONFLICT"
+        else:
+            status = "BLOCKED_BY_DECISION"
+        return {
+            "status": status,
+            "scope_admitted": False,
+            "no_delta_outcomes": 0,
+            "matching_decision_ids": [
+                entry.get("decision_id") for entry in blocking_entries
+            ],
+        }
+
+    if not same_track_current_pair:
+        return {
+            "status": "ALLOW_NEW_SCOPE",
+            "scope_admitted": True,
+            "no_delta_outcomes": 0,
+        }
+
+    hypotheses = {
+        entry.get("hypothesis_id") for _, entry in same_track_current_pair
+    }
+    if metadata.get("hypothesis_id") not in hypotheses:
+        return {
+            "status": "ALLOW_NEW_HYPOTHESIS",
+            "scope_admitted": True,
+            "no_delta_outcomes": 0,
+        }
+
+    unchanged = [
+        (match, entry)
+        for match, entry in same_track_current_pair
+        if entry.get("hypothesis_id") == metadata.get("hypothesis_id")
+    ]
+    no_delta_count = 0
+    for match, entry in reversed(unchanged):
+        if not _is_no_delta_match(match, entry):
+            break
+        no_delta_count += 1
+    if no_delta_count >= 2:
+        return {
+            "status": "LOOP_GUARD_STOP",
+            "scope_admitted": False,
+            "no_delta_outcomes": no_delta_count,
+        }
+
+    explicitly_not_blocked = any(
+        target_transition in _entry_list(entry.get("does_not_block"))
+        for _, entry in same_track_current_pair
+    )
+    if explicitly_not_blocked:
+        return {
+            "status": "ALLOW_EXPLICITLY_NOT_BLOCKED",
+            "scope_admitted": True,
+            "no_delta_outcomes": no_delta_count,
+        }
+
+    return {
+        "status": "ALLOW_RELATED_SCOPE",
+        "scope_admitted": True,
+        "no_delta_outcomes": no_delta_count,
+    }
+
+
+def _same_decision_chain(
+    left: Mapping[str, Any], right: Mapping[str, Any]
+) -> bool:
+    return (
+        left.get("scope_fingerprint") == right.get("scope_fingerprint")
+        and left.get("program_track") == right.get("program_track")
+    )
+
+
+def _validate_append_lineage(
+    existing: list[dict[str, Any]], entry: Mapping[str, Any]
+) -> None:
+    chain = [candidate for candidate in existing if _same_decision_chain(candidate, entry)]
+    supersedes = entry.get("supersedes_decision_id")
+    if not chain:
+        if isinstance(supersedes, str) and supersedes.strip():
+            raise DecisionLedgerError(
+                "supersedes_decision_id: cannot supersede a decision outside this scope and program track"
+            )
+        return
+
+    head = chain[-1]
+    head_id = head.get("decision_id")
+    if _decision_state(entry) == _decision_state(head):
+        raise DecisionLedgerError(
+            "scope_fingerprint: semantic replay of latest decision "
+            f"{head_id!r}; changed task/run identity or evidence references do not reopen a resolved scope"
+        )
+    if supersedes != head_id:
+        raise DecisionLedgerError(
+            "supersedes_decision_id: material same-scope change must reference "
+            f"latest decision {head_id!r}"
+        )
+    if not has_decision_delta(entry.get("decision_delta")):
+        raise DecisionLedgerError(
+            "decision_delta: a material same-scope supersession requires a semantic decision delta"
+        )
+    if _normalized_text(entry.get("phase_before")) != _normalized_text(
+        head.get("phase_after")
+    ):
+        raise DecisionLedgerError(
+            "phase_before: must equal the superseded decision's phase_after "
+            f"{head.get('phase_after')!r}"
+        )
+
+
+def is_latest_chain_head(
+    entries: Sequence[Mapping[str, Any]], entry: Mapping[str, Any]
+) -> bool:
+    """Return whether ``entry`` is the latest row in its fingerprint/track chain."""
+
+    chain = [candidate for candidate in entries if _same_decision_chain(candidate, entry)]
+    return bool(chain) and chain[-1].get("decision_id") == entry.get("decision_id")
+
+
+def _entry_json_key(entry: Mapping[str, Any]) -> str:
+    return json.dumps(
+        entry,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+
+
+def append_entry_locked(
+    path: Path,
+    entry: Mapping[str, Any],
+    *,
+    existing: list[dict[str, Any]] | None = None,
+    allow_existing_identical: bool = False,
+) -> bool:
+    """Append while the caller holds the shared registry lock.
+
+    Returns ``True`` when a row was appended. An identical latest-head row may
+    be reused only for an idempotent registry-release retry.
+    """
 
     new_issues = validate_entry(entry)
     if new_issues:
         raise DecisionLedgerError("; ".join(new_issues))
 
+    materialized = (
+        list(existing)
+        if existing is not None
+        else (load_entries(path) if path.exists() else [])
+    )
+    existing_issues = validate_entries(materialized, source=str(path))
+    if existing_issues:
+        raise DecisionLedgerError(
+            "existing ledger is invalid: " + "; ".join(existing_issues)
+        )
+
+    decision_id = entry.get("decision_id")
+    duplicate = next(
+        (
+            existing_entry
+            for existing_entry in materialized
+            if existing_entry.get("decision_id") == decision_id
+        ),
+        None,
+    )
+    if duplicate is not None:
+        if not allow_existing_identical or _entry_json_key(duplicate) != _entry_json_key(
+            entry
+        ):
+            raise DecisionLedgerError(f"decision_id: duplicate {decision_id!r}")
+        if not is_latest_chain_head(materialized, duplicate):
+            raise DecisionLedgerError(
+                "decision_id: identical existing release entry is not the latest "
+                "decision in its scope fingerprint and program track"
+            )
+        return False
+
+    _validate_append_lineage(materialized, entry)
+    _append_bytes(path, entry)
+    return True
+
+
+def _matching_active_claims_locked(
+    registry_root: Path, entry: Mapping[str, Any]
+) -> list[str]:
+    """Find active claims that make a standalone append unsafe."""
+
+    active_dir = registry_root / agent_job_registry.ACTIVE_JOB_SUBDIR
+    if not active_dir.exists():
+        return []
+
+    matches: list[str] = []
+    for active_path in sorted(active_dir.glob("*.json")):
+        try:
+            record = json.loads(active_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise DecisionLedgerError(
+                f"active registry is unreadable at {active_path}: {exc}"
+            ) from exc
+        if not isinstance(record, Mapping):
+            raise DecisionLedgerError(
+                f"active registry record must be a JSON object: {active_path}"
+            )
+        if record.get("status", "active") != "active":
+            continue
+        same_run = (
+            record.get("job_id") == entry.get("task_id")
+            and record.get("session_id") == entry.get("run_id")
+        )
+        same_scope = (
+            record.get("scope_fingerprint") == entry.get("scope_fingerprint")
+            and record.get("program_track") == entry.get("program_track")
+        )
+        if same_run or same_scope:
+            matches.append(str(record.get("job_id") or active_path.stem))
+    return matches
+
+
+def append_entry(
+    path: Path,
+    entry: Mapping[str, Any],
+    *,
+    seed_authorized: bool = False,
+) -> None:
+    """Append one explicitly authorized seed when no matching claim is active.
+
+    Claimed runs publish their decision through ``agent_job_registry release``;
+    this standalone path is reserved for bounded, unclaimed seed decisions.
+    """
+
+    if not seed_authorized:
+        raise DecisionLedgerError(
+            "standalone append requires explicit --authorize-unclaimed-seed; "
+            "claimed runs publish through agent_job_registry release"
+        )
+
     try:
         with agent_job_registry.RegistryLock(path.parent):
-            existing = load_entries(path) if path.exists() else []
-            existing_issues = validate_entries(existing, source=str(path))
-            if existing_issues:
+            matching_claims = _matching_active_claims_locked(path.parent, entry)
+            if matching_claims:
                 raise DecisionLedgerError(
-                    "existing ledger is invalid: " + "; ".join(existing_issues)
+                    "standalone seed append is forbidden while a matching claim is "
+                    "active: " + ", ".join(matching_claims)
                 )
-            decision_id = entry.get("decision_id")
-            if any(
-                existing_entry.get("decision_id") == decision_id
-                for existing_entry in existing
-            ):
-                raise DecisionLedgerError(f"decision_id: duplicate {decision_id!r}")
-            _append_bytes(path, entry)
+            append_entry_locked(path, entry)
     except DecisionLedgerError:
         raise
     except (OSError, TimeoutError) as exc:
@@ -758,12 +1247,17 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_append(args: argparse.Namespace) -> int:
     try:
         entry = _read_single_entry(args)
-        path = (
-            args.ledger_path.resolve(strict=False)
-            if args.ledger_path
-            else resolve_live_ledger_path(args.repo_root)
+        if args.ledger_path is not None:
+            raise DecisionLedgerError(
+                "standalone seed append must use the target repo's live shared ledger; "
+                "--ledger-path is read-only validation/search plumbing"
+            )
+        path = resolve_live_ledger_path(args.repo_root)
+        append_entry(
+            path,
+            entry,
+            seed_authorized=args.authorize_unclaimed_seed,
         )
-        append_entry(path, entry)
     except DecisionLedgerError as exc:
         print(
             json.dumps(
@@ -908,12 +1402,22 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     initialize.set_defaults(func=cmd_initialize)
 
-    append = subparsers.add_parser("append", help="append one validated decision entry")
+    append = subparsers.add_parser(
+        "append", help="append one explicitly authorized unclaimed seed decision"
+    )
     _add_repo_root(append)
     source = append.add_mutually_exclusive_group(required=True)
     source.add_argument("--entry-json")
     source.add_argument("--entry-file", type=Path)
     _add_ledger_path(append)
+    append.add_argument(
+        "--authorize-unclaimed-seed",
+        action="store_true",
+        help=(
+            "confirm this is a bounded seed with no matching active claim; "
+            "claimed runs must publish through registry release"
+        ),
+    )
     append.set_defaults(func=cmd_append)
 
     search = subparsers.add_parser(
