@@ -3,9 +3,12 @@ job_id: semantic_anti_loop_v2_enforcement_correction_20260714
 lane: Reporting
 owner: Codex
 allowed_files:
+  - .agents/skills/tenn-git-guard/scripts/tenn_git_guard.py
+  - .agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py
   - .codex/hooks.json
   - docs/agent_tasks/semantic_anti_loop_v2_enforcement_correction_20260714.md
   - docs/claude/hooks.md
+  - docs/agent_registry/decision_ledger/README.md
   - docs/dev_flow/CONTROL_PLANE_STATUS.md
   - docs/dev_flow/SEMANTIC_ANTI_LOOP_CONTROL_V2.md
   - scripts/agent_decision_ledger.py
