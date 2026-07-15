@@ -27,6 +27,7 @@ from typing import Any, Optional, Sequence
 from dateutil import parser as dtparser
 
 from app.services.extraction_run_observability import ExtractionRunObserver
+from app.services.financial_metric_contract import CANONICAL_METRIC_FIELDS
 from app.services.prompt_registry import PromptBundle, register_bundle, resolve
 
 logger = logging.getLogger(__name__)
@@ -64,19 +65,9 @@ def _derive_period_start(
 
 EXTRACTOR_VERSION = "docling_multipass_v1"
 
-# All 10 metric field names — used by Guard A and _upsert_financial_rows
-METRIC_FIELDS = [
-    "revenue",
-    "ebit",
-    "np_attributable",
-    "operating_cf",
-    "investing_cf",
-    "financing_cf",
-    "capex",
-    "cash_end",
-    "net_debt",
-    "shares_outstanding",
-]
+# Compatibility list used throughout the extractor; authority lives in the
+# typed financial metric contract.
+METRIC_FIELDS = list(CANONICAL_METRIC_FIELDS)
 
 # Source priority for reconciliation (index 0 = highest priority)
 SOURCE_PRIORITY = [

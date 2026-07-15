@@ -34,6 +34,7 @@ from app.services.extraction_run_observability import (
     ExtractionRunObserver,
     initialize_run_status,
 )
+from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
 from app.services.announcement_importance import (
     classify_documents_and_materialize,
     classify_title_extraction_skip,
@@ -1159,20 +1160,7 @@ def _upsert_financial_rows(db, doc, structured):
             )
             db.add(row)
 
-        metric_fields = [
-            "revenue",
-            "ebit",
-            "np_attributable",
-            "operating_cf",
-            "investing_cf",
-            "financing_cf",
-            "capex",
-            "cash_end",
-            "net_debt",
-            "shares_outstanding",
-            "total_equity",
-            "interest_expense",
-        ]
+        metric_fields = PERSISTED_METRIC_COLUMNS
         written_values = {}
         for field in metric_fields:
             value = _coerce_float(metrics.get(field, None))
