@@ -112,8 +112,8 @@ Before the child starts, the wrapper checks:
 - Health snapshot: `reports/research_engine_health.json` by default. Missing
   snapshots warn but do not block. Malformed JSON, JSON objects with an invalid
   status, and `degraded` snapshots block. `warning` blocks unless
-  `--allow-warning` is explicitly supplied. A valid non-object JSON value is a
-  setup error that can exit before the result is rewritten.
+  `--allow-warning` is explicitly supplied. Some valid non-object JSON values
+  (for example `[1]`) raise a setup error before the result is rewritten.
 - DNS: at least one configured ASX host must resolve. Fix network/DNS failures
   rather than using `--skip-dns-preflight` routinely.
 
