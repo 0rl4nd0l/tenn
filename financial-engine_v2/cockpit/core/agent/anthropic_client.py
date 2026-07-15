@@ -13,13 +13,14 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Pricing per million tokens (as of 2025-05)
+# Standard API pricing per million tokens (USD).
 _PRICING: dict[str, dict[str, float]] = {
+    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0},
     "claude-sonnet-4-20250514": {"input": 3.0, "output": 15.0},
     "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.0},
     "claude-opus-4-5": {"input": 15.0, "output": 75.0},
 }
-_DEFAULT_MODEL = "claude-sonnet-4-20250514"
+_DEFAULT_MODEL = "claude-sonnet-4-6"
 _DEFAULT_FALLBACK_PRICING = {"input": 3.0, "output": 15.0}
 
 

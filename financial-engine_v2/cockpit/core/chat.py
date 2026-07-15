@@ -571,7 +571,9 @@ class ChatController:
         self._context_gather_lock = threading.Lock()
 
         # Agent loop — default mode since agent routing is the canonical path.
-        # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
+        # Keyword mode keeps the legacy deterministic intent/tool path, but its
+        # LLM synthesis still goes through HybridRouter so GPU ownership and API
+        # routing policy cannot be bypassed.
         self._agent_loop = None
         self._hybrid_router = None
         self._dossier_service = None
@@ -584,91 +586,26 @@ class ChatController:
             except Exception as exc:
                 logger.warning("StrategyService init failed: %s", exc)
         agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
+        if agent_mode == "keyword":
+            try:
+                self._hybrid_router, api_client = self._build_hybrid_router(
+                    ollama_client
+                )
+                logger.info(
+                    "Keyword chat HybridRouter initialised (api=%s)",
+                    "available" if api_client is not None else "none",
+                )
+            except ImportError:
+                logger.error(
+                    "HybridRouter modules not importable — keyword synthesis will "
+                    "use the legacy local client."
+                )
         if agent_mode == "structured":
             try:
-                from cockpit.core.agent.hybrid_router import HybridRouter
                 from cockpit.core.agent_loop import AgentLoop
                 from cockpit.core.tool_executor import ToolExecutor
 
-                # Build HybridRouter with local llama.cpp client + optional API client.
-                api_client = None
-                anthropic_api_key = effective_anthropic_api_key(self._cockpit_llm)
-                if anthropic_api_key:
-                    try:
-                        from cockpit.core.agent.anthropic_client import AnthropicClient
-
-                        defaults = (
-                            self._cockpit_llm.get("defaults")
-                            if isinstance(self._cockpit_llm.get("defaults"), dict)
-                            else {}
-                        )
-                        anthropic_model = (
-                            os.environ.get("ANTHROPIC_MODEL", "").strip()
-                            or str(defaults.get("anthropic_model") or "").strip()
-                        )
-                        api_client = (
-                            AnthropicClient(
-                                model=anthropic_model,
-                                api_key=anthropic_api_key,
-                            )
-                            if anthropic_model
-                            else AnthropicClient(api_key=anthropic_api_key)
-                        )
-                    except Exception as exc:
-                        logger.warning("AnthropicClient init failed: %s", exc)
-
-                from cockpit.core.llm_profile import resolve_hybrid_router_policy
-
-                # Import GPU activity checker so HybridRouter can route chat
-                # to the cloud API while extraction or another GPU-heavy task
-                # owns the local llama.cpp runtime.
-                gpu_exclusive_checker = None
-                extraction_checker = None
-                try:
-                    from app.services.router_state import is_gpu_exclusive_active
-
-                    gpu_exclusive_checker = is_gpu_exclusive_active
-                except Exception:
-                    pass  # Backend not available (e.g. standalone cockpit)
-                if gpu_exclusive_checker is None:
-                    try:
-                        from app.services.router_state import is_extraction_active
-
-                        extraction_checker = is_extraction_active
-                    except Exception:
-                        pass  # Backend not available (e.g. standalone cockpit)
-
-                gpu_preemption_checker = None
-                try:
-                    from cockpit.integrations.llamacpp_manager import (
-                        check_chat_gpu_preemption,
-                    )
-
-                    llm_base_url = str(getattr(ollama_client, "base_url", "") or "")
-                    chat_port = urlparse(llm_base_url).port or 8001
-
-                    def _gpu_preemption_checker() -> str | None:
-                        state = check_chat_gpu_preemption(str(chat_port))
-                        if bool(state.get("should_defer")):
-                            return str(state.get("reason") or "gpu_preempted")
-                        return None
-
-                    gpu_preemption_checker = _gpu_preemption_checker
-                except Exception:
-                    pass
-
-                hybrid_router = HybridRouter(
-                    llm_client=ollama_client,
-                    api_client=api_client,
-                    policy=resolve_hybrid_router_policy(
-                        api_available=api_client is not None,
-                        cockpit_llm=self._cockpit_llm,
-                    ),
-                    llm_timeout=self.llm_timeout_seconds,
-                    extraction_active_fn=extraction_checker,
-                    gpu_exclusive_active_fn=gpu_exclusive_checker,
-                    gpu_preemption_fn=gpu_preemption_checker,
-                )
+                hybrid_router, api_client = self._build_hybrid_router(ollama_client)
                 self._hybrid_router = hybrid_router
 
                 # Research capabilities — Brave Search, HN, dossier.
@@ -841,6 +778,83 @@ class ChatController:
                     "requires cockpit.core.agent_loop and cockpit.core.tool_executor. "
                     "Falling back to keyword mode."
                 )
+
+    def _build_hybrid_router(self, llm_client):
+        """Build the shared local/API router for every interactive chat mode."""
+        from cockpit.core.agent.hybrid_router import HybridRouter
+        from cockpit.core.llm_profile import resolve_hybrid_router_policy
+
+        api_client = None
+        anthropic_api_key = effective_anthropic_api_key(self._cockpit_llm)
+        if anthropic_api_key:
+            try:
+                from cockpit.core.agent.anthropic_client import AnthropicClient
+
+                defaults = (
+                    self._cockpit_llm.get("defaults")
+                    if isinstance(self._cockpit_llm.get("defaults"), dict)
+                    else {}
+                )
+                anthropic_model = (
+                    os.environ.get("ANTHROPIC_MODEL", "").strip()
+                    or str(defaults.get("anthropic_model") or "").strip()
+                )
+                api_client = (
+                    AnthropicClient(model=anthropic_model, api_key=anthropic_api_key)
+                    if anthropic_model
+                    else AnthropicClient(api_key=anthropic_api_key)
+                )
+            except Exception as exc:
+                logger.warning("AnthropicClient init failed: %s", exc)
+
+        gpu_exclusive_checker = None
+        extraction_checker = None
+        try:
+            from app.services.router_state import is_gpu_exclusive_active
+
+            gpu_exclusive_checker = is_gpu_exclusive_active
+        except Exception:
+            pass  # Backend not available (e.g. standalone cockpit)
+        if gpu_exclusive_checker is None:
+            try:
+                from app.services.router_state import is_extraction_active
+
+                extraction_checker = is_extraction_active
+            except Exception:
+                pass  # Backend not available (e.g. standalone cockpit)
+
+        gpu_preemption_checker = None
+        try:
+            from cockpit.integrations.llamacpp_manager import check_chat_gpu_preemption
+
+            llm_base_url = str(getattr(llm_client, "base_url", "") or "")
+            chat_port = urlparse(llm_base_url).port or 8001
+
+            def _gpu_preemption_checker() -> str | None:
+                state = check_chat_gpu_preemption(str(chat_port))
+                if bool(state.get("should_defer")):
+                    return str(state.get("reason") or "gpu_preempted")
+                return None
+
+            gpu_preemption_checker = _gpu_preemption_checker
+        except Exception:
+            pass
+
+        return (
+            HybridRouter(
+                llm_client=llm_client,
+                api_client=api_client,
+                policy=resolve_hybrid_router_policy(
+                    api_available=api_client is not None,
+                    cockpit_llm=self._cockpit_llm,
+                ),
+                llm_timeout=self.llm_timeout_seconds,
+                extraction_active_fn=extraction_checker,
+                gpu_exclusive_active_fn=gpu_exclusive_checker,
+                gpu_preemption_fn=gpu_preemption_checker,
+            ),
+            api_client,
+        )
 
     # ---------------------------------------------------------------------- #
     # Session ID persistence                                                   #

@@ -1,0 +1,41 @@
+{
+  "blocks": [
+    "Claiming live Cockpit functionality before controlled activation and after-start proof"
+  ],
+  "claim_id": "cockpit_api_routing_during_extraction",
+  "dataset_version": "migration_clean_runtime_baseline_af1b33eb2a5e",
+  "decision": "PASS",
+  "decision_delta": "Keyword chat now shares HybridRouter construction, extraction-active non-metric JSON LLM work routes to Anthropic before local selection, metric extraction stays local, effective provenance is recorded, and Cockpit defaults to the verified claude-sonnet-4-6 model.",
+  "decision_id": "cockpit-api-routing-during-extraction-20260715-code-pass-v1",
+  "does_not_block": [
+    "Local code review",
+    "Preparation of a controlled live activation manifest"
+  ],
+  "evidence_hash": "sha256:c122730efc0d35c6dae380a8341d3b8e1d25afe4a439d19580b4718aebae32cd",
+  "evidence_refs": [
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/VALIDATION.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/CODE_REVIEW.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md"
+  ],
+  "hypothesis_id": "extraction_exclusive_routes_nonmetric_llm_to_claude_v1",
+  "invalidation_conditions": [
+    "A focused routing regression fails.",
+    "The configured Anthropic model becomes unavailable.",
+    "Live activation shows local llama.cpp contention during registered extraction."
+  ],
+  "outcome_status": "ADVANCED",
+  "phase_after": "code_ready_claude_verified_live_activation_unproven",
+  "phase_before": "keyword_chat_and_news_memo_llm_can_contend_with_metric_extraction",
+  "program_track": "offline_development",
+  "project_id": "tenn",
+  "reopen_conditions": [
+    "The owner approves controlled live activation, or canonical routing/model configuration changes."
+  ],
+  "run_id": "l4nd0-System-Product-Name:1144973:cockpit_api_routing_during_extraction_v1_20260715",
+  "scope_fingerprint": "5aa8d19003aaf2a31b0a8752ee12511c984b5a77a52f00e473f288be926e07c9",
+  "source_class": "tenn_canonical_backend_source",
+  "target_transition": "metric_extraction_local_nonmetric_llm_claude_during_extraction",
+  "task_id": "cockpit_api_routing_during_extraction_v1_20260715",
+  "validated_at": "2026-07-15T04:33:16Z"
+}
