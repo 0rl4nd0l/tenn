@@ -26,12 +26,13 @@ Operational decision in this repo:
   - `rag.news_context.corpus_filter=news`
   - `rag.news_context.ticker_match_mode=soft`
 
-## Find announcement coverage gaps from news signals
+## Find out-of-universe backfill candidates from news signals
 
 `scripts/backfill_missing_universe_announcements.py` compares explicit ASX ticker
 references in the normalized article store with the checked-in ticker universe.
-Use it to find companies mentioned by news providers whose ASX announcements
-have not been covered by the normal universe ingest.
+Use it to find news-referenced tickers absent from the configured universe. This
+does not inspect existing announcement records, so an out-of-universe candidate
+is not proof that its announcements are missing.
 
 The workflow reads:
 
@@ -42,9 +43,16 @@ The workflow reads:
 
 It recognizes explicit signals such as `ASX:BHP`, `ASX-BHP`, `BHP.AX`,
 `XASX:BHP`, MarketIndex `/asx/bhp/announcements` URLs, and
-`mapped_tickers=BHP,RIO` metadata. These are discovery heuristics: review the
-evidence before executing a backfill. The workflow does not add candidates to
-the ticker universe file.
+`mapped_tickers=BHP,RIO` metadata. Candidate extraction, especially free-form
+`mapped_tickers` body metadata, can produce false positives. Review the evidence
+before executing a backfill. The workflow does not add candidates to the ticker
+universe file.
+
+The normalized store is produced by `scripts/fetch_daily_news.py` and the
+`financial-engine_v2/scripts/nightly_news.sh` wrapper. The nightly wrapper can
+place artifacts under `TENN_NEWS_ARTIFACT_ROOT` or a mounted artifact root
+instead of the repository default. In that case, pass its reported
+`news_articles_db` path with `--news-articles-db`.
 
 ### Plan and review
 
@@ -53,18 +61,19 @@ Run from the repository root without `--execute` first:
 ```bash
 python3 scripts/backfill_missing_universe_announcements.py \
   --source-lookback-days 30 \
-  --providers worldmonitor,gdelt \
   --min-article-count 2 \
   --max-missing-tickers 25
 ```
 
-Provider filtering is optional, `--source-lookback-days 0` scans all articles,
-and `--max-missing-tickers 0` selects every candidate. The plan is printed and
-written to:
+The default scans every provider in the store. Add a comma-separated
+`--providers worldmonitor,gdelt` filter only when those providers are present.
+`--source-lookback-days 0` scans all articles, and
+`--max-missing-tickers 0` selects every candidate. The plan is printed as JSON
+to stdout and written to:
 
 | Artifact | Default path | Contents |
 | --- | --- | --- |
-| Plan/result JSON | `reports/asx/missing_universe_announcement_backfill_plan.json` | Filters, candidate evidence, selected tickers, preflight, command, and execution result |
+| Plan/result JSON | `reports/asx/missing_universe_announcement_backfill_plan.json` | Filters, candidate evidence, selected tickers, and execution state |
 | Ticker list | `reports/asx/missing_universe_tickers.txt` | Selected out-of-universe tickers, one per line |
 | Child report | `financial-engine_v2/reports/asx/missing_universe_full_history_report.json` | Created or refreshed only when the child backfill runs |
 
@@ -75,12 +84,14 @@ Use `--news-articles-db`, `--tickers-file`, `--out-json`, and
 
 ### Execute the backfill
 
-After reviewing the plan, repeat the same filters with `--execute`:
+`--execute` performs a fresh scan; it does not replay an immutable saved plan.
+Keep the article DB and ticker universe unchanged, repeat the same filters, and
+confirm that the resulting `selected_missing_tickers` still match the reviewed
+list:
 
 ```bash
 python3 scripts/backfill_missing_universe_announcements.py \
   --source-lookback-days 30 \
-  --providers worldmonitor,gdelt \
   --min-article-count 2 \
   --max-missing-tickers 25 \
   --announcement-years 1 \
@@ -107,6 +118,23 @@ Use `--full-history-health-json` to select another health snapshot and
 `--dns-hosts` to replace the comma-separated host list. A preflight block exits
 with code `2`; a failed child exits with code `1`. In both cases, inspect
 `execution.preflight`, `stderr_tail`, and `stdout_tail` in the plan/result JSON.
+Preflight runs only when `--execute` selects at least one ticker; plan mode
+leaves `execution.command` empty and health preflight `{}`. It does not validate
+the child interpreter or script path before the health and DNS checks.
+
+For automation, interpret the normal JSON result with the process exit code:
+
+| Exit | Result fields | Meaning |
+| --- | --- | --- |
+| `0` | `execution.requested=false` | Plan generated; `execution.success` remains `false` because no execution was requested |
+| `0` | `requested=true`, `ran=false`, `success=true`, no selected tickers | Successful no-op; the fresh scan found nothing to backfill |
+| `0` | `requested=true`, `ran=true`, `success=true` | Child backfill completed successfully |
+| `1` | `ran=true`, `success=false` | Child backfill failed; inspect the output tails |
+| `2` | `ran=false`, `success=false`, non-empty `preflight.blocked_reasons` | Health or DNS preflight blocked execution |
+
+Input/setup exceptions can exit before the result JSON is rewritten. Treat a
+non-zero process exit plus a missing or stale `generated_at_utc` as a wrapper
+setup failure, not as a current execution result.
 
 Common problems:
 

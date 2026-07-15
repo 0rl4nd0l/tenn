@@ -25,7 +25,7 @@
 - Phase gates: `phase_checklist.md`
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
-- News corpus pipeline and news-driven announcement gap backfill (experimental, research-only): `news_corpus_pipeline.md`
+- News corpus pipeline and out-of-universe announcement backfill (experimental, research-only): `news_corpus_pipeline.md`
 
 ### Migration / historical
 
