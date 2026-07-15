@@ -2,18 +2,20 @@
   "task_id": "cockpit_api_routing_during_extraction_v1_20260715",
   "parent_task_id": null,
   "workflow": "tenn-fix",
-  "status": "done",
+  "status": "pr_opened",
   "started_at": "2026-07-15T03:03:34Z",
-  "updated_at": "2026-07-15T04:33:16Z",
+  "updated_at": "2026-07-15T07:55:48Z",
   "owner": "Codex",
   "session_id": "l4nd0-System-Product-Name:1144973:cockpit_api_routing_during_extraction_v1_20260715",
   "thread_id": "DATA_MISSING",
   "codex_goal_id": "DATA_MISSING",
   "source_session_ref": "interactive Codex session",
   "issue_refs": [],
-  "pr_refs": [],
-  "branch": "fix/cockpit-api-routing-during-extraction-v1-20260715",
-  "worktree": "/home/l4nd0/tenn-cockpit-api-routing-during-extraction-v1-20260715",
+  "pr_refs": [
+    "https://github.com/0rl4nd0l/tenn/pull/512"
+  ],
+  "branch": "fix/cockpit-start-config-portable-engine-root-v1-20260715",
+  "worktree": "/home/l4nd0/tenn-cockpit-start-config-portable-engine-root-v1-20260715",
   "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@af1b33eb2a5e203b21338eaa0a7e1de95362ed58",
   "files_touched": [
     "docs/agent_tasks/cockpit_api_routing_during_extraction_v1_20260715.md",
@@ -38,19 +40,19 @@
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md",
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json"
   ],
-  "summary": "Implemented and validated code-only Claude routing for keyword chat and extraction-active non-metric LLM work, preserved local metric extraction, recorded effective provenance, and migrated Cockpit to claude-sonnet-4-6. Live activation remains unproven.",
+  "summary": "Implemented, activated, and live-proved Claude routing for keyword chat and extraction-active non-metric LLM work, preserved local metric extraction, recorded effective provenance, and published the reviewed integration as draft PR #512.",
   "validation": {
     "status": "passed",
     "commands": [
       "focused Cockpit and backend pytest suites",
-      "stateless Anthropic default-model smoke",
+      "normal and GPU-exclusive live Anthropic routing proof",
       "ruff check",
       "python3 -m py_compile",
       "git diff --check",
       "agent_job_contract validate/check-diff/check-report-artifacts/check-closeout"
     ]
   },
-  "next_action": "owner_review_controlled_live_activation_manifest",
+  "next_action": "wait_for_pr_512_checks_then_mark_ready_and_merge",
   "owner_boundary": true,
   "supersedes": [],
   "superseded_by": [],

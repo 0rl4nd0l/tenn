@@ -4,6 +4,9 @@
 - Canonical base: `origin/migration/clean-runtime-baseline-reconstruct-v1@af1b33eb2a5e203b21338eaa0a7e1de95362ed58`
 - Integration branch: `fix/cockpit-start-config-portable-engine-root-v1-20260715`
 - Integration HEAD before publish-report update: `5049044fbc4112e99dc41d8266784c1de8f6101d`
+- Published review HEAD: `9e661092eca47c6fadd9e7a4da7b5dc74533916e`
+- Pull request: `#512` (`draft`, checks in progress) targeting
+  `migration/clean-runtime-baseline-reconstruct-v1`
 - Duplicate work: `NO_MATCHING_ACTIVE_WORK_FOUND`
 - Full Git guard: `pass`; path classification `VALID_TASK_WORKTREE`
 - Code validation: `VERIFIED`
