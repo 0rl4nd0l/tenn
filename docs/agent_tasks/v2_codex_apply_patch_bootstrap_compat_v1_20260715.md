@@ -13,6 +13,7 @@ allowed_files:
   - reports/agent_jobs/v2_codex_apply_patch_bootstrap_compat_v1_20260715/VALIDATION.md
   - reports/agent_jobs/v2_codex_apply_patch_bootstrap_compat_v1_20260715/CODE_REVIEW.md
   - reports/agent_jobs/v2_codex_apply_patch_bootstrap_compat_v1_20260715/RUN_OUTCOME.json
+  - reports/agent_jobs/v2_codex_apply_patch_bootstrap_compat_v1_20260715/DECISION_ENTRY.json
   - reports/agent_jobs/v2_codex_apply_patch_bootstrap_compat_v1_20260715/status.json
 approval_required: false
 allow_unapproved_safe_extension: true
