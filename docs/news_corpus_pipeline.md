@@ -85,9 +85,10 @@ Use `--news-articles-db`, `--tickers-file`, `--out-json`, and
 ### Execute the backfill
 
 `--execute` performs a fresh scan; it does not replay an immutable saved plan.
-Keep the article DB and ticker universe unchanged, repeat the same filters, and
-confirm that the resulting `selected_missing_tickers` still match the reviewed
-list:
+It immediately runs the newly selected set without pausing for confirmation.
+Keep the article DB and ticker universe unchanged and repeat the same filters;
+afterward, compare `selected_missing_tickers` with the reviewed list for audit.
+This workflow cannot guarantee execute-from-plan semantics.
 
 ```bash
 python3 scripts/backfill_missing_universe_announcements.py \
@@ -109,8 +110,10 @@ when available; otherwise it uses the current interpreter. Override this with
 Before the child starts, the wrapper checks:
 
 - Health snapshot: `reports/research_engine_health.json` by default. Missing
-  snapshots warn but do not block; invalid or `degraded` snapshots block.
-  `warning` blocks unless `--allow-warning` is explicitly supplied.
+  snapshots warn but do not block. Malformed JSON, JSON objects with an invalid
+  status, and `degraded` snapshots block. `warning` blocks unless
+  `--allow-warning` is explicitly supplied. A valid non-object JSON value is a
+  setup error that can exit before the result is rewritten.
 - DNS: at least one configured ASX host must resolve. Fix network/DNS failures
   rather than using `--skip-dns-preflight` routinely.
 
