@@ -26,6 +26,100 @@ Operational decision in this repo:
   - `rag.news_context.corpus_filter=news`
   - `rag.news_context.ticker_match_mode=soft`
 
+## Find announcement coverage gaps from news signals
+
+`scripts/backfill_missing_universe_announcements.py` compares explicit ASX ticker
+references in the normalized article store with the checked-in ticker universe.
+Use it to find companies mentioned by news providers whose ASX announcements
+have not been covered by the normal universe ingest.
+
+The workflow reads:
+
+- `reports/qual_context/news_articles.sqlite`: normalized source articles in the
+  `articles` table. This is not the chunked retrieval DB (`news.sqlite`).
+- `financial-engine_v2/data/raw/asx_ticker_universe.txt`: the current comparison
+  universe.
+
+It recognizes explicit signals such as `ASX:BHP`, `ASX-BHP`, `BHP.AX`,
+`XASX:BHP`, MarketIndex `/asx/bhp/announcements` URLs, and
+`mapped_tickers=BHP,RIO` metadata. These are discovery heuristics: review the
+evidence before executing a backfill. The workflow does not add candidates to
+the ticker universe file.
+
+### Plan and review
+
+Run from the repository root without `--execute` first:
+
+```bash
+python3 scripts/backfill_missing_universe_announcements.py \
+  --source-lookback-days 30 \
+  --providers worldmonitor,gdelt \
+  --min-article-count 2 \
+  --max-missing-tickers 25
+```
+
+Provider filtering is optional, `--source-lookback-days 0` scans all articles,
+and `--max-missing-tickers 0` selects every candidate. The plan is printed and
+written to:
+
+| Artifact | Default path | Contents |
+| --- | --- | --- |
+| Plan/result JSON | `reports/asx/missing_universe_announcement_backfill_plan.json` | Filters, candidate evidence, selected tickers, preflight, command, and execution result |
+| Ticker list | `reports/asx/missing_universe_tickers.txt` | Selected out-of-universe tickers, one per line |
+| Child report | `financial-engine_v2/reports/asx/missing_universe_full_history_report.json` | Created or refreshed only when the child backfill runs |
+
+Review `missing_universe_candidates` in the JSON. Each candidate includes its
+article count, providers, matched signal types, date range, and sample titles.
+Use `--news-articles-db`, `--tickers-file`, `--out-json`, and
+`--out-missing-tickers` to override the inputs or plan outputs.
+
+### Execute the backfill
+
+After reviewing the plan, repeat the same filters with `--execute`:
+
+```bash
+python3 scripts/backfill_missing_universe_announcements.py \
+  --source-lookback-days 30 \
+  --providers worldmonitor,gdelt \
+  --min-article-count 2 \
+  --max-missing-tickers 25 \
+  --announcement-years 1 \
+  --execute
+```
+
+Execution invokes
+`financial-engine_v2/scripts/full_history_ticker_sync.py` once with the selected
+tickers. By default it discovers and downloads announcements, then retries
+pending downloads. Add `--process-documents` only when extraction/embedding
+processing is also required. The child uses `financial-engine_v2/.venv/bin/python`
+when available; otherwise it uses the current interpreter. Override this with
+`--python-bin`.
+
+Before the child starts, the wrapper checks:
+
+- Health snapshot: `reports/research_engine_health.json` by default. Missing
+  snapshots warn but do not block; invalid or `degraded` snapshots block.
+  `warning` blocks unless `--allow-warning` is explicitly supplied.
+- DNS: at least one configured ASX host must resolve. Fix network/DNS failures
+  rather than using `--skip-dns-preflight` routinely.
+
+Use `--full-history-health-json` to select another health snapshot and
+`--dns-hosts` to replace the comma-separated host list. A preflight block exits
+with code `2`; a failed child exits with code `1`. In both cases, inspect
+`execution.preflight`, `stderr_tail`, and `stdout_tail` in the plan/result JSON.
+
+Common problems:
+
+- `no such table: articles`: `--news-articles-db` points at the chunked
+  `news.sqlite` or another incompatible DB; use the normalized article store.
+- No selected tickers: check `stats.articles_scanned`, loosen provider/lookback
+  filters, or lower `--min-article-count`. Articles without an explicit ticker
+  signal are intentionally ignored.
+- Health warning/degraded: inspect or regenerate the health snapshot before
+  retrying. Use `--allow-warning` only when the warning is understood.
+- Child report not embedded in the result: an unchanged pre-existing report is
+  deliberately ignored; inspect the child return code and output tails.
+
 ## Build commands
 
 Connected (HF gated dataset, token required):
