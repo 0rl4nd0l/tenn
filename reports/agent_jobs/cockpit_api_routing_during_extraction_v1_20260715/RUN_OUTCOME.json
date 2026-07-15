@@ -1,22 +1,21 @@
 {
-  "blocked_by": [
-    {
-      "program_track": "offline_development",
-      "reason": "Live Cockpit activation and after-start runtime proof require separate owner approval."
-    }
-  ],
+  "blocked_by": [],
   "changed_claims": [
     "cockpit_api_routing_during_extraction"
   ],
-  "decision_delta": "Keyword chat now shares HybridRouter construction, extraction-active non-metric JSON LLM work routes to Anthropic before local selection, metric extraction stays local, effective provenance is recorded, and Cockpit defaults to the verified claude-sonnet-4-6 model.",
+  "decision_delta": "The reviewed routing change is live and functionally proven: normal and GPU-exclusive Cockpit chat route to Anthropic, extraction-active non-metric JSON work routes to Anthropic, metric extraction stays local, and the owner approved push, PR, and merge after gates pass.",
   "new_evidence": [
     "160 Cockpit, Anthropic, config, and routing tests passed with 48 subtests",
     "30 backend news and LLM routing tests passed",
     "Stateless Anthropic smoke returned ROUTE_OK from claude-sonnet-4-6",
-    "Final code review found no critical findings, warnings, or suggestions"
+    "Final code review found no critical findings, warnings, or suggestions",
+    "Controlled live activation recreated only backend, worker, and gpu_worker with --no-deps",
+    "Normal and GPU-exclusive stateless chat returned HTTP 200 from claude-sonnet-4-6",
+    "Non-metric tool routing reported Anthropic with metric_extraction_active",
+    "Cockpit DB and news memo state remained unchanged; local llama handled no attributable chat completion"
   ],
   "new_goal_permitted": true,
-  "next_goal_target_transition": "controlled_live_cockpit_activation_manifest_ready_for_owner_approval",
+  "next_goal_target_transition": "preexisting_cockpit_ui_outage_bounded_diagnosis",
   "produced_artifacts": [
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/README.md",
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/STATE.md",
@@ -29,10 +28,10 @@
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/LEDGER_ENTRY.json",
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/NEXT_GOAL.md"
   ],
-  "resume_only_if": "The owner approves controlled live activation, or canonical routing/model configuration changes.",
+  "resume_only_if": "The Cockpit routing PR is merged and the owner wants the pre-existing UI outage diagnosed.",
   "reused_claims": [],
   "scope_fingerprint": "5aa8d19003aaf2a31b0a8752ee12511c984b5a77a52f00e473f288be926e07c9",
-  "state_after": "code_ready_claude_verified_live_activation_unproven",
+  "state_after": "live_activation_working_merge_approved",
   "state_before": "keyword_chat_and_news_memo_llm_can_contend_with_metric_extraction",
   "status": "ADVANCED",
   "used_capabilities": [

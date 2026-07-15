@@ -12,5 +12,15 @@
    call metadata and news memo provenance.
 6. Replace retired `claude-sonnet-4-20250514` defaults with Anthropic's
    canonical `claude-sonnet-4-6`; retain historical pricing lookup coverage.
-7. Stop before live activation because service restart and runtime mutation
-   were outside the approved code-only lane.
+7. Adopt the owner-approved controlled activation manifest and recreate only
+   backend, worker, and GPU worker with `--no-deps` after extraction and queue
+   gates are empty.
+8. Prove normal and GPU-exclusive routing with stateless requests, zero DB/news
+   persistence delta, and llama journal comparison before promotion.
+9. Treat the real shared routing-state token as a route-class proof, not as a
+   claim that a real extraction was started; starting extraction remained
+   forbidden.
+10. Proceed with push, PR, and merge after full Git guard, exact-head review,
+    required checks, and the review-board decision remain green.
+11. Keep the pre-existing UI outage outside this merge and route it to a
+    separate read-only diagnosis and restoration manifest.

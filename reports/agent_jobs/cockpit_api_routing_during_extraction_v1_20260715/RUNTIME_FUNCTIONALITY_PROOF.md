@@ -2,14 +2,14 @@
 
 | Field | Required evidence |
 | --- | --- |
-| intended output | Live Cockpit answers interactive chat through Claude, and live non-metric news/tool LLM work uses Claude while metric extraction retains the local model. |
-| live output location | Cockpit chat API/UI response metadata plus backend news memo `extraction_provenance`. |
-| pre-run max timestamp or count | `DATA_MISSING` — this code-only lane did not capture a live output baseline before service activation. |
-| post-run max timestamp or count | `DATA_MISSING` — the live service was not restarted onto this branch. |
-| rows/files inserted or updated after run start | `0` live rows/files; data and news-store mutation were forbidden. |
-| readiness/gate status | Code, tests, review, and stateless Claude connectivity are ready; live activation gate remains owner-approval-required. |
-| exact command/query used | Stateless proof used Tenn `AnthropicClient()` with `prompt="Reply exactly ROUTE_OK"`, `prior_messages=None`, and no persisted chat; focused pytest commands are listed in `VALIDATION.md`. |
-| result | `DATA_MISSING` |
-| remaining blocker | Controlled live deployment/restart and an after-start chat/news routing proof were outside the approved lane. |
+| intended output | Interactive Cockpit chat and non-metric/news LLM work use Anthropic while metric extraction retains the protected local model. |
+| live output location | `POST /api/cockpit/chat`, returned routing metadata, backend `generate_json` metadata, Cockpit state DB, news memo file, and host llama-router journal. |
+| pre-run max timestamp or count | `chat_messages=1535`, max `2026-05-16T06:46:26.786360+00:00`; `chat_sessions=75`, same max; `session_summaries=17`, max `2026-03-31 13:37:17`. |
+| post-run max timestamp or count | Counts and maximum timestamps remained identical after both stateless proofs. |
+| rows/files inserted or updated after run start | Zero Cockpit state rows; `news_memos.jsonl` retained mtime `2026-07-15T04:21:06.217573+00:00`, before proofs at `06:25:52Z` and `06:26:53Z`. |
+| readiness/gate status | Backend health and chat readiness HTTP 200; normal analysis allowed; extraction inactive; token count zero; Celery active/reserved/scheduled empty. |
+| exact command/query used | `docker compose --env-file .env.docker -f docker-compose.yml up -d --no-deps --force-recreate backend worker gpu_worker`; stateless `curl` requests to `/api/cockpit/chat`; backend `generate_json(...)`; read-only `SELECT COUNT(*), MAX(...)` SQLite queries; `journalctl --after-cursor`. |
+| result | `WORKING` |
+| remaining blocker | `none` for the approved routing scope; the pre-existing UI outage is a separate scope. |
 
-result: DATA_MISSING
+result: WORKING

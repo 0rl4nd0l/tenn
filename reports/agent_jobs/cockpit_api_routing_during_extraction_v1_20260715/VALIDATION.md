@@ -26,8 +26,29 @@ The pytest runs emitted one pre-existing warning for unknown config option
 `asyncio_default_fixture_loop_scope`. The backend uv run also reported the
 existing ignored requirements-file extra-index warning.
 
-## Not proven
+## Controlled activation proof
 
-The live Cockpit process was deliberately not restarted. No live chat turn was
-run against this branch while a real metric extraction owned the shared router.
-See `RUNTIME_FUNCTIONALITY_PROOF.md`.
+- Launcher regression suite: `14 passed`.
+- Focused routing/provenance suite: `53 passed`.
+- Target containers recreated: backend, worker, and GPU worker only, using
+  `docker compose ... up -d --no-deps --force-recreate`.
+- Forbidden service identities remained unchanged: Postgres, Qdrant, Redis
+  state, and host llama router; UI remained absent and was not restarted.
+- Normal stateless chat: HTTP 200, `type=done`, `source=api`, model
+  `claude-sonnet-4-6`, persistence disabled.
+- GPU-exclusive token proof: chat routing reason `gpu_exclusive_active`.
+- Non-metric JSON tool proof: provider `anthropic`, model
+  `claude-sonnet-4-6`, routing reason `metric_extraction_active`.
+- Cockpit state DB: zero count/timestamp delta across `chat_messages`,
+  `chat_sessions`, and `session_summaries`.
+- News memo store: unchanged; mtime predates both proof requests.
+- Host llama journal: no attributable chat completion during either proof.
+- Final health/readiness: HTTP 200; extraction inactive; proof token count zero;
+  Celery active, reserved, and scheduled work empty.
+
+## Scope limitation
+
+The extraction-active route was exercised through the real shared
+GPU-exclusive routing-state token with a 180-second TTL. No real extraction was
+started. This proves the route class without claiming a production extraction
+run. The UI outage on port 8081 predates activation and was not repaired.

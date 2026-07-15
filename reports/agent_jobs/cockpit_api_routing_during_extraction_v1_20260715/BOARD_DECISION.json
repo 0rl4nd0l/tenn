@@ -1,0 +1,44 @@
+{
+  "decision": "proceed",
+  "task_tier": "critical",
+  "recommended_model": "high_reasoning",
+  "actual_model": "GPT-5 Codex",
+  "why_this_model": "The decision combines live runtime proof, financial extraction isolation, GitHub publication, and canonical merge authority.",
+  "worker_model_allowed": "read_only_evidence_only",
+  "worker_decision_limit": "No worker may authorize push, merge, runtime mutation, or financial-truth changes.",
+  "escalation_needed": false,
+  "final_decision_authority": "Owner-approved review-board chair",
+  "lower_tier_insufficient_reason": "A merge decision requires exact-head, runtime, provenance, repository, and owner-boundary adjudication.",
+  "canonical_base": "af1b33eb2a5e203b21338eaa0a7e1de95362ed58",
+  "reviewed_head": "5049044fbc4112e99dc41d8266784c1de8f6101d",
+  "ledger_sources_checked": [
+    "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl",
+    "docs/agent_registry/task_ledger/LEDGER.jsonl"
+  ],
+  "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+  "matching_candidates": [],
+  "duplicate_work_decision": "Proceed with the existing integration branch; do not create a parallel implementation.",
+  "functionality_proof_required": true,
+  "functionality_proof_status": "WORKING",
+  "remaining_blocker": "none for the approved routing scope",
+  "minority_objection": "The GPU-exclusive proof used the real shared activity token rather than a real extraction, and the UI on port 8081 remains absent. Merge must not be described as full extraction-throughput or UI proof.",
+  "root_problem": "Interactive and non-metric LLM work could contend with metric extraction for the shared local llama router.",
+  "overfitting": "No; the fix applies to the route class across keyword chat and non-metric JSON work.",
+  "report_loop": "No; the lane advanced through code, controlled activation, intended-output proof, and merge approval.",
+  "broad_progress": "Yes; the routing boundary, model default, provenance, launcher portability, tests, and live runtime were aligned.",
+  "class_based_approach": "Route-class separation is preferable to request-specific or ticker-specific handling.",
+  "production_readiness_value": "Canonicalizing the functionally proven branch removes dependence on an unpushed local live worktree.",
+  "approved_actions": [
+    "push integration branch",
+    "open one pull request against migration/clean-runtime-baseline-reconstruct-v1",
+    "mark ready and merge after required checks pass"
+  ],
+  "stop_conditions": [
+    "canonical head drift",
+    "unexpected diff or dirty state",
+    "merge conflict",
+    "required check failure",
+    "runtime proof contradiction"
+  ],
+  "generated_at_utc": "2026-07-15T06:41:16Z"
+}
