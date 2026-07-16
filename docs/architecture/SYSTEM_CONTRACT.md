@@ -470,7 +470,10 @@ Invariants:
 * GPU-exclusive activity MUST be registered in a process-safe shared state for the full duration of the protected work.
 * Extraction activity MUST register as GPU-exclusive activity for the full duration of each multipass extraction run.
 * Cockpit/local chat MUST route to the configured API backend while GPU-exclusive activity is active on the shared router.
+* While metric extraction is active, non-metric LLM synthesis and tool-support calls (including news and commentary memo extraction) MUST route to the configured API backend before attempting local generation. Metric extraction itself remains pinned to its deterministic local instruct model.
+* API-routed non-metric work MUST record the effective provider, model, endpoint, and routing reason in available provenance metadata.
 * If no API backend is configured, chat MUST fail fast or remain blocked until the GPU-exclusive activity finishes; it MUST NOT silently continue on the local router during protected work.
+* If no API backend is configured while metric extraction is active, non-metric LLM work MUST fail fast; it MUST NOT fall back to the protected local router.
 * Launchers MUST NOT start or restart the shared local chat/router runtime while GPU-exclusive activity is active unless the owning GPU task explicitly overrides the guard.
 * Any caller that uses `POST /models/load` MUST resolve stale alias IDs to a usable router registry entry before requesting the load.
 

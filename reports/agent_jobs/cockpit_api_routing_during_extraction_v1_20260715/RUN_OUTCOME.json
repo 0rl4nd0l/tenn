@@ -1,0 +1,44 @@
+{
+  "blocked_by": [],
+  "changed_claims": [
+    "cockpit_api_routing_during_extraction"
+  ],
+  "decision_delta": "The reviewed routing change is live and functionally proven, and PR #512's sole CI failure was a stale test inspection now repaired locally without changing runtime behavior.",
+  "new_evidence": [
+    "160 Cockpit, Anthropic, config, and routing tests passed with 48 subtests",
+    "30 backend news and LLM routing tests passed",
+    "Stateless Anthropic smoke returned ROUTE_OK from claude-sonnet-4-6",
+    "Final code review found no critical findings, warnings, or suggestions",
+    "Controlled live activation recreated only backend, worker, and gpu_worker with --no-deps",
+    "Normal and GPU-exclusive stateless chat returned HTTP 200 from claude-sonnet-4-6",
+    "Non-metric tool routing reported Anthropic with metric_extraction_active",
+    "Cockpit DB and news memo state remained unchanged; local llama handled no attributable chat completion",
+    "PR #512 CI RED reproduced locally; attached-source suite now has 4 passes and the broader focused routing suite has 99 passes plus 48 subtests",
+    "Repair head 7126f6a1 passed GitHub Actions lint-and-test and scan reruns"
+  ],
+  "new_goal_permitted": true,
+  "next_goal_target_transition": "preexisting_cockpit_ui_outage_bounded_diagnosis",
+  "produced_artifacts": [
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/README.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/STATE.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/DECISIONS.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/VALIDATION.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/CODE_REVIEW.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/DECISION_ENTRY.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/LEDGER_ENTRY.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/NEXT_GOAL.md"
+  ],
+  "resume_only_if": "The Cockpit routing PR is merged and the owner wants the pre-existing UI outage diagnosed.",
+  "reused_claims": [],
+  "scope_fingerprint": "5aa8d19003aaf2a31b0a8752ee12511c984b5a77a52f00e473f288be926e07c9",
+  "state_after": "live_activation_working_ci_repair_validated",
+  "state_before": "keyword_chat_and_news_memo_llm_can_contend_with_metric_extraction",
+  "status": "ADVANCED",
+  "used_capabilities": [
+    "READ",
+    "REPORT_WRITE",
+    "CODE_EDIT"
+  ]
+}

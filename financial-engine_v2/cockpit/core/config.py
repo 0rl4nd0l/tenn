@@ -110,7 +110,7 @@ DEFAULT_COCKPIT_LLM_FILE: dict[str, Any] = {
     "defaults": {
         "extraction_model": "qwen2.5-14b-instruct",
         "embedding_model": "nomic-embed-text",
-        "anthropic_model": "claude-sonnet-4-20250514",
+        "anthropic_model": "claude-sonnet-4-6",
         "anthropic_api_key": "",
     },
     "llm": {

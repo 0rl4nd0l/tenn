@@ -138,7 +138,7 @@ def test_stack_defaults_set_anthropic_api_key_when_unset(
         "hybrid_router_policy: local_preferred\n"
         "tool_debug: failures\n"
         "defaults:\n"
-        "  anthropic_model: claude-sonnet-4-20250514\n"
+        "  anthropic_model: claude-sonnet-4-6\n"
         '  anthropic_api_key: "test-key-from-defaults"\n'
         "llm:\n"
         "  provider: llamacpp\n"
@@ -164,7 +164,7 @@ def test_stack_defaults_set_anthropic_api_key_when_unset(
 
     assert "ANTHROPIC_API_KEY" in text
     assert "ANTHROPIC_API_KEY=set" in text
-    assert "ANTHROPIC_MODEL=claude-sonnet-4-20250514" in text
+    assert "ANTHROPIC_MODEL=claude-sonnet-4-6" in text
     assert (
         cfg["cockpit_llm"]["defaults"]["anthropic_api_key"] == "test-key-from-defaults"
     )

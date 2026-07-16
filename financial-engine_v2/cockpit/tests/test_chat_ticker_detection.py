@@ -13,6 +13,8 @@ from cockpit.core.chat import ChatController, ResponseMode
 class ChatTickerDetectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self._old_agent_mode = os.environ.get("COCKPIT_AGENT_MODE")
+        self._old_anthropic_api_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        self._old_anthropic_model = os.environ.pop("ANTHROPIC_MODEL", None)
         os.environ["COCKPIT_AGENT_MODE"] = "keyword"
         self.controller = ChatController(
             ollama_client=MagicMock(),
@@ -25,6 +27,14 @@ class ChatTickerDetectionTests(unittest.TestCase):
             os.environ.pop("COCKPIT_AGENT_MODE", None)
         else:
             os.environ["COCKPIT_AGENT_MODE"] = self._old_agent_mode
+        if self._old_anthropic_api_key is None:
+            os.environ.pop("ANTHROPIC_API_KEY", None)
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = self._old_anthropic_api_key
+        if self._old_anthropic_model is None:
+            os.environ.pop("ANTHROPIC_MODEL", None)
+        else:
+            os.environ["ANTHROPIC_MODEL"] = self._old_anthropic_model
 
     def test_detect_ticker_ignores_generic_lowercase_words(self) -> None:
         self.assertIsNone(
@@ -775,7 +785,7 @@ class ChatTickerDetectionTests(unittest.TestCase):
                     action_registry=MagicMock(),
                     cockpit_llm={
                         "defaults": {
-                            "anthropic_model": "claude-sonnet-4-20250514",
+                            "anthropic_model": "claude-sonnet-4-6",
                             "anthropic_api_key": "sk-configured",
                         }
                     },
@@ -783,7 +793,7 @@ class ChatTickerDetectionTests(unittest.TestCase):
 
             self.assertIsNotNone(controller._hybrid_router)
             self.assertEqual(captured["api_key"], "sk-configured")
-            self.assertEqual(captured["model"], "claude-sonnet-4-20250514")
+            self.assertEqual(captured["model"], "claude-sonnet-4-6")
 
 
 if __name__ == "__main__":

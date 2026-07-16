@@ -237,6 +237,60 @@ def _anthropic_api_key() -> str:
     )
 
 
+def _anthropic_model_name() -> str:
+    return os.environ.get("ANTHROPIC_MODEL", "").strip() or "claude-sonnet-4-6"
+
+
+def _record_effective_route(
+    metadata: dict[str, Any] | None,
+    *,
+    provider: str,
+    model: str,
+    base_url: str,
+    routing_reason: str,
+) -> None:
+    if metadata is None:
+        return
+    metadata.update(
+        {
+            "effective_provider": provider,
+            "effective_model": model,
+            "effective_base_url": base_url,
+            "routing_reason": routing_reason,
+        }
+    )
+
+
+def _route_nonmetric_json_to_anthropic_during_extraction(
+    prompt: str,
+    metadata: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    component = str((metadata or {}).get("component") or "").strip().lower()
+    if component == "multipass_extraction" or not router_state.is_extraction_active():
+        return None
+
+    if not _anthropic_api_key():
+        raise RuntimeError(
+            "Metric extraction is active and Anthropic API routing is unavailable; "
+            "refusing to contend for the shared local llama.cpp router"
+        )
+
+    model = _anthropic_model_name()
+    _record_effective_route(
+        metadata,
+        provider="anthropic",
+        model=model,
+        base_url="https://api.anthropic.com",
+        routing_reason="metric_extraction_active",
+    )
+    logger.info(
+        "metric_extraction_active_routing_nonmetric_llm_to_anthropic component=%s model=%s",
+        component or "unspecified",
+        model,
+    )
+    return _anthropic_fallback_generate_json(prompt, model=model)
+
+
 def _anthropic_fallback_generate_json(
     prompt: str,
     *,
@@ -249,7 +303,7 @@ def _anthropic_fallback_generate_json(
     if not api_key:
         raise RuntimeError("Anthropic API fallback unavailable: ANTHROPIC_API_KEY not set")
 
-    resolved_model = model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+    resolved_model = model or _anthropic_model_name()
     client = anthropic.Anthropic(api_key=api_key)
 
     system_msg = "Output ONLY valid JSON."
@@ -407,6 +461,13 @@ def generate_json(
     timeout: float | None = None,
     client: Optional[httpx.Client] = None,
 ) -> dict[str, Any]:
+    extraction_routed = _route_nonmetric_json_to_anthropic_during_extraction(
+        prompt,
+        metadata,
+    )
+    if extraction_routed is not None:
+        return extraction_routed
+
     decision = route_request(prompt, metadata)
     attempted_fallback = False
 

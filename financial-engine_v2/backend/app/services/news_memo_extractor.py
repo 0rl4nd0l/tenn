@@ -189,6 +189,12 @@ class NewsMemoExtractor:
             Path(memos_path or DEFAULT_NEWS_MEMOS_PATH).expanduser().resolve()
         )
         self.max_article_chars = resolve_news_memo_max_article_chars(max_article_chars)
+        self._last_llm_route: dict[str, str] = {
+            "provider": "llamacpp",
+            "model": self.llm_model,
+            "base_url": self.llm_url,
+            "routing_reason": "configured_local",
+        }
 
     def _call_llm(
         self,
@@ -212,13 +218,21 @@ class NewsMemoExtractor:
             signature = None
 
         if signature and "metadata" in signature.parameters:
-            return self.llm_fn(prompt=prompt, metadata=metadata)
+            result = self.llm_fn(prompt=prompt, metadata=metadata)
+        else:
+            result = self.llm_fn(
+                base_url=self.llm_url,
+                model=self.llm_model,
+                prompt=prompt,
+            )
 
-        return self.llm_fn(
-            base_url=self.llm_url,
-            model=self.llm_model,
-            prompt=prompt,
-        )
+        self._last_llm_route = {
+            "provider": str(metadata.get("effective_provider") or "llamacpp"),
+            "model": str(metadata.get("effective_model") or self.llm_model),
+            "base_url": str(metadata.get("effective_base_url") or self.llm_url),
+            "routing_reason": str(metadata.get("routing_reason") or "configured_local"),
+        }
+        return result
 
     def _prompt(
         self,
@@ -316,8 +330,10 @@ class NewsMemoExtractor:
             "published_at": str(published_at or "").strip(),
             "extraction_provenance": {
                 "component": "news_memo_extractor",
-                "llm_model": self.llm_model,
-                "llm_url": self.llm_url,
+                "llm_provider": self._last_llm_route["provider"],
+                "llm_model": self._last_llm_route["model"],
+                "llm_url": self._last_llm_route["base_url"],
+                "routing_reason": self._last_llm_route["routing_reason"],
                 "max_article_chars": self.max_article_chars,
             },
         }
