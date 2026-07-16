@@ -2991,9 +2991,15 @@ def build_hook_payload(
     event: str = "Stop",
     hook_input: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    control_plane_root = _resolve_control_plane_root()
     values = env or os.environ
     v2_required = _env_flag(values, V2_REQUIRED_ENV)
+
+    # Ordinary Tier 0 and Tier 1 work never consults task state. Stop is
+    # intentionally informational-only even for opted-in V2 sessions.
+    if event in {"Stop", "SessionEnd"} or not v2_required:
+        return _allow_payload(platform)
+
+    control_plane_root = _resolve_control_plane_root()
     card = find_active_task_card(repo_root, env=values)
     explicitly_selected = card is not None
     tool_name = _hook_tool_name(hook_input)

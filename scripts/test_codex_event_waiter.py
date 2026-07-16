@@ -136,6 +136,19 @@ class CommandWaitTests(unittest.TestCase):
         self.assertNotIn(fine_grained, redacted)
         self.assertEqual(redacted.count("[REDACTED]"), 2)
 
+    def test_redact_text_preserves_quoted_json_shape(self) -> None:
+        secret = "do-not-log-this"
+        payload = '{"api_key":"' + secret + '","password":"also-secret"}'
+
+        redacted = waiter.redact_text(payload)
+
+        self.assertNotIn(secret, redacted)
+        self.assertNotIn("also-secret", redacted)
+        self.assertEqual(
+            json.loads(redacted),
+            {"api_key": "[REDACTED]", "password": "[REDACTED]"},
+        )
+
     def test_command_success_captures_bounded_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             result_path = Path(directory) / "result.json"

@@ -189,6 +189,45 @@ def test_default_no_claim_file_mutation_preserves_legacy_behavior(
     assert payload.get("decision") != "block"
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "docs/guide.md",
+        "financial-engine_v2/backend/app/example.py",
+        "cockpit-ui/app/example.tsx",
+    ],
+)
+def test_default_tier_one_edits_need_no_task_state(tmp_path: Path, path: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    completed, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={
+            "tool_name": "apply_patch",
+            "tool_input": {"patch": f"*** Begin Patch\n*** Update File: {path}\n"},
+        },
+    )
+
+    assert completed.returncode == 0
+    assert payload.get("decision") != "block"
+
+
+def test_stop_is_nonblocking_even_for_invalid_opted_in_v2(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    card = task_card(repo, allowed_files=["src/allowed.py"], control_contract_version=2)
+    card.write_text("not a task card\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": str(card.relative_to(repo))},
+        event="Stop",
+    )
+
+    assert completed.returncode == 0
+    assert payload.get("decision") != "block"
+
+
 def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
     tmp_path: Path,
 ) -> None:
@@ -371,15 +410,15 @@ def test_required_stop_without_claim_allows_trivial_session(
 ) -> None:
     repo = git_repo(tmp_path / "repo")
 
-    _, default = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
+    _, default = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""}, event="Stop")
     _, required = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": "", "TENN_V2_REQUIRED": "1"},
+        event="Stop",
     )
 
     assert default == {}
-    assert required.get("decision") != "block"
-    assert "no active V2 claim" in str(required)
+    assert required == {}
 
 
 def run_repo_registry(
