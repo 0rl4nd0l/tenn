@@ -270,6 +270,118 @@ def test_required_no_claim_allows_only_single_task_card_bootstrap(
     assert blocked["decision"] == "block"
 
 
+@pytest.mark.parametrize("operation", ["Add", "Update"])
+def test_required_no_claim_allows_raw_string_single_task_card_bootstrap(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        f"*** {operation} File: docs/agent_tasks/raw-v2.md\n"
+        "+---\n"
+        "+control_contract_version: 2\n"
+        "+---\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload.get("decision") != "block"
+    assert "task-card bootstrap admitted" in str(payload)
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        (
+            "*** Begin Patch\n"
+            "*** Add File: docs/agent_tasks/raw-v2.md\n"
+            "+task card\n"
+            "*** Update File: src/allowed.py\n"
+            "@@\n"
+            "-allowed = 1\n"
+            "+allowed = 2\n"
+            "*** End Patch\n"
+        ),
+        (
+            "*** Begin Patch\n"
+            "*** Add File docs/agent_tasks/raw-v2.md\n"
+            "+malformed header\n"
+            "*** End Patch\n"
+        ),
+        (
+            "*** Begin Patch\n"
+            "*** Update File: docs/agent_tasks/test-task.md\n"
+            "*** Move to: docs/agent_tasks/moved-v2.md\n"
+            "@@\n"
+            "-old\n"
+            "+new\n"
+            "*** End Patch\n"
+        ),
+        (
+            "*** Begin Patch\n"
+            "*** Add File: src/not-a-task-card.md\n"
+            "+not a task card\n"
+            "*** End Patch\n"
+        ),
+        (
+            "*** Begin Patch\n"
+            "*** Delete File: docs/agent_tasks/test-task.md\n"
+            "*** End Patch\n"
+        ),
+        (
+            "*** Begin Patch\n"
+            "*** Add File: /tmp/outside-v2.md\n"
+            "+outside repository\n"
+            "*** End Patch\n"
+        ),
+    ],
+    ids=["mixed", "malformed", "moved", "non-card", "deleted", "outside-repo"],
+)
+def test_required_no_claim_blocks_unsafe_raw_string_apply_patch_bootstrap(
+    tmp_path: Path,
+    patch: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload["decision"] == "block"
+    assert "claim one V2 task card" in str(payload["reason"])
+
+
+def test_required_no_claim_does_not_normalize_raw_string_for_other_tools(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Add File: docs/agent_tasks/raw-v2.md\n"
+        "+task card\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "write_file", "tool_input": patch},
+    )
+
+    assert payload["decision"] == "block"
+
+
 def test_required_exact_v2_claim_command_breaks_bootstrap_deadlock(
     tmp_path: Path,
 ) -> None:
