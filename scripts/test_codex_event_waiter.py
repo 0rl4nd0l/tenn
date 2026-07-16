@@ -149,6 +149,98 @@ class CommandWaitTests(unittest.TestCase):
             {"api_key": "[REDACTED]", "password": "[REDACTED]"},
         )
 
+    def test_redact_text_preserves_quoted_json_bearer_shape(self) -> None:
+        cases = [
+            (
+                '{"Authorization":"Bearer generic-secret-123"}',
+                {"Authorization": "Bearer [REDACTED]"},
+            ),
+            (
+                '{"aUtHoRiZaTiOn" : "bEaReR Mixed-Secret_456"}',
+                {"aUtHoRiZaTiOn": "bEaReR [REDACTED]"},
+            ),
+        ]
+
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                redacted = waiter.redact_text(payload)
+                self.assertNotIn("secret", redacted.lower())
+                self.assertEqual(json.loads(redacted), expected)
+
+    def test_redact_text_handles_single_quoted_bearer_assignment(self) -> None:
+        redacted = waiter.redact_text(
+            "'authorization'='Bearer generic-secret-123'"
+        )
+
+        self.assertEqual(redacted, "'authorization'='Bearer [REDACTED]'")
+
+    def test_redact_text_preserves_escaped_json_bearer_shape(self) -> None:
+        payload = r'rpc payload="{\"Authorization\":\"Bearer escaped-secret-123\"}"'
+
+        redacted = waiter.redact_text(payload)
+
+        self.assertNotIn("escaped-secret-123", redacted)
+        self.assertEqual(
+            redacted,
+            r'rpc payload="{\"Authorization\":\"Bearer [REDACTED]\"}"',
+        )
+
+    def test_redact_text_handles_json_encoded_json_bearer_value(self) -> None:
+        payload = json.dumps(
+            {
+                "payload": json.dumps(
+                    {"Authorization": "Bearer nested-secret-456"}
+                )
+            }
+        )
+
+        redacted = waiter.redact_text(payload)
+
+        self.assertNotIn("nested-secret-456", redacted)
+        decoded = json.loads(redacted)
+        self.assertEqual(
+            json.loads(decoded["payload"]),
+            {"Authorization": "Bearer [REDACTED]"},
+        )
+
+    def test_redact_text_handles_escaped_quote_inside_json_bearer_value(self) -> None:
+        payload = json.dumps(
+            {
+                "payload": json.dumps(
+                    {"Authorization": 'Bearer secret"tail'}
+                )
+            }
+        )
+
+        redacted = waiter.redact_text(payload)
+
+        self.assertNotIn("secret", redacted.lower())
+        self.assertNotIn("tail", redacted.lower())
+        decoded = json.loads(redacted)
+        self.assertEqual(
+            json.loads(decoded["payload"]),
+            {"Authorization": "Bearer [REDACTED]"},
+        )
+
+    def test_redact_text_handles_multiple_json_serialization_layers(self) -> None:
+        for depth in (2, 3):
+            with self.subTest(depth=depth):
+                payload: object = {"Authorization": "Bearer deep-secret-789"}
+                for _ in range(depth):
+                    payload = json.dumps({"payload": payload})
+
+                redacted = waiter.redact_text(str(payload))
+
+                self.assertNotIn("deep-secret-789", redacted)
+                decoded: object = json.loads(redacted)
+                for _ in range(depth - 1):
+                    self.assertIsInstance(decoded, dict)
+                    decoded = json.loads(decoded["payload"])
+                self.assertEqual(
+                    decoded,
+                    {"payload": {"Authorization": "Bearer [REDACTED]"}},
+                )
+
     def test_command_success_captures_bounded_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             result_path = Path(directory) / "result.json"

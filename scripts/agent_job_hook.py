@@ -52,7 +52,45 @@ V2_SEMANTIC_IDENTITY_FIELDS = (
 )
 V2_REQUIRED_ENV = "TENN_V2_REQUIRED"
 TIER34_AUTHORIZED_ENV = "TENN_TIER34_AUTHORIZED"
-FILE_MUTATION_TOOLS = {"apply_patch", "edit", "replace", "write", "write_file"}
+FILE_MUTATION_TOOLS = {
+    "apply_patch",
+    "create",
+    "create_file",
+    "delete",
+    "delete_file",
+    "edit",
+    "move",
+    "move_file",
+    "remove",
+    "remove_file",
+    "rename",
+    "rename_file",
+    "replace",
+    "truncate",
+    "truncate_file",
+    "write",
+    "write_file",
+}
+FILE_TOOL_PATH_KEYS = (
+    "file_path",
+    "filePath",
+    "path",
+    "filename",
+    "source",
+    "source_path",
+    "sourcePath",
+    "destination",
+    "destination_path",
+    "destinationPath",
+    "old_path",
+    "oldPath",
+    "new_path",
+    "newPath",
+    "from",
+    "to",
+    "paths",
+    "files",
+)
 SHELL_TOOL_NAMES = {"bash", "run_shell_command", "shell"}
 READ_ONLY_COMMANDS = {
     "cat",
@@ -102,6 +140,7 @@ RUNTIME_SYSTEMCTL_COMMANDS = {
     "mask",
     "reload",
     "restart",
+    "set-property",
     "start",
     "stop",
     "unmask",
@@ -165,9 +204,46 @@ READ_ONLY_REDIS_COMMANDS = {
     "zscan",
     "zscore",
 }
+CLEARLY_READ_ONLY_SQL_FUNCTIONS = {
+    "abs",
+    "avg",
+    "cast",
+    "char_length",
+    "coalesce",
+    "count",
+    "current_database",
+    "current_schema",
+    "current_schemas",
+    "current_user",
+    "date_trunc",
+    "extract",
+    "greatest",
+    "least",
+    "length",
+    "lower",
+    "max",
+    "min",
+    "now",
+    "nullif",
+    "octet_length",
+    "pg_backend_pid",
+    "pg_column_size",
+    "pg_database_size",
+    "pg_is_in_recovery",
+    "pg_relation_size",
+    "pg_size_pretty",
+    "pg_total_relation_size",
+    "round",
+    "session_user",
+    "sum",
+    "to_char",
+    "upper",
+    "version",
+}
 PATCH_FILE_RE = re.compile(
     r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s*(.+?)\s*$", re.MULTILINE
 )
+PATCH_MOVE_TO_RE = re.compile(r"^\*\*\*\s+Move to:\s*(.+?)\s*$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -254,6 +330,27 @@ def _is_task_card_path(path: str | None) -> bool:
     )
 
 
+def _file_tool_raw_paths(tool_input: Mapping[str, Any]) -> tuple[list[str], bool]:
+    paths: list[str] = []
+    saw_path_field = False
+    classified = True
+    for key in FILE_TOOL_PATH_KEYS:
+        if key not in tool_input:
+            continue
+        saw_path_field = True
+        value = tool_input[key]
+        values = value if isinstance(value, (list, tuple)) else (value,)
+        if not values:
+            classified = False
+            continue
+        for item in values:
+            if isinstance(item, str) and item.strip():
+                paths.append(item)
+            else:
+                classified = False
+    return paths, bool(saw_path_field and paths and classified)
+
+
 def _mutation_paths(
     repo_root: Path,
     tool_name: str,
@@ -266,27 +363,23 @@ def _mutation_paths(
         if not isinstance(patch, str) or not patch.strip():
             return None
         matches = PATCH_FILE_RE.findall(patch)
-        if not matches or "*** Move to:" in patch:
+        if not matches:
             return None
         paths: list[str] = []
-        for _, raw_path in matches:
+        raw_paths = [raw_path for _, raw_path in matches]
+        raw_paths.extend(PATCH_MOVE_TO_RE.findall(patch))
+        for raw_path in raw_paths:
             path = _repo_relative_path(repo_root, raw_path)
             if path is None:
                 return None
             paths.append(path)
         return paths
-    if normalized_tool in {"edit", "replace", "write", "write_file"}:
-        raw_path = tool_input.get(
-            "file_path",
-            tool_input.get(
-                "filePath",
-                tool_input.get("path", tool_input.get("filename")),
-            ),
-        )
-        if not isinstance(raw_path, str) or not raw_path.strip():
+    if normalized_tool in FILE_MUTATION_TOOLS:
+        raw_paths, classified = _file_tool_raw_paths(tool_input)
+        if not classified:
             return None
-        path = _repo_relative_path(repo_root, raw_path)
-        return [path] if path is not None else None
+        paths = [_repo_relative_path(repo_root, raw_path) for raw_path in raw_paths]
+        return [path for path in paths if path is not None] if all(paths) else None
     return []
 
 
@@ -1934,7 +2027,96 @@ def _environment_assignment(token: str) -> bool:
     return bool(separator and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name))
 
 
-def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
+def _unresolved_shell_value(value: str) -> bool:
+    return any(marker in value for marker in ("$", "`", "*", "?", "[", "]", "{", "}"))
+
+
+def _runtime_cli_action(
+    tokens: list[str],
+    *,
+    value_options: frozenset[str],
+    attached_short_options: tuple[str, ...] = (),
+) -> tuple[str | None, int]:
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            index += 1
+            break
+        if token in value_options:
+            index += 2
+            continue
+        if any(
+            token.startswith(f"{option}=")
+            for option in value_options
+            if option.startswith("--")
+        ) or any(
+            token.startswith(option) and token != option
+            for option in attached_short_options
+        ):
+            index += 1
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        return token, index
+    return (tokens[index], index) if index < len(tokens) else (None, index)
+
+
+def _time_wrapper(tokens: list[str]) -> tuple[list[str], str | None]:
+    if not tokens or Path(tokens[0]).name != "time":
+        return tokens, None
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            return tokens[index + 1 :], None
+        if token in {"-o", "--output"}:
+            if index + 1 >= len(tokens):
+                return [], "unparseable time output option"
+            output_path = tokens[index + 1]
+            if _unresolved_shell_value(output_path):
+                return [], "ambiguous shell-expanded time output path"
+            if _sensitive_shared_path(output_path):
+                issue = "direct mutation of sensitive shared-state path: " + output_path
+                return [], issue
+            index += 2
+            continue
+        if token.startswith("--output="):
+            output_path = token.split("=", 1)[1]
+            if not output_path or _unresolved_shell_value(output_path):
+                return [], "ambiguous shell-expanded time output path"
+            if _sensitive_shared_path(output_path):
+                issue = "direct mutation of sensitive shared-state path: " + output_path
+                return [], issue
+            index += 1
+            continue
+        if token.startswith("-o") and token != "-o":
+            output_path = token[2:]
+            if _unresolved_shell_value(output_path):
+                return [], "ambiguous shell-expanded time output path"
+            if _sensitive_shared_path(output_path):
+                issue = "direct mutation of sensitive shared-state path: " + output_path
+                return [], issue
+            index += 1
+            continue
+        if token in {"-f", "--format"}:
+            if index + 1 >= len(tokens):
+                return [], "unparseable time format option"
+            index += 2
+            continue
+        if token.startswith("--format=") or token.startswith("-"):
+            index += 1
+            continue
+        return tokens[index:], None
+    return [], None
+
+
+def _unwrap_shell_tokens(
+    tokens: list[str],
+    *,
+    stop_before: frozenset[str] = frozenset(),
+) -> list[str]:
     """Remove common non-semantic wrappers before Tier 3/4 classification."""
 
     remaining = list(tokens)
@@ -1944,6 +2126,8 @@ def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
         if not remaining:
             return []
         executable = Path(remaining[0]).name
+        if executable in stop_before:
+            break
         if executable == "sudo":
             index = 1
             value_options = {
@@ -2020,6 +2204,254 @@ def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
                 index += 1
             remaining = remaining[index:]
             continue
+        if executable in {"builtin", "exec"}:
+            index = 1
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if executable == "exec" and token == "-a":
+                    index += 2
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "time":
+            remaining, _ = _time_wrapper(remaining)
+            continue
+        if executable == "setsid":
+            index = 1
+            while index < len(remaining) and remaining[index].startswith("-"):
+                if remaining[index] == "--":
+                    index += 1
+                    break
+                index += 1
+            remaining = remaining[index:]
+            continue
+        if executable == "stdbuf":
+            index = 1
+            value_options = {"-e", "-i", "-o", "--error", "--input", "--output"}
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(("-e", "-i", "-o", "--error=", "--input=", "--output=")):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "xargs":
+            index = 1
+            value_options = {
+                "-E",
+                "-I",
+                "-L",
+                "-P",
+                "-a",
+                "-d",
+                "-e",
+                "-i",
+                "-l",
+                "-n",
+                "-s",
+                "--arg-file",
+                "--delimiter",
+                "--eof",
+                "--max-args",
+                "--max-chars",
+                "--max-lines",
+                "--max-procs",
+                "--process-slot-var",
+                "--replace",
+            }
+            value_prefixes = tuple(
+                [f"{option}=" for option in value_options if option.startswith("--")]
+                + ["-E", "-I", "-L", "-P", "-a", "-d", "-e", "-i", "-l", "-n", "-s"]
+            )
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(value_prefixes) or token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "taskset":
+            index = 1
+            process_mode = False
+            while index < len(remaining) and remaining[index].startswith("-"):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token == "--pid" or token.startswith("--pid=") or (
+                    token.startswith("-")
+                    and not token.startswith("--")
+                    and "p" in token[1:]
+                ):
+                    process_mode = True
+                    break
+                index += 1
+            if process_mode:
+                break
+            remaining = remaining[index + 1 :] if index < len(remaining) else []
+            continue
+        if executable == "ionice":
+            process_options = {"-P", "-p", "-u", "--pgid", "--pid", "--uid"}
+            index = 1
+            process_mode = False
+            value_options = {"-c", "-n", "--class", "--classdata"}
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in process_options or any(
+                    token.startswith(prefix) and token != prefix
+                    for prefix in process_options
+                ):
+                    process_mode = True
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(("-c", "-n", "--class=", "--classdata=")):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            if process_mode:
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "chrt":
+            index = 1
+            process_mode = False
+            value_options = {"-D", "-P", "-T", "--deadline", "--period", "--runtime"}
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in {"-p", "--pid"} or token.startswith(("-p", "--pid=")):
+                    process_mode = True
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(("--deadline=", "--period=", "--runtime=")):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            if process_mode:
+                break
+            remaining = remaining[index + 1 :] if index < len(remaining) else []
+            continue
+        if executable == "watch":
+            index = 1
+            direct_exec = False
+            value_options = {"-n", "--interval"}
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in {"-x", "--exec"}:
+                    direct_exec = True
+                    index += 1
+                    continue
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(("-n", "--interval=")):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            command_tokens = remaining[index:]
+            remaining = (
+                command_tokens
+                if direct_exec or not command_tokens
+                else ["sh", "-c", " ".join(command_tokens)]
+            )
+            continue
+        if executable == "nice":
+            index = 1
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in {"-n", "--adjustment"}:
+                    index += 2
+                    continue
+                if token.startswith(("-n", "--adjustment=")) or re.fullmatch(
+                    r"-\d+", token
+                ):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "nohup":
+            index = 1
+            while index < len(remaining) and remaining[index].startswith("-"):
+                if remaining[index] == "--":
+                    index += 1
+                    break
+                index += 1
+            remaining = remaining[index:]
+            continue
+        if executable == "timeout":
+            index = 1
+            value_options = {"-k", "-s", "--kill-after", "--signal"}
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith(("--kill-after=", "--signal=")):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            if index >= len(remaining):
+                return []
+            remaining = remaining[index + 1 :]
+            continue
         if executable == "uv" and len(remaining) > 1 and remaining[1] == "run":
             known_executables = {
                 "bash",
@@ -2055,21 +2487,33 @@ def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
 def _shell_c_command(tokens: list[str]) -> str | None:
     if not tokens or Path(tokens[0]).name not in {"bash", "sh"}:
         return None
-    for index, token in enumerate(tokens[1:], start=1):
+    index = 1
+    value_options = {"+O", "+o", "-O", "-o", "--init-file", "--rcfile"}
+    while index < len(tokens):
+        token = tokens[index]
         if token == "--":
+            return None
+        if token in value_options:
+            index += 2
             continue
-        if token in {"+O", "-O", "--init-file", "--rcfile"}:
+        if token.startswith(("--init-file=", "--rcfile=")) or (
+            len(token) > 2 and token[:2] in {"+O", "+o", "-O", "-o"}
+        ):
+            index += 1
             continue
         if token.startswith("-") and not token.startswith("--") and "c" in token[1:]:
             return tokens[index + 1] if index + 1 < len(tokens) else ""
-        if not token.startswith("-") and tokens[index - 1] not in {
-            "+O",
-            "-O",
-            "--init-file",
-            "--rcfile",
-        }:
+        if token.startswith(("-", "+")):
+            index += 1
+            continue
+        if not token.startswith("-"):
             break
+        index += 1
     return None
+
+
+def _sql_without_string_literals(query: str) -> str:
+    return re.sub(r"'(?:''|[^'])*'", "''", query)
 
 
 def _read_only_sql(query: str) -> bool:
@@ -2080,11 +2524,16 @@ def _read_only_sql(query: str) -> bool:
         return False
     for statement in statements:
         lowered = statement.lower()
+        without_literals = _sql_without_string_literals(lowered)
+        if any(marker in without_literals for marker in ("--", "/*", "*/")):
+            return False
         if re.search(
-            r"\b(dblink_exec|load_extension|lo_export|lo_import|nextval|"
-            r"pg_advisory_lock|pg_cancel_backend|pg_reload_conf|pg_rotate_logfile|"
-            r"pg_terminate_backend|pg_write_file|setval|writefile)\s*\(",
-            lowered,
+            r"\b(dblink_exec|eval|load_extension|lo_export|lo_import|lo_unlink|nextval|"
+            r"pg_advisory_lock|pg_cancel_backend|pg_create_logical_replication_slot|"
+            r"pg_create_physical_replication_slot|pg_drop_replication_slot|"
+            r"pg_reload_conf|pg_rotate_logfile|pg_terminate_backend|pg_write_file|"
+            r"setval|writefile)\s*\(",
+            without_literals,
         ):
             return False
         if re.match(r"^(select|show|describe|desc|values)\b", lowered):
@@ -2098,6 +2547,41 @@ def _read_only_sql(query: str) -> bool:
             continue
         return False
     return True
+
+
+def _clearly_read_only_psql_query(query: str) -> bool:
+    if not _read_only_sql(query):
+        return False
+    without_literals = _sql_without_string_literals(query)
+    if re.search(r'"(?:""|[^"])+"\s*(?:\.|\()', without_literals):
+        return False
+    non_function_keywords = {"exists", "filter", "from", "in", "not", "over", "values"}
+    for match in re.finditer(
+        r"(?i)\b([a-z_][a-z0-9_$]*(?:\.[a-z_][a-z0-9_$]*)?)\s*\(",
+        without_literals,
+    ):
+        qualified_name = match.group(1).lower()
+        if "." in qualified_name:
+            qualifier, name = qualified_name.rsplit(".", 1)
+            if qualifier != "pg_catalog":
+                return False
+        else:
+            name = qualified_name
+        if (
+            name not in CLEARLY_READ_ONLY_SQL_FUNCTIONS
+            and name not in non_function_keywords
+        ):
+            return False
+    return True
+
+
+def _read_only_sqlite_dot_command(command: str) -> bool:
+    return bool(
+        re.fullmatch(
+            r"\.(?:databases|dump|indexes|schema|tables)(?:[ \t]+[^;|\r\n]+)?",
+            command.strip().lower(),
+        )
+    )
 
 
 def _sqlite_read_only(tokens: list[str]) -> bool:
@@ -2144,67 +2628,151 @@ def _sqlite_read_only(tokens: list[str]) -> bool:
             continue
         commands.append(" ".join(tokens[index:]))
         break
-    read_only_dot_commands = (".databases", ".dump", ".indexes", ".schema", ".tables")
     return bool(database_seen and commands) and all(
-        command.strip().lower().startswith(read_only_dot_commands)
-        or _read_only_sql(command)
+        _read_only_sqlite_dot_command(command) or _read_only_sql(command)
         for command in commands
     )
 
 
 def _psql_read_only(tokens: list[str]) -> bool:
     queries: list[str] = []
+    connection_args: list[str] = []
     list_only = False
     value_options = {
         "-d",
+        "-F",
         "-h",
         "-p",
+        "-P",
+        "-R",
+        "-T",
         "-U",
-        "-v",
         "--dbname",
+        "--field-separator",
         "--host",
         "--port",
-        "--set",
+        "--pset",
+        "--record-separator",
+        "--table-attr",
         "--username",
     }
+    safe_flags = {
+        "-0",
+        "-1",
+        "-A",
+        "-E",
+        "-H",
+        "-L",
+        "-P",
+        "-R",
+        "-T",
+        "-W",
+        "-X",
+        "-a",
+        "-b",
+        "-e",
+        "-n",
+        "-q",
+        "-t",
+        "-w",
+        "-x",
+        "-z",
+        "--csv",
+        "--echo-all",
+        "--echo-errors",
+        "--echo-hidden",
+        "--echo-queries",
+        "--expanded",
+        "--html",
+        "--no-align",
+        "--no-password",
+        "--no-psqlrc",
+        "--quiet",
+        "--record-separator-zero",
+        "--single-transaction",
+        "--tuples-only",
+        "--field-separator-zero",
+    }
+    short_value_prefixes = {"-d", "-F", "-h", "-p", "-P", "-R", "-T", "-U"}
+    safe_short_flags = set("01AEHXabenqtwxz")
+    operands_only = False
     index = 1
     while index < len(tokens):
         token = tokens[index]
+        if not operands_only and token == "--":
+            operands_only = True
+            index += 1
+            continue
+        if operands_only:
+            if token.startswith("-"):
+                return False
+            connection_args.append(token)
+            if len(connection_args) > 2:
+                return False
+            index += 1
+            continue
+        if token in {"-v", "--set"} or token.startswith(("-v", "--set=")):
+            return False
         if token in {"-c", "--command"}:
             if index + 1 >= len(tokens):
                 return False
             queries.append(tokens[index + 1])
             index += 2
             continue
+        if token.startswith("-c") and token != "-c":
+            queries.append(token[2:])
+            index += 1
+            continue
         if token.startswith("--command="):
             queries.append(token.split("=", 1)[1])
             index += 1
             continue
-        if token in {"-f", "--file"} or token.startswith("--file="):
+        if token in {"-f", "--file"} or token.startswith(("-f", "--file=")):
             return False
         if token in {"-L", "-o", "--log-file", "--output"} or token.startswith(
-            ("--log-file=", "--output=")
+            ("-L", "-o", "--log-file=", "--output=")
         ):
             return False
         if token in {"-l", "--list", "--help", "--version"}:
             list_only = True
             index += 1
             continue
-        if token in value_options:
+        if not operands_only and token in value_options:
             if index + 1 >= len(tokens):
                 return False
             index += 2
             continue
-        if any(token.startswith(f"{option}=") for option in value_options if option.startswith("--")):
+        if not operands_only and any(
+            token.startswith(f"{option}=")
+            for option in value_options
+            if option.startswith("--")
+        ):
             index += 1
             continue
-        if token.startswith("-"):
+        if not operands_only and any(
+            token.startswith(prefix) and token != prefix
+            for prefix in short_value_prefixes
+        ):
             index += 1
             continue
+        if not operands_only and token in safe_flags:
+            index += 1
+            continue
+        if not operands_only and token.startswith("-") and set(token[1:]).issubset(
+            safe_short_flags
+        ):
+            index += 1
+            continue
+        if token.startswith("-") and not operands_only:
+            return False
+        connection_args.append(token)
+        if len(connection_args) > 2:
+            return False
         index += 1
-    return (bool(queries) and all(_read_only_sql(query) for query in queries)) or (
-        list_only and not queries
-    )
+    return (
+        bool(queries)
+        and all(_clearly_read_only_psql_query(query) for query in queries)
+    ) or (list_only and not queries)
 
 
 def _redis_read_only(tokens: list[str]) -> bool:
@@ -2217,30 +2785,62 @@ def _redis_read_only(tokens: list[str]) -> bool:
         "-s",
         "-u",
         "--dbnum",
+        "--cacert",
+        "--cacertdir",
+        "--cert",
+        "--count",
         "--host",
+        "--key",
         "--pass",
+        "--pattern",
         "--port",
+        "--sni",
         "--socket",
+        "--type",
         "--user",
     }
-    safe_flags = {"--csv", "--json", "--no-auth-warning", "--raw", "--scan"}
+    safe_flags = {
+        "-c",
+        "--csv",
+        "--json",
+        "--no-auth-warning",
+        "--raw",
+        "--scan",
+        "--tls",
+    }
+    short_value_prefixes = {"-a", "-h", "-i", "-n", "-p", "-s", "-u"}
     index = 1
     saw_scan = False
+    operands_only = False
     while index < len(tokens):
         token = tokens[index]
-        if token in value_options:
+        if not operands_only and token == "--":
+            operands_only = True
+            index += 1
+            continue
+        if not operands_only and token in value_options:
             if index + 1 >= len(tokens):
                 return False
             index += 2
             continue
-        if any(token.startswith(f"{option}=") for option in value_options if option.startswith("--")):
+        if not operands_only and any(
+            token.startswith(f"{option}=")
+            for option in value_options
+            if option.startswith("--")
+        ):
             index += 1
             continue
-        if token in safe_flags:
+        if not operands_only and any(
+            token.startswith(prefix) and token != prefix
+            for prefix in short_value_prefixes
+        ):
+            index += 1
+            continue
+        if not operands_only and token in safe_flags:
             saw_scan = saw_scan or token == "--scan"
             index += 1
             continue
-        if token.startswith("-"):
+        if token.startswith("-") and not operands_only:
             return False
         return token.lower() in READ_ONLY_REDIS_COMMANDS
     return saw_scan
@@ -2258,19 +2858,111 @@ def _datastore_issue(executable: str, tokens: list[str]) -> str | None:
     return f"shared datastore command ({executable})"
 
 
+def _filesystem_mutation_issue(executable: str, tokens: list[str]) -> str | None:
+    paths: list[str] = []
+    index = 1
+    operands_only = False
+    while index < len(tokens):
+        token = tokens[index]
+        if not operands_only and token == "--":
+            operands_only = True
+            index += 1
+            continue
+        if not operands_only and executable == "truncate" and token in {
+            "-r",
+            "-s",
+            "--reference",
+            "--size",
+        }:
+            if index + 1 >= len(tokens):
+                return None
+            index += 2
+            continue
+        if not operands_only and executable == "mv" and token in {
+            "-S",
+            "--suffix",
+        }:
+            if index + 1 >= len(tokens):
+                return None
+            index += 2
+            continue
+        if not operands_only and executable == "mv" and token in {
+            "-t",
+            "--target-directory",
+        }:
+            if index + 1 >= len(tokens):
+                return None
+            paths.append(tokens[index + 1])
+            index += 2
+            continue
+        if not operands_only and executable == "mv" and token.startswith(
+            "--target-directory="
+        ):
+            paths.append(token.split("=", 1)[1])
+            index += 1
+            continue
+        if (
+            not operands_only
+            and executable == "mv"
+            and token.startswith("-t")
+            and token != "-t"
+        ):
+            paths.append(token[2:])
+            index += 1
+            continue
+        if not operands_only and token.startswith("-"):
+            index += 1
+            continue
+        paths.append(token)
+        index += 1
+    unresolved = sorted(path for path in paths if _unresolved_shell_value(path))
+    if unresolved:
+        return "ambiguous shell-expanded filesystem path: " + ", ".join(unresolved)
+    sensitive = sorted(path for path in paths if _sensitive_shared_path(path))
+    if sensitive:
+        return "direct mutation of sensitive shared-state path: " + ", ".join(
+            sensitive
+        )
+    return None
+
+
 def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
+    time_tokens = _unwrap_shell_tokens(tokens, stop_before=frozenset({"time"}))
+    while time_tokens and Path(time_tokens[0]).name == "time":
+        time_tokens, time_issue = _time_wrapper(time_tokens)
+        if time_issue is not None:
+            return time_issue
+        time_tokens = _unwrap_shell_tokens(
+            time_tokens,
+            stop_before=frozenset({"time"}),
+        )
     tokens = _unwrap_shell_tokens(tokens)
     if not tokens:
         return None
     executable = Path(tokens[0]).name
+    if executable not in {"[", "[["} and _unresolved_shell_value(executable):
+        return "unresolved shell-expanded executable"
+    if executable in {"chrt", "ionice", "taskset"}:
+        return "shared process scheduling mutation"
     normalized_tokens = [executable, *tokens[1:]]
     shell_command = _shell_c_command(normalized_tokens)
     if shell_command is not None:
         if depth >= 8 or not shell_command:
             return "unparseable shell wrapper containing a command string"
         return _command_high_risk_issue(shell_command, depth=depth + 1)
+    if executable == "eval":
+        eval_command = " ".join(normalized_tokens[1:]).strip()
+        if depth >= 8 or not eval_command or re.search(r"[$`]", eval_command):
+            return "unparseable eval command"
+        return _command_high_risk_issue(eval_command, depth=depth + 1)
+    if executable in {"mv", "rm", "truncate"}:
+        issue = _filesystem_mutation_issue(executable, normalized_tokens)
+        if issue is not None:
+            return issue
     if executable == "systemctl":
         action = _systemctl_action(normalized_tokens)
+        if action is not None and _unresolved_shell_value(action):
+            return "unresolved systemctl action"
         if action in RUNTIME_SYSTEMCTL_COMMANDS:
             return "shared runtime/service mutation"
         if action is None and any(
@@ -2279,6 +2971,8 @@ def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
             return "unclassified systemctl command containing a runtime action"
     if executable == "git":
         subcommand, args = _git_command(normalized_tokens)
+        if subcommand is not None and _unresolved_shell_value(subcommand):
+            return "unresolved Git action"
         destructive = {
             "clean",
             "cherry-pick",
@@ -2334,15 +3028,92 @@ def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
         ):
             return f"destructive Git action ({subcommand})"
     if executable == "docker":
-        actions = {"exec", "kill", "restart", "rm", "run", "start", "stop"}
-        action = next((token for token in tokens[1:] if token in actions), None)
-        if action is not None:
+        actions = {"exec", "kill", "prune", "restart", "rm", "run", "start", "stop"}
+        action, action_index = _runtime_cli_action(
+            normalized_tokens,
+            value_options=frozenset(
+                {
+                    "-H",
+                    "-l",
+                    "--config",
+                    "--context",
+                    "--host",
+                    "--log-level",
+                    "--tlscacert",
+                    "--tlscert",
+                    "--tlskey",
+                }
+            ),
+            attached_short_options=("-H", "-l"),
+        )
+        if action is not None and _unresolved_shell_value(action):
+            return "unresolved container runtime action"
+        if action in actions:
             return f"container runtime mutation ({action})"
+        if action in {"builder", "compose", "container", "image", "network", "system", "volume"}:
+            nested_tokens = normalized_tokens[action_index + 1 :]
+            nested_action = next(
+                (token for token in nested_tokens if not token.startswith("-")),
+                None,
+            )
+            if nested_action is not None and _unresolved_shell_value(nested_action):
+                return "unresolved container runtime action"
+            if nested_action in actions:
+                return f"container runtime mutation ({nested_action})"
     if executable == "kubectl":
-        actions = {"apply", "create", "delete", "edit", "exec", "patch", "replace", "scale"}
-        action = next((token for token in tokens[1:] if token in actions), None)
-        if action is not None:
+        actions = {
+            "apply",
+            "create",
+            "delete",
+            "edit",
+            "exec",
+            "patch",
+            "replace",
+            "restart",
+            "scale",
+        }
+        action, action_index = _runtime_cli_action(
+            normalized_tokens,
+            value_options=frozenset(
+                {
+                    "-n",
+                    "-s",
+                    "--as",
+                    "--as-group",
+                    "--cache-dir",
+                    "--certificate-authority",
+                    "--client-certificate",
+                    "--client-key",
+                    "--cluster",
+                    "--context",
+                    "--kubeconfig",
+                    "--namespace",
+                    "--request-timeout",
+                    "--server",
+                    "--tls-server-name",
+                    "--token",
+                    "--user",
+                }
+            ),
+            attached_short_options=("-n", "-s"),
+        )
+        if action is not None and _unresolved_shell_value(action):
+            return "unresolved Kubernetes action"
+        if action in actions:
             return f"Kubernetes mutation ({action})"
+        if action == "rollout":
+            nested_action = next(
+                (
+                    token
+                    for token in normalized_tokens[action_index + 1 :]
+                    if not token.startswith("-")
+                ),
+                None,
+            )
+            if nested_action is not None and _unresolved_shell_value(nested_action):
+                return "unresolved Kubernetes action"
+            if nested_action in actions:
+                return f"Kubernetes mutation ({nested_action})"
     if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant"}:
         return _datastore_issue(executable, normalized_tokens)
     if executable in {"python", "python3"} and len(tokens) > 1:
@@ -2355,7 +3126,8 @@ def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
 
 def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+        lexer.whitespace = " \t\r"
         lexer.whitespace_split = True
         lexer.commenters = ""
         shell_tokens = list(lexer)
@@ -2363,12 +3135,38 @@ def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
         shell_tokens = []
     segments: list[list[str]] = [[]]
     for token in shell_tokens:
-        if token and set(token) <= {";", "&", "|"}:
+        if token in {"{", "}"} or (
+            token and set(token) <= {";", "&", "|", "(", ")", "\n"}
+        ):
             if segments[-1]:
                 segments.append([])
             continue
         segments[-1].append(token)
     for tokens in segments:
+        if tokens and tokens[0].lower() == "coproc":
+            nested_tokens = tokens[1:]
+            candidates = [nested_tokens]
+            if (
+                len(nested_tokens) > 1
+                and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", nested_tokens[0])
+            ):
+                candidates.append(nested_tokens[1:])
+            for candidate in candidates:
+                issue = _high_risk_tokens_issue(candidate, depth=depth)
+                if issue:
+                    return issue
+            continue
+        while tokens and tokens[0].lower() in {
+            "!",
+            "do",
+            "elif",
+            "else",
+            "if",
+            "then",
+            "until",
+            "while",
+        }:
+            tokens = tokens[1:]
         if not tokens:
             continue
         issue = _high_risk_tokens_issue(tokens, depth=depth)
@@ -2385,10 +3183,23 @@ def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
 
 
 def _sensitive_shared_path(path: str) -> bool:
-    candidate = PurePosixPath(path.lower())
-    parts = tuple(part for part in candidate.parts if part not in {"", "/"})
+    normalized_parts: list[str] = []
+    for part in PurePosixPath(path.lower()).parts:
+        if part in {"", "/", "."}:
+            continue
+        if part == "..":
+            if normalized_parts and normalized_parts[-1] != "..":
+                normalized_parts.pop()
+            else:
+                normalized_parts.append(part)
+            continue
+        normalized_parts.append(part)
+    parts = tuple(normalized_parts)
     if not parts:
         return False
+    if ".." in parts:
+        return True
+    candidate = PurePosixPath(*parts)
     if parts[0] in {"docs", "test", "tests", "tmp"} or parts[:2] == (
         "reports",
         "agent_jobs",
@@ -2437,24 +3248,20 @@ def _proposed_mutation_paths(
     repo_root: Path,
     tool_name: str,
     hook_input: Mapping[str, Any] | None,
-) -> list[str]:
+) -> tuple[list[str], bool]:
     paths = _mutation_paths(repo_root, tool_name, hook_input)
     if paths is not None:
-        return paths
+        return paths, True
     tool_input = _hook_tool_input(hook_input)
-    if tool_name == "apply_patch":
+    if tool_name.lower() == "apply_patch":
         patch = tool_input.get("patch")
         if isinstance(patch, str):
-            return [raw_path for _, raw_path in PATCH_FILE_RE.findall(patch)]
-        return []
-    raw_path = tool_input.get(
-        "file_path",
-        tool_input.get(
-            "filePath",
-            tool_input.get("path", tool_input.get("filename")),
-        ),
-    )
-    return [raw_path] if isinstance(raw_path, str) and raw_path.strip() else []
+            matches = PATCH_FILE_RE.findall(patch)
+            raw_paths = [raw_path for _, raw_path in matches]
+            raw_paths.extend(PATCH_MOVE_TO_RE.findall(patch))
+            return raw_paths, bool(matches and raw_paths)
+        return [], False
+    return _file_tool_raw_paths(tool_input)
 
 
 def _always_on_high_risk_issue(
@@ -2465,13 +3272,15 @@ def _always_on_high_risk_issue(
 
     tool_name = _hook_tool_name(hook_input).lower()
     if tool_name in FILE_MUTATION_TOOLS:
-        paths = _proposed_mutation_paths(repo_root, tool_name, hook_input)
+        paths, classified = _proposed_mutation_paths(repo_root, tool_name, hook_input)
         if paths:
             sensitive = sorted(path for path in paths if _sensitive_shared_path(path))
             if sensitive:
                 return "direct mutation of sensitive shared-state path: " + ", ".join(
                     sensitive
                 )
+        if not classified:
+            return "ambiguous or unclassified file mutation path input"
         return None
     if tool_name in SHELL_TOOL_NAMES:
         return _command_high_risk_issue(_bash_command(hook_input))

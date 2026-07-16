@@ -290,7 +290,7 @@ def test_command_text_cannot_grant_tier34_authorization(tmp_path: Path) -> None:
             "tool_input": {
                 "command": (
                     "TENN_TIER34_AUTHORIZED=1 "
-                    "systemctl --user start tenn.service"
+                    "systemctl --user set-property tenn.service CPUQuota=50%"
                 )
             },
         },
@@ -316,13 +316,27 @@ def test_command_text_cannot_grant_tier34_authorization(tmp_path: Path) -> None:
         "git log -1",
         "git diff --stat",
         "git show HEAD",
+        "git show \"$SHA\"",
         "git fetch origin",
         "systemctl --user status tenn.service",
+        "systemctl --user status \"$UNIT\"",
         "docker ps",
+        "docker inspect \"$CONTAINER\"",
         "kubectl get pods",
+        "kubectl get pod \"$POD\"",
+        "taskset -c 0 git status --short",
+        "ionice -c2 git status --short",
+        "chrt -f 99 git status --short",
+        "watch -x git status --short",
         "python3 audit_extract_report.py",
         "command -v git reset",
         "printf 'git reset --hard'",
+        "[ -f scripts/agent_job_hook.py ]",
+        "[[ -f scripts/agent_job_hook.py ]]",
+        "taskset 03 git log -p",
+        "taskset -c 0 git log -p",
+        "ionice -c2 git log -p",
+        "chrt -f 99 git log -p",
     ],
 )
 def test_default_non_v2_safe_operations_pass(tmp_path: Path, command: str) -> None:
@@ -367,19 +381,74 @@ def test_default_non_v2_high_risk_wrapped_or_compound_operations_block(tmp_path:
         "bash -c 'systemctl --user restart tenn.service'",
         "/bin/bash -lc 'systemctl --user restart tenn.service'",
         "bash -O extglob -c 'git reset --hard'",
+        "bash -o errexit -c 'git reset --hard'",
         "sh -c 'git reset --hard'",
         "/bin/sh -ec 'git clean -fd'",
+        "time git reset --hard",
+        "/usr/bin/time -f '%E' /usr/bin/git reset --hard",
+        "exec /usr/bin/git reset --hard",
+        "builtin exec /usr/bin/git reset --hard",
+        "nice -n 5 /usr/bin/git reset --hard",
+        "nohup /usr/bin/git reset --hard",
+        "timeout 5 /usr/bin/git reset --hard",
+        "eval 'git reset --hard'",
+        "bash -c \"eval 'git reset --hard'\"",
+        "setsid git reset --hard",
+        "stdbuf -oL git reset --hard",
+        "xargs git reset --hard",
+        "coproc git reset --hard",
+        "coproc JOB git reset --hard",
+        "taskset -c 0 git reset --hard",
+        "ionice -c 2 -n 0 git reset --hard",
+        "chrt -f 99 git reset --hard",
+        "watch -n 1 git reset --hard",
+        "taskset -p 03 1234",
+        "taskset -pc 0 1234",
+        "ionice -c2 -p 1234",
+        "ionice --class 2 --pid 1234",
+        "chrt -p 99 1234",
+        "chrt --pid 99 1234",
+        "/usr/bin/g?t reset --hard",
+        "cmd=git; \"$cmd\" reset --hard",
+        "svc=systemctl; \"$svc\" --user set-property tenn.service CPUQuota=50%",
+        "action=reset; git \"$action\" --hard",
         "env MODE=prod bash -c 'systemctl --user restart tenn.service'",
         "MODE=prod command sh -c 'git reset --hard'",
         "sudo env MODE=prod command /bin/bash -c 'systemctl restart tenn.service'",
         "env -S \"bash -c 'git reset --hard'\"",
         "uv run python3 scripts/run_extraction_backfill.py --backfill",
+        "rm -f data/results.sqlite",
+        "/usr/bin/truncate -s 0 data/results.sqlite",
+        "systemctl --user set-property tenn.service CPUQuota=50%",
+        "docker system prune -af",
+        "kubectl rollout restart deployment/tenn",
         "git status || git reset --hard",
         "git status; git clean -fd",
         "printf ready | systemctl --user restart tenn.service",
+        "printf ready | truncate -s 0 data/results.sqlite",
+        "true && rm -f data/results.sqlite",
+        "if true; then git reset --hard; fi",
+        "{ git reset --hard; }",
+        "(git reset --hard)",
+        "! git reset --hard",
+        "true\ngit reset --hard",
+        "time -o data/results.sqlite git status",
+        "time --output=data/results.sqlite true",
+        "time time -o data/results.sqlite git status",
+        "DEST=data/results.sqlite; time -o \"$DEST\" true",
+        "rm -f tmp/../data/results.sqlite",
+        "rm -f {tmp,data}/results.txt",
+        "truncate -s0 run*/state.json",
+        "mv scripts/x {tmp,data}/results.txt",
+        "truncate -s0 scripts/../data/results.sqlite",
+        "mv -tdata scripts/example.py",
+        "P=data/results.sqlite; truncate -s0 \"$P\"",
         "systemctl --unknown restart tenn.service",
         "docker --context remote stop api",
+        "docker $ACTION ps",
+        "docker $ACTION inspect",
         "kubectl --context remote delete pod api",
+        "kubectl $ACTION pods get",
     ],
 )
 def test_default_gate_inspects_effective_commands_through_common_wrappers(
@@ -447,11 +516,18 @@ def test_default_gate_blocks_destructive_git_forms(
         "sqlite3 data.sqlite 'SELECT 1'",
         "sqlite3 -readonly data.sqlite 'EXPLAIN SELECT * FROM results'",
         "sqlite3 data.sqlite \"SELECT 'delete'\"",
+        "sqlite3 -cmd 'SELECT 1' data.sqlite 'SELECT 2'",
         "psql -d tenn -c 'SELECT 1'",
+        "psql -hlocalhost -p5432 -Ureader tenn -c 'SELECT 1'",
         "psql -d tenn -c \"SELECT 'update'\"",
+        "psql -d tenn -c 'SELECT count(*) FROM results'",
+        "psql -d tenn -c 'SELECT now(), pg_is_in_recovery()'",
+        "psql -d tenn -c 'SELECT pg_catalog.count(*) FROM results'",
         "psql --dbname=tenn --command='SHOW server_version'",
         "redis-cli GET current:status",
         "redis-cli GET set",
+        "redis-cli -hlocalhost -p6379 -n0 --raw GET current:status",
+        "redis-cli --scan --pattern 'current:*'",
         "redis-cli --raw INFO server",
     ],
 )
@@ -477,13 +553,34 @@ def test_default_gate_allows_clearly_read_only_datastore_commands(
     [
         "sqlite3 data.sqlite 'DELETE FROM results'",
         "sqlite3 data.sqlite \"SELECT writefile('/tmp/result', 'x')\"",
+        "sqlite3 data.sqlite \"SELECT writefile/**/('data/results.sqlite','x')\"",
+        "sqlite3 data.sqlite \"SELECT load_extension/**/('evil')\"",
+        "sqlite3 data.sqlite \"SELECT eval('DELETE FROM results')\"",
+        "sqlite3 -cmd 'DELETE FROM results' data.sqlite 'SELECT 1'",
+        "sqlite3 data.sqlite '.tables\n.shell true'",
         "sqlite3 data.sqlite",
         "psql -d tenn -c 'UPDATE results SET value = 1'",
         "psql -d tenn -c \"SELECT setval('result_id_seq', 42)\"",
         "psql -d tenn -o /tmp/results.txt -c 'SELECT 1'",
+        "psql -o/tmp/results.txt -c 'SELECT 1' tenn",
+        "psql -L/tmp/results.log -c 'SELECT 1' tenn",
+        "psql -fmutate.sql -c 'SELECT 1' tenn",
+        "psql tenn reader extra -c 'SELECT 1'",
+        "psql -- -c 'SELECT 1'",
+        "psql -v fn=pg_terminate_backend -c 'SELECT :fn(123)' tenn",
+        "psql --set=fn=pg_terminate_backend -c 'SELECT :fn(123)' tenn",
+        "psql -d tenn -c 'SELECT lo_unlink(123)'",
+        "psql -d tenn -c 'SELECT pg_terminate_backend/**/(123)'",
+        "psql -d tenn -c \"SELECT pg_drop_replication_slot('slot')\"",
+        "psql -d tenn -c \"SELECT pg_create_physical_replication_slot('slot')\"",
+        "psql -d tenn -c 'SELECT custom_mutator()'",
+        "psql -d tenn -c 'SELECT evil.count(*) FROM results'",
+        "psql -d tenn -c 'SELECT public.abs(1)'",
         "psql -d tenn",
         "redis-cli SET current:status running",
         "redis-cli EVAL 'return redis.call(\"DEL\", KEYS[1])' 1 current:status",
+        "redis-cli --eval inspect.lua current:status",
+        "redis-cli -n0",
     ],
 )
 def test_default_gate_blocks_mutating_or_ambiguous_datastore_commands(
@@ -537,6 +634,120 @@ def test_default_gate_blocks_direct_mutation_of_sensitive_shared_paths(
 
     assert payload["decision"] == "block"
     assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        (
+            "apply_patch",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: scripts/example.py\n"
+                    "*** Move to: data/results.sqlite\n"
+                    "*** End Patch\n"
+                )
+            },
+        ),
+        (
+            "apply_patch",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: runtime/state.json\n"
+                    "*** Move to: scripts/state.json\n"
+                    "*** End Patch\n"
+                )
+            },
+        ),
+        ("Move", {"source": "scripts/example.py", "destination": "data/results.sqlite"}),
+        ("move_file", {"source_path": "runtime/state.json", "destination_path": "scripts/state.json"}),
+        ("Rename", {"old_path": "scripts/example.py", "new_path": "queues/example.py"}),
+        ("Create", {"path": "source_data/input.csv", "content": "data"}),
+        ("Truncate", {"file_path": "data/results.sqlite", "size": 0}),
+        ("Delete", {"file_path": "stores/vector/index.json"}),
+        (
+            "Write",
+            {"file_path": "data/results.sqlite", "files": [123], "content": "x"},
+        ),
+        (
+            "Move",
+            {
+                "source": "scripts/example.py",
+                "destination": "tmp/../data/results.sqlite",
+            },
+        ),
+    ],
+)
+def test_default_gate_classifies_every_sensitive_file_tool_path(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": tool_name, "tool_input": tool_input},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+def test_default_gate_blocks_raw_string_patch_move_into_sensitive_path(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: scripts/example.py\n"
+        "*** Move to: data/results.sqlite\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("Move", {"source": "scripts/old.py", "destination": "scripts/new.py"}),
+        ("Rename", {"old_path": "docs/old.md", "new_path": "docs/new.md"}),
+        ("Create", {"path": "tests/fixture.txt", "content": "fixture"}),
+        ("Truncate", {"file_path": "tmp/task-local/evidence.txt", "size": 0}),
+        ("Delete", {"file_path": "reports/agent_jobs/task-local/evidence.txt"}),
+    ],
+)
+def test_default_gate_allows_equivalent_file_tools_on_ordinary_task_paths(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": tool_name, "tool_input": tool_input},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
 
 
 @pytest.mark.parametrize(
