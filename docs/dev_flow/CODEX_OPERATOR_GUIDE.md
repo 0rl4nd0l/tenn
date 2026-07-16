@@ -31,8 +31,16 @@ python3 scripts/tenn_dev_status.py
 git status --short --untracked-files=all
 ```
 
-If Dev Status reports a blocked, stale, dirty, or unexpected state, stop before
-editing and report `STATE` plus `NEXT_SAFE_ACTION`. If HEAD or the worktree
+If Dev Status reports `STALE_PATH` from a clean checkout and registry, ledger,
+and duplicate-work checks show no conflict, do not ask Orlando to approve the
+routine retarget. Create a fresh canonical task worktree, rerun Dev Status
+there, and edit only after the new checkout reports `CLEAN` or
+`VALID_TASK_WORKTREE`.
+
+Stop before editing and report `STATE` plus `NEXT_SAFE_ACTION` for dirty state,
+branch/path collision, destructive cleanup, duplicate active work, unclear task
+scope, runtime/data mutation, GitHub mutation, reset/rebase/stash/clean/delete
+decisions, or any other blocked or unexpected state. If HEAD or the worktree
 moves unexpectedly during a run, stop mutation and run read-only forensics.
 
 Then use the relevant task card and guard checks, keep one logical bundle per
