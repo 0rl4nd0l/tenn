@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
+REMOTE_NAME="${1:-origin}"
 while IFS= read -r git_env_var; do
   unset "$git_env_var"
 done < <(git rev-parse --local-env-vars)
@@ -12,8 +13,12 @@ changed_python=()
 while read -r local_ref local_sha remote_ref remote_sha; do
   [[ -z "${local_ref:-}" || "$local_sha" == "$ZERO_SHA" ]] && continue
   if [[ "$remote_sha" == "$ZERO_SHA" ]]; then
-    range=("$local_sha")
-    names=("git" "diff-tree" "--no-commit-id" "--name-only" "-r" "--diff-filter=ACMR" "${range[@]}")
+    while IFS= read -r commit; do
+      while IFS= read -r path; do
+        [[ "$path" == *.py && -f "$path" ]] && changed_python+=("$path")
+      done < <(git diff-tree --root --no-commit-id --name-only -r --diff-filter=ACMR "$commit")
+    done < <(git rev-list "$local_sha" --not "--remotes=$REMOTE_NAME")
+    continue
   else
     names=("git" "diff" "--name-only" "--diff-filter=ACMR" "$remote_sha" "$local_sha")
   fi

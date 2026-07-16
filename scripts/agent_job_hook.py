@@ -1866,34 +1866,82 @@ def _substantive_before_tool(
     return True
 
 
-def _always_on_high_risk_issue(hook_input: Mapping[str, Any] | None) -> str | None:
-    """Classify narrow shared/destructive actions outside optional V2 policy."""
+def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
+    """Remove common wrappers before applying the small Tier 3/4 action gate."""
 
-    tool_name = _hook_tool_name(hook_input).lower()
-    if tool_name not in SHELL_TOOL_NAMES:
+    index = 0
+    while index < len(tokens):
+        executable = Path(tokens[index]).name
+        if executable == "sudo":
+            index += 1
+            while index < len(tokens) and tokens[index].startswith("-"):
+                index += 2 if tokens[index] in {"-u", "-g", "-h"} else 1
+        elif executable == "env":
+            index += 1
+            while index < len(tokens) and (tokens[index].startswith("-") or "=" in tokens[index]):
+                index += 1
+        elif executable == "command":
+            index += 1
+        else:
+            break
+    return tokens[index:]
+
+
+def _high_risk_tokens_issue(tokens: list[str]) -> str | None:
+    tokens = _unwrap_shell_tokens(tokens)
+    if not tokens:
         return None
-    command = _bash_command(hook_input)
-    tokens = _simple_shell_tokens(command)
-    if tokens is None or not tokens:
-        return None
-    executable = tokens[0]
-    if executable == "systemctl" and _systemctl_action(tokens) in RUNTIME_SYSTEMCTL_COMMANDS:
+    executable = Path(tokens[0]).name
+    normalized_tokens = [executable, *tokens[1:]]
+    if executable == "systemctl" and _systemctl_action(normalized_tokens) in RUNTIME_SYSTEMCTL_COMMANDS:
         return "shared runtime/service mutation"
     if executable == "git":
-        subcommand, args = _git_command(tokens)
-        destructive = {"checkout", "clean", "cherry-pick", "merge", "rebase", "reset", "restore", "switch"}
-        if subcommand in destructive or (
+        subcommand, args = _git_command(normalized_tokens)
+        destructive = {"clean", "cherry-pick", "merge", "rebase", "reset", "restore"}
+        checkout_discards = subcommand == "checkout" and (
+            "--" in args or any(arg in {"-f", "--force", "--ours", "--theirs"} for arg in args)
+        )
+        switch_discards = subcommand == "switch" and any(
+            arg in {"-f", "--force", "--discard-changes"} for arg in args
+        )
+        if subcommand in destructive or checkout_discards or switch_discards or (
             subcommand == "branch" and any(arg in {"-D", "--delete", "-d"} for arg in args)
         ) or (
             subcommand == "push" and any(arg.startswith("--force") or arg == "-f" for arg in args)
         ):
             return f"destructive Git action ({subcommand})"
-    if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant", "docker", "kubectl"}:
-        return f"shared data or runtime command ({executable})"
+    if executable == "docker" and len(tokens) > 1 and tokens[1] in {"run", "start", "stop", "restart", "rm", "kill", "exec"}:
+        return f"container runtime mutation ({tokens[1]})"
+    if executable == "kubectl" and len(tokens) > 1 and tokens[1] in {"apply", "create", "delete", "edit", "exec", "patch", "replace", "scale"}:
+        return f"Kubernetes mutation ({tokens[1]})"
+    if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant"}:
+        query = " ".join(tokens[1:]).strip().lower()
+        if not re.match(r"^(select|show|describe|explain|info|scan|keys|ping)\b", query):
+            return f"shared datastore command ({executable})"
     if executable in {"python", "python3"} and len(tokens) > 1:
-        script = Path(tokens[1]).name.lower()
-        if "extract" in script or "backfill" in script:
-            return f"extraction or backfill command ({script})"
+        script = Path(tokens[1]).name
+        mutation_entrypoints = {"run_full_pipeline.py", "run_extraction_backfill.py"}
+        if script in mutation_entrypoints or any(arg in {"--apply", "--backfill", "--write", "--production"} for arg in tokens[2:]):
+            return f"explicit extraction/backfill mutation ({script})"
+    return None
+
+
+def _always_on_high_risk_issue(hook_input: Mapping[str, Any] | None) -> str | None:
+    """Classify narrow shared/destructive actions outside optional V2 policy."""
+
+    if _hook_tool_name(hook_input).lower() not in SHELL_TOOL_NAMES:
+        return None
+    command = _bash_command(hook_input)
+    segments = [segment.strip() for segment in re.split(r"&&|\|\||[;|]", command) if segment.strip()]
+    for segment in segments:
+        tokens = _simple_shell_tokens(segment)
+        if tokens is not None:
+            issue = _high_risk_tokens_issue(tokens)
+            if issue:
+                return issue
+            continue
+        if re.search(r"(?i)\b(systemctl|git|docker|kubectl|sqlite3|psql|mysql|redis-cli|qdrant)\b.*\b(start|stop|restart|reset|clean|rebase|merge|cherry-pick|delete|apply|patch|replace|force)\b", segment):
+            return "unparseable command containing a known high-risk action"
     return None
 
 

@@ -257,6 +257,42 @@ def test_default_non_v2_tier34_mutation_requires_explicit_authorization(tmp_path
     assert allowed.get("decision") != "block"
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git switch -c topic",
+        "git checkout -b topic",
+        "git worktree add /tmp/topic topic",
+        "systemctl --user status tenn.service",
+        "docker ps",
+        "kubectl get pods",
+        "python3 audit_extract_report.py",
+    ],
+)
+def test_default_non_v2_safe_operations_pass(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(repo, event="BeforeTool", hook_input={"tool_name": "Bash", "tool_input": {"command": command}})
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git reset --hard",
+        "git checkout -- src/allowed.py",
+        "sudo /bin/systemctl --user restart tenn.service",
+        "env MODE=prod docker stop api",
+        "command kubectl delete pod api",
+        "git status && systemctl --user start tenn.service",
+        "systemctl --user start tenn.service $(unexpected)",
+    ],
+)
+def test_default_non_v2_high_risk_wrapped_or_compound_operations_block(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(repo, event="BeforeTool", hook_input={"tool_name": "Bash", "tool_input": {"command": command}})
+    assert payload["decision"] == "block"
+
+
 def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
     tmp_path: Path,
 ) -> None:
