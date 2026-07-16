@@ -124,6 +124,47 @@ DATABASE_SIDECAR_SUFFIXES = tuple(
     for suffix in sorted(DATABASE_SUFFIXES)
     for sidecar in ("-journal", "-shm", "-wal")
 )
+READ_ONLY_REDIS_COMMANDS = {
+    "dbsize",
+    "echo",
+    "exists",
+    "get",
+    "getrange",
+    "hget",
+    "hgetall",
+    "hexists",
+    "hkeys",
+    "hlen",
+    "hmget",
+    "hscan",
+    "hvals",
+    "info",
+    "keys",
+    "llen",
+    "lrange",
+    "mget",
+    "ping",
+    "pttl",
+    "scan",
+    "scard",
+    "sismember",
+    "smembers",
+    "sscan",
+    "strlen",
+    "time",
+    "ttl",
+    "type",
+    "xinfo",
+    "xlen",
+    "xrange",
+    "xrevrange",
+    "zcard",
+    "zcount",
+    "zrange",
+    "zrank",
+    "zscan",
+    "zscore",
+}
 PATCH_FILE_RE = re.compile(
     r"^\*\*\*\s+(Add|Update|Delete)\s+File:\s*(.+?)\s*$", re.MULTILINE
 )
@@ -363,10 +404,28 @@ def _git_command(tokens: list[str]) -> tuple[str | None, list[str]]:
     index = 1
     while index < len(tokens):
         token = tokens[index]
-        if token == "-C" and index + 1 < len(tokens):
+        if token in {
+            "-C",
+            "-c",
+            "--config-env",
+            "--exec-path",
+            "--git-dir",
+            "--namespace",
+            "--super-prefix",
+            "--work-tree",
+        } and index + 1 < len(tokens):
             index += 2
             continue
-        if token.startswith(("--git-dir=", "--work-tree=")):
+        if token.startswith(
+            (
+                "--config-env=",
+                "--exec-path=",
+                "--git-dir=",
+                "--namespace=",
+                "--super-prefix=",
+                "--work-tree=",
+            )
+        ):
             index += 1
             continue
         if token.startswith("-"):
@@ -1866,58 +1925,422 @@ def _substantive_before_tool(
     return True
 
 
+def _environment_assignment(token: str) -> bool:
+    name, separator, _ = token.partition("=")
+    return bool(separator and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name))
+
+
 def _unwrap_shell_tokens(tokens: list[str]) -> list[str]:
-    """Remove common wrappers before applying the small Tier 3/4 action gate."""
+    """Remove common non-semantic wrappers before Tier 3/4 classification."""
 
-    index = 0
-    while index < len(tokens):
-        executable = Path(tokens[index]).name
+    remaining = list(tokens)
+    while remaining:
+        while remaining and _environment_assignment(remaining[0]):
+            remaining = remaining[1:]
+        if not remaining:
+            return []
+        executable = Path(remaining[0]).name
         if executable == "sudo":
-            index += 1
-            while index < len(tokens) and tokens[index].startswith("-"):
-                index += 2 if tokens[index] in {"-u", "-g", "-h"} else 1
-        elif executable == "env":
-            index += 1
-            while index < len(tokens) and (tokens[index].startswith("-") or "=" in tokens[index]):
+            index = 1
+            value_options = {
+                "-C",
+                "-D",
+                "-g",
+                "-h",
+                "-R",
+                "-T",
+                "-u",
+                "-U",
+                "--chdir",
+                "--chroot",
+                "--close-from",
+                "--command-timeout",
+                "--group",
+                "--host",
+                "--other-user",
+                "--user",
+            }
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in value_options:
+                    index += 2
+                    continue
+                if token.startswith("-"):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "env":
+            index = 1
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in {"-S", "--split-string"}:
+                    if index + 1 >= len(remaining):
+                        return []
+                    try:
+                        split_command = shlex.split(remaining[index + 1], posix=True)
+                    except ValueError:
+                        return []
+                    remaining = [*split_command, *remaining[index + 2 :]]
+                    index = 0
+                    break
+                if token.startswith("--split-string="):
+                    try:
+                        split_command = shlex.split(token.split("=", 1)[1], posix=True)
+                    except ValueError:
+                        return []
+                    remaining = [*split_command, *remaining[index + 1 :]]
+                    index = 0
+                    break
+                if token in {"-C", "-u", "--chdir", "--unset"}:
+                    index += 2
+                    continue
+                if token.startswith("-") or _environment_assignment(token):
+                    index += 1
+                    continue
+                break
+            remaining = remaining[index:]
+            continue
+        if executable == "command":
+            if any(token in {"-V", "-v"} for token in remaining[1:]):
+                return remaining
+            index = 1
+            while index < len(remaining) and remaining[index].startswith("-"):
                 index += 1
-        elif executable == "command":
-            index += 1
-        else:
+            remaining = remaining[index:]
+            continue
+        if executable == "uv" and len(remaining) > 1 and remaining[1] == "run":
+            known_executables = {
+                "bash",
+                "docker",
+                "git",
+                "kubectl",
+                "mysql",
+                "psql",
+                "python",
+                "python3",
+                "qdrant",
+                "redis-cli",
+                "sh",
+                "sqlite3",
+                "systemctl",
+            }
+            command_index = next(
+                (
+                    index
+                    for index in range(2, len(remaining))
+                    if Path(remaining[index]).name in known_executables
+                ),
+                None,
+            )
+            if command_index is None:
+                return remaining
+            remaining = remaining[command_index:]
+            continue
+        break
+    return remaining
+
+
+def _shell_c_command(tokens: list[str]) -> str | None:
+    if not tokens or Path(tokens[0]).name not in {"bash", "sh"}:
+        return None
+    for index, token in enumerate(tokens[1:], start=1):
+        if token == "--":
+            continue
+        if token in {"+O", "-O", "--init-file", "--rcfile"}:
+            continue
+        if token.startswith("-") and not token.startswith("--") and "c" in token[1:]:
+            return tokens[index + 1] if index + 1 < len(tokens) else ""
+        if not token.startswith("-") and tokens[index - 1] not in {
+            "+O",
+            "-O",
+            "--init-file",
+            "--rcfile",
+        }:
             break
-    return tokens[index:]
+    return None
 
 
-def _high_risk_tokens_issue(tokens: list[str]) -> str | None:
+def _read_only_sql(query: str) -> bool:
+    """Recognize a deliberately small set of clearly read-only SQL forms."""
+
+    statements = [statement.strip() for statement in query.split(";") if statement.strip()]
+    if not statements:
+        return False
+    for statement in statements:
+        lowered = statement.lower()
+        if re.search(
+            r"\b(dblink_exec|load_extension|lo_export|lo_import|nextval|"
+            r"pg_advisory_lock|pg_cancel_backend|pg_reload_conf|pg_rotate_logfile|"
+            r"pg_terminate_backend|pg_write_file|setval|writefile)\s*\(",
+            lowered,
+        ):
+            return False
+        if re.match(r"^(select|show|describe|desc|values)\b", lowered):
+            if re.search(r"\binto\b|\bfor\s+(update|share)\b", lowered):
+                return False
+            continue
+        if re.match(
+            r"^explain(?:\s+query\s+plan)?\s+(select|show|describe|desc|values)\b",
+            lowered,
+        ):
+            continue
+        return False
+    return True
+
+
+def _sqlite_read_only(tokens: list[str]) -> bool:
+    safe_flags = {
+        "-bail",
+        "-batch",
+        "-column",
+        "-csv",
+        "-echo",
+        "-header",
+        "-html",
+        "-json",
+        "-line",
+        "-list",
+        "-markdown",
+        "-noheader",
+        "-quote",
+        "-readonly",
+        "-safe",
+        "-table",
+        "-tabs",
+    }
+    value_options = {"-cmd", "-newline", "-nullvalue", "-separator"}
+    commands: list[str] = []
+    database_seen = False
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        if not database_seen and token in safe_flags:
+            index += 1
+            continue
+        if not database_seen and token in value_options:
+            if index + 1 >= len(tokens):
+                return False
+            if token == "-cmd":
+                commands.append(tokens[index + 1])
+            index += 2
+            continue
+        if not database_seen and token.startswith("-"):
+            return False
+        if not database_seen:
+            database_seen = True
+            index += 1
+            continue
+        commands.append(" ".join(tokens[index:]))
+        break
+    read_only_dot_commands = (".databases", ".dump", ".indexes", ".schema", ".tables")
+    return bool(database_seen and commands) and all(
+        command.strip().lower().startswith(read_only_dot_commands)
+        or _read_only_sql(command)
+        for command in commands
+    )
+
+
+def _psql_read_only(tokens: list[str]) -> bool:
+    queries: list[str] = []
+    list_only = False
+    value_options = {
+        "-d",
+        "-h",
+        "-p",
+        "-U",
+        "-v",
+        "--dbname",
+        "--host",
+        "--port",
+        "--set",
+        "--username",
+    }
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token in {"-c", "--command"}:
+            if index + 1 >= len(tokens):
+                return False
+            queries.append(tokens[index + 1])
+            index += 2
+            continue
+        if token.startswith("--command="):
+            queries.append(token.split("=", 1)[1])
+            index += 1
+            continue
+        if token in {"-f", "--file"} or token.startswith("--file="):
+            return False
+        if token in {"-L", "-o", "--log-file", "--output"} or token.startswith(
+            ("--log-file=", "--output=")
+        ):
+            return False
+        if token in {"-l", "--list", "--help", "--version"}:
+            list_only = True
+            index += 1
+            continue
+        if token in value_options:
+            if index + 1 >= len(tokens):
+                return False
+            index += 2
+            continue
+        if any(token.startswith(f"{option}=") for option in value_options if option.startswith("--")):
+            index += 1
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        index += 1
+    return (bool(queries) and all(_read_only_sql(query) for query in queries)) or (
+        list_only and not queries
+    )
+
+
+def _redis_read_only(tokens: list[str]) -> bool:
+    value_options = {
+        "-a",
+        "-h",
+        "-i",
+        "-n",
+        "-p",
+        "-s",
+        "-u",
+        "--dbnum",
+        "--host",
+        "--pass",
+        "--port",
+        "--socket",
+        "--user",
+    }
+    safe_flags = {"--csv", "--json", "--no-auth-warning", "--raw", "--scan"}
+    index = 1
+    saw_scan = False
+    while index < len(tokens):
+        token = tokens[index]
+        if token in value_options:
+            if index + 1 >= len(tokens):
+                return False
+            index += 2
+            continue
+        if any(token.startswith(f"{option}=") for option in value_options if option.startswith("--")):
+            index += 1
+            continue
+        if token in safe_flags:
+            saw_scan = saw_scan or token == "--scan"
+            index += 1
+            continue
+        if token.startswith("-"):
+            return False
+        return token.lower() in READ_ONLY_REDIS_COMMANDS
+    return saw_scan
+
+
+def _datastore_issue(executable: str, tokens: list[str]) -> str | None:
+    readers = {
+        "sqlite3": _sqlite_read_only,
+        "psql": _psql_read_only,
+        "redis-cli": _redis_read_only,
+    }
+    reader = readers.get(executable)
+    if reader is not None and reader(tokens):
+        return None
+    return f"shared datastore command ({executable})"
+
+
+def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
     tokens = _unwrap_shell_tokens(tokens)
     if not tokens:
         return None
     executable = Path(tokens[0]).name
     normalized_tokens = [executable, *tokens[1:]]
-    if executable == "systemctl" and _systemctl_action(normalized_tokens) in RUNTIME_SYSTEMCTL_COMMANDS:
-        return "shared runtime/service mutation"
+    shell_command = _shell_c_command(normalized_tokens)
+    if shell_command is not None:
+        if depth >= 8 or not shell_command:
+            return "unparseable shell wrapper containing a command string"
+        return _command_high_risk_issue(shell_command, depth=depth + 1)
+    if executable == "systemctl":
+        action = _systemctl_action(normalized_tokens)
+        if action in RUNTIME_SYSTEMCTL_COMMANDS:
+            return "shared runtime/service mutation"
+        if action is None and any(
+            token in RUNTIME_SYSTEMCTL_COMMANDS for token in normalized_tokens[1:]
+        ):
+            return "unclassified systemctl command containing a runtime action"
     if executable == "git":
         subcommand, args = _git_command(normalized_tokens)
-        destructive = {"clean", "cherry-pick", "merge", "rebase", "reset", "restore"}
+        destructive = {
+            "clean",
+            "cherry-pick",
+            "filter-branch",
+            "merge",
+            "prune",
+            "rebase",
+            "reset",
+            "restore",
+            "revert",
+            "rm",
+        }
         checkout_discards = subcommand == "checkout" and (
-            "--" in args or any(arg in {"-f", "--force", "--ours", "--theirs"} for arg in args)
+            "--" in args
+            or any(
+                arg in {
+                    "-B",
+                    "-f",
+                    "-p",
+                    "--force",
+                    "--no-overlay",
+                    "--ours",
+                    "--overwrite-ignore",
+                    "--patch",
+                    "--theirs",
+                }
+                or arg.startswith("-B")
+                for arg in args
+            )
         )
         switch_discards = subcommand == "switch" and any(
-            arg in {"-f", "--force", "--discard-changes"} for arg in args
+            arg in {"-C", "-f", "--force", "--discard-changes"}
+            or arg.startswith("-C")
+            for arg in args
         )
         if subcommand in destructive or checkout_discards or switch_discards or (
-            subcommand == "branch" and any(arg in {"-D", "--delete", "-d"} for arg in args)
+            subcommand == "branch"
+            and any(
+                arg in {"-D", "-d", "-f", "--delete", "--force"}
+                or arg.startswith(("-D", "-d", "-f"))
+                for arg in args
+            )
         ) or (
-            subcommand == "push" and any(arg.startswith("--force") or arg == "-f" for arg in args)
+            subcommand == "push"
+            and any(
+                arg == "-f"
+                or arg == "--delete"
+                or arg.startswith(("--force", "+", ":"))
+                for arg in args
+            )
+        ) or (
+            subcommand == "worktree" and bool(args) and args[0] in {"remove", "prune"}
         ):
             return f"destructive Git action ({subcommand})"
-    if executable == "docker" and len(tokens) > 1 and tokens[1] in {"run", "start", "stop", "restart", "rm", "kill", "exec"}:
-        return f"container runtime mutation ({tokens[1]})"
-    if executable == "kubectl" and len(tokens) > 1 and tokens[1] in {"apply", "create", "delete", "edit", "exec", "patch", "replace", "scale"}:
-        return f"Kubernetes mutation ({tokens[1]})"
+    if executable == "docker":
+        actions = {"exec", "kill", "restart", "rm", "run", "start", "stop"}
+        action = next((token for token in tokens[1:] if token in actions), None)
+        if action is not None:
+            return f"container runtime mutation ({action})"
+    if executable == "kubectl":
+        actions = {"apply", "create", "delete", "edit", "exec", "patch", "replace", "scale"}
+        action = next((token for token in tokens[1:] if token in actions), None)
+        if action is not None:
+            return f"Kubernetes mutation ({action})"
     if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant"}:
-        query = " ".join(tokens[1:]).strip().lower()
-        if not re.match(r"^(select|show|describe|explain|info|scan|keys|ping)\b", query):
-            return f"shared datastore command ({executable})"
+        return _datastore_issue(executable, normalized_tokens)
     if executable in {"python", "python3"} and len(tokens) > 1:
         script = Path(tokens[1]).name
         mutation_entrypoints = {"run_full_pipeline.py", "run_extraction_backfill.py"}
@@ -1926,22 +2349,128 @@ def _high_risk_tokens_issue(tokens: list[str]) -> str | None:
     return None
 
 
-def _always_on_high_risk_issue(hook_input: Mapping[str, Any] | None) -> str | None:
+def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        shell_tokens = list(lexer)
+    except ValueError:
+        shell_tokens = []
+    segments: list[list[str]] = [[]]
+    for token in shell_tokens:
+        if token and set(token) <= {";", "&", "|"}:
+            if segments[-1]:
+                segments.append([])
+            continue
+        segments[-1].append(token)
+    for tokens in segments:
+        if not tokens:
+            continue
+        issue = _high_risk_tokens_issue(tokens, depth=depth)
+        if issue:
+            return issue
+    if (not shell_tokens or "$(" in command or "`" in command) and re.search(
+        r"(?i)\b(systemctl|git|docker|kubectl|sqlite3|psql|mysql|redis-cli|qdrant)\b"
+        r".*\b(start|stop|restart|reset|restore|clean|rebase|merge|cherry-pick|delete|"
+        r"remove|prune|apply|patch|replace|force|insert|update|drop|alter|set|del)\b",
+        command,
+    ):
+        return "unparseable command containing a known high-risk action"
+    return None
+
+
+def _sensitive_shared_path(path: str) -> bool:
+    candidate = PurePosixPath(path.lower())
+    parts = tuple(part for part in candidate.parts if part not in {"", "/"})
+    if not parts:
+        return False
+    if parts[0] in {"docs", "test", "tests", "tmp"} or parts[:2] == (
+        "reports",
+        "agent_jobs",
+    ):
+        return False
+    if candidate.name == ".env.example" or candidate.name.endswith(
+        (".example", ".sample", ".template")
+    ):
+        return False
+    lowered = candidate.as_posix()
+    suffix = candidate.suffix
+    if suffix in DATABASE_SUFFIXES or lowered.endswith(DATABASE_SIDECAR_SUFFIXES):
+        return True
+    if suffix in MODEL_SUFFIXES or suffix in {".key", ".p12", ".pem"}:
+        return True
+    if candidate.name == ".env" or candidate.name.startswith(".env."):
+        return True
+    if candidate.name in {"credentials.json", "id_rsa", "id_ed25519"}:
+        return True
+    sensitive_parts = {
+        ".tenn",
+        "data",
+        "databases",
+        "datasets",
+        "db",
+        "extraction_outputs",
+        "gold",
+        "models",
+        "qdrant",
+        "queue",
+        "queues",
+        "runtime",
+        "secrets",
+        "source_data",
+        "state",
+        "store",
+        "stores",
+    }
+    return any(part in sensitive_parts for part in parts) or any(
+        "extraction" in part and any(marker in part for marker in ("output", "result"))
+        for part in parts
+    )
+
+
+def _proposed_mutation_paths(
+    repo_root: Path,
+    tool_name: str,
+    hook_input: Mapping[str, Any] | None,
+) -> list[str]:
+    paths = _mutation_paths(repo_root, tool_name, hook_input)
+    if paths is not None:
+        return paths
+    tool_input = _hook_tool_input(hook_input)
+    if tool_name == "apply_patch":
+        patch = tool_input.get("patch")
+        if isinstance(patch, str):
+            return [raw_path for _, raw_path in PATCH_FILE_RE.findall(patch)]
+        return []
+    raw_path = tool_input.get(
+        "file_path",
+        tool_input.get(
+            "filePath",
+            tool_input.get("path", tool_input.get("filename")),
+        ),
+    )
+    return [raw_path] if isinstance(raw_path, str) and raw_path.strip() else []
+
+
+def _always_on_high_risk_issue(
+    repo_root: Path,
+    hook_input: Mapping[str, Any] | None,
+) -> str | None:
     """Classify narrow shared/destructive actions outside optional V2 policy."""
 
-    if _hook_tool_name(hook_input).lower() not in SHELL_TOOL_NAMES:
+    tool_name = _hook_tool_name(hook_input).lower()
+    if tool_name in FILE_MUTATION_TOOLS:
+        paths = _proposed_mutation_paths(repo_root, tool_name, hook_input)
+        if paths:
+            sensitive = sorted(path for path in paths if _sensitive_shared_path(path))
+            if sensitive:
+                return "direct mutation of sensitive shared-state path: " + ", ".join(
+                    sensitive
+                )
         return None
-    command = _bash_command(hook_input)
-    segments = [segment.strip() for segment in re.split(r"&&|\|\||[;|]", command) if segment.strip()]
-    for segment in segments:
-        tokens = _simple_shell_tokens(segment)
-        if tokens is not None:
-            issue = _high_risk_tokens_issue(tokens)
-            if issue:
-                return issue
-            continue
-        if re.search(r"(?i)\b(systemctl|git|docker|kubectl|sqlite3|psql|mysql|redis-cli|qdrant)\b.*\b(start|stop|restart|reset|clean|rebase|merge|cherry-pick|delete|apply|patch|replace|force)\b", segment):
-            return "unparseable command containing a known high-risk action"
+    if tool_name in SHELL_TOOL_NAMES:
+        return _command_high_risk_issue(_bash_command(hook_input))
     return None
 
 
@@ -3079,7 +3608,7 @@ def build_hook_payload(
     if event in {"Stop", "SessionEnd"}:
         return _allow_payload(platform)
 
-    high_risk_issue = _always_on_high_risk_issue(hook_input)
+    high_risk_issue = _always_on_high_risk_issue(repo_root, hook_input)
     if high_risk_issue and not _env_flag(values, TIER34_AUTHORIZED_ENV):
         return _blocking_payload(
             f"Tenn Tier 3/4 action blocked: {high_risk_issue}; set "
