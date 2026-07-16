@@ -5,11 +5,15 @@
 - Integration branch: `fix/cockpit-start-config-portable-engine-root-v1-20260715`
 - Integration HEAD before publish-report update: `5049044fbc4112e99dc41d8266784c1de8f6101d`
 - Published review HEAD: `9e661092eca47c6fadd9e7a4da7b5dc74533916e`
-- Pull request: `#512` (`draft`, checks in progress) targeting
+- Pull request: `#512` (`draft`; first `lint-and-test` run failed only on the
+  stale attached-source positional-call assertion) targeting
   `migration/clean-runtime-baseline-reconstruct-v1`
 - Duplicate work: `NO_MATCHING_ACTIVE_WORK_FOUND`
 - Full Git guard: `pass`; path classification `VALID_TASK_WORKTREE`
 - Code validation: `VERIFIED`
+- CI repair: owner-approved two-file test-contract fix is locally `VERIFIED`;
+  targeted attached-source suite `4 passed`, broader routing suite `99 passed`
+  with `48 subtests passed`; awaiting push and CI rerun
 - Live activation groups: `A+B+C+D+E` completed under explicit owner approval
 - Live functionality: `WORKING` for the approved Cockpit routing scope
 - Runtime: `fe_backend`, `fe_worker`, and `fe_gpu_worker` recreated with
@@ -24,5 +28,9 @@
   cards, and report-local runtime evidence cover the behavior and operator proof
 - Model/worker routing: `critical`, high-reasoning main agent, no workers;
   final merge authority remains the owner-approved review-board chair
+- CI-fix routing: `medium`, main agent only, no worker delegation; the repair
+  changes no product behavior
+- CI-fix docs impact: `DOCS_NOT_REQUIRED`; only the task-card allowlist and a
+  stale regression-test call inspection changed
 - Remaining out-of-scope issue: the UI on port 8081 was already absent before
   activation and requires a separate bounded diagnosis/restoration lane

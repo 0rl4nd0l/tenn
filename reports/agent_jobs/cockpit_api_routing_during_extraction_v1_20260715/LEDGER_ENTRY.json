@@ -4,7 +4,7 @@
   "workflow": "tenn-fix",
   "status": "pr_opened",
   "started_at": "2026-07-15T03:03:34Z",
-  "updated_at": "2026-07-15T07:55:48Z",
+  "updated_at": "2026-07-16T05:37:07Z",
   "owner": "Codex",
   "session_id": "l4nd0-System-Product-Name:1144973:cockpit_api_routing_during_extraction_v1_20260715",
   "thread_id": "DATA_MISSING",
@@ -29,6 +29,7 @@
     "financial-engine_v2/cockpit/tests/test_chat_keyword_api_routing.py",
     "financial-engine_v2/cockpit/tests/test_anthropic_client.py",
     "financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py",
+    "financial-engine_v2/cockpit/tests/test_chat_attached_sources.py",
     "financial-engine_v2/cockpit/tests/test_llm_backend_readonly_format.py",
     "financial-engine_v2/backend/tests/test_llm_fallback_policy.py",
     "financial-engine_v2/backend/tests/test_news_memo_extractor.py"
@@ -40,11 +41,12 @@
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md",
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json"
   ],
-  "summary": "Implemented, activated, and live-proved Claude routing for keyword chat and extraction-active non-metric LLM work, preserved local metric extraction, recorded effective provenance, and published the reviewed integration as draft PR #512.",
+  "summary": "Implemented, activated, and live-proved Claude routing, then repaired PR #512's sole stale attached-source test assertion without changing production behavior.",
   "validation": {
     "status": "passed",
     "commands": [
       "focused Cockpit and backend pytest suites",
+      "PR #512 attached-source RED/GREEN and 99-test focused routing suite",
       "normal and GPU-exclusive live Anthropic routing proof",
       "ruff check",
       "python3 -m py_compile",
@@ -52,7 +54,7 @@
       "agent_job_contract validate/check-diff/check-report-artifacts/check-closeout"
     ]
   },
-  "next_action": "wait_for_pr_512_checks_then_mark_ready_and_merge",
+  "next_action": "commit_and_push_ci_repair_then_wait_for_pr_512_checks",
   "owner_boundary": true,
   "supersedes": [],
   "superseded_by": [],

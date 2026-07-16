@@ -22,6 +22,7 @@ allowed_files:
   - financial-engine_v2/cockpit/tests/test_chat_keyword_api_routing.py
   - financial-engine_v2/cockpit/tests/test_anthropic_client.py
   - financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py
+  - financial-engine_v2/cockpit/tests/test_chat_attached_sources.py
   - financial-engine_v2/cockpit/tests/test_llm_backend_readonly_format.py
   - financial-engine_v2/config/cockpit_llm.yaml
   - financial-engine_v2/backend/app/services/llm.py

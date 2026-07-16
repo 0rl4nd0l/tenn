@@ -52,3 +52,20 @@ The extraction-active route was exercised through the real shared
 GPU-exclusive routing-state token with a 180-second TTL. No real extraction was
 started. This proves the route class without claiming a production extraction
 run. The UI outage on port 8081 predates activation and was not repaired.
+
+## PR #512 CI repair
+
+- CI RED: GitHub Actions run `29399058768` reported `1 failed, 3365 passed`;
+  `test_keyword_chat_inlines_attached_source_context` indexed positional call
+  arguments after HybridRouter had correctly switched the local client call to
+  `prompt=...`.
+- Local RED reproduced the same `IndexError: tuple index out of range`.
+- GREEN: `test_chat_attached_sources.py` passed (`4 passed`).
+- Broader focused routing/provenance suite passed (`99 passed`, `48 subtests
+  passed`) in an ephemeral `uv run --active --no-project` overlay.
+- Ruff passed for the changed Python test; `git diff --check` passed.
+- Two preliminary broad-suite attempts stopped during collection because the
+  lightweight borrowed venv lacked backend dependencies. No test failures were
+  inferred from those environment-only collection errors; the final ephemeral
+  overlay supplied the missing validation dependencies without changing repo
+  or runtime environments.

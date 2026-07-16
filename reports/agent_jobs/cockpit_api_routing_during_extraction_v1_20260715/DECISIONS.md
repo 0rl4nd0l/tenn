@@ -24,3 +24,5 @@
     required checks, and the review-board decision remain green.
 11. Keep the pre-existing UI outage outside this merge and route it to a
     separate read-only diagnosis and restoration manifest.
+12. Repair PR #512's stale attached-source assertion by reading HybridRouter's
+    `prompt` keyword argument; do not change production routing behavior.
