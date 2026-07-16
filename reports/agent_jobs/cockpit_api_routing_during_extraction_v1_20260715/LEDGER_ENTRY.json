@@ -4,7 +4,7 @@
   "workflow": "tenn-fix",
   "status": "pr_opened",
   "started_at": "2026-07-15T03:03:34Z",
-  "updated_at": "2026-07-16T05:37:07Z",
+  "updated_at": "2026-07-16T05:48:53Z",
   "owner": "Codex",
   "session_id": "l4nd0-System-Product-Name:1144973:cockpit_api_routing_during_extraction_v1_20260715",
   "thread_id": "DATA_MISSING",
@@ -41,7 +41,7 @@
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md",
     "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json"
   ],
-  "summary": "Implemented, activated, and live-proved Claude routing, then repaired PR #512's sole stale attached-source test assertion without changing production behavior.",
+  "summary": "Implemented, activated, and live-proved Claude routing; repaired PR #512's sole stale attached-source test assertion; repair head 7126f6a1 passed both required checks.",
   "validation": {
     "status": "passed",
     "commands": [
@@ -54,7 +54,7 @@
       "agent_job_contract validate/check-diff/check-report-artifacts/check-closeout"
     ]
   },
-  "next_action": "commit_and_push_ci_repair_then_wait_for_pr_512_checks",
+  "next_action": "push_final_report_state_then_mark_pr_512_ready_and_merge_after_checks",
   "owner_boundary": true,
   "supersedes": [],
   "superseded_by": [],

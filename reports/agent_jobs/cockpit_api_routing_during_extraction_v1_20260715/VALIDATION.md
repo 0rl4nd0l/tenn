@@ -64,6 +64,8 @@ run. The UI outage on port 8081 predates activation and was not repaired.
 - Broader focused routing/provenance suite passed (`99 passed`, `48 subtests
   passed`) in an ephemeral `uv run --active --no-project` overlay.
 - Ruff passed for the changed Python test; `git diff --check` passed.
+- GitHub Actions rerun passed on repair head `7126f6a1`: `lint-and-test`
+  run `29474484934` passed in 8m21s and `scan` run `29474485050` passed in 24s.
 - Two preliminary broad-suite attempts stopped during collection because the
   lightweight borrowed venv lacked backend dependencies. No test failures were
   inferred from those environment-only collection errors; the final ephemeral

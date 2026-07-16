@@ -6,14 +6,16 @@
 - Integration HEAD before publish-report update: `5049044fbc4112e99dc41d8266784c1de8f6101d`
 - Published review HEAD: `9e661092eca47c6fadd9e7a4da7b5dc74533916e`
 - Pull request: `#512` (`draft`; first `lint-and-test` run failed only on the
-  stale attached-source positional-call assertion) targeting
+  stale attached-source positional-call assertion, repaired head `7126f6a1`
+  passed both required checks) targeting
   `migration/clean-runtime-baseline-reconstruct-v1`
 - Duplicate work: `NO_MATCHING_ACTIVE_WORK_FOUND`
 - Full Git guard: `pass`; path classification `VALID_TASK_WORKTREE`
 - Code validation: `VERIFIED`
-- CI repair: owner-approved two-file test-contract fix is locally `VERIFIED`;
-  targeted attached-source suite `4 passed`, broader routing suite `99 passed`
-  with `48 subtests passed`; awaiting push and CI rerun
+- CI repair: owner-approved two-file test-contract fix is `VERIFIED`; targeted
+  attached-source suite `4 passed`, broader routing suite `99 passed` with `48
+  subtests passed`, and GitHub Actions runs `29474484934` and `29474485050`
+  passed on repair head `7126f6a1`
 - Live activation groups: `A+B+C+D+E` completed under explicit owner approval
 - Live functionality: `WORKING` for the approved Cockpit routing scope
 - Runtime: `fe_backend`, `fe_worker`, and `fe_gpu_worker` recreated with
