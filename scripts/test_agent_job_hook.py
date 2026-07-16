@@ -21,6 +21,7 @@ def isolated_registry_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TENN_AGENT_REGISTRY_ROOT", raising=False)
     monkeypatch.delenv("TENN_AGENT_TASK_CARD", raising=False)
     monkeypatch.delenv("TENN_V2_REQUIRED", raising=False)
+    monkeypatch.delenv("TENN_TIER34_AUTHORIZED", raising=False)
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
 
 
@@ -228,6 +229,34 @@ def test_stop_is_nonblocking_even_for_invalid_opted_in_v2(tmp_path: Path) -> Non
     assert payload.get("decision") != "block"
 
 
+def test_default_non_v2_read_only_operation_passes(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": "git status --short"}},
+    )
+    assert payload.get("decision") != "block"
+
+
+def test_default_non_v2_tier34_mutation_requires_explicit_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    hook_input = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "systemctl --user start tenn.service"},
+    }
+    _, blocked = run_hook(repo, event="BeforeTool", hook_input=hook_input)
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input=hook_input,
+    )
+    assert blocked["decision"] == "block"
+    assert "TENN_TIER34_AUTHORIZED=1" in str(blocked["reason"])
+    assert allowed.get("decision") != "block"
+
+
 def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
     tmp_path: Path,
 ) -> None:
@@ -254,7 +283,7 @@ def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
     )
 
     assert blocked["decision"] == "block"
-    assert "claim one V2 task card" in str(blocked["reason"])
+    assert "Tenn Tier 3/4 action blocked" in str(blocked["reason"])
     assert allowed.get("decision") != "block"
 
 
@@ -751,6 +780,7 @@ def test_required_terminal_hook_accepts_validated_release_receipt(
         env={
             "TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix(),
             "TENN_V2_REQUIRED": "1",
+            "TENN_TIER34_AUTHORIZED": "1",
         },
         event="Stop",
     )
@@ -1351,6 +1381,7 @@ def test_claimed_v2_blocks_runtime_command_without_runtime_capability(
         env={
             "TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix(),
             "TENN_V2_REQUIRED": "1",
+            "TENN_TIER34_AUTHORIZED": "1",
         },
         event="BeforeTool",
         hook_input={

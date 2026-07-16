@@ -51,6 +51,7 @@ V2_SEMANTIC_IDENTITY_FIELDS = (
     "target_transition",
 )
 V2_REQUIRED_ENV = "TENN_V2_REQUIRED"
+TIER34_AUTHORIZED_ENV = "TENN_TIER34_AUTHORIZED"
 FILE_MUTATION_TOOLS = {"apply_patch", "edit", "replace", "write", "write_file"}
 SHELL_TOOL_NAMES = {"bash", "run_shell_command", "shell"}
 READ_ONLY_COMMANDS = {
@@ -1865,6 +1866,37 @@ def _substantive_before_tool(
     return True
 
 
+def _always_on_high_risk_issue(hook_input: Mapping[str, Any] | None) -> str | None:
+    """Classify narrow shared/destructive actions outside optional V2 policy."""
+
+    tool_name = _hook_tool_name(hook_input).lower()
+    if tool_name not in SHELL_TOOL_NAMES:
+        return None
+    command = _bash_command(hook_input)
+    tokens = _simple_shell_tokens(command)
+    if tokens is None or not tokens:
+        return None
+    executable = tokens[0]
+    if executable == "systemctl" and _systemctl_action(tokens) in RUNTIME_SYSTEMCTL_COMMANDS:
+        return "shared runtime/service mutation"
+    if executable == "git":
+        subcommand, args = _git_command(tokens)
+        destructive = {"checkout", "clean", "cherry-pick", "merge", "rebase", "reset", "restore", "switch"}
+        if subcommand in destructive or (
+            subcommand == "branch" and any(arg in {"-D", "--delete", "-d"} for arg in args)
+        ) or (
+            subcommand == "push" and any(arg.startswith("--force") or arg == "-f" for arg in args)
+        ):
+            return f"destructive Git action ({subcommand})"
+    if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant", "docker", "kubectl"}:
+        return f"shared data or runtime command ({executable})"
+    if executable in {"python", "python3"} and len(tokens) > 1:
+        script = Path(tokens[1]).name.lower()
+        if "extract" in script or "backfill" in script:
+            return f"extraction or backfill command ({script})"
+    return None
+
+
 def _resolve_control_plane_root() -> Path:
     current = Path(__file__).resolve()
     for candidate in (current.parent, *current.parents):
@@ -2994,9 +3026,19 @@ def build_hook_payload(
     values = env or os.environ
     v2_required = _env_flag(values, V2_REQUIRED_ENV)
 
-    # Ordinary Tier 0 and Tier 1 work never consults task state. Stop is
-    # intentionally informational-only even for opted-in V2 sessions.
-    if event in {"Stop", "SessionEnd"} or not v2_required:
+    # Stop never blocks or writes state. Tier 3/4 protection is independent of
+    # V2; Tier 0/1 then returns without consulting task state.
+    if event in {"Stop", "SessionEnd"}:
+        return _allow_payload(platform)
+
+    high_risk_issue = _always_on_high_risk_issue(hook_input)
+    if high_risk_issue and not _env_flag(values, TIER34_AUTHORIZED_ENV):
+        return _blocking_payload(
+            f"Tenn Tier 3/4 action blocked: {high_risk_issue}; set "
+            f"{TIER34_AUTHORIZED_ENV}=1 only with explicit owner authorization.",
+            platform=platform,
+        )
+    if not v2_required:
         return _allow_payload(platform)
 
     control_plane_root = _resolve_control_plane_root()

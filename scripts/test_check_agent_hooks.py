@@ -165,38 +165,35 @@ def test_build_report_marks_non_matching_fingerprint(tmp_path: Path) -> None:
     assert any("expected fingerprint" in issue for issue in report.issues)
 
 
-def test_pre_push_fails_without_required_tools_unless_overridden(tmp_path: Path) -> None:
+def test_pre_push_lints_committed_python_changes_from_ref_stdin(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     hooks = repo / ".githooks"
     hooks.mkdir()
     pre_push = hooks / "pre-push"
     pre_push.write_text((Path(__file__).resolve().parents[1] / ".githooks" / "pre-push").read_text(), encoding="utf-8")
     pre_push.chmod(0o755)
+    run_git(repo, "config", "user.email", "hooks@example.invalid")
+    run_git(repo, "config", "user.name", "Hook Tests")
+    source = repo / "committed.py"
+    source.write_text("value = 1\n", encoding="utf-8")
+    run_git(repo, "add", "committed.py")
+    run_git(repo, "commit", "-m", "add committed python")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, stdout=subprocess.PIPE).stdout.strip()
+    ruff = repo / "financial-engine_v2" / ".venv" / "bin" / "ruff"
+    ruff.parent.mkdir(parents=True)
+    capture = repo / "ruff-args.txt"
+    ruff.write_text(f"#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" > {capture}\n", encoding="utf-8")
+    ruff.chmod(0o755)
 
     completed = subprocess.run(
         [str(pre_push)],
         cwd=repo,
+        input=f"refs/heads/topic {head} refs/heads/topic {'0' * 40}\n",
         check=False,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
-    assert completed.returncode == 1
-    assert "missing required hook tool" in completed.stderr
-    assert "TENN_ALLOW_MISSING_HOOK_TOOLS=1" in completed.stderr
-
-    overridden_env = os.environ.copy()
-    overridden_env["TENN_ALLOW_MISSING_HOOK_TOOLS"] = "1"
-    overridden = subprocess.run(
-        [str(pre_push)],
-        cwd=repo,
-        env=overridden_env,
-        check=False,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-
-    assert overridden.returncode == 0
-    assert "skipping lint/test checks" in overridden.stderr
+    assert completed.returncode == 0, completed.stderr
+    assert capture.read_text(encoding="utf-8").splitlines() == ["check", "committed.py"]
