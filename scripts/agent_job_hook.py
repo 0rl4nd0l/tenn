@@ -220,7 +220,11 @@ def _hook_tool_input(hook_input: Mapping[str, Any] | None) -> Mapping[str, Any]:
     if not hook_input:
         return {}
     value = hook_input.get("tool_input", hook_input.get("toolInput", {}))
-    return value if isinstance(value, Mapping) else {}
+    if isinstance(value, Mapping):
+        return value
+    if isinstance(value, str) and _hook_tool_name(hook_input).lower() == "apply_patch":
+        return {"patch": value}
+    return {}
 
 
 def _bash_command(hook_input: Mapping[str, Any] | None) -> str:

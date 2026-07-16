@@ -279,6 +279,29 @@ def test_default_non_v2_tier34_mutation_requires_explicit_authorization(tmp_path
     assert allowed.get("decision") != "block"
 
 
+def test_command_text_cannot_grant_tier34_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "TENN_TIER34_AUTHORIZED=1 "
+                    "systemctl --user start tenn.service"
+                )
+            },
+        },
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "TENN_TIER34_AUTHORIZED=1" in str(payload["reason"])
+
+
 @pytest.mark.parametrize(
     "command",
     [
@@ -519,6 +542,88 @@ def test_default_gate_blocks_direct_mutation_of_sensitive_shared_paths(
 @pytest.mark.parametrize(
     "path",
     [
+        "data/results.sqlite",
+        "runtime/state.json",
+        "queues/pending.json",
+        "stores/vector/index.json",
+    ],
+)
+def test_default_gate_blocks_raw_string_apply_patch_to_sensitive_shared_paths(
+    tmp_path: Path,
+    path: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = f"*** Begin Patch\n*** Update File: {path}\n*** End Patch\n"
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+def test_default_gate_allows_raw_string_apply_patch_to_ordinary_source(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: scripts/example.py\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "embedded_authorization",
+    [
+        "+TENN_TIER34_AUTHORIZED=1\n",
+        "+export TENN_TIER34_AUTHORIZED=1\n",
+        '+{"TENN_TIER34_AUTHORIZED": "1"}\n',
+    ],
+)
+def test_raw_string_patch_text_cannot_grant_tier34_authorization(
+    tmp_path: Path,
+    embedded_authorization: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: data/results.sqlite\n"
+        "@@\n"
+        f"{embedded_authorization}"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
         "scripts/example.py",
         "docs/guide.md",
         "tests/test_example.py",
@@ -657,6 +762,68 @@ def test_required_no_claim_allows_only_single_task_card_bootstrap(
 
     assert allowed.get("decision") != "block"
     assert blocked["decision"] == "block"
+
+
+@pytest.mark.parametrize("operation", ["Add", "Update"])
+def test_required_no_claim_allows_raw_string_task_card_bootstrap(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        f"*** {operation} File: docs/agent_tasks/new-v2.md\n"
+        "+---\n"
+        "+control_contract_version: 2\n"
+        "+---\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        (
+            "*** Begin Patch\n"
+            "*** Add File: docs/agent_tasks/new-v2.md\n"
+            "+---\n"
+            "+control_contract_version: 2\n"
+            "+---\n"
+            "*** Update File: src/allowed.py\n"
+            "*** End Patch\n"
+        ),
+        "*** Begin Patch\n*** End Patch\n",
+        (
+            "*** Begin Patch\n"
+            "*** Update File: docs/agent_tasks/new-v2.md\n"
+            "*** Move to: docs/agent_tasks/moved-v2.md\n"
+            "*** End Patch\n"
+        ),
+    ],
+)
+def test_required_no_claim_blocks_unsafe_raw_string_task_card_bootstrap(
+    tmp_path: Path,
+    patch: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload["decision"] == "block"
 
 
 def test_required_exact_v2_claim_command_breaks_bootstrap_deadlock(
