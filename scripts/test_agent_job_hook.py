@@ -472,6 +472,172 @@ def test_default_gate_inspects_effective_commands_through_common_wrappers(
 @pytest.mark.parametrize(
     "command",
     [
+        "cp scripts/example.py data/results.sqlite",
+        "cp -f scripts/example.py data/results.sqlite",
+        "cp --target-directory=data scripts/example.py",
+        "bash -c 'cp scripts/example.py data/results.sqlite'",
+        "uv run cp scripts/example.py data/results.sqlite",
+        "tee data/results.sqlite",
+        "dd if=/tmp/input of=data/results.sqlite",
+        "sed -i s/a/b/ data/results.sqlite",
+        "sed -i -e s/a/b/ data/results.sqlite",
+        "printf x > data/results.sqlite",
+        "printf x 1>data/results.sqlite",
+    ],
+)
+def test_protected_shell_writer_destinations_require_actual_authorization(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cp scripts/example.py",
+        "cp --target-directory",
+        "tee --unknown data/results.sqlite",
+        "dd of=",
+        "sed -i",
+        "printf x >",
+    ],
+)
+def test_malformed_shell_writer_destinations_fail_closed(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cp scripts/example.py tmp/example.py",
+        "cp -t tmp scripts/example.py",
+        "tee tmp/example.txt",
+        "dd if=/tmp/input of=tmp/example.bin",
+        "sed -i s/a/b/ scripts/example.py",
+        "sed -i -e s/a/b/ scripts/example.py",
+        "printf x > scripts/example.py",
+    ],
+)
+def test_ordinary_shell_writer_destinations_remain_autonomous(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- uv run git reset --hard",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- bash -c 'git reset --hard'",
+        "python3 scripts/codex_event_waiter.py command --output data/results.sqlite -- git status --short",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git diff --output=data/results.sqlite",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- python3 audit_extract_report.py --output data/results.sqlite",
+        "TENN_TIER34_AUTHORIZED=1 python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+    ],
+)
+def test_waiter_nested_commands_and_outputs_require_actual_authorization(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git status --short",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git diff --output=tmp/diff.patch",
+        "python3 scripts/codex_event_waiter.py github-pr --repo 0rl4nd0l/tenn --pr 515 --head-sha c775b4dbd075fd304b80d9946952e176b983757e --output reports/agent_jobs/wait.json",
+    ],
+)
+def test_safe_waiter_invocations_remain_autonomous(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json --",
+        "python3 scripts/codex_event_waiter.py command --bogus x -- git status",
+        "python3 scripts/codex_event_waiter.py command --output=data/results.sqlite -- git status",
+    ],
+)
+def test_malformed_waiter_arguments_fail_closed(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
         "git reset --hard",
         "git clean -fdx",
         "git checkout -- src/allowed.py",

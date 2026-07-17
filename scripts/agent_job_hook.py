@@ -2455,6 +2455,8 @@ def _unwrap_shell_tokens(
         if executable == "uv" and len(remaining) > 1 and remaining[1] == "run":
             known_executables = {
                 "bash",
+                "cp",
+                "dd",
                 "docker",
                 "git",
                 "kubectl",
@@ -2464,9 +2466,11 @@ def _unwrap_shell_tokens(
                 "python3",
                 "qdrant",
                 "redis-cli",
+                "sed",
                 "sh",
                 "sqlite3",
                 "systemctl",
+                "tee",
             }
             command_index = next(
                 (
@@ -2926,7 +2930,202 @@ def _filesystem_mutation_issue(executable: str, tokens: list[str]) -> str | None
     return None
 
 
-def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
+def _protected_destination_issue(paths: list[str], *, label: str) -> str | None:
+    if not paths:
+        return f"ambiguous {label} destination"
+    unresolved = sorted(path for path in paths if _unresolved_shell_value(path))
+    if unresolved:
+        return "ambiguous shell-expanded filesystem path: " + ", ".join(unresolved)
+    sensitive = sorted(path for path in paths if _sensitive_shared_path(path))
+    if sensitive:
+        return "direct mutation of sensitive shared-state path: " + ", ".join(sensitive)
+    return None
+
+
+def _writer_destination_issue(executable: str, tokens: list[str]) -> str | None:
+    """Classify destinations for shell writers without executing them."""
+
+    paths: list[str] = []
+    operands: list[str] = []
+    index = 1
+    after_separator = False
+    if executable == "cp":
+        target_directory: str | None = None
+        while index < len(tokens):
+            token = tokens[index]
+            if not after_separator and token == "--":
+                after_separator = True
+                index += 1
+                continue
+            if not after_separator and token in {"-t", "--target-directory"}:
+                if index + 1 >= len(tokens):
+                    return "malformed cp target-directory option"
+                target_directory = tokens[index + 1]
+                index += 2
+                continue
+            if not after_separator and token.startswith("--target-directory="):
+                target_directory = token.split("=", 1)[1]
+                index += 1
+                continue
+            if not after_separator and token.startswith("-"):
+                if token in {"-a", "-d", "-f", "-H", "-i", "-L", "-n", "-P", "-p", "-R", "-r", "-T", "-u", "-v", "--backup", "--no-clobber", "--parents", "--preserve", "--remove-destination"}:
+                    index += 1
+                    continue
+                return f"unclassified cp option: {token}"
+            operands.append(token)
+            index += 1
+        if target_directory is not None:
+            paths.append(target_directory)
+            if not operands:
+                return "malformed cp target-directory operands"
+        elif len(operands) < 2:
+            return "malformed cp operands"
+        else:
+            paths.append(operands[-1])
+        return _protected_destination_issue(paths, label="cp")
+    if executable == "tee":
+        for token in tokens[1:]:
+            if not after_separator and token == "--":
+                after_separator = True
+                continue
+            if not after_separator and token in {"-a", "--append", "-i", "--ignore-interrupts"}:
+                continue
+            if not after_separator and token in {"-n", "-r", "-E", "--debug", "--posix", "--quiet", "--silent"}:
+                continue
+            if not after_separator and token.startswith("-"):
+                return f"unclassified tee option: {token}"
+            paths.append(token)
+        return _protected_destination_issue(paths, label="tee") if paths else None
+    if executable == "dd":
+        for token in tokens[1:]:
+            if "=" not in token or token.startswith("="):
+                return f"malformed dd operand: {token}"
+            option, value = token.split("=", 1)
+            if option == "of":
+                if not value:
+                    return "malformed dd output operand"
+                paths.append(value)
+            elif option not in {
+                "bs", "cbs", "conv", "count", "ibs", "if", "iflag", "iseek",
+                "obs", "oflag", "seek", "skip", "status",
+            }:
+                return f"unclassified dd operand: {option}"
+        return _protected_destination_issue(paths, label="dd") if paths else None
+    if executable == "sed":
+        in_place = False
+        script_seen = False
+        value_expected = False
+        for token in tokens[1:]:
+            if value_expected:
+                value_expected = False
+                script_seen = True
+                continue
+            if not after_separator and token == "--":
+                after_separator = True
+                continue
+            if not after_separator and token in {"-e", "--expression", "-f", "--file"}:
+                value_expected = True
+                continue
+            if not after_separator and token.startswith(("--expression=", "--file=")):
+                continue
+            if not after_separator and token == "-i":
+                in_place = True
+                continue
+            if not after_separator and token.startswith("-i"):
+                in_place = True
+                continue
+            if not after_separator and token.startswith("-"):
+                return f"unclassified sed option: {token}"
+            if not script_seen:
+                script_seen = True
+            else:
+                operands.append(token)
+        if value_expected or not script_seen:
+            return "malformed sed arguments"
+        return _protected_destination_issue(operands, label="sed -i") if in_place else None
+    return None
+
+
+def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
+    """Validate waiter options, outputs, and the command after `--`."""
+
+    if len(tokens) < 3 or Path(tokens[1]).name != "codex_event_waiter.py":
+        return None
+    mode = tokens[2]
+    if mode not in {"command", "github-pr"}:
+        return "malformed codex_event_waiter mode"
+    output_paths: list[str] = []
+    nested: list[str] | None = None
+    index = 3
+    value_options = {"--output", "--poll-seconds", "--timeout-seconds"}
+    github_value_options = {"--repo", "--pr", "--head-sha"}
+    while index < len(tokens):
+        token = tokens[index]
+        if mode == "command" and token == "--":
+            nested = tokens[index + 1 :]
+            break
+        if token.startswith("--"):
+            option, separator, value = token.partition("=")
+            allowed = value_options | (github_value_options if mode == "github-pr" else set())
+            if option not in allowed:
+                return f"unclassified codex_event_waiter option: {option}"
+            if not separator:
+                if index + 1 >= len(tokens) or tokens[index + 1].startswith("-"):
+                    return f"malformed codex_event_waiter option: {option}"
+                value = tokens[index + 1]
+                index += 1
+            if not value or _unresolved_shell_value(value):
+                return f"ambiguous codex_event_waiter option: {option}"
+            if option == "--output":
+                output_paths.append(value)
+            elif option in {"--poll-seconds", "--timeout-seconds"}:
+                try:
+                    if float(value) <= 0:
+                        return f"invalid codex_event_waiter numeric option: {option}"
+                except ValueError:
+                    return f"invalid codex_event_waiter numeric option: {option}"
+            index += 1
+            continue
+        return f"malformed codex_event_waiter argument: {token}"
+    if len(output_paths) != 1:
+        return "codex_event_waiter requires exactly one output path"
+    output_issue = _protected_destination_issue(output_paths, label="waiter output")
+    if output_issue is not None:
+        return output_issue
+    if mode == "command":
+        if not nested:
+            return "codex_event_waiter command mode requires a command after `--`"
+        return _high_risk_tokens_issue(nested, depth=depth + 1, classify_outputs=True)
+    if nested is not None:
+        return "malformed codex_event_waiter github-pr arguments"
+    return None
+
+
+def _output_destination_issue(tokens: list[str]) -> str | None:
+    paths: list[str] = []
+    value_options = {"-o", "--output", "--output-dir", "--output-file", "--output-path"}
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        option, separator, value = token.partition("=")
+        if option not in value_options:
+            index += 1
+            continue
+        if not separator:
+            if index + 1 >= len(tokens) or tokens[index + 1].startswith("-"):
+                return f"malformed output option: {option}"
+            value = tokens[index + 1]
+            index += 1
+        if not value or _unresolved_shell_value(value):
+            return f"ambiguous output option: {option}"
+        paths.append(value)
+        index += 1
+    return _protected_destination_issue(paths, label="nested command output") if paths else None
+
+
+def _high_risk_tokens_issue(
+    tokens: list[str], *, depth: int = 0, classify_outputs: bool = False
+) -> str | None:
     time_tokens = _unwrap_shell_tokens(tokens, stop_before=frozenset({"time"}))
     while time_tokens and Path(time_tokens[0]).name == "time":
         time_tokens, time_issue = _time_wrapper(time_tokens)
@@ -2942,21 +3141,58 @@ def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
     executable = Path(tokens[0]).name
     if executable not in {"[", "[["} and _unresolved_shell_value(executable):
         return "unresolved shell-expanded executable"
+    normalized_tokens = [executable, *tokens[1:]]
+    if classify_outputs:
+        output_issue = _output_destination_issue(normalized_tokens)
+        if output_issue is not None:
+            return output_issue
+    if executable in {"python", "python3"}:
+        waiter_issue = _waiter_invocation_issue(normalized_tokens, depth=depth)
+        if waiter_issue is not None:
+            return waiter_issue
     if executable in {"chrt", "ionice", "taskset"}:
         return "shared process scheduling mutation"
-    normalized_tokens = [executable, *tokens[1:]]
     shell_command = _shell_c_command(normalized_tokens)
     if shell_command is not None:
         if depth >= 8 or not shell_command:
             return "unparseable shell wrapper containing a command string"
-        return _command_high_risk_issue(shell_command, depth=depth + 1)
+        return _command_high_risk_issue(
+            shell_command, depth=depth + 1, classify_outputs=classify_outputs
+        )
     if executable == "eval":
         eval_command = " ".join(normalized_tokens[1:]).strip()
         if depth >= 8 or not eval_command or re.search(r"[$`]", eval_command):
             return "unparseable eval command"
-        return _command_high_risk_issue(eval_command, depth=depth + 1)
-    if executable in {"mv", "rm", "truncate"}:
-        issue = _filesystem_mutation_issue(executable, normalized_tokens)
+        return _command_high_risk_issue(
+            eval_command, depth=depth + 1, classify_outputs=classify_outputs
+        )
+    if executable in {"cp", "dd", "mv", "rm", "sed", "tee", "truncate"}:
+        if executable in {"mv", "rm", "truncate"}:
+            issue = _filesystem_mutation_issue(executable, normalized_tokens)
+            if issue is not None:
+                return issue
+        if executable in {"cp", "dd", "sed", "tee"}:
+            issue = _writer_destination_issue(executable, normalized_tokens)
+            if issue is not None:
+                return issue
+    redirection_paths: list[str] = []
+    for index, token in enumerate(normalized_tokens[1:], start=1):
+        if re.fullmatch(r"(?:\d*|&)(?:>>?|>&?)", token):
+            if index + 1 >= len(normalized_tokens):
+                return "malformed shell redirection"
+            target = normalized_tokens[index + 1]
+            if target.startswith("&") and target not in {"&1", "&2", "&-"}:
+                return "ambiguous shell redirection target"
+            if not target.startswith("&"):
+                redirection_paths.append(target)
+        elif re.match(r"^(?:\d*|&)>>?[^\s]+$", token):
+            target = re.sub(r"^(?:\d*|&)>>?", "", token)
+            if target.startswith("&") and target not in {"&1", "&2", "&-"}:
+                return "ambiguous shell redirection target"
+            if not target.startswith("&"):
+                redirection_paths.append(target)
+    if redirection_paths:
+        issue = _protected_destination_issue(redirection_paths, label="shell redirection")
         if issue is not None:
             return issue
     if executable == "systemctl":
@@ -3124,7 +3360,9 @@ def _high_risk_tokens_issue(tokens: list[str], *, depth: int = 0) -> str | None:
     return None
 
 
-def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
+def _command_high_risk_issue(
+    command: str, *, depth: int = 0, classify_outputs: bool = False
+) -> str | None:
     try:
         lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
         lexer.whitespace = " \t\r"
@@ -3152,7 +3390,9 @@ def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
             ):
                 candidates.append(nested_tokens[1:])
             for candidate in candidates:
-                issue = _high_risk_tokens_issue(candidate, depth=depth)
+                issue = _high_risk_tokens_issue(
+                    candidate, depth=depth, classify_outputs=classify_outputs
+                )
                 if issue:
                     return issue
             continue
@@ -3169,7 +3409,9 @@ def _command_high_risk_issue(command: str, *, depth: int = 0) -> str | None:
             tokens = tokens[1:]
         if not tokens:
             continue
-        issue = _high_risk_tokens_issue(tokens, depth=depth)
+        issue = _high_risk_tokens_issue(
+            tokens, depth=depth, classify_outputs=classify_outputs
+        )
         if issue:
             return issue
     if (not shell_tokens or "$(" in command or "`" in command) and re.search(
