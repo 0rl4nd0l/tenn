@@ -14,6 +14,35 @@ HOOK_SCRIPT = REPO_ROOT / "scripts" / "agent_job_hook.py"
 CONTRACT_SCRIPT = REPO_ROOT / "scripts" / "agent_job_contract.py"
 REGISTRY_SCRIPT = REPO_ROOT / "scripts" / "agent_job_registry.py"
 DECISION_LEDGER_SCRIPT = REPO_ROOT / "scripts" / "agent_decision_ledger.py"
+PROTECTED_PYTHON_ENTRYPOINTS = (
+    "run_extraction_backfill",
+    "run_full_pipeline",
+)
+PROTECTED_PYTHON_INTERPRETERS = (
+    "python",
+    "python3",
+    "python3.13",
+    "/usr/bin/python3.13",
+)
+PROTECTED_PYTHON_INVOCATION_TEMPLATES = (
+    "{python} scripts/{entrypoint}.py",
+    "{python} -I scripts/{entrypoint}.py",
+    "{python} -B scripts/{entrypoint}.py",
+    "{python} -u scripts/{entrypoint}.py",
+    "{python} -O scripts/{entrypoint}.py",
+    "{python} -OO scripts/{entrypoint}.py",
+    "{python} -IB scripts/{entrypoint}.py",
+    "{python} -W error scripts/{entrypoint}.py",
+    "{python} -Werror scripts/{entrypoint}.py",
+    "{python} -X dev scripts/{entrypoint}.py",
+    "{python} -Xdev scripts/{entrypoint}.py",
+    "{python} --check-hash-based-pycs always scripts/{entrypoint}.py",
+    "{python} --check-hash-based-pycs=always scripts/{entrypoint}.py",
+    "{python} -m scripts.{entrypoint}",
+    "{python} -mscripts.{entrypoint}",
+    "{python} -- ./scripts/{entrypoint}.py",
+    "{python} /opt/tenn/scripts/{entrypoint}.py",
+)
 
 
 @pytest.fixture(autouse=True)
@@ -506,6 +535,204 @@ def test_protected_shell_writer_destinations_require_actual_authorization(
     )
     assert blocked["decision"] == "block"
     assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize("interpreter", PROTECTED_PYTHON_INTERPRETERS)
+@pytest.mark.parametrize(
+    "invocation_template",
+    PROTECTED_PYTHON_INVOCATION_TEMPLATES,
+)
+def test_protected_python_entrypoint_cross_product_requires_actual_authorization(
+    tmp_path: Path,
+    entrypoint: str,
+    interpreter: str,
+    invocation_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = invocation_template.format(
+        python=interpreter,
+        entrypoint=entrypoint,
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "invocation_template",
+    [
+        "env REVIEW_SCOPE=hook python3 -B scripts/{entrypoint}.py",
+        "env -- python3 -X dev scripts/{entrypoint}.py",
+        "env -S 'python3 -I scripts/{entrypoint}.py'",
+        "env -vS'python3 -I scripts/{entrypoint}.py'",
+        "uv run --no-project python3.13 -OO scripts/{entrypoint}.py",
+        "uv run --python python3.13 python3 -I scripts/{entrypoint}.py",
+        "uv run --module scripts.{entrypoint}",
+        "uv run --script scripts/{entrypoint}.py",
+        "uv run scripts/{entrypoint}.py",
+        "uv --offline run --module scripts.{entrypoint}",
+    ],
+)
+def test_wrapped_protected_python_entrypoints_require_actual_authorization(
+    tmp_path: Path,
+    entrypoint: str,
+    invocation_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = invocation_template.format(entrypoint=entrypoint)
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "command_template",
+    [
+        "TENN_TIER34_AUTHORIZED=1 python3 -B scripts/{entrypoint}.py",
+        "env TENN_TIER34_AUTHORIZED=1 python3 -m scripts.{entrypoint}",
+        (
+            "env -S'TENN_TIER34_AUTHORIZED=1 python3 -I "
+            "scripts/{entrypoint}.py'"
+        ),
+        "python3 scripts/{entrypoint}.py TENN_TIER34_AUTHORIZED=1",
+    ],
+)
+def test_embedded_environment_text_cannot_authorize_protected_python_entrypoint(
+    tmp_path: Path,
+    entrypoint: str,
+    command_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = command_template.format(entrypoint=entrypoint)
+
+    _, embedded_only = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, actual_environment = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert embedded_only["decision"] == "block", command
+    assert actual_environment.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "command_template",
+    [
+        "python3 -Z scripts/{entrypoint}.py",
+        "python3 -IZ scripts/{entrypoint}.py",
+        "python3 --future-option scripts/{entrypoint}.py",
+        "python3 --check-hash-based-pycs= scripts/{entrypoint}.py",
+        "python3 -X scripts/{entrypoint}.py",
+        "python3 -W scripts/{entrypoint}.py",
+        "python3 -m scripts/{entrypoint}.py",
+        "python3 -mscripts/{entrypoint}.py",
+        "python3 scripts.{entrypoint}",
+        "uv run --future-option python3 -I scripts/{entrypoint}.py",
+        "uv --future-global run python3 -I scripts/{entrypoint}.py",
+        "env -S \"python3 -I 'scripts/{entrypoint}.py\"",
+    ],
+)
+def test_malformed_or_ambiguous_protected_python_entrypoints_fail_closed(
+    tmp_path: Path,
+    entrypoint: str,
+    command_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = command_template.format(entrypoint=entrypoint)
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python scripts/ordinary.py",
+        "python3.13 -I scripts/ordinary.py",
+        "/usr/bin/python3.13 -OO /opt/tenn/scripts/ordinary.py",
+        "python3 -W error scripts/ordinary.py",
+        "python3 -X dev scripts/ordinary.py",
+        "python3 --check-hash-based-pycs always scripts/ordinary.py",
+        "python3 -m scripts.ordinary",
+        "env REVIEW_SCOPE=hook python3 -B scripts/ordinary.py",
+        "uv run --module scripts.ordinary",
+        "uv run scripts/ordinary.py",
+        (
+            "python3 -c 'print(\"scripts/run_extraction_backfill.py "
+            "scripts.run_full_pipeline\")'"
+        ),
+        (
+            "python3 scripts/ordinary.py scripts/run_extraction_backfill.py "
+            "scripts.run_full_pipeline"
+        ),
+    ],
+)
+def test_ordinary_python_controls_remain_autonomous_after_normalization(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
 
 
 def test_free_threaded_versioned_python_waiter_requires_actual_authorization(

@@ -52,6 +52,14 @@ V2_SEMANTIC_IDENTITY_FIELDS = (
 )
 V2_REQUIRED_ENV = "TENN_V2_REQUIRED"
 TIER34_AUTHORIZED_ENV = "TENN_TIER34_AUTHORIZED"
+PROTECTED_MUTATION_PYTHON_ENTRYPOINTS = frozenset(
+    {"run_extraction_backfill", "run_full_pipeline"}
+)
+SENSITIVE_PYTHON_ENTRYPOINT_RE = re.compile(
+    r"(?<![A-Za-z0-9_])"
+    r"(?:codex_event_waiter|run_extraction_backfill|run_full_pipeline)"
+    r"(?:\.py)?(?![A-Za-z0-9_])"
+)
 FILE_MUTATION_TOOLS = {
     "apply_patch",
     "create",
@@ -269,6 +277,16 @@ class ToolAdmission:
     classified: bool
     capabilities: frozenset[str] = frozenset()
     issue: str | None = None
+
+
+@dataclass(frozen=True)
+class EffectivePythonInvocation:
+    """Normalized interpreter, target kind, target, and target argv."""
+
+    executable: str
+    target_kind: str
+    target: str
+    argv: tuple[str, ...]
 
 
 def _read_hook_stdin() -> dict[str, Any]:
@@ -2112,13 +2130,10 @@ def _time_wrapper(tokens: list[str]) -> tuple[list[str], str | None]:
     return [], None
 
 
-def _tokens_reference_waiter(tokens: Sequence[str]) -> bool:
-    """Return whether wrapper text visibly refers to the repository waiter."""
+def _tokens_reference_sensitive_python_entrypoint(tokens: Sequence[str]) -> bool:
+    """Return whether wrapper text visibly refers to a sensitive entrypoint."""
 
-    return any(
-        "codex_event_waiter.py" in token or "scripts.codex_event_waiter" in token
-        for token in tokens
-    )
+    return any(SENSITIVE_PYTHON_ENTRYPOINT_RE.search(token) for token in tokens)
 
 
 def _expand_env_split_variables(
@@ -2177,8 +2192,8 @@ def _unwrap_shell_tokens(
         wrapper_steps += 1
         if wrapper_steps > 32:
             issue = (
-                "wrapper normalization depth exceeded before codex_event_waiter"
-                if _tokens_reference_waiter(remaining)
+                "wrapper normalization depth exceeded before protected Python entrypoint"
+                if _tokens_reference_sensitive_python_entrypoint(remaining)
                 else None
             )
             return [], issue
@@ -2239,8 +2254,10 @@ def _unwrap_shell_tokens(
                 if token in {"-S", "--split-string"}:
                     if index + 1 >= len(remaining):
                         issue = (
-                            "malformed env split-string containing codex_event_waiter"
-                            if _tokens_reference_waiter(remaining[index:])
+                            "malformed env split-string containing protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
+                                remaining[index:]
+                            )
                             else None
                         )
                         return [], issue
@@ -2261,8 +2278,10 @@ def _unwrap_shell_tokens(
                             if not split_value:
                                 if index + 1 >= len(remaining):
                                     issue = (
-                                        "malformed env split-string containing codex_event_waiter"
-                                        if _tokens_reference_waiter(remaining[index:])
+                                        "malformed env split-string containing protected Python entrypoint"
+                                        if _tokens_reference_sensitive_python_entrypoint(
+                                            remaining[index:]
+                                        )
                                         else None
                                     )
                                     return [], issue
@@ -2286,8 +2305,8 @@ def _unwrap_shell_tokens(
                     )
                     if expanded_split_value is None:
                         issue = (
-                            "ambiguous env split-string before codex_event_waiter"
-                            if _tokens_reference_waiter(
+                            "ambiguous env split-string before protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
                                 [split_value, *remaining[suffix_index:]]
                             )
                             else None
@@ -2300,8 +2319,8 @@ def _unwrap_shell_tokens(
                         )
                     except ValueError:
                         issue = (
-                            "malformed env split-string containing codex_event_waiter"
-                            if _tokens_reference_waiter(
+                            "malformed env split-string containing protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
                                 [
                                     split_value,
                                     expanded_split_value,
@@ -2622,8 +2641,10 @@ def _unwrap_shell_tokens(
                 if token in global_value_options:
                     if index + 1 >= len(remaining):
                         issue = (
-                            "malformed uv global option before codex_event_waiter"
-                            if _tokens_reference_waiter(remaining[index:])
+                            "malformed uv global option before protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
+                                remaining[index:]
+                            )
                             else None
                         )
                         return [], issue
@@ -2642,12 +2663,15 @@ def _unwrap_shell_tokens(
                 ):
                     index += 1
                     continue
-                if token.startswith("-") and _tokens_reference_waiter(
+                if token.startswith(
+                    "-"
+                ) and _tokens_reference_sensitive_python_entrypoint(
                     remaining[index + 1 :]
                 ):
                     return (
                         [],
-                        f"unclassified uv global option before codex_event_waiter: {token}",
+                        "unclassified uv global option before protected Python "
+                        f"entrypoint: {token}",
                     )
                 break
             if run_index is None:
@@ -2781,8 +2805,10 @@ def _unwrap_shell_tokens(
                         target_index += 1
                     if target_index >= len(remaining):
                         issue = (
-                            "malformed uv waiter mode"
-                            if _tokens_reference_waiter(remaining[index:])
+                            "malformed uv mode containing protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
+                                remaining[index:]
+                            )
                             else None
                         )
                         return [], issue
@@ -2823,8 +2849,10 @@ def _unwrap_shell_tokens(
                                 next_index = index + 2
                             else:
                                 issue = (
-                                    "malformed uv option before codex_event_waiter"
-                                    if _tokens_reference_waiter(remaining[index:])
+                                    "malformed uv option before protected Python entrypoint"
+                                    if _tokens_reference_sensitive_python_entrypoint(
+                                        remaining[index:]
+                                    )
                                     else None
                                 )
                                 return [], issue
@@ -2841,8 +2869,10 @@ def _unwrap_shell_tokens(
                             target_index += 1
                         if target_index >= len(remaining):
                             issue = (
-                                "malformed uv waiter mode"
-                                if _tokens_reference_waiter(remaining[index:])
+                                "malformed uv mode containing protected Python entrypoint"
+                                if _tokens_reference_sensitive_python_entrypoint(
+                                    remaining[index:]
+                                )
                                 else None
                             )
                             return [], issue
@@ -2856,8 +2886,10 @@ def _unwrap_shell_tokens(
                 if token in value_options:
                     if index + 1 >= len(remaining):
                         issue = (
-                            "malformed uv option before codex_event_waiter"
-                            if _tokens_reference_waiter(remaining[index:])
+                            "malformed uv option before protected Python entrypoint"
+                            if _tokens_reference_sensitive_python_entrypoint(
+                                remaining[index:]
+                            )
                             else None
                         )
                         return [], issue
@@ -2881,10 +2913,13 @@ def _unwrap_shell_tokens(
                     index += 1
                     continue
                 if token.startswith("-"):
-                    if _tokens_reference_waiter(remaining[index + 1 :]):
+                    if _tokens_reference_sensitive_python_entrypoint(
+                        remaining[index + 1 :]
+                    ):
                         return (
                             [],
-                            f"unclassified uv option before codex_event_waiter: {token}",
+                            "unclassified uv option before protected Python "
+                            f"entrypoint: {token}",
                         )
                     fallback_index = next(
                         (
@@ -2905,7 +2940,7 @@ def _unwrap_shell_tokens(
                 return [], None
             if index <= len(remaining) and Path(remaining[0]).name == "uv":
                 remaining = remaining[index:]
-            if remaining and Path(remaining[0]).name == "codex_event_waiter.py":
+            if remaining and Path(remaining[0]).suffix == ".py":
                 remaining = ["python", *remaining]
             continue
         break
@@ -3489,23 +3524,39 @@ def _waiter_like_python_target(value: str) -> bool:
     return dotted == "scripts.codex_event_waiter"
 
 
-def _python_waiter_tokens(tokens: list[str]) -> tuple[list[str] | None, str | None]:
-    """Normalize a Python waiter target without scanning ordinary script argv."""
+def _sensitive_python_target(value: str) -> bool:
+    """Return whether one Python target-like value names a sensitive entrypoint."""
+
+    return SENSITIVE_PYTHON_ENTRYPOINT_RE.search(value.lstrip("=")) is not None
+
+
+def _effective_python_invocation(
+    tokens: list[str],
+) -> tuple[EffectivePythonInvocation | None, str | None]:
+    """Parse one Python executable, target kind, target, and target argv."""
 
     if not tokens or not _is_python_executable(tokens[0]):
         return None, None
 
-    def waiter_later(start: int) -> bool:
-        return any(_waiter_like_python_target(token) for token in tokens[start:])
+    executable = Path(tokens[0]).name
 
-    def normalize_module(module: str, argv_start: int) -> tuple[list[str] | None, str | None]:
-        if module == "scripts.codex_event_waiter":
-            return [Path(tokens[0]).name, "codex_event_waiter.py", *tokens[argv_start:]], None
-        if _waiter_like_python_target(module):
-            return None, "malformed Python module target for codex_event_waiter"
-        return None, None
+    def sensitive_later(start: int) -> bool:
+        return any(_sensitive_python_target(token) for token in tokens[start:])
+
+    def invocation(
+        target_kind: str,
+        target: str,
+        argv_start: int,
+    ) -> EffectivePythonInvocation:
+        return EffectivePythonInvocation(
+            executable=executable,
+            target_kind=target_kind,
+            target=target,
+            argv=tuple(tokens[argv_start:]),
+        )
 
     index = 1
+    sensitive_option_value = False
     no_value_short_options = frozenset("bBdEiIOPqRsSuvx")
     terminal_short_options = frozenset("hV?")
     terminal_long_options = {
@@ -3525,29 +3576,34 @@ def _python_waiter_tokens(tokens: list[str]) -> tuple[list[str] | None, str | No
         if token == "--check-hash-based-pycs":
             if index + 1 >= len(tokens):
                 return (
-                    (None, "malformed Python option before codex_event_waiter")
-                    if waiter_later(index + 1)
+                    (None, "malformed Python option before protected entrypoint")
+                    if sensitive_later(index + 1)
                     else (None, None)
                 )
             value = tokens[index + 1]
+            sensitive_option_value |= _sensitive_python_target(value)
             index += 2
             continue
         if token.startswith("--check-hash-based-pycs="):
             value = token.partition("=")[2]
             if not value:
                 return (
-                    (None, "malformed Python option before codex_event_waiter")
-                    if waiter_later(index + 1)
+                    (None, "malformed Python option before protected entrypoint")
+                    if sensitive_later(index + 1)
                     else (None, None)
                 )
+            sensitive_option_value |= _sensitive_python_target(value)
             index += 1
             continue
         if token.startswith("--"):
-            if waiter_later(index + 1):
-                return None, f"unclassified Python option before codex_event_waiter: {token}"
+            if sensitive_later(index + 1):
+                return (
+                    None,
+                    f"unclassified Python option before protected entrypoint: {token}",
+                )
             return None, None
         if token == "-":
-            return None, None
+            return invocation("stdin", token, index + 1), None
         if token.startswith("-"):
             option_index = 1
             while option_index < len(token):
@@ -3568,13 +3624,19 @@ def _python_waiter_tokens(tokens: list[str]) -> tuple[list[str] | None, str | No
                     else:
                         return None, None
                     if option == "c":
-                        return None, None
+                        return invocation("command", value, argv_start), None
                     if option == "m":
-                        return normalize_module(value, argv_start)
+                        if value.startswith("-") and sensitive_later(argv_start):
+                            return None, "malformed Python module target for protected entrypoint"
+                        return invocation("module", value, argv_start), None
+                    sensitive_option_value |= _sensitive_python_target(value)
                     index = argv_start
                     break
-                if waiter_later(index + 1):
-                    return None, f"unclassified Python option before codex_event_waiter: -{option}"
+                if sensitive_later(index + 1):
+                    return (
+                        None,
+                        f"unclassified Python option before protected entrypoint: -{option}",
+                    )
                 return None, None
             else:
                 index += 1
@@ -3583,13 +3645,95 @@ def _python_waiter_tokens(tokens: list[str]) -> tuple[list[str] | None, str | No
         break
 
     if index >= len(tokens):
+        if sensitive_option_value:
+            return None, "protected Python entrypoint consumed as an option value"
         return None, None
-    target = tokens[index]
-    if Path(target).name == "codex_event_waiter.py":
-        return [Path(tokens[0]).name, "codex_event_waiter.py", *tokens[index + 1 :]], None
-    if _waiter_like_python_target(target):
-        return None, "malformed Python script target for codex_event_waiter"
+    return invocation("script", tokens[index], index + 1), None
+
+
+def _python_waiter_tokens(
+    invocation: EffectivePythonInvocation,
+) -> tuple[list[str] | None, str | None]:
+    """Convert a normalized effective invocation into waiter classifier tokens."""
+
+    target = invocation.target
+    if invocation.target_kind == "module":
+        if target == "scripts.codex_event_waiter":
+            return [
+                invocation.executable,
+                "codex_event_waiter.py",
+                *invocation.argv,
+            ], None
+        if _waiter_like_python_target(target):
+            return None, "malformed Python module target for codex_event_waiter"
+        return None, None
+    if invocation.target_kind == "script":
+        if Path(target).name == "codex_event_waiter.py":
+            return [
+                invocation.executable,
+                "codex_event_waiter.py",
+                *invocation.argv,
+            ], None
+        if _waiter_like_python_target(target):
+            return None, "malformed Python script target for codex_event_waiter"
     return None, None
+
+
+def _protected_mutation_target_reference(value: str) -> bool:
+    """Return whether *value* visibly names a protected mutation entrypoint."""
+
+    return any(
+        re.search(
+            rf"(?<![A-Za-z0-9_]){re.escape(entrypoint)}"
+            r"(?:\.py)?(?![A-Za-z0-9_])",
+            value,
+        )
+        for entrypoint in PROTECTED_MUTATION_PYTHON_ENTRYPOINTS
+    )
+
+
+def _protected_python_entrypoint_issue(
+    invocation: EffectivePythonInvocation,
+) -> str | None:
+    """Classify protected extraction and pipeline targets from normalized argv."""
+
+    entrypoint: str | None = None
+    if invocation.target_kind == "module":
+        if re.fullmatch(
+            r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
+            invocation.target,
+        ):
+            candidate = invocation.target.rsplit(".", 1)[-1]
+            if candidate in PROTECTED_MUTATION_PYTHON_ENTRYPOINTS:
+                entrypoint = candidate
+        if entrypoint is None and _protected_mutation_target_reference(
+            invocation.target
+        ):
+            return "malformed Python module target for protected entrypoint"
+    elif invocation.target_kind == "script":
+        candidate = Path(invocation.target).name
+        for protected_entrypoint in PROTECTED_MUTATION_PYTHON_ENTRYPOINTS:
+            if candidate == f"{protected_entrypoint}.py":
+                entrypoint = protected_entrypoint
+                break
+        if entrypoint is None and _protected_mutation_target_reference(
+            invocation.target
+        ):
+            return "malformed Python script target for protected entrypoint"
+
+    if entrypoint is not None:
+        return f"explicit extraction/backfill mutation ({entrypoint})"
+    if any(
+        argument in {"--apply", "--backfill", "--write", "--production"}
+        for argument in invocation.argv
+    ):
+        target = (
+            Path(invocation.target).name
+            if invocation.target_kind == "script"
+            else invocation.target_kind
+        )
+        return f"explicit extraction/backfill mutation ({target})"
+    return None
 
 
 def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
@@ -3702,17 +3846,31 @@ def _high_risk_tokens_issue(
         output_issue = _output_destination_issue(normalized_tokens)
         if output_issue is not None:
             return output_issue
+    python_invocation: EffectivePythonInvocation | None = None
     if _is_python_executable(executable):
-        waiter_tokens, normalization_issue = _python_waiter_tokens(normalized_tokens)
+        python_invocation, normalization_issue = _effective_python_invocation(
+            normalized_tokens
+        )
         if normalization_issue is not None:
             return normalization_issue
-        waiter_issue = (
-            _waiter_invocation_issue(waiter_tokens, depth=depth)
-            if waiter_tokens is not None
-            else None
-        )
-        if waiter_issue is not None:
-            return waiter_issue
+        if python_invocation is not None:
+            waiter_tokens, waiter_target_issue = _python_waiter_tokens(
+                python_invocation
+            )
+            if waiter_target_issue is not None:
+                return waiter_target_issue
+            waiter_issue = (
+                _waiter_invocation_issue(waiter_tokens, depth=depth)
+                if waiter_tokens is not None
+                else None
+            )
+            if waiter_issue is not None:
+                return waiter_issue
+            protected_entrypoint_issue = _protected_python_entrypoint_issue(
+                python_invocation
+            )
+            if protected_entrypoint_issue is not None:
+                return protected_entrypoint_issue
     if executable in {"chrt", "ionice", "taskset"}:
         return "shared process scheduling mutation"
     shell_command = _shell_c_command(normalized_tokens)
@@ -3915,11 +4073,6 @@ def _high_risk_tokens_issue(
                 return f"Kubernetes mutation ({nested_action})"
     if executable in {"sqlite3", "psql", "mysql", "redis-cli", "qdrant"}:
         return _datastore_issue(executable, normalized_tokens)
-    if executable in {"python", "python3"} and len(tokens) > 1:
-        script = Path(tokens[1]).name
-        mutation_entrypoints = {"run_full_pipeline.py", "run_extraction_backfill.py"}
-        if script in mutation_entrypoints or any(arg in {"--apply", "--backfill", "--write", "--production"} for arg in tokens[2:]):
-            return f"explicit extraction/backfill mutation ({script})"
     return None
 
 
