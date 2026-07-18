@@ -303,6 +303,12 @@ def _env_flag(values: Mapping[str, str], name: str) -> bool:
     return values.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _tier34_authorized(values: Mapping[str, str]) -> bool:
+    """Return whether the process environment grants exact Tier 3/4 authority."""
+
+    return values.get(TIER34_AUTHORIZED_ENV) == "1"
+
+
 def _hook_tool_name(hook_input: Mapping[str, Any] | None) -> str:
     if not hook_input:
         return ""
@@ -3697,6 +3703,19 @@ def _protected_python_entrypoint_issue(
 ) -> str | None:
     """Classify protected extraction and pipeline targets from normalized argv."""
 
+    if (
+        invocation.target_kind in {"module", "script"}
+        and not invocation.target.strip()
+        and any(
+            _protected_mutation_target_reference(argument)
+            for argument in invocation.argv
+        )
+    ):
+        return (
+            f"malformed Python {invocation.target_kind} target before protected "
+            "entrypoint"
+        )
+
     entrypoint: str | None = None
     if invocation.target_kind == "module":
         if re.fullmatch(
@@ -5380,7 +5399,7 @@ def build_hook_payload(
         return _allow_payload(platform)
 
     high_risk_issue = _always_on_high_risk_issue(repo_root, hook_input)
-    if high_risk_issue and not _env_flag(values, TIER34_AUTHORIZED_ENV):
+    if high_risk_issue and not _tier34_authorized(values):
         return _blocking_payload(
             f"Tenn Tier 3/4 action blocked: {high_risk_issue}; set "
             f"{TIER34_AUTHORIZED_ENV}=1 only with explicit owner authorization.",
