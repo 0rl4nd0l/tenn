@@ -508,6 +508,33 @@ def test_protected_shell_writer_destinations_require_actual_authorization(
     assert allowed.get("decision") != "block"
 
 
+def test_free_threaded_versioned_python_waiter_requires_actual_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3.13t -I scripts/codex_event_waiter.py command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
 @pytest.mark.parametrize(
     "command",
     [
@@ -592,6 +619,586 @@ def test_waiter_nested_commands_and_outputs_require_actual_authorization(
     )
     assert payload["decision"] == "block"
     assert allowed.get("decision") != "block"
+
+
+def test_waiter_after_python_isolated_flag_requires_actual_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -I scripts/codex_event_waiter.py command "
+        "--output reports/agent_jobs/wait.json -- "
+        "systemctl --user restart tenn.service"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+def test_waiter_python_module_form_requires_actual_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -m scripts.codex_event_waiter command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+def test_waiter_after_python_value_option_classifies_protected_output(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -X dev scripts/codex_event_waiter.py command "
+        "--output data/results.sqlite -- git status --short"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "interpreter",
+    ["python", "python3.13", "python3.13t", "/usr/bin/python3"],
+)
+@pytest.mark.parametrize(
+    "invocation_template",
+    [
+        "{python} scripts/codex_event_waiter.py",
+        "{python} -I scripts/codex_event_waiter.py",
+        "{python} -B scripts/codex_event_waiter.py",
+        "{python} -u scripts/codex_event_waiter.py",
+        "{python} -O scripts/codex_event_waiter.py",
+        "{python} -OO scripts/codex_event_waiter.py",
+        "{python} -IB scripts/codex_event_waiter.py",
+        "{python} -W error scripts/codex_event_waiter.py",
+        "{python} -Werror scripts/codex_event_waiter.py",
+        "{python} -X dev scripts/codex_event_waiter.py",
+        "{python} -Xdev scripts/codex_event_waiter.py",
+        "{python} --check-hash-based-pycs always scripts/codex_event_waiter.py",
+        "{python} --check-hash-based-pycs=always scripts/codex_event_waiter.py",
+        "{python} -m scripts.codex_event_waiter",
+        "{python} -mscripts.codex_event_waiter",
+        "{python} -- ./scripts/codex_event_waiter.py",
+        "{python} /opt/tenn/scripts/codex_event_waiter.py",
+    ],
+)
+@pytest.mark.parametrize(
+    "waiter_arguments",
+    [
+        (
+            "command --output reports/agent_jobs/wait.json -- "
+            "systemctl --user restart tenn.service"
+        ),
+        "command --output data/results.sqlite -- git status --short",
+    ],
+)
+def test_python_waiter_normalization_cross_product_requires_actual_authorization(
+    tmp_path: Path,
+    interpreter: str,
+    invocation_template: str,
+    waiter_arguments: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = f"{invocation_template.format(python=interpreter)} {waiter_arguments}"
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "invocation",
+    [
+        "env REVIEW_SCOPE=hook python3 -B scripts/codex_event_waiter.py",
+        "env -- python3 -X dev scripts/codex_event_waiter.py",
+        "env -S 'python3 -I scripts/codex_event_waiter.py'",
+        "env -S'python3 -I scripts/codex_event_waiter.py'",
+        "env -vS'python3 -I scripts/codex_event_waiter.py'",
+        r"env -S'python3\_-I\_scripts/codex_event_waiter.py'",
+        r"env -S'python3\t-I\tscripts/codex_event_waiter.py'",
+        r"env -S'python3\n-B\nscripts/codex_event_waiter.py'",
+        "env -S '-i python3 -I scripts/codex_event_waiter.py'",
+        "env -S '-- python3 -B scripts/codex_event_waiter.py'",
+        (
+            "env -S '-u SECRET TENN_TIER34_AUTHORIZED=1 python3 -m "
+            "scripts.codex_event_waiter'"
+        ),
+        "uv run --no-project python3.13 -OO scripts/codex_event_waiter.py",
+        "uv run --no-project python3 -m scripts.codex_event_waiter",
+        (
+            "uv run --python python3.13 python3 -I "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "uv run -p python3.13 python3 -m "
+            "scripts.codex_event_waiter"
+        ),
+        "uv run --module scripts.codex_event_waiter",
+        "uv run --script scripts/codex_event_waiter.py",
+        "uv run --module -- scripts.codex_event_waiter",
+        "uv run --script -- scripts/codex_event_waiter.py",
+        "uv run -qm -- scripts.codex_event_waiter",
+        "uv run scripts/codex_event_waiter.py",
+        "uv run -qm scripts.codex_event_waiter",
+        "uv run -qs scripts/codex_event_waiter.py",
+        "uv run -qmp3.13 scripts.codex_event_waiter",
+        "uv run -qsp3.13 scripts/codex_event_waiter.py",
+        (
+            "uv --offline run --no-project python3 -I "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "uv --directory /tmp run --no-project python3 -m "
+            "scripts.codex_event_waiter"
+        ),
+        (
+            "uv run --no-project env REVIEW_SCOPE=hook /usr/bin/python3 "
+            "-W error scripts/codex_event_waiter.py"
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "waiter_arguments",
+    [
+        (
+            "command --output reports/agent_jobs/wait.json -- "
+            "git reset --hard"
+        ),
+        "command --output data/results.sqlite -- git status --short",
+    ],
+)
+def test_wrapped_python_waiter_forms_preserve_nested_and_output_classification(
+    tmp_path: Path,
+    invocation: str,
+    waiter_arguments: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = f"{invocation} {waiter_arguments}"
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -B scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- "
+            "git diff --output=data/results.sqlite"
+        ),
+        (
+            "python3 -m scripts.codex_event_waiter command "
+            "--output reports/agent_jobs/wait.json -- "
+            "python3 audit_extract_report.py --output data/results.sqlite"
+        ),
+    ],
+)
+def test_normalized_waiter_recursively_classifies_nested_output_paths(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "invocation",
+    [
+        "python3 -B scripts/codex_event_waiter.py",
+        "python3 -X dev ./scripts/codex_event_waiter.py",
+        "python3 -m scripts.codex_event_waiter",
+        "/usr/bin/python3 -OO /opt/tenn/scripts/codex_event_waiter.py",
+        "env REVIEW_SCOPE=hook python3 -W ignore scripts/codex_event_waiter.py",
+        "env -S'python3 -I scripts/codex_event_waiter.py'",
+        "env -vS'python3 -I scripts/codex_event_waiter.py'",
+        r"env -S'python3\_-I\_scripts/codex_event_waiter.py'",
+        "uv run --no-project python3.13 -I scripts/codex_event_waiter.py",
+        (
+            "uv run --python python3.13 python3 -B "
+            "scripts/codex_event_waiter.py"
+        ),
+        "uv run --module scripts.codex_event_waiter",
+        "uv run --script scripts/codex_event_waiter.py",
+        "uv run --module -- scripts.codex_event_waiter",
+        "uv run --script -- scripts/codex_event_waiter.py",
+        "uv run -qm -- scripts.codex_event_waiter",
+        "uv run -qm scripts.codex_event_waiter",
+        "uv run -qs scripts/codex_event_waiter.py",
+        "uv run -qmp3.13 scripts.codex_event_waiter",
+        "uv run -qsp3.13 scripts/codex_event_waiter.py",
+        "uv --offline run python3 -I scripts/codex_event_waiter.py",
+    ],
+)
+def test_normalized_safe_waiter_forms_remain_autonomous(
+    tmp_path: Path,
+    invocation: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        f"{invocation} command --output reports/agent_jobs/wait.json -- "
+        "git status --short"
+    )
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -I scripts/ordinary.py command --output data/results.sqlite -- "
+            "systemctl --user restart tenn.service"
+        ),
+        (
+            "python3 -X dev scripts/ordinary.py scripts/codex_event_waiter.py -- "
+            "git reset --hard"
+        ),
+        (
+            "python3 -W codex_event_waiter.py scripts/ordinary.py -- "
+            "systemctl --user restart tenn.service"
+        ),
+        (
+            "python3 --check-hash-based-pycs scripts/codex_event_waiter.py "
+            "scripts/ordinary.py -- git reset --hard"
+        ),
+        "python3 -m scripts.ordinary scripts/codex_event_waiter.py git reset --hard",
+        (
+            "python3 -c 'print(\"scripts/codex_event_waiter.py; "
+            "systemctl restart tenn.service\")'"
+        ),
+        (
+            "/usr/bin/python3.13 -OO scripts/ordinary.py "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "/opt/python/bin/python3.13t -OO scripts/ordinary.py "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "env -S'python3 -I scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv run --python python3.13 python3 -I scripts/ordinary.py "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv run -p python3.13 python3 -m scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "env -vS'python3 -I scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            r"env -S'python3\_-I\_scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv --offline run python3 -I scripts/ordinary.py "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv --directory /tmp run -qm scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "uv run -qmp3.13 scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "env --help python3 scripts/codex_event_waiter.py "
+            "systemctl restart tenn.service"
+        ),
+        (
+            "uv run --help scripts/codex_event_waiter.py git reset --hard"
+        ),
+    ],
+)
+def test_unrelated_python_commands_are_not_waiter_invocations(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -Z scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -IZ scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 --future-option scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 --check-hash-based-pycs= scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -m scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -mscripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        "python3 -B scripts/codex_event_waiter.py",
+        "python3 -m scripts.codex_event_waiter",
+        "python3 -m scripts.codex_event_waiter command -- git status",
+        (
+            "python3 scripts.codex_event_waiter command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "env -S \"python3 -I 'scripts/codex_event_waiter.py\" command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "uv run --future-option python3 -I scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "uv --future-global run python3 -I scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+    ],
+)
+def test_malformed_or_ambiguous_python_waiter_forms_fail_closed(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "TENN_TIER34_AUTHORIZED=1 python3 -B scripts/codex_event_waiter.py "
+            "command --output data/results.sqlite -- git status"
+        ),
+        (
+            "env TENN_TIER34_AUTHORIZED=1 python3 -m scripts.codex_event_waiter "
+            "command --output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+        (
+            "env -S'TENN_TIER34_AUTHORIZED=1 python3 -I "
+            "scripts/codex_event_waiter.py' command "
+            "--output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+        (
+            "WAITER_ARGS='-I scripts/codex_event_waiter.py' "
+            "env -S'python3 ${WAITER_ARGS}' command "
+            "--output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+    ],
+)
+def test_embedded_environment_text_cannot_authorize_normalized_waiter(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "waiter_args",
+    [
+        "-I scripts/codex_event_waiter.py",
+        r"-W 'a\'b' scripts/codex_event_waiter.py",
+        r"-W \$ scripts/codex_event_waiter.py",
+    ],
+)
+def test_dynamic_env_split_string_waiter_target_fails_closed_without_authorization(
+    tmp_path: Path,
+    waiter_args: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "env -S'python3 ${WAITER_ARGS}' command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+    waiter_env = {"WAITER_ARGS": waiter_args}
+    _, blocked = run_hook(
+        repo,
+        env=waiter_env,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={**waiter_env, "TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    ("command", "extra_env"),
+    [
+        (
+            "env -S'python3 ${SAFE_ARGS}' scripts/codex_event_waiter.py "
+            "git reset --hard",
+            {"SAFE_ARGS": "-I scripts/ordinary.py"},
+        ),
+        (r"env -S'python3\_-c\_print(\#)'", {}),
+        (r"env -S'python3\_-c\_print(\t)'", {}),
+    ],
+)
+def test_safe_dynamic_or_escaped_env_split_strings_remain_autonomous(
+    tmp_path: Path,
+    command: str,
+    extra_env: dict[str, str],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        env=extra_env,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
 
 
 @pytest.mark.parametrize(

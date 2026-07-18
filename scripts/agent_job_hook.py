@@ -13,7 +13,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 try:
     from scripts import agent_decision_ledger as decision_ledger_module
@@ -2112,19 +2112,82 @@ def _time_wrapper(tokens: list[str]) -> tuple[list[str], str | None]:
     return [], None
 
 
+def _tokens_reference_waiter(tokens: Sequence[str]) -> bool:
+    """Return whether wrapper text visibly refers to the repository waiter."""
+
+    return any(
+        "codex_event_waiter.py" in token or "scripts.codex_event_waiter" in token
+        for token in tokens
+    )
+
+
+def _expand_env_split_variables(
+    value: str,
+    environment: Mapping[str, str],
+) -> str | None:
+    """Expand GNU env's supported `${VARNAME}` form exactly once."""
+
+    escaped_dollar = "\x00TENN_ENV_ESCAPED_DOLLAR\x00"
+    protected_value = value.replace(r"\$", escaped_dollar)
+    pattern = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+    pieces: list[str] = []
+    cursor = 0
+    for match in pattern.finditer(protected_value):
+        prefix = protected_value[cursor : match.start()]
+        if "$" in prefix:
+            return None
+        pieces.extend((prefix, environment.get(match.group(1), "")))
+        cursor = match.end()
+    suffix = protected_value[cursor:]
+    if "$" in suffix:
+        return None
+    pieces.append(suffix)
+    return "".join(pieces).replace(escaped_dollar, r"\$")
+
+
+def _normalize_env_split_escapes(value: str) -> str:
+    """Normalize GNU env whitespace escapes before POSIX quote splitting."""
+
+    prefix, separator, _ = value.partition(r"\c")
+    normalized = prefix if separator else value
+    for escape, replacement in (
+        (r"\_", " "),
+        (r"\t", "\t"),
+        (r"\n", "\n"),
+        (r"\r", "\r"),
+        (r"\v", " "),
+        (r"\f", " "),
+        (r"\#", "#"),
+    ):
+        normalized = normalized.replace(escape, replacement)
+    return normalized
+
+
 def _unwrap_shell_tokens(
     tokens: list[str],
     *,
     stop_before: frozenset[str] = frozenset(),
-) -> list[str]:
+) -> tuple[list[str], str | None]:
     """Remove common non-semantic wrappers before Tier 3/4 classification."""
 
     remaining = list(tokens)
+    classification_environment = dict(os.environ)
+    wrapper_steps = 0
     while remaining:
+        wrapper_steps += 1
+        if wrapper_steps > 32:
+            issue = (
+                "wrapper normalization depth exceeded before codex_event_waiter"
+                if _tokens_reference_waiter(remaining)
+                else None
+            )
+            return [], issue
         while remaining and _environment_assignment(remaining[0]):
+            name, value = remaining[0].split("=", 1)
+            classification_environment[name] = value
             remaining = remaining[1:]
         if not remaining:
-            return []
+            return [], None
         executable = Path(remaining[0]).name
         if executable in stop_before:
             break
@@ -2169,22 +2232,86 @@ def _unwrap_shell_tokens(
                 if token == "--":
                     index += 1
                     break
+                if token in {"--help", "--version"}:
+                    return [], None
+                split_value: str | None = None
+                suffix_index = index + 1
                 if token in {"-S", "--split-string"}:
                     if index + 1 >= len(remaining):
-                        return []
+                        issue = (
+                            "malformed env split-string containing codex_event_waiter"
+                            if _tokens_reference_waiter(remaining[index:])
+                            else None
+                        )
+                        return [], issue
+                    split_value = remaining[index + 1]
+                    suffix_index = index + 2
+                elif token.startswith("--split-string="):
+                    split_value = token.split("=", 1)[1]
+                elif token.startswith("-") and not token.startswith("--") and token != "-":
+                    short_options = token[1:]
+                    option_index = 0
+                    while option_index < len(short_options):
+                        option = short_options[option_index]
+                        if option in {"0", "i", "v"}:
+                            option_index += 1
+                            continue
+                        if option == "S":
+                            split_value = short_options[option_index + 1 :]
+                            if not split_value:
+                                if index + 1 >= len(remaining):
+                                    issue = (
+                                        "malformed env split-string containing codex_event_waiter"
+                                        if _tokens_reference_waiter(remaining[index:])
+                                        else None
+                                    )
+                                    return [], issue
+                                split_value = remaining[index + 1]
+                                suffix_index = index + 2
+                            break
+                        if option in {"C", "u"}:
+                            index += 1 if short_options[option_index + 1 :] else 2
+                            break
+                        index += 1
+                        break
+                    else:
+                        index += 1
+                        continue
+                    if split_value is None:
+                        continue
+                if split_value is not None:
+                    expanded_split_value = _expand_env_split_variables(
+                        split_value,
+                        classification_environment,
+                    )
+                    if expanded_split_value is None:
+                        issue = (
+                            "ambiguous env split-string before codex_event_waiter"
+                            if _tokens_reference_waiter(
+                                [split_value, *remaining[suffix_index:]]
+                            )
+                            else None
+                        )
+                        return [], issue
                     try:
-                        split_command = shlex.split(remaining[index + 1], posix=True)
+                        split_command = shlex.split(
+                            _normalize_env_split_escapes(expanded_split_value),
+                            posix=True,
+                        )
                     except ValueError:
-                        return []
-                    remaining = [*split_command, *remaining[index + 2 :]]
-                    index = 0
-                    break
-                if token.startswith("--split-string="):
-                    try:
-                        split_command = shlex.split(token.split("=", 1)[1], posix=True)
-                    except ValueError:
-                        return []
-                    remaining = [*split_command, *remaining[index + 1 :]]
+                        issue = (
+                            "malformed env split-string containing codex_event_waiter"
+                            if _tokens_reference_waiter(
+                                [
+                                    split_value,
+                                    expanded_split_value,
+                                    *remaining[suffix_index:],
+                                ]
+                            )
+                            else None
+                        )
+                        return [], issue
+                    remaining = ["env", *split_command, *remaining[suffix_index:]]
                     index = 0
                     break
                 if token in {"-C", "-u", "--chdir", "--unset"}:
@@ -2194,11 +2321,13 @@ def _unwrap_shell_tokens(
                     index += 1
                     continue
                 break
+            if index == 0:
+                continue
             remaining = remaining[index:]
             continue
         if executable == "command":
             if any(token in {"-V", "-v"} for token in remaining[1:]):
-                return remaining
+                return remaining, None
             index = 1
             while index < len(remaining) and remaining[index].startswith("-"):
                 index += 1
@@ -2449,11 +2578,82 @@ def _unwrap_shell_tokens(
                     continue
                 break
             if index >= len(remaining):
-                return []
+                return [], None
             remaining = remaining[index + 1 :]
             continue
-        if executable == "uv" and len(remaining) > 1 and remaining[1] == "run":
-            known_executables = {
+        if executable == "uv":
+            global_value_options = {
+                "--allow-insecure-host",
+                "--cache-dir",
+                "--color",
+                "--config-file",
+                "--directory",
+                "--project",
+            }
+            global_no_value_options = {
+                "--managed-python",
+                "--no-cache",
+                "--no-config",
+                "--no-managed-python",
+                "--no-progress",
+                "--no-python-downloads",
+                "--offline",
+                "--quiet",
+                "--system-certs",
+                "--verbose",
+                "-n",
+                "-q",
+                "-v",
+            }
+            index = 1
+            run_index: int | None = None
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "run":
+                    run_index = index
+                    break
+                if token == "--":
+                    index += 1
+                    if index < len(remaining) and remaining[index] == "run":
+                        run_index = index
+                    break
+                if token in {"-V", "--version", "-h", "--help"}:
+                    return [], None
+                if token in global_value_options:
+                    if index + 1 >= len(remaining):
+                        issue = (
+                            "malformed uv global option before codex_event_waiter"
+                            if _tokens_reference_waiter(remaining[index:])
+                            else None
+                        )
+                        return [], issue
+                    index += 2
+                    continue
+                if any(
+                    token.startswith(f"{option}=")
+                    for option in global_value_options
+                ):
+                    index += 1
+                    continue
+                if token in global_no_value_options or (
+                    token.startswith("-")
+                    and not token.startswith("--")
+                    and set(token[1:]) <= set("nqv")
+                ):
+                    index += 1
+                    continue
+                if token.startswith("-") and _tokens_reference_waiter(
+                    remaining[index + 1 :]
+                ):
+                    return (
+                        [],
+                        f"unclassified uv global option before codex_event_waiter: {token}",
+                    )
+                break
+            if run_index is None:
+                break
+            remaining = ["uv", "run", *remaining[run_index + 1 :]]
+            fallback_executables = {
                 "bash",
                 "cp",
                 "dd",
@@ -2472,20 +2672,244 @@ def _unwrap_shell_tokens(
                 "systemctl",
                 "tee",
             }
-            command_index = next(
-                (
-                    index
-                    for index in range(2, len(remaining))
-                    if Path(remaining[index]).name in known_executables
-                ),
-                None,
-            )
-            if command_index is None:
-                return remaining
-            remaining = remaining[command_index:]
+            value_options = {
+                "--allow-insecure-host",
+                "--cache-dir",
+                "--color",
+                "--config-file",
+                "--config-setting",
+                "--config-settings-package",
+                "--default-index",
+                "--directory",
+                "--env-file",
+                "--exclude-newer",
+                "--exclude-newer-package",
+                "--extra",
+                "--extra-index-url",
+                "--find-links",
+                "--fork-strategy",
+                "--group",
+                "--index",
+                "--index-strategy",
+                "--index-url",
+                "--keyring-provider",
+                "--link-mode",
+                "--no-binary-package",
+                "--no-build-isolation-package",
+                "--no-build-package",
+                "--no-extra",
+                "--no-group",
+                "--no-sources-package",
+                "--only-group",
+                "--package",
+                "--prerelease",
+                "--project",
+                "--python",
+                "--python-platform",
+                "--refresh-package",
+                "--reinstall-package",
+                "--resolution",
+                "--upgrade-package",
+                "--with",
+                "--with-editable",
+                "--with-requirements",
+                "-C",
+                "-P",
+                "-f",
+                "-i",
+                "-p",
+                "-w",
+            }
+            no_value_options = {
+                "--active",
+                "--all-extras",
+                "--all-groups",
+                "--all-packages",
+                "--compile-bytecode",
+                "--exact",
+                "--frozen",
+                "--gui-script",
+                "--help",
+                "--isolated",
+                "--locked",
+                "--managed-python",
+                "--no-binary",
+                "--no-build",
+                "--no-build-isolation",
+                "--no-cache",
+                "--no-config",
+                "--no-default-groups",
+                "--no-dev",
+                "--no-editable",
+                "--no-env-file",
+                "--no-index",
+                "--no-managed-python",
+                "--no-progress",
+                "--no-project",
+                "--no-python-downloads",
+                "--no-sources",
+                "--no-sync",
+                "--offline",
+                "--only-dev",
+                "--quiet",
+                "--refresh",
+                "--reinstall",
+                "--system-certs",
+                "--upgrade",
+                "--verbose",
+                "-U",
+                "-h",
+                "-n",
+                "-q",
+                "-v",
+            }
+            short_value_options = {option for option in value_options if len(option) == 2}
+            index = 2
+            while index < len(remaining):
+                token = remaining[index]
+                if token == "--":
+                    index += 1
+                    break
+                if token in {"--help", "-h"}:
+                    return [], None
+                if token in {"--module", "--script"}:
+                    target_index = index + 1
+                    if (
+                        target_index < len(remaining)
+                        and remaining[target_index] == "--"
+                    ):
+                        target_index += 1
+                    if target_index >= len(remaining):
+                        issue = (
+                            "malformed uv waiter mode"
+                            if _tokens_reference_waiter(remaining[index:])
+                            else None
+                        )
+                        return [], issue
+                    target = remaining[target_index]
+                    prefix = ["python", "-m"] if token == "--module" else ["python"]
+                    remaining = [*prefix, target, *remaining[target_index + 1 :]]
+                    break
+                if token.startswith(("--module=", "--script=")):
+                    option, _, target = token.partition("=")
+                    prefix = ["python", "-m"] if option == "--module" else ["python"]
+                    remaining = [*prefix, target, *remaining[index + 1 :]]
+                    break
+                if token.startswith("-") and not token.startswith("--"):
+                    short_options = token[1:]
+                    mode: str | None = None
+                    consumed_value = False
+                    valid_cluster = True
+                    next_index = index + 1
+                    option_index = 0
+                    while option_index < len(short_options):
+                        option = short_options[option_index]
+                        if option in set("Unqv"):
+                            option_index += 1
+                            continue
+                        if option == "h":
+                            return [], None
+                        if option in {"m", "s"}:
+                            if mode is not None and mode != option:
+                                valid_cluster = False
+                                break
+                            mode = option
+                            option_index += 1
+                            continue
+                        if option in set("CPfipw"):
+                            if short_options[option_index + 1 :]:
+                                next_index = index + 1
+                            elif index + 1 < len(remaining):
+                                next_index = index + 2
+                            else:
+                                issue = (
+                                    "malformed uv option before codex_event_waiter"
+                                    if _tokens_reference_waiter(remaining[index:])
+                                    else None
+                                )
+                                return [], issue
+                            consumed_value = True
+                            break
+                        valid_cluster = False
+                        break
+                    if valid_cluster and mode is not None:
+                        target_index = next_index
+                        if (
+                            target_index < len(remaining)
+                            and remaining[target_index] == "--"
+                        ):
+                            target_index += 1
+                        if target_index >= len(remaining):
+                            issue = (
+                                "malformed uv waiter mode"
+                                if _tokens_reference_waiter(remaining[index:])
+                                else None
+                            )
+                            return [], issue
+                        target = remaining[target_index]
+                        prefix = ["python", "-m"] if mode == "m" else ["python"]
+                        remaining = [*prefix, target, *remaining[target_index + 1 :]]
+                        break
+                    if valid_cluster:
+                        index = next_index if consumed_value else index + 1
+                        continue
+                if token in value_options:
+                    if index + 1 >= len(remaining):
+                        issue = (
+                            "malformed uv option before codex_event_waiter"
+                            if _tokens_reference_waiter(remaining[index:])
+                            else None
+                        )
+                        return [], issue
+                    index += 2
+                    continue
+                if any(
+                    token.startswith(f"{option}=")
+                    for option in value_options
+                    if option.startswith("--")
+                ) or any(
+                    token.startswith(option) and token != option
+                    for option in short_value_options
+                ):
+                    index += 1
+                    continue
+                if token in no_value_options or (
+                    token.startswith("-")
+                    and not token.startswith("--")
+                    and set(token[1:]) <= set("Unqv")
+                ):
+                    index += 1
+                    continue
+                if token.startswith("-"):
+                    if _tokens_reference_waiter(remaining[index + 1 :]):
+                        return (
+                            [],
+                            f"unclassified uv option before codex_event_waiter: {token}",
+                        )
+                    fallback_index = next(
+                        (
+                            candidate_index
+                            for candidate_index in range(index + 1, len(remaining))
+                            if Path(remaining[candidate_index]).name
+                            in fallback_executables
+                            or _is_python_executable(remaining[candidate_index])
+                        ),
+                        None,
+                    )
+                    if fallback_index is None:
+                        return [], None
+                    remaining = remaining[fallback_index:]
+                    break
+                break
+            else:
+                return [], None
+            if index <= len(remaining) and Path(remaining[0]).name == "uv":
+                remaining = remaining[index:]
+            if remaining and Path(remaining[0]).name == "codex_event_waiter.py":
+                remaining = ["python", *remaining]
             continue
         break
-    return remaining
+    return remaining, None
 
 
 def _shell_c_command(tokens: list[str]) -> str | None:
@@ -3046,11 +3470,135 @@ def _writer_destination_issue(executable: str, tokens: list[str]) -> str | None:
     return None
 
 
+def _is_python_executable(value: str) -> bool:
+    """Return whether *value* names a supported Python interpreter."""
+
+    return (
+        re.fullmatch(r"python(?:\d+(?:\.\d+)*[dmt]?)?", Path(value).name)
+        is not None
+    )
+
+
+def _waiter_like_python_target(value: str) -> bool:
+    """Return whether a token visibly refers to the repository waiter."""
+
+    candidate = value.lstrip("=")
+    if Path(candidate).name == "codex_event_waiter.py":
+        return True
+    dotted = candidate.replace("/", ".").removesuffix(".py").lstrip(".")
+    return dotted == "scripts.codex_event_waiter"
+
+
+def _python_waiter_tokens(tokens: list[str]) -> tuple[list[str] | None, str | None]:
+    """Normalize a Python waiter target without scanning ordinary script argv."""
+
+    if not tokens or not _is_python_executable(tokens[0]):
+        return None, None
+
+    def waiter_later(start: int) -> bool:
+        return any(_waiter_like_python_target(token) for token in tokens[start:])
+
+    def normalize_module(module: str, argv_start: int) -> tuple[list[str] | None, str | None]:
+        if module == "scripts.codex_event_waiter":
+            return [Path(tokens[0]).name, "codex_event_waiter.py", *tokens[argv_start:]], None
+        if _waiter_like_python_target(module):
+            return None, "malformed Python module target for codex_event_waiter"
+        return None, None
+
+    index = 1
+    no_value_short_options = frozenset("bBdEiIOPqRsSuvx")
+    terminal_short_options = frozenset("hV?")
+    terminal_long_options = {
+        "--help",
+        "--help-all",
+        "--help-env",
+        "--help-xoptions",
+        "--version",
+    }
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            index += 1
+            break
+        if token in terminal_long_options:
+            return None, None
+        if token == "--check-hash-based-pycs":
+            if index + 1 >= len(tokens):
+                return (
+                    (None, "malformed Python option before codex_event_waiter")
+                    if waiter_later(index + 1)
+                    else (None, None)
+                )
+            value = tokens[index + 1]
+            index += 2
+            continue
+        if token.startswith("--check-hash-based-pycs="):
+            value = token.partition("=")[2]
+            if not value:
+                return (
+                    (None, "malformed Python option before codex_event_waiter")
+                    if waiter_later(index + 1)
+                    else (None, None)
+                )
+            index += 1
+            continue
+        if token.startswith("--"):
+            if waiter_later(index + 1):
+                return None, f"unclassified Python option before codex_event_waiter: {token}"
+            return None, None
+        if token == "-":
+            return None, None
+        if token.startswith("-"):
+            option_index = 1
+            while option_index < len(token):
+                option = token[option_index]
+                if option in terminal_short_options:
+                    return None, None
+                if option in no_value_short_options:
+                    option_index += 1
+                    continue
+                if option in {"W", "X", "c", "m"}:
+                    attached_value = token[option_index + 1 :]
+                    if attached_value:
+                        value = attached_value
+                        argv_start = index + 1
+                    elif index + 1 < len(tokens):
+                        value = tokens[index + 1]
+                        argv_start = index + 2
+                    else:
+                        return None, None
+                    if option == "c":
+                        return None, None
+                    if option == "m":
+                        return normalize_module(value, argv_start)
+                    index = argv_start
+                    break
+                if waiter_later(index + 1):
+                    return None, f"unclassified Python option before codex_event_waiter: -{option}"
+                return None, None
+            else:
+                index += 1
+                continue
+            continue
+        break
+
+    if index >= len(tokens):
+        return None, None
+    target = tokens[index]
+    if Path(target).name == "codex_event_waiter.py":
+        return [Path(tokens[0]).name, "codex_event_waiter.py", *tokens[index + 1 :]], None
+    if _waiter_like_python_target(target):
+        return None, "malformed Python script target for codex_event_waiter"
+    return None, None
+
+
 def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
     """Validate waiter options, outputs, and the command after `--`."""
 
-    if len(tokens) < 3 or Path(tokens[1]).name != "codex_event_waiter.py":
+    if len(tokens) < 2 or Path(tokens[1]).name != "codex_event_waiter.py":
         return None
+    if len(tokens) < 3:
+        return "malformed codex_event_waiter mode"
     mode = tokens[2]
     if mode not in {"command", "github-pr"}:
         return "malformed codex_event_waiter mode"
@@ -3126,16 +3674,24 @@ def _output_destination_issue(tokens: list[str]) -> str | None:
 def _high_risk_tokens_issue(
     tokens: list[str], *, depth: int = 0, classify_outputs: bool = False
 ) -> str | None:
-    time_tokens = _unwrap_shell_tokens(tokens, stop_before=frozenset({"time"}))
+    time_tokens, unwrap_issue = _unwrap_shell_tokens(
+        tokens, stop_before=frozenset({"time"})
+    )
+    if unwrap_issue is not None:
+        return unwrap_issue
     while time_tokens and Path(time_tokens[0]).name == "time":
         time_tokens, time_issue = _time_wrapper(time_tokens)
         if time_issue is not None:
             return time_issue
-        time_tokens = _unwrap_shell_tokens(
+        time_tokens, unwrap_issue = _unwrap_shell_tokens(
             time_tokens,
             stop_before=frozenset({"time"}),
         )
-    tokens = _unwrap_shell_tokens(tokens)
+        if unwrap_issue is not None:
+            return unwrap_issue
+    tokens, unwrap_issue = _unwrap_shell_tokens(tokens)
+    if unwrap_issue is not None:
+        return unwrap_issue
     if not tokens:
         return None
     executable = Path(tokens[0]).name
@@ -3146,8 +3702,15 @@ def _high_risk_tokens_issue(
         output_issue = _output_destination_issue(normalized_tokens)
         if output_issue is not None:
             return output_issue
-    if executable in {"python", "python3"}:
-        waiter_issue = _waiter_invocation_issue(normalized_tokens, depth=depth)
+    if _is_python_executable(executable):
+        waiter_tokens, normalization_issue = _python_waiter_tokens(normalized_tokens)
+        if normalization_issue is not None:
+            return normalization_issue
+        waiter_issue = (
+            _waiter_invocation_issue(waiter_tokens, depth=depth)
+            if waiter_tokens is not None
+            else None
+        )
         if waiter_issue is not None:
             return waiter_issue
     if executable in {"chrt", "ionice", "taskset"}:
