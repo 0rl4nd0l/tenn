@@ -14,6 +14,121 @@ HOOK_SCRIPT = REPO_ROOT / "scripts" / "agent_job_hook.py"
 CONTRACT_SCRIPT = REPO_ROOT / "scripts" / "agent_job_contract.py"
 REGISTRY_SCRIPT = REPO_ROOT / "scripts" / "agent_job_registry.py"
 DECISION_LEDGER_SCRIPT = REPO_ROOT / "scripts" / "agent_decision_ledger.py"
+PROTECTED_PYTHON_ENTRYPOINTS = (
+    "run_extraction_backfill",
+    "run_full_pipeline",
+)
+PROTECTED_PYTHON_INTERPRETERS = (
+    "python",
+    "python3",
+    "python3.13",
+    "/usr/bin/python3.13",
+)
+PROTECTED_PYTHON_INVOCATION_TEMPLATES = (
+    "{python} scripts/{entrypoint}.py",
+    "{python} -I scripts/{entrypoint}.py",
+    "{python} -B scripts/{entrypoint}.py",
+    "{python} -u scripts/{entrypoint}.py",
+    "{python} -O scripts/{entrypoint}.py",
+    "{python} -OO scripts/{entrypoint}.py",
+    "{python} -IB scripts/{entrypoint}.py",
+    "{python} -W error scripts/{entrypoint}.py",
+    "{python} -Werror scripts/{entrypoint}.py",
+    "{python} -X dev scripts/{entrypoint}.py",
+    "{python} -Xdev scripts/{entrypoint}.py",
+    "{python} --check-hash-based-pycs always scripts/{entrypoint}.py",
+    "{python} --check-hash-based-pycs=always scripts/{entrypoint}.py",
+    "{python} -m scripts.{entrypoint}",
+    "{python} -mscripts.{entrypoint}",
+    "{python} -- ./scripts/{entrypoint}.py",
+    "{python} /opt/tenn/scripts/{entrypoint}.py",
+)
+TIER34_GATE_CASES = (
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 scripts/run_extraction_backfill.py"
+            },
+        },
+        id="protected-python",
+    ),
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git reset --hard"},
+        },
+        id="destructive-git",
+    ),
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "systemctl --user restart tenn.service"},
+        },
+        id="service-runtime",
+    ),
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "sqlite3 data.sqlite 'DELETE FROM results'"
+            },
+        },
+        id="datastore",
+    ),
+    pytest.param(
+        {
+            "tool_name": "apply_patch",
+            "tool_input": {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: data/results.sqlite\n"
+                    "*** End Patch\n"
+                )
+            },
+        },
+        id="patch",
+    ),
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "python3 scripts/codex_event_waiter.py command "
+                    "--output reports/agent_jobs/wait.json -- git reset --hard"
+                )
+            },
+        },
+        id="waiter",
+    ),
+    pytest.param(
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "cp scripts/example.py data/results.sqlite"
+            },
+        },
+        id="writer",
+    ),
+)
+NON_EXACT_TIER34_AUTHORIZATION_VALUES = (
+    pytest.param(None, id="missing"),
+    pytest.param("", id="empty"),
+    pytest.param("true", id="true"),
+    pytest.param("yes", id="yes"),
+    pytest.param("on", id="on"),
+    pytest.param("TRUE", id="uppercase-true"),
+    pytest.param(" 1 ", id="padded-one"),
+    pytest.param("1 ", id="trailing-space-one"),
+    pytest.param(" 1", id="leading-space-one"),
+    pytest.param("01", id="leading-zero-one"),
+    pytest.param("false", id="false"),
+    pytest.param("no", id="no"),
+    pytest.param("off", id="off"),
+    pytest.param("0", id="zero"),
+    pytest.param("2", id="two"),
+    pytest.param("1.0", id="decimal-one"),
+)
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +136,7 @@ def isolated_registry_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TENN_AGENT_REGISTRY_ROOT", raising=False)
     monkeypatch.delenv("TENN_AGENT_TASK_CARD", raising=False)
     monkeypatch.delenv("TENN_V2_REQUIRED", raising=False)
+    monkeypatch.delenv("TENN_TIER34_AUTHORIZED", raising=False)
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
 
 
@@ -150,10 +266,18 @@ def run_hook(
     *,
     env: dict[str, str] | None = None,
     platform: str = "codex",
-    event: str = "Stop",
+    event: str = "BeforeTool",
     hook_input: dict[str, object] | None = None,
+    v2_required: bool = True,
+    tier34_authorized: bool = True,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    """Run an opted-in V2 check; default-policy tests disable both flags explicitly."""
+
     merged_env = os.environ.copy()
+    if v2_required:
+        merged_env["TENN_V2_REQUIRED"] = "1"
+    if tier34_authorized:
+        merged_env["TENN_TIER34_AUTHORIZED"] = "1"
     if env is not None:
         merged_env.update(env)
     payload = {"hook_event_name": event, **(hook_input or {})}
@@ -179,6 +303,8 @@ def test_default_no_claim_file_mutation_preserves_legacy_behavior(
     completed, payload = run_hook(
         repo,
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
         hook_input={
             "tool_name": "apply_patch",
             "tool_input": {"patch": "*** Begin Patch\n*** Update File: src/allowed.py\n"},
@@ -187,6 +313,1777 @@ def test_default_no_claim_file_mutation_preserves_legacy_behavior(
 
     assert completed.returncode == 0
     assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "docs/guide.md",
+        "financial-engine_v2/backend/app/example.py",
+        "cockpit-ui/app/example.tsx",
+    ],
+)
+def test_default_tier_one_edits_need_no_task_state(tmp_path: Path, path: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    completed, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
+        hook_input={
+            "tool_name": "apply_patch",
+            "tool_input": {"patch": f"*** Begin Patch\n*** Update File: {path}\n"},
+        },
+    )
+
+    assert completed.returncode == 0
+    assert payload.get("decision") != "block"
+
+
+def test_stop_is_nonblocking_even_for_invalid_opted_in_v2(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    card = task_card(repo, allowed_files=["src/allowed.py"], control_contract_version=2)
+    card.write_text("not a task card\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": str(card.relative_to(repo))},
+        event="Stop",
+    )
+
+    assert completed.returncode == 0
+    assert payload.get("decision") != "block"
+
+
+def test_default_non_v2_read_only_operation_passes(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
+        hook_input={"tool_name": "Bash", "tool_input": {"command": "git status --short"}},
+    )
+    assert payload.get("decision") != "block"
+
+
+def test_default_non_v2_tier34_mutation_requires_explicit_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    hook_input = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "systemctl --user start tenn.service"},
+    }
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert "TENN_TIER34_AUTHORIZED=1" in str(blocked["reason"])
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize("hook_input", TIER34_GATE_CASES)
+def test_every_tier34_gate_family_accepts_exact_environment_one(
+    tmp_path: Path,
+    hook_input: dict[str, object],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize("authorization_value", NON_EXACT_TIER34_AUTHORIZATION_VALUES)
+@pytest.mark.parametrize("hook_input", TIER34_GATE_CASES)
+def test_every_tier34_gate_family_rejects_non_exact_authorization(
+    tmp_path: Path,
+    hook_input: dict[str, object],
+    authorization_value: str | None,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    env = (
+        {}
+        if authorization_value is None
+        else {"TENN_TIER34_AUTHORIZED": authorization_value}
+    )
+
+    _, payload = run_hook(
+        repo,
+        env=env,
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+
+
+def test_command_text_cannot_grant_tier34_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "TENN_TIER34_AUTHORIZED=1 "
+                    "systemctl --user set-property tenn.service CPUQuota=50%"
+                )
+            },
+        },
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "TENN_TIER34_AUTHORIZED=1" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git branch --show-current",
+        "git branch topic",
+        "git switch topic",
+        "git switch -c topic",
+        "git checkout topic",
+        "git checkout -b topic",
+        "git worktree add /tmp/topic topic",
+        "git status --short",
+        "git log -1",
+        "git diff --stat",
+        "git show HEAD",
+        "git show \"$SHA\"",
+        "git fetch origin",
+        "systemctl --user status tenn.service",
+        "systemctl --user status \"$UNIT\"",
+        "docker ps",
+        "docker inspect \"$CONTAINER\"",
+        "kubectl get pods",
+        "kubectl get pod \"$POD\"",
+        "taskset -c 0 git status --short",
+        "ionice -c2 git status --short",
+        "chrt -f 99 git status --short",
+        "watch -x git status --short",
+        "python3 audit_extract_report.py",
+        "command -v git reset",
+        "printf 'git reset --hard'",
+        "[ -f scripts/agent_job_hook.py ]",
+        "[[ -f scripts/agent_job_hook.py ]]",
+        "taskset 03 git log -p",
+        "taskset -c 0 git log -p",
+        "ionice -c2 git log -p",
+        "chrt -f 99 git log -p",
+    ],
+)
+def test_default_non_v2_safe_operations_pass(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git reset --hard",
+        "git checkout -- src/allowed.py",
+        "sudo /bin/systemctl --user restart tenn.service",
+        "env MODE=prod docker stop api",
+        "command kubectl delete pod api",
+        "git status && systemctl --user start tenn.service",
+        "systemctl --user start tenn.service $(unexpected)",
+    ],
+)
+def test_default_non_v2_high_risk_wrapped_or_compound_operations_block(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "bash -c 'systemctl --user restart tenn.service'",
+        "/bin/bash -lc 'systemctl --user restart tenn.service'",
+        "bash -O extglob -c 'git reset --hard'",
+        "bash -o errexit -c 'git reset --hard'",
+        "sh -c 'git reset --hard'",
+        "/bin/sh -ec 'git clean -fd'",
+        "time git reset --hard",
+        "/usr/bin/time -f '%E' /usr/bin/git reset --hard",
+        "exec /usr/bin/git reset --hard",
+        "builtin exec /usr/bin/git reset --hard",
+        "nice -n 5 /usr/bin/git reset --hard",
+        "nohup /usr/bin/git reset --hard",
+        "timeout 5 /usr/bin/git reset --hard",
+        "eval 'git reset --hard'",
+        "bash -c \"eval 'git reset --hard'\"",
+        "setsid git reset --hard",
+        "stdbuf -oL git reset --hard",
+        "xargs git reset --hard",
+        "coproc git reset --hard",
+        "coproc JOB git reset --hard",
+        "taskset -c 0 git reset --hard",
+        "ionice -c 2 -n 0 git reset --hard",
+        "chrt -f 99 git reset --hard",
+        "watch -n 1 git reset --hard",
+        "taskset -p 03 1234",
+        "taskset -pc 0 1234",
+        "ionice -c2 -p 1234",
+        "ionice --class 2 --pid 1234",
+        "chrt -p 99 1234",
+        "chrt --pid 99 1234",
+        "/usr/bin/g?t reset --hard",
+        "cmd=git; \"$cmd\" reset --hard",
+        "svc=systemctl; \"$svc\" --user set-property tenn.service CPUQuota=50%",
+        "action=reset; git \"$action\" --hard",
+        "env MODE=prod bash -c 'systemctl --user restart tenn.service'",
+        "MODE=prod command sh -c 'git reset --hard'",
+        "sudo env MODE=prod command /bin/bash -c 'systemctl restart tenn.service'",
+        "env -S \"bash -c 'git reset --hard'\"",
+        "uv run python3 scripts/run_extraction_backfill.py --backfill",
+        "rm -f data/results.sqlite",
+        "/usr/bin/truncate -s 0 data/results.sqlite",
+        "systemctl --user set-property tenn.service CPUQuota=50%",
+        "docker system prune -af",
+        "kubectl rollout restart deployment/tenn",
+        "git status || git reset --hard",
+        "git status; git clean -fd",
+        "printf ready | systemctl --user restart tenn.service",
+        "printf ready | truncate -s 0 data/results.sqlite",
+        "true && rm -f data/results.sqlite",
+        "if true; then git reset --hard; fi",
+        "{ git reset --hard; }",
+        "(git reset --hard)",
+        "! git reset --hard",
+        "true\ngit reset --hard",
+        "time -o data/results.sqlite git status",
+        "time --output=data/results.sqlite true",
+        "time time -o data/results.sqlite git status",
+        "DEST=data/results.sqlite; time -o \"$DEST\" true",
+        "rm -f tmp/../data/results.sqlite",
+        "rm -f {tmp,data}/results.txt",
+        "truncate -s0 run*/state.json",
+        "mv scripts/x {tmp,data}/results.txt",
+        "truncate -s0 scripts/../data/results.sqlite",
+        "mv -tdata scripts/example.py",
+        "P=data/results.sqlite; truncate -s0 \"$P\"",
+        "systemctl --unknown restart tenn.service",
+        "docker --context remote stop api",
+        "docker $ACTION ps",
+        "docker $ACTION inspect",
+        "kubectl --context remote delete pod api",
+        "kubectl $ACTION pods get",
+    ],
+)
+def test_default_gate_inspects_effective_commands_through_common_wrappers(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "TENN_TIER34_AUTHORIZED=1" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cp scripts/example.py data/results.sqlite",
+        "cp -f scripts/example.py data/results.sqlite",
+        "cp --target-directory=data scripts/example.py",
+        "bash -c 'cp scripts/example.py data/results.sqlite'",
+        "uv run cp scripts/example.py data/results.sqlite",
+        "tee data/results.sqlite",
+        "dd if=/tmp/input of=data/results.sqlite",
+        "sed -i s/a/b/ data/results.sqlite",
+        "sed -i -e s/a/b/ data/results.sqlite",
+        "printf x > data/results.sqlite",
+        "printf x 1>data/results.sqlite",
+    ],
+)
+def test_protected_shell_writer_destinations_require_actual_authorization(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize("interpreter", PROTECTED_PYTHON_INTERPRETERS)
+@pytest.mark.parametrize(
+    "invocation_template",
+    PROTECTED_PYTHON_INVOCATION_TEMPLATES,
+)
+def test_protected_python_entrypoint_cross_product_requires_actual_authorization(
+    tmp_path: Path,
+    entrypoint: str,
+    interpreter: str,
+    invocation_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = invocation_template.format(
+        python=interpreter,
+        entrypoint=entrypoint,
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "invocation_template",
+    [
+        "env REVIEW_SCOPE=hook python3 -B scripts/{entrypoint}.py",
+        "env -- python3 -X dev scripts/{entrypoint}.py",
+        "env -S 'python3 -I scripts/{entrypoint}.py'",
+        "env -vS'python3 -I scripts/{entrypoint}.py'",
+        "uv run --no-project python3.13 -OO scripts/{entrypoint}.py",
+        "uv run --python python3.13 python3 -I scripts/{entrypoint}.py",
+        "uv run --module scripts.{entrypoint}",
+        "uv run --script scripts/{entrypoint}.py",
+        "uv run scripts/{entrypoint}.py",
+        "uv --offline run --module scripts.{entrypoint}",
+    ],
+)
+def test_wrapped_protected_python_entrypoints_require_actual_authorization(
+    tmp_path: Path,
+    entrypoint: str,
+    invocation_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = invocation_template.format(entrypoint=entrypoint)
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "command_template",
+    [
+        "TENN_TIER34_AUTHORIZED=1 python3 -B scripts/{entrypoint}.py",
+        "env TENN_TIER34_AUTHORIZED=1 python3 -m scripts.{entrypoint}",
+        (
+            "env -S'TENN_TIER34_AUTHORIZED=1 python3 -I "
+            "scripts/{entrypoint}.py'"
+        ),
+        "python3 scripts/{entrypoint}.py TENN_TIER34_AUTHORIZED=1",
+    ],
+)
+def test_embedded_environment_text_cannot_authorize_protected_python_entrypoint(
+    tmp_path: Path,
+    entrypoint: str,
+    command_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = command_template.format(entrypoint=entrypoint)
+
+    _, embedded_only = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, actual_environment = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert embedded_only["decision"] == "block", command
+    assert actual_environment.get("decision") != "block", command
+
+
+@pytest.mark.parametrize("entrypoint", PROTECTED_PYTHON_ENTRYPOINTS)
+@pytest.mark.parametrize(
+    "command_template",
+    [
+        "python3 -Z scripts/{entrypoint}.py",
+        "python3 -IZ scripts/{entrypoint}.py",
+        "python3 --future-option scripts/{entrypoint}.py",
+        "python3 --check-hash-based-pycs= scripts/{entrypoint}.py",
+        "python3 -X scripts/{entrypoint}.py",
+        "python3 -W scripts/{entrypoint}.py",
+        "python3 -m scripts/{entrypoint}.py",
+        "python3 -mscripts/{entrypoint}.py",
+        "python3 scripts.{entrypoint}",
+        "uv run --future-option python3 -I scripts/{entrypoint}.py",
+        "uv --future-global run python3 -I scripts/{entrypoint}.py",
+        "env -S \"python3 -I 'scripts/{entrypoint}.py\"",
+    ],
+)
+def test_malformed_or_ambiguous_protected_python_entrypoints_fail_closed(
+    tmp_path: Path,
+    entrypoint: str,
+    command_template: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = command_template.format(entrypoint=entrypoint)
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 -m '' scripts.run_extraction_backfill",
+        "python3 '' scripts/run_extraction_backfill.py",
+        "uv run --module= scripts.run_extraction_backfill",
+        "uv run --script= scripts/run_full_pipeline.py",
+        "uv run --module '' scripts.run_extraction_backfill",
+        "uv run --script '' scripts/run_full_pipeline.py",
+        "env MODE=review python3 -m '' scripts.run_extraction_backfill",
+        "python3 -- '' scripts/run_full_pipeline.py",
+        "uv --offline run --module= scripts.run_full_pipeline",
+        "uv run -qm '' scripts.run_extraction_backfill",
+        "uv run -qs '' scripts/run_full_pipeline.py",
+        "env -S \"python3 -m '' scripts.run_extraction_backfill\"",
+        "python3 -m ' ' scripts.run_full_pipeline",
+        "uv run --script=' ' scripts/run_extraction_backfill.py",
+    ],
+)
+def test_malformed_empty_effective_python_targets_fail_closed_for_protected_argv(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 '' scripts/ordinary.py",
+        "python3 -m '' scripts.ordinary",
+        "uv run --module= scripts.ordinary",
+        "uv run --script=' ' scripts/ordinary.py",
+    ],
+)
+def test_malformed_empty_effective_python_targets_without_protected_argv_remain_allowed(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python scripts/ordinary.py",
+        "python3.13 -I scripts/ordinary.py",
+        "/usr/bin/python3.13 -OO /opt/tenn/scripts/ordinary.py",
+        "python3 -W error scripts/ordinary.py",
+        "python3 -X dev scripts/ordinary.py",
+        "python3 --check-hash-based-pycs always scripts/ordinary.py",
+        "python3 -m scripts.ordinary",
+        "env REVIEW_SCOPE=hook python3 -B scripts/ordinary.py",
+        "uv run --module scripts.ordinary",
+        "uv run scripts/ordinary.py",
+        (
+            "python3 -c 'print(\"scripts/run_extraction_backfill.py "
+            "scripts.run_full_pipeline\")'"
+        ),
+        (
+            "python3 scripts/ordinary.py scripts/run_extraction_backfill.py "
+            "scripts.run_full_pipeline"
+        ),
+    ],
+)
+def test_ordinary_python_controls_remain_autonomous_after_normalization(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+def test_free_threaded_versioned_python_waiter_requires_actual_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3.13t -I scripts/codex_event_waiter.py command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cp scripts/example.py",
+        "cp --target-directory",
+        "tee --unknown data/results.sqlite",
+        "dd of=",
+        "sed -i",
+        "printf x >",
+    ],
+)
+def test_malformed_shell_writer_destinations_fail_closed(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cp scripts/example.py tmp/example.py",
+        "cp -t tmp scripts/example.py",
+        "tee tmp/example.txt",
+        "dd if=/tmp/input of=tmp/example.bin",
+        "sed -i s/a/b/ scripts/example.py",
+        "sed -i -e s/a/b/ scripts/example.py",
+        "printf x > scripts/example.py",
+    ],
+)
+def test_ordinary_shell_writer_destinations_remain_autonomous(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- uv run git reset --hard",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- bash -c 'git reset --hard'",
+        "python3 scripts/codex_event_waiter.py command --output data/results.sqlite -- git status --short",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git diff --output=data/results.sqlite",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- python3 audit_extract_report.py --output data/results.sqlite",
+        "TENN_TIER34_AUTHORIZED=1 python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+    ],
+)
+def test_waiter_nested_commands_and_outputs_require_actual_authorization(
+    tmp_path: Path, command: str
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+def test_waiter_after_python_isolated_flag_requires_actual_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -I scripts/codex_event_waiter.py command "
+        "--output reports/agent_jobs/wait.json -- "
+        "systemctl --user restart tenn.service"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+def test_waiter_python_module_form_requires_actual_authorization(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -m scripts.codex_event_waiter command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+def test_waiter_after_python_value_option_classifies_protected_output(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "python3 -X dev scripts/codex_event_waiter.py command "
+        "--output data/results.sqlite -- git status --short"
+    )
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "interpreter",
+    ["python", "python3.13", "python3.13t", "/usr/bin/python3"],
+)
+@pytest.mark.parametrize(
+    "invocation_template",
+    [
+        "{python} scripts/codex_event_waiter.py",
+        "{python} -I scripts/codex_event_waiter.py",
+        "{python} -B scripts/codex_event_waiter.py",
+        "{python} -u scripts/codex_event_waiter.py",
+        "{python} -O scripts/codex_event_waiter.py",
+        "{python} -OO scripts/codex_event_waiter.py",
+        "{python} -IB scripts/codex_event_waiter.py",
+        "{python} -W error scripts/codex_event_waiter.py",
+        "{python} -Werror scripts/codex_event_waiter.py",
+        "{python} -X dev scripts/codex_event_waiter.py",
+        "{python} -Xdev scripts/codex_event_waiter.py",
+        "{python} --check-hash-based-pycs always scripts/codex_event_waiter.py",
+        "{python} --check-hash-based-pycs=always scripts/codex_event_waiter.py",
+        "{python} -m scripts.codex_event_waiter",
+        "{python} -mscripts.codex_event_waiter",
+        "{python} -- ./scripts/codex_event_waiter.py",
+        "{python} /opt/tenn/scripts/codex_event_waiter.py",
+    ],
+)
+@pytest.mark.parametrize(
+    "waiter_arguments",
+    [
+        (
+            "command --output reports/agent_jobs/wait.json -- "
+            "systemctl --user restart tenn.service"
+        ),
+        "command --output data/results.sqlite -- git status --short",
+    ],
+)
+def test_python_waiter_normalization_cross_product_requires_actual_authorization(
+    tmp_path: Path,
+    interpreter: str,
+    invocation_template: str,
+    waiter_arguments: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = f"{invocation_template.format(python=interpreter)} {waiter_arguments}"
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "invocation",
+    [
+        "env REVIEW_SCOPE=hook python3 -B scripts/codex_event_waiter.py",
+        "env -- python3 -X dev scripts/codex_event_waiter.py",
+        "env -S 'python3 -I scripts/codex_event_waiter.py'",
+        "env -S'python3 -I scripts/codex_event_waiter.py'",
+        "env -vS'python3 -I scripts/codex_event_waiter.py'",
+        r"env -S'python3\_-I\_scripts/codex_event_waiter.py'",
+        r"env -S'python3\t-I\tscripts/codex_event_waiter.py'",
+        r"env -S'python3\n-B\nscripts/codex_event_waiter.py'",
+        "env -S '-i python3 -I scripts/codex_event_waiter.py'",
+        "env -S '-- python3 -B scripts/codex_event_waiter.py'",
+        (
+            "env -S '-u SECRET TENN_TIER34_AUTHORIZED=1 python3 -m "
+            "scripts.codex_event_waiter'"
+        ),
+        "uv run --no-project python3.13 -OO scripts/codex_event_waiter.py",
+        "uv run --no-project python3 -m scripts.codex_event_waiter",
+        (
+            "uv run --python python3.13 python3 -I "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "uv run -p python3.13 python3 -m "
+            "scripts.codex_event_waiter"
+        ),
+        "uv run --module scripts.codex_event_waiter",
+        "uv run --script scripts/codex_event_waiter.py",
+        "uv run --module -- scripts.codex_event_waiter",
+        "uv run --script -- scripts/codex_event_waiter.py",
+        "uv run -qm -- scripts.codex_event_waiter",
+        "uv run scripts/codex_event_waiter.py",
+        "uv run -qm scripts.codex_event_waiter",
+        "uv run -qs scripts/codex_event_waiter.py",
+        "uv run -qmp3.13 scripts.codex_event_waiter",
+        "uv run -qsp3.13 scripts/codex_event_waiter.py",
+        (
+            "uv --offline run --no-project python3 -I "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "uv --directory /tmp run --no-project python3 -m "
+            "scripts.codex_event_waiter"
+        ),
+        (
+            "uv run --no-project env REVIEW_SCOPE=hook /usr/bin/python3 "
+            "-W error scripts/codex_event_waiter.py"
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "waiter_arguments",
+    [
+        (
+            "command --output reports/agent_jobs/wait.json -- "
+            "git reset --hard"
+        ),
+        "command --output data/results.sqlite -- git status --short",
+    ],
+)
+def test_wrapped_python_waiter_forms_preserve_nested_and_output_classification(
+    tmp_path: Path,
+    invocation: str,
+    waiter_arguments: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = f"{invocation} {waiter_arguments}"
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -B scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- "
+            "git diff --output=data/results.sqlite"
+        ),
+        (
+            "python3 -m scripts.codex_event_waiter command "
+            "--output reports/agent_jobs/wait.json -- "
+            "python3 audit_extract_report.py --output data/results.sqlite"
+        ),
+    ],
+)
+def test_normalized_waiter_recursively_classifies_nested_output_paths(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block", command
+    assert allowed.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "invocation",
+    [
+        "python3 -B scripts/codex_event_waiter.py",
+        "python3 -X dev ./scripts/codex_event_waiter.py",
+        "python3 -m scripts.codex_event_waiter",
+        "/usr/bin/python3 -OO /opt/tenn/scripts/codex_event_waiter.py",
+        "env REVIEW_SCOPE=hook python3 -W ignore scripts/codex_event_waiter.py",
+        "env -S'python3 -I scripts/codex_event_waiter.py'",
+        "env -vS'python3 -I scripts/codex_event_waiter.py'",
+        r"env -S'python3\_-I\_scripts/codex_event_waiter.py'",
+        "uv run --no-project python3.13 -I scripts/codex_event_waiter.py",
+        (
+            "uv run --python python3.13 python3 -B "
+            "scripts/codex_event_waiter.py"
+        ),
+        "uv run --module scripts.codex_event_waiter",
+        "uv run --script scripts/codex_event_waiter.py",
+        "uv run --module -- scripts.codex_event_waiter",
+        "uv run --script -- scripts/codex_event_waiter.py",
+        "uv run -qm -- scripts.codex_event_waiter",
+        "uv run -qm scripts.codex_event_waiter",
+        "uv run -qs scripts/codex_event_waiter.py",
+        "uv run -qmp3.13 scripts.codex_event_waiter",
+        "uv run -qsp3.13 scripts/codex_event_waiter.py",
+        "uv --offline run python3 -I scripts/codex_event_waiter.py",
+    ],
+)
+def test_normalized_safe_waiter_forms_remain_autonomous(
+    tmp_path: Path,
+    invocation: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        f"{invocation} command --output reports/agent_jobs/wait.json -- "
+        "git status --short"
+    )
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -I scripts/ordinary.py command --output data/results.sqlite -- "
+            "systemctl --user restart tenn.service"
+        ),
+        (
+            "python3 -X dev scripts/ordinary.py scripts/codex_event_waiter.py -- "
+            "git reset --hard"
+        ),
+        (
+            "python3 -W codex_event_waiter.py scripts/ordinary.py -- "
+            "systemctl --user restart tenn.service"
+        ),
+        (
+            "python3 --check-hash-based-pycs scripts/codex_event_waiter.py "
+            "scripts/ordinary.py -- git reset --hard"
+        ),
+        "python3 -m scripts.ordinary scripts/codex_event_waiter.py git reset --hard",
+        (
+            "python3 -c 'print(\"scripts/codex_event_waiter.py; "
+            "systemctl restart tenn.service\")'"
+        ),
+        (
+            "/usr/bin/python3.13 -OO scripts/ordinary.py "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "/opt/python/bin/python3.13t -OO scripts/ordinary.py "
+            "scripts/codex_event_waiter.py"
+        ),
+        (
+            "env -S'python3 -I scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv run --python python3.13 python3 -I scripts/ordinary.py "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv run -p python3.13 python3 -m scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "env -vS'python3 -I scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            r"env -S'python3\_-I\_scripts/ordinary.py' "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv --offline run python3 -I scripts/ordinary.py "
+            "scripts/codex_event_waiter.py git reset --hard"
+        ),
+        (
+            "uv --directory /tmp run -qm scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "uv run -qmp3.13 scripts.ordinary "
+            "scripts/codex_event_waiter.py systemctl restart tenn.service"
+        ),
+        (
+            "env --help python3 scripts/codex_event_waiter.py "
+            "systemctl restart tenn.service"
+        ),
+        (
+            "uv run --help scripts/codex_event_waiter.py git reset --hard"
+        ),
+    ],
+)
+def test_unrelated_python_commands_are_not_waiter_invocations(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "python3 -Z scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -IZ scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 --future-option scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 --check-hash-based-pycs= scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -m scripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "python3 -mscripts/codex_event_waiter.py command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        "python3 -B scripts/codex_event_waiter.py",
+        "python3 -m scripts.codex_event_waiter",
+        "python3 -m scripts.codex_event_waiter command -- git status",
+        (
+            "python3 scripts.codex_event_waiter command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "env -S \"python3 -I 'scripts/codex_event_waiter.py\" command "
+            "--output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "uv run --future-option python3 -I scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+        (
+            "uv --future-global run python3 -I scripts/codex_event_waiter.py "
+            "command --output reports/agent_jobs/wait.json -- git status"
+        ),
+    ],
+)
+def test_malformed_or_ambiguous_python_waiter_forms_fail_closed(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        (
+            "TENN_TIER34_AUTHORIZED=1 python3 -B scripts/codex_event_waiter.py "
+            "command --output data/results.sqlite -- git status"
+        ),
+        (
+            "env TENN_TIER34_AUTHORIZED=1 python3 -m scripts.codex_event_waiter "
+            "command --output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+        (
+            "env -S'TENN_TIER34_AUTHORIZED=1 python3 -I "
+            "scripts/codex_event_waiter.py' command "
+            "--output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+        (
+            "WAITER_ARGS='-I scripts/codex_event_waiter.py' "
+            "env -S'python3 ${WAITER_ARGS}' command "
+            "--output reports/agent_jobs/wait.json -- git reset --hard"
+        ),
+    ],
+)
+def test_embedded_environment_text_cannot_authorize_normalized_waiter(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block", command
+
+
+@pytest.mark.parametrize(
+    "waiter_args",
+    [
+        "-I scripts/codex_event_waiter.py",
+        r"-W 'a\'b' scripts/codex_event_waiter.py",
+        r"-W \$ scripts/codex_event_waiter.py",
+    ],
+)
+def test_dynamic_env_split_string_waiter_target_fails_closed_without_authorization(
+    tmp_path: Path,
+    waiter_args: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    command = (
+        "env -S'python3 ${WAITER_ARGS}' command "
+        "--output reports/agent_jobs/wait.json -- git reset --hard"
+    )
+    waiter_env = {"WAITER_ARGS": waiter_args}
+    _, blocked = run_hook(
+        repo,
+        env=waiter_env,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={**waiter_env, "TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    ("command", "extra_env"),
+    [
+        (
+            "env -S'python3 ${SAFE_ARGS}' scripts/codex_event_waiter.py "
+            "git reset --hard",
+            {"SAFE_ARGS": "-I scripts/ordinary.py"},
+        ),
+        (r"env -S'python3\_-c\_print(\#)'", {}),
+        (r"env -S'python3\_-c\_print(\t)'", {}),
+    ],
+)
+def test_safe_dynamic_or_escaped_env_split_strings_remain_autonomous(
+    tmp_path: Path,
+    command: str,
+    extra_env: dict[str, str],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        env=extra_env,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block", command
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git status --short",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git diff --output=tmp/diff.patch",
+        "python3 scripts/codex_event_waiter.py github-pr --repo 0rl4nd0l/tenn --pr 515 --head-sha c775b4dbd075fd304b80d9946952e176b983757e --output reports/agent_jobs/wait.json",
+    ],
+)
+def test_safe_waiter_invocations_remain_autonomous(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json",
+        "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json --",
+        "python3 scripts/codex_event_waiter.py command --bogus x -- git status",
+        "python3 scripts/codex_event_waiter.py command --output=data/results.sqlite -- git status",
+    ],
+)
+def test_malformed_waiter_arguments_fail_closed(tmp_path: Path, command: str) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git reset --hard",
+        "git clean -fdx",
+        "git checkout -- src/allowed.py",
+        "git checkout -f topic",
+        "git checkout -B topic HEAD",
+        "git switch --discard-changes topic",
+        "git switch -C topic HEAD",
+        "git restore src/allowed.py",
+        "git restore --staged src/allowed.py",
+        "git merge topic",
+        "git rebase topic",
+        "git cherry-pick HEAD~1",
+        "git branch -D topic",
+        "git branch --force topic HEAD",
+        "git push --force-with-lease origin HEAD",
+        "git push --delete origin topic",
+        "git push origin :topic",
+        "git worktree remove --force /tmp/unknown",
+        "git worktree prune",
+    ],
+)
+def test_default_gate_blocks_destructive_git_forms(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "sqlite3 data.sqlite 'SELECT 1'",
+        "sqlite3 -readonly data.sqlite 'EXPLAIN SELECT * FROM results'",
+        "sqlite3 data.sqlite \"SELECT 'delete'\"",
+        "sqlite3 -cmd 'SELECT 1' data.sqlite 'SELECT 2'",
+        "psql -d tenn -c 'SELECT 1'",
+        "psql -hlocalhost -p5432 -Ureader tenn -c 'SELECT 1'",
+        "psql -d tenn -c \"SELECT 'update'\"",
+        "psql -d tenn -c 'SELECT count(*) FROM results'",
+        "psql -d tenn -c 'SELECT now(), pg_is_in_recovery()'",
+        "psql -d tenn -c 'SELECT pg_catalog.count(*) FROM results'",
+        "psql --dbname=tenn --command='SHOW server_version'",
+        "redis-cli GET current:status",
+        "redis-cli GET set",
+        "redis-cli -hlocalhost -p6379 -n0 --raw GET current:status",
+        "redis-cli --scan --pattern 'current:*'",
+        "redis-cli --raw INFO server",
+    ],
+)
+def test_default_gate_allows_clearly_read_only_datastore_commands(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "sqlite3 data.sqlite 'DELETE FROM results'",
+        "sqlite3 data.sqlite \"SELECT writefile('/tmp/result', 'x')\"",
+        "sqlite3 data.sqlite \"SELECT writefile/**/('data/results.sqlite','x')\"",
+        "sqlite3 data.sqlite \"SELECT load_extension/**/('evil')\"",
+        "sqlite3 data.sqlite \"SELECT eval('DELETE FROM results')\"",
+        "sqlite3 -cmd 'DELETE FROM results' data.sqlite 'SELECT 1'",
+        "sqlite3 data.sqlite '.tables\n.shell true'",
+        "sqlite3 data.sqlite",
+        "psql -d tenn -c 'UPDATE results SET value = 1'",
+        "psql -d tenn -c \"SELECT setval('result_id_seq', 42)\"",
+        "psql -d tenn -o /tmp/results.txt -c 'SELECT 1'",
+        "psql -o/tmp/results.txt -c 'SELECT 1' tenn",
+        "psql -L/tmp/results.log -c 'SELECT 1' tenn",
+        "psql -fmutate.sql -c 'SELECT 1' tenn",
+        "psql tenn reader extra -c 'SELECT 1'",
+        "psql -- -c 'SELECT 1'",
+        "psql -v fn=pg_terminate_backend -c 'SELECT :fn(123)' tenn",
+        "psql --set=fn=pg_terminate_backend -c 'SELECT :fn(123)' tenn",
+        "psql -d tenn -c 'SELECT lo_unlink(123)'",
+        "psql -d tenn -c 'SELECT pg_terminate_backend/**/(123)'",
+        "psql -d tenn -c \"SELECT pg_drop_replication_slot('slot')\"",
+        "psql -d tenn -c \"SELECT pg_create_physical_replication_slot('slot')\"",
+        "psql -d tenn -c 'SELECT custom_mutator()'",
+        "psql -d tenn -c 'SELECT evil.count(*) FROM results'",
+        "psql -d tenn -c 'SELECT public.abs(1)'",
+        "psql -d tenn",
+        "redis-cli SET current:status running",
+        "redis-cli EVAL 'return redis.call(\"DEL\", KEYS[1])' 1 current:status",
+        "redis-cli --eval inspect.lua current:status",
+        "redis-cli -n0",
+    ],
+)
+def test_default_gate_blocks_mutating_or_ambiguous_datastore_commands(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "datastore" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("Write", {"file_path": "data/results.sqlite", "content": "database"}),
+        ("Edit", {"file_path": "runtime/state.json", "old_string": "a", "new_string": "b"}),
+        (
+            "apply_patch",
+            {"patch": "*** Begin Patch\n*** Update File: queues/pending.json\n*** End Patch\n"},
+        ),
+        ("write_file", {"path": "stores/vector/index.json", "content": "index"}),
+        ("Write", {"file_path": "extraction_outputs/run.json", "content": "output"}),
+        ("Write", {"file_path": "secrets/token.txt", "content": "secret"}),
+        ("Write", {"file_path": ".env", "content": "TOKEN=secret"}),
+        ("Write", {"file_path": "/var/lib/tenn/results.sqlite", "content": "database"}),
+    ],
+)
+def test_default_gate_blocks_direct_mutation_of_sensitive_shared_paths(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, str],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": tool_name, "tool_input": tool_input},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        (
+            "apply_patch",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: scripts/example.py\n"
+                    "*** Move to: data/results.sqlite\n"
+                    "*** End Patch\n"
+                )
+            },
+        ),
+        (
+            "apply_patch",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: runtime/state.json\n"
+                    "*** Move to: scripts/state.json\n"
+                    "*** End Patch\n"
+                )
+            },
+        ),
+        ("Move", {"source": "scripts/example.py", "destination": "data/results.sqlite"}),
+        ("move_file", {"source_path": "runtime/state.json", "destination_path": "scripts/state.json"}),
+        ("Rename", {"old_path": "scripts/example.py", "new_path": "queues/example.py"}),
+        ("Create", {"path": "source_data/input.csv", "content": "data"}),
+        ("Truncate", {"file_path": "data/results.sqlite", "size": 0}),
+        ("Delete", {"file_path": "stores/vector/index.json"}),
+        (
+            "Write",
+            {"file_path": "data/results.sqlite", "files": [123], "content": "x"},
+        ),
+        (
+            "Move",
+            {
+                "source": "scripts/example.py",
+                "destination": "tmp/../data/results.sqlite",
+            },
+        ),
+    ],
+)
+def test_default_gate_classifies_every_sensitive_file_tool_path(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": tool_name, "tool_input": tool_input},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+def test_default_gate_blocks_raw_string_patch_move_into_sensitive_path(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: scripts/example.py\n"
+        "*** Move to: data/results.sqlite\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("Move", {"source": "scripts/old.py", "destination": "scripts/new.py"}),
+        ("Rename", {"old_path": "docs/old.md", "new_path": "docs/new.md"}),
+        ("Create", {"path": "tests/fixture.txt", "content": "fixture"}),
+        ("Truncate", {"file_path": "tmp/task-local/evidence.txt", "size": 0}),
+        ("Delete", {"file_path": "reports/agent_jobs/task-local/evidence.txt"}),
+    ],
+)
+def test_default_gate_allows_equivalent_file_tools_on_ordinary_task_paths(
+    tmp_path: Path,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": tool_name, "tool_input": tool_input},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "data/results.sqlite",
+        "runtime/state.json",
+        "queues/pending.json",
+        "stores/vector/index.json",
+    ],
+)
+def test_default_gate_blocks_raw_string_apply_patch_to_sensitive_shared_paths(
+    tmp_path: Path,
+    path: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = f"*** Begin Patch\n*** Update File: {path}\n*** End Patch\n"
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+def test_default_gate_allows_raw_string_apply_patch_to_ordinary_source(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: scripts/example.py\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "embedded_authorization",
+    [
+        "+TENN_TIER34_AUTHORIZED=1\n",
+        "+export TENN_TIER34_AUTHORIZED=1\n",
+        '+{"TENN_TIER34_AUTHORIZED": "1"}\n',
+    ],
+)
+def test_raw_string_patch_text_cannot_grant_tier34_authorization(
+    tmp_path: Path,
+    embedded_authorization: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: data/results.sqlite\n"
+        "@@\n"
+        f"{embedded_authorization}"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert payload["decision"] == "block"
+    assert "sensitive shared-state path" in str(payload["reason"])
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "scripts/example.py",
+        "docs/guide.md",
+        "tests/test_example.py",
+        "reports/agent_jobs/task-local/evidence.json",
+        "tmp/task-local/evidence.txt",
+        "/tmp/task-local/evidence.sqlite",
+        ".env.example",
+    ],
+)
+def test_default_gate_allows_direct_mutation_of_ordinary_task_files(
+    tmp_path: Path,
+    path: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
+        hook_input={
+            "tool_name": "Write",
+            "tool_input": {"file_path": path, "content": "task-local"},
+        },
+    )
+
+    assert payload.get("decision") != "block"
+
+
+def test_default_gate_allows_sensitive_file_mutation_only_with_explicit_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    hook_input = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": "data/results.sqlite", "content": "database"},
+    }
+
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
+    assert allowed.get("decision") != "block"
 
 
 def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
@@ -199,6 +2096,7 @@ def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
         repo,
         env=env,
         event="BeforeTool",
+        tier34_authorized=False,
         hook_input={
             "tool_name": "Bash",
             "tool_input": {"command": "systemctl --user start greyhound.service"},
@@ -215,7 +2113,7 @@ def test_required_no_claim_blocks_runtime_mutation_but_allows_read_probe(
     )
 
     assert blocked["decision"] == "block"
-    assert "claim one V2 task card" in str(blocked["reason"])
+    assert "Tenn Tier 3/4 action blocked" in str(blocked["reason"])
     assert allowed.get("decision") != "block"
 
 
@@ -268,6 +2166,68 @@ def test_required_no_claim_allows_only_single_task_card_bootstrap(
 
     assert allowed.get("decision") != "block"
     assert blocked["decision"] == "block"
+
+
+@pytest.mark.parametrize("operation", ["Add", "Update"])
+def test_required_no_claim_allows_raw_string_task_card_bootstrap(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    patch = (
+        "*** Begin Patch\n"
+        f"*** {operation} File: docs/agent_tasks/new-v2.md\n"
+        "+---\n"
+        "+control_contract_version: 2\n"
+        "+---\n"
+        "*** End Patch\n"
+    )
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        (
+            "*** Begin Patch\n"
+            "*** Add File: docs/agent_tasks/new-v2.md\n"
+            "+---\n"
+            "+control_contract_version: 2\n"
+            "+---\n"
+            "*** Update File: src/allowed.py\n"
+            "*** End Patch\n"
+        ),
+        "*** Begin Patch\n*** End Patch\n",
+        (
+            "*** Begin Patch\n"
+            "*** Update File: docs/agent_tasks/new-v2.md\n"
+            "*** Move to: docs/agent_tasks/moved-v2.md\n"
+            "*** End Patch\n"
+        ),
+    ],
+)
+def test_required_no_claim_blocks_unsafe_raw_string_task_card_bootstrap(
+    tmp_path: Path,
+    patch: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+
+    _, payload = run_hook(
+        repo,
+        env={"TENN_V2_REQUIRED": "1", "TENN_AGENT_TASK_CARD": ""},
+        event="BeforeTool",
+        hook_input={"tool_name": "apply_patch", "tool_input": patch},
+    )
+
+    assert payload["decision"] == "block"
 
 
 def test_required_exact_v2_claim_command_breaks_bootstrap_deadlock(
@@ -353,7 +2313,14 @@ def test_required_v1_mutation_blocks_while_default_v1_still_passes(
     }
     selected = {"TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix()}
 
-    _, default = run_hook(repo, env=selected, event="BeforeTool", hook_input=hook_input)
+    _, default = run_hook(
+        repo,
+        env=selected,
+        event="BeforeTool",
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
+    )
     _, required = run_hook(
         repo,
         env={**selected, "TENN_V2_REQUIRED": "1"},
@@ -371,15 +2338,15 @@ def test_required_stop_without_claim_allows_trivial_session(
 ) -> None:
     repo = git_repo(tmp_path / "repo")
 
-    _, default = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
+    _, default = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""}, event="Stop")
     _, required = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": "", "TENN_V2_REQUIRED": "1"},
+        event="Stop",
     )
 
     assert default == {}
-    assert required.get("decision") != "block"
-    assert "no active V2 claim" in str(required)
+    assert required == {}
 
 
 def run_repo_registry(
@@ -582,7 +2549,12 @@ def write_matching_v2_decision(
 
 def test_no_active_task_card_exits_success_with_valid_json(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": ""},
+        v2_required=False,
+        tier34_authorized=False,
+    )
 
     assert completed.returncode == 0
     assert payload == {}
@@ -597,6 +2569,8 @@ def test_hook_uses_own_control_plane_when_target_vendors_no_tenn_scripts(
     completed, payload = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -604,7 +2578,7 @@ def test_hook_uses_own_control_plane_when_target_vendors_no_tenn_scripts(
     assert not (repo / "scripts").exists()
 
 
-def test_portable_v2_stop_validates_target_decision_ledger(
+def test_portable_v2_stop_passes_without_target_decision_ledger(
     tmp_path: Path,
 ) -> None:
     repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
@@ -614,64 +2588,17 @@ def test_portable_v2_stop_validates_target_decision_ledger(
         allowed_files=["src/allowed.py", outcome],
         control_contract_version=2,
     )
-    write_valid_v2_outcome(repo, card)
-
-    missing_completed, missing_payload = run_hook(
-        repo,
-        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
-    )
-
-    assert missing_completed.returncode == 0
-    assert missing_payload["decision"] == "block"
-    assert "decision-ledger-validate" in str(missing_payload["reason"])
-
-    initialized = subprocess.run(
-        [
-            sys.executable,
-            str(DECISION_LEDGER_SCRIPT),
-            "initialize",
-            "--repo-root",
-            str(repo),
-            "--authorize-create-empty-ledger",
-        ],
-        cwd=repo,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    assert initialized.returncode == 0
-    assert json.loads(initialized.stdout)["created"] is True
-
-    claim = claim_v2_job(repo, card)
-    run_id = str(claim["record"]["session_id"])
-
-    empty_completed, empty_payload = run_hook(
-        repo,
-        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
-    )
-
-    assert empty_completed.returncode == 0
-    assert empty_payload["decision"] == "block"
-    assert "DECISION_ENTRY.json" in str(empty_payload["reason"])
-
-    write_matching_v2_decision(repo, card, run_id=run_id)
     completed, payload = run_hook(
         repo,
-        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        env={
+            "TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix(),
+            "TENN_V2_REQUIRED": "1",
+        },
+        event="Stop",
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "registry release" in str(payload["reason"])
-
-    released_completed, _ = release_v2_job(repo)
-    assert released_completed.returncode == 0
-    _, released_payload = run_hook(
-        repo,
-        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
-    )
-    assert released_payload == {}
+    assert payload == {}
     assert not (repo / "scripts").exists()
 
 
@@ -712,6 +2639,7 @@ def test_required_terminal_hook_accepts_validated_release_receipt(
         env={
             "TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix(),
             "TENN_V2_REQUIRED": "1",
+            "TENN_TIER34_AUTHORIZED": "1",
         },
         event="Stop",
     )
@@ -720,7 +2648,7 @@ def test_required_terminal_hook_accepts_validated_release_receipt(
     assert payload == {}
 
 
-def test_required_terminal_hook_rejects_forged_release_decision_id(
+def test_required_terminal_hook_passes_forged_release_decision_id(
     tmp_path: Path,
 ) -> None:
     repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
@@ -755,11 +2683,10 @@ def test_required_terminal_hook_rejects_forged_release_decision_id(
         event="Stop",
     )
 
-    assert payload["decision"] == "block"
-    assert "no validated entry matches" in str(payload["reason"])
+    assert payload == {}
 
 
-def test_required_terminal_hook_rejects_superseded_release_decision(
+def test_required_terminal_hook_passes_superseded_release_decision(
     tmp_path: Path,
 ) -> None:
     repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
@@ -828,8 +2755,7 @@ def test_required_terminal_hook_rejects_superseded_release_decision(
         event="Stop",
     )
 
-    assert payload["decision"] == "block"
-    assert "superseded decision" in str(payload["reason"])
+    assert payload == {}
 
 
 def test_required_post_release_stop_without_selector_is_allowed(
@@ -858,8 +2784,7 @@ def test_required_post_release_stop_without_selector_is_allowed(
         event="Stop",
     )
 
-    assert payload.get("decision") != "block"
-    assert "no active V2 claim" in str(payload)
+    assert payload == {}
 
 
 def test_exact_resolved_v2_scope_stops_without_new_report(
@@ -902,8 +2827,7 @@ def test_exact_resolved_v2_scope_stops_without_new_report(
         event="Stop",
     )
 
-    assert payload.get("decision") != "block"
-    assert "REUSED_COMPLETE" in str(payload)
+    assert payload == {}
     assert not (repo / "reports" / "agent_jobs" / "hook-test-job").exists()
 
 
@@ -953,12 +2877,11 @@ def test_exact_reuse_ignores_stale_nonrelease_status_receipt(
         event="Stop",
     )
 
-    assert payload.get("decision") != "block"
-    assert "REUSED_COMPLETE" in str(payload)
+    assert payload == {}
     assert json.loads(status_path.read_text(encoding="utf-8")) == stale
 
 
-def test_active_target_worktree_v2_job_is_enforced_without_override(
+def test_active_target_worktree_v2_job_is_enforced_when_opted_in(
     tmp_path: Path,
 ) -> None:
     repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
@@ -968,6 +2891,8 @@ def test_active_target_worktree_v2_job_is_enforced_without_override(
         allowed_files=["src/allowed.py", outcome],
         control_contract_version=2,
     )
+    run_git(repo, "add", card.relative_to(repo).as_posix())
+    run_git(repo, "commit", "-m", "declare opted-in v2 task")
     initialized = subprocess.run(
         [
             sys.executable,
@@ -984,32 +2909,31 @@ def test_active_target_worktree_v2_job_is_enforced_without_override(
         text=True,
     )
     assert initialized.returncode == 0
-    claim = claim_v2_job(repo, card)
+    claim_v2_job(repo, card)
+    hook_input = {
+        "tool_name": "apply_patch",
+        "tool_input": {
+            "patch": "*** Begin Patch\n*** Update File: src/outside.py\n*** End Patch\n"
+        },
+    }
 
-    missing_completed, missing_payload = run_hook(
+    completed, opted_in = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": ""},
+        hook_input=hook_input,
     )
-
-    assert missing_completed.returncode == 0
-    assert missing_payload["decision"] == "block"
-    assert "RUN_OUTCOME.json" in str(missing_payload["reason"])
-
-    write_valid_v2_outcome(repo, card)
-    write_matching_v2_decision(
+    _, default = run_hook(
         repo,
-        card,
-        run_id=str(claim["record"]["session_id"]),
+        env={"TENN_AGENT_TASK_CARD": ""},
+        hook_input=hook_input,
+        v2_required=False,
+        tier34_authorized=False,
     )
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "registry release" in str(payload["reason"])
-    released_completed, _ = release_v2_job(repo)
-    assert released_completed.returncode == 0
-    _, released_payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
-    assert released_payload == {}
+    assert opted_in["decision"] == "block"
+    assert "outside task-card allowed_files" in str(opted_in["reason"])
+    assert default == {}
     assert not (repo / "scripts").exists()
 
 
@@ -1163,6 +3087,9 @@ def test_nonstale_v2_job_named_stale_fails_closed_on_invalid_fingerprint(
     )
 
     assert completed.returncode == 0
+    if event == "Stop":
+        assert payload == {}
+        return
     assert payload["decision"] == "block"
     assert "matching V2 selector stale-selector-job is invalid" in str(payload["reason"])
     assert "registry_validation" in str(payload["reason"])
@@ -1312,6 +3239,7 @@ def test_claimed_v2_blocks_runtime_command_without_runtime_capability(
         env={
             "TENN_AGENT_TASK_CARD": card.relative_to(repo).as_posix(),
             "TENN_V2_REQUIRED": "1",
+            "TENN_TIER34_AUTHORIZED": "1",
         },
         event="BeforeTool",
         hook_input={
@@ -2134,6 +4062,9 @@ def test_explicit_v2_claim_blocks_post_claim_version_downgrade(
     completed, payload = run_hook(repo, env=env, event=event)
 
     assert completed.returncode == 0
+    if event == "Stop":
+        assert payload == {}
+        return
     assert payload["decision"] == "block"
     assert "task_card_sha256" in str(payload["reason"])
     assert "changed after claim" in str(payload["reason"])
@@ -2162,14 +4093,16 @@ def test_explicit_valid_v1_without_active_v2_claim_preserves_behavior(
         marker.write_text("docs/agent_tasks/test-task.md\n", encoding="utf-8")
         env = {"TENN_AGENT_TASK_CARD": ""}
 
-    completed, payload = run_hook(repo, env=env, event=event)
+    completed, payload = run_hook(
+        repo,
+        env=env,
+        event=event,
+        v2_required=False,
+        tier34_authorized=False,
+    )
 
     assert completed.returncode == 0
-    if event == "Stop":
-        assert payload == {}
-    else:
-        assert "Tenn agent-job contract passed" in str(payload)
-        assert "explicit v1 task card" in str(payload)
+    assert payload == {}
 
 
 def test_partial_v2_identity_without_version_or_fingerprint_fails_closed(
@@ -2233,6 +4166,9 @@ def test_unchanged_v2_card_blocks_fully_stripped_active_identity(
     )
 
     assert completed.returncode == 0
+    if event == "Stop":
+        assert payload == {}
+        return
     assert payload["decision"] == "block"
     assert "matching V2 selector" in str(payload["reason"])
     assert "control_contract_version" in str(payload["reason"])
@@ -2257,6 +4193,8 @@ def test_unchanged_claimed_v1_card_stays_silent_without_explicit_selector(
         repo,
         env={"TENN_AGENT_TASK_CARD": ""},
         event=event,
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -2284,6 +4222,8 @@ def test_claimed_v1_record_without_task_card_stays_silent(
         repo,
         env={"TENN_AGENT_TASK_CARD": ""},
         event=event,
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -2311,6 +4251,8 @@ def test_claimed_v1_record_with_invalid_worktree_stays_silent(
         repo,
         env={"TENN_AGENT_TASK_CARD": ""},
         event=event,
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -2359,6 +4301,9 @@ def test_unchanged_v2_card_blocks_stripped_identity_with_unscopable_worktree(
     )
 
     assert completed.returncode == 0
+    if event == "Stop":
+        assert payload == {}
+        return
     assert payload["decision"] == "block"
     assert "missing or invalid worktree" in str(payload["reason"])
     assert "cannot be safely scoped" in str(payload["reason"])
@@ -2402,6 +4347,9 @@ def test_declared_v2_card_blocks_unscopable_fully_stripped_record_without_hash(
     )
 
     assert completed.returncode == 0
+    if event == "Stop":
+        assert payload == {}
+        return
     assert payload["decision"] == "block"
     assert "missing or invalid worktree" in str(payload["reason"])
     assert "cannot be safely scoped" in str(payload["reason"])
@@ -2435,7 +4383,7 @@ def test_v2_like_record_with_unscopable_worktree_fails_closed(
     assert "cannot be safely scoped" in str(payload["reason"])
 
 
-def test_v2_stop_rejects_decision_entry_with_mismatched_phases(tmp_path: Path) -> None:
+def test_v2_stop_passes_decision_entry_with_mismatched_phases(tmp_path: Path) -> None:
     repo = git_repo(tmp_path, vendor_control_plane_scripts=False)
     outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
     card = task_card(
@@ -2470,11 +4418,11 @@ def test_v2_stop_rejects_decision_entry_with_mismatched_phases(tmp_path: Path) -
     completed, payload = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "candidate identity" in str(payload["reason"])
+    assert payload == {}
 
 
 def test_no_active_task_card_stays_silent_with_shared_registry_jobs(tmp_path: Path) -> None:
@@ -2492,6 +4440,8 @@ def test_no_active_task_card_stays_silent_with_shared_registry_jobs(tmp_path: Pa
     completed, payload = run_hook(
         repo,
         env={"TENN_AGENT_TASK_CARD": "", "TENN_AGENT_REGISTRY_ROOT": str(shared_root)},
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -2502,7 +4452,12 @@ def test_active_valid_task_card_with_allowed_diff_passes(tmp_path: Path) -> None
     repo = git_repo(tmp_path)
     (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        v2_required=False,
+        tier34_authorized=False,
+    )
 
     assert completed.returncode == 0
     assert payload == {}
@@ -2517,11 +4472,12 @@ def test_codex_before_tool_active_valid_task_card_keeps_pass_context(tmp_path: P
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
         platform="codex",
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
-    assert "Tenn agent-job contract passed" in str(payload)
-    assert "legacy v1 task card" in str(payload)
+    assert payload == {}
 
 
 def test_before_tool_outside_diff_returns_blocking_json(tmp_path: Path) -> None:
@@ -2532,11 +4488,12 @@ def test_before_tool_outside_diff_returns_blocking_json(tmp_path: Path) -> None:
         repo,
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "src/outside.py" in str(payload["reason"])
+    assert payload == {}
 
 
 def test_before_tool_invalid_task_card_returns_blocking_json(tmp_path: Path) -> None:
@@ -2549,28 +4506,31 @@ def test_before_tool_invalid_task_card_returns_blocking_json(tmp_path: Path) -> 
         repo,
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "production_data_access" in str(payload["reason"])
+    assert payload == {}
 
 
-def test_stop_invalid_task_card_warns_without_blocking(tmp_path: Path) -> None:
+def test_stop_invalid_task_card_passes_without_warning(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     task_card(repo, allowed_files=["src/allowed.py"], production_data_access=True)
     run_git(repo, "add", "docs/agent_tasks/test-task.md")
     run_git(repo, "commit", "-m", "invalid task card")
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
+    )
 
     assert completed.returncode == 0
-    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
-    assert "production_data_access" in str(payload["systemMessage"])
-    assert "decision" not in payload
+    assert payload == {}
 
 
-def test_explicit_v1_stop_contract_failure_still_warns_without_blocking(tmp_path: Path) -> None:
+def test_explicit_v1_stop_contract_failure_passes_without_warning(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     task_card(
         repo,
@@ -2579,16 +4539,18 @@ def test_explicit_v1_stop_contract_failure_still_warns_without_blocking(tmp_path
         control_contract_version=1,
     )
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
+    )
 
     assert completed.returncode == 0
-    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
-    assert "production_data_access" in str(payload["systemMessage"])
-    assert "decision" not in payload
+    assert payload == {}
 
 
 @pytest.mark.parametrize("event", ["Stop", "SessionEnd"])
-def test_v2_terminal_event_contract_failure_hard_blocks(tmp_path: Path, event: str) -> None:
+def test_v2_terminal_event_contract_failure_always_passes(tmp_path: Path, event: str) -> None:
     repo = git_repo(tmp_path)
     outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
     task_card(
@@ -2604,11 +4566,10 @@ def test_v2_terminal_event_contract_failure_hard_blocks(tmp_path: Path, event: s
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "RUN_OUTCOME.json" in str(payload["reason"])
+    assert payload == {}
 
 
-def test_invalid_v2_task_card_stop_hard_blocks(tmp_path: Path) -> None:
+def test_invalid_v2_task_card_stop_always_passes(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     outcome = "reports/agent_jobs/hook-test-job/RUN_OUTCOME.json"
     task_card(
@@ -2618,15 +4579,18 @@ def test_invalid_v2_task_card_stop_hard_blocks(tmp_path: Path) -> None:
         control_contract_version=2,
     )
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
+    )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "production_data_access" in str(payload["reason"])
+    assert payload == {}
 
 
 @pytest.mark.parametrize("declared", ["", "null", "~", "2.0", "true", "'2'", "3"])
-def test_malformed_declared_contract_version_stop_hard_blocks(
+def test_malformed_declared_contract_version_stop_always_passes(
     tmp_path: Path, declared: str
 ) -> None:
     repo = git_repo(tmp_path)
@@ -2644,15 +4608,16 @@ def test_malformed_declared_contract_version_stop_hard_blocks(
     )
 
     completed, payload = run_hook(
-        repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"}
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "control_contract_version" in str(payload["reason"])
+    assert payload == {}
 
 
-def test_stop_runtime_task_card_missing_closeout_proof_warns(tmp_path: Path) -> None:
+def test_stop_runtime_task_card_missing_closeout_proof_passes(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     report_dir = repo / "reports" / "agent_jobs" / "hook-runtime-job"
     report_dir.mkdir(parents=True)
@@ -2664,15 +4629,17 @@ def test_stop_runtime_task_card_missing_closeout_proof_warns(tmp_path: Path) -> 
         body="Runtime service repair.",
     )
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
+    )
 
     assert completed.returncode == 0
-    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
-    assert "runtime_functionality_proof" in str(payload["systemMessage"])
-    assert "cannot use DONE" in str(payload["systemMessage"])
+    assert payload == {}
 
 
-def test_stop_runtime_task_card_control_plane_mention_still_warns(tmp_path: Path) -> None:
+def test_stop_runtime_task_card_control_plane_mention_passes(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     report_dir = repo / "reports" / "agent_jobs" / "hook-runtime-job"
     report_dir.mkdir(parents=True)
@@ -2684,11 +4651,14 @@ def test_stop_runtime_task_card_control_plane_mention_still_warns(tmp_path: Path
         body="Runtime service repair for a control-plane status check.",
     )
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="Stop",
+    )
 
     assert completed.returncode == 0
-    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
-    assert "runtime_functionality_proof" in str(payload["systemMessage"])
+    assert payload == {}
 
 
 def test_codex_stop_output_is_valid_json(tmp_path: Path) -> None:
@@ -2726,6 +4696,8 @@ def test_gemini_before_tool_no_active_task_card_allows_with_valid_json(tmp_path:
         env={"TENN_AGENT_TASK_CARD": ""},
         platform="gemini",
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
@@ -2741,12 +4713,13 @@ def test_gemini_before_tool_active_task_card_allows_without_report_artifact(tmp_
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
         platform="gemini",
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
     assert payload["decision"] == "allow"
-    assert "Tenn agent-job contract passed" in str(payload["additionalContext"])
-    assert "legacy v1 task card" in str(payload["additionalContext"])
+    assert "additionalContext" not in payload
     assert not (repo / "reports" / "agent_jobs" / "hook-test-job" / "diff-check.json").exists()
 
 
@@ -2759,12 +4732,12 @@ def test_gemini_before_tool_outside_diff_returns_blocking_json(tmp_path: Path) -
         env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
         platform="gemini",
         event="BeforeTool",
+        v2_required=False,
+        tier34_authorized=False,
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "src/outside.py" in str(payload["reason"])
-    assert "src/outside.py" in str(payload["additionalContext"])
+    assert payload == {"decision": "allow"}
 
 
 def test_active_task_marker_is_supported(tmp_path: Path) -> None:
@@ -2773,7 +4746,12 @@ def test_active_task_marker_is_supported(tmp_path: Path) -> None:
     marker.parent.mkdir()
     marker.write_text("docs/agent_tasks/test-task.md\n", encoding="utf-8")
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": ""},
+        v2_required=False,
+        tier34_authorized=False,
+    )
 
     assert completed.returncode == 0
     assert payload == {}
@@ -2789,6 +4767,7 @@ def test_stop_registry_check_is_read_only_without_creating_registry_root(tmp_pat
             "TENN_AGENT_REGISTRY_ROOT": str(missing_registry_root),
             "TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md",
         },
+        event="Stop",
     )
 
     assert completed.returncode == 0
@@ -2830,6 +4809,7 @@ def test_stop_does_not_block_on_registry_overlap(tmp_path: Path) -> None:
             "TENN_AGENT_REGISTRY_ROOT": str(shared_root),
             "TENN_AGENT_TASK_CARD": overlap.relative_to(repo).as_posix(),
         },
+        event="Stop",
     )
 
     assert completed.returncode == 0

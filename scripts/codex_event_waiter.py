@@ -124,12 +124,32 @@ def utc_now() -> str:
 
 def redact_text(value: str) -> str:
     redacted = re.sub(
-        r"(?i)(authorization\s*:\s*bearer\s+)[^\s]+",
-        r"\1[REDACTED]",
+        r'''(?i)((?<!\\)\\["']authorization(?<!\\)\\["']\s*[:=]\s*(?<!\\)\\["']\s*bearer\s+)(.*?)(?<!\\)(\\["'])''',
+        r"\1[REDACTED]\3",
         value,
     )
     redacted = re.sub(
-        r"(?i)\b(token|api[_-]?key|password|secret)(\s*[=:]\s*)[^\s]+",
+        r'''(?i)(["']?authorization["']?\s*[:=]\s*)(["'])(\s*bearer\s+)(?:\\.|(?!\2).)+\2''',
+        r"\1\2\3[REDACTED]\2",
+        redacted,
+    )
+    redacted = re.sub(
+        r"(?i)(\bbearer[ \t]+)[A-Za-z0-9._~+/=-]+",
+        r"\1[REDACTED]",
+        redacted,
+    )
+    redacted = re.sub(
+        r"(?i)(authorization\s*:\s*bearer\s+)[^\s]+",
+        r"\1[REDACTED]",
+        redacted,
+    )
+    redacted = re.sub(
+        r'''(?i)(["']?(?:token|api[_-]?key|password|secret)["']?\s*[:=]\s*)(["'])(?:\\.|(?!\2).)*\2''',
+        r"\1\2[REDACTED]\2",
+        redacted,
+    )
+    redacted = re.sub(
+        r"(?i)\b(token|api[_-]?key|password|secret)(\s*[=:]\s*)[^\s,}\]]+",
         r"\1\2[REDACTED]",
         redacted,
     )
