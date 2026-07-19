@@ -15,15 +15,18 @@ from app.services.news_memo_outcomes import (
 )
 
 
-def test_extract_news_memo_task_uses_news_memo_extractor(
-    monkeypatch, tmp_path: Path
-):
+def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch, tmp_path: Path):
     extractor_inits: list[dict[str, str | None]] = []
     extractor_calls: list[dict[str, str]] = []
 
     class StubExtractor:
         def __init__(
-            self, *, llm_url=None, llm_model=None, memos_path=None, max_article_chars=None
+            self,
+            *,
+            llm_url=None,
+            llm_model=None,
+            memos_path=None,
+            max_article_chars=None,
         ):
             extractor_inits.append(
                 {
@@ -313,7 +316,8 @@ def test_news_memo_outcomes_reconcile_latest_attempt_per_source(
     }
     pending_samples = result["samples"]["accepted-pending"]
     assert any(
-        sample == {
+        sample
+        == {
             "source_id": "news:latest",
             "correlation_id": "latest-new",
             "task_id": "task-latest-new",
@@ -332,9 +336,7 @@ def test_news_memo_outcomes_reconcile_latest_attempt_per_source(
     )
 
 
-def test_news_memo_outcome_replays_are_idempotent(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_news_memo_outcome_replays_are_idempotent(monkeypatch, tmp_path: Path) -> None:
     tick = 0
 
     def next_time() -> str:
@@ -374,12 +376,8 @@ def test_news_memo_outcome_replays_are_idempotent(
         reason="non_substantive_output",
     )
 
-    assert replayed_acceptance["accepted_at_utc"] == first_acceptance[
-        "accepted_at_utc"
-    ]
-    assert replayed_terminal["completed_at_utc"] == first_terminal[
-        "completed_at_utc"
-    ]
+    assert replayed_acceptance["accepted_at_utc"] == first_acceptance["accepted_at_utc"]
+    assert replayed_terminal["completed_at_utc"] == first_terminal["completed_at_utc"]
     rows = [json.loads(line) for line in store.path.read_text().splitlines()]
     assert len(rows) == 1
 
@@ -501,9 +499,7 @@ def test_news_memo_outcome_files_preserve_shared_mode_in_either_writer_order(
     assert rows[0]["dispatch_state"] == "accepted"
     assert rows[0]["terminal_state"] == "completed"
     assert ownership_updates
-    assert set(ownership_updates) == {
-        (parent_metadata.st_uid, parent_metadata.st_gid)
-    }
+    assert set(ownership_updates) == {(parent_metadata.st_uid, parent_metadata.st_gid)}
 
 
 @pytest.mark.parametrize(
@@ -607,6 +603,94 @@ def test_news_memo_outcome_reader_rejects_incomplete_schema(
 
     with pytest.raises(RuntimeError, match="schema fields"):
         load_news_memo_outcomes(outcomes_path)
+
+
+@pytest.mark.parametrize("invalid_schema_version", [True, 1.0, "1"])
+def test_news_memo_outcome_reader_rejects_non_integer_schema_version(
+    tmp_path: Path,
+    invalid_schema_version: object,
+) -> None:
+    store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
+    store.record_dispatch_accepted(
+        correlation_id="invalid-schema-version",
+        source_id="news:invalid-schema-version",
+        attempt_started_at_utc="2026-07-19T10:50:00+00:00",
+        task_id="task-invalid-schema-version",
+    )
+    row = load_news_memo_outcomes(store.path)[0]
+    row["schema_version"] = invalid_schema_version
+    store.path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="schema_version"):
+        load_news_memo_outcomes(store.path)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "correlation_id",
+        "source_id",
+        "task_id",
+        "attempt_started_at_utc",
+        "dispatch_state",
+        "accepted_at_utc",
+        "terminal_state",
+        "reason",
+        "error_class",
+        "completed_at_utc",
+        "updated_at_utc",
+    ],
+)
+def test_news_memo_outcome_reader_rejects_noncanonical_stored_strings(
+    tmp_path: Path,
+    field_name: str,
+) -> None:
+    store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
+    common = {
+        "correlation_id": "noncanonical-string",
+        "source_id": "news:noncanonical-string",
+        "attempt_started_at_utc": "2026-07-19T10:55:00+00:00",
+        "task_id": "task-noncanonical-string",
+    }
+    store.record_dispatch_accepted(**common)
+    store.record_terminal(
+        **common,
+        terminal_state="completed",
+        reason="completed_reason",
+        error_class="NoError",
+    )
+    row = load_news_memo_outcomes(store.path)[0]
+    row[field_name] = f" {row[field_name]} "
+    store.path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match=rf"{field_name}.*non-canonical"):
+        load_news_memo_outcomes(store.path)
+
+
+def test_news_memo_outcome_noncanonical_identity_fails_closed_without_mutation(
+    tmp_path: Path,
+) -> None:
+    store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
+    common = {
+        "correlation_id": "padded-identity",
+        "source_id": "news:padded-identity",
+        "attempt_started_at_utc": "2026-07-19T10:57:00+00:00",
+        "task_id": "task-padded-identity",
+    }
+    store.record_dispatch_accepted(**common)
+    row = load_news_memo_outcomes(store.path)[0]
+    row["correlation_id"] = " padded-identity "
+    original = (json.dumps(row) + "\n").encode()
+    store.path.write_bytes(original)
+
+    with pytest.raises(RuntimeError, match=r"correlation_id.*non-canonical"):
+        store.record_terminal(**common, terminal_state="completed")
+
+    assert store.path.read_bytes() == original
+    reconciliation = store.reconcile_latest([common["source_id"]])
+    assert reconciliation["status"] == "degraded"
+    assert reconciliation["read_errors"] == 1
+    assert reconciliation["read_error_classes"] == ["RuntimeError"]
 
 
 def test_news_memo_outcome_conflicts_fail_closed(tmp_path: Path) -> None:

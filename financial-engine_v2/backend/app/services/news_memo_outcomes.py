@@ -77,9 +77,14 @@ def _validate_outcome_row(payload: dict[str, Any], *, lineno: int) -> None:
     if set(payload) != _ROW_FIELDS:
         raise RuntimeError(f"news memo outcome row {lineno} has invalid schema fields")
     for field_name in _STRING_FIELDS:
-        if not isinstance(payload.get(field_name), str):
+        field_value = payload.get(field_name)
+        if not isinstance(field_value, str):
             raise RuntimeError(
                 f"news memo outcome row {lineno} field {field_name} is not a string"
+            )
+        if field_value != field_value.strip():
+            raise RuntimeError(
+                f"news memo outcome row {lineno} field {field_name} is non-canonical"
             )
     for field_name in (
         "correlation_id",
@@ -148,7 +153,8 @@ def load_news_memo_outcomes(path: str | Path) -> list[dict[str, Any]]:
                 raise RuntimeError(
                     f"news memo outcome row {lineno} is not a JSON object"
                 )
-            if payload.get("schema_version") != _SCHEMA_VERSION:
+            schema_version = payload.get("schema_version")
+            if type(schema_version) is not int or schema_version != _SCHEMA_VERSION:
                 raise RuntimeError(
                     f"news memo outcome row {lineno} has unsupported schema_version"
                 )
