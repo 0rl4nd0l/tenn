@@ -552,11 +552,21 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
                 memos_path=memos_path,
                 force_dispatch=True,
             )
+            rows = [
+                json.loads(line)
+                for line in memos_path.with_name(
+                    "news_memo_outcomes.jsonl"
+                ).read_text().splitlines()
+            ]
 
             self.assertEqual(result["dispatched"], 1)
             self.assertEqual(result["already_persisted_skipped"], 0)
             self.assertTrue(result["force_dispatch"])
             self.assertEqual(calls, ["news:art-1"])
+            self.assertEqual(result["task_ids_count"], 0)
+            self.assertEqual(rows[0]["task_id"], "")
+            self.assertEqual(rows[0]["dispatch_state"], "accepted")
+            self.assertEqual(rows[0]["terminal_state"], "")
 
     def test_dispatch_news_memos_no_wait_reports_task_id_samples(self):
         import load_news_to_qdrant as mod
@@ -606,6 +616,356 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertEqual(payloads[0]["llm_model"], "model:qwen3.5-35b-a3b-apex")
         self.assertEqual(payloads[0]["candidate_tickers"], ["ABC"])
         self.assertEqual(payloads[1]["candidate_tickers"], [])
+
+    def test_dispatch_news_memos_persists_source_task_acceptance_mapping(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "ASX:AAA shares rose after a market update.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            },
+            {
+                "article_id": "art-2",
+                "text": "ASX:BBB reported higher earnings and revenue.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T09:00:00Z",
+            },
+        ]
+        payloads: list[dict] = []
+
+        class ResultTask:
+            def delay(self, payload):
+                payloads.append(dict(payload))
+                return FakeAsyncResult(f"task-{payload['source_id'].split(':')[-1]}")
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=memos_path,
+            )
+            outcomes_path = memos_path.with_name("news_memo_outcomes.jsonl")
+            rows = [
+                json.loads(line) for line in outcomes_path.read_text().splitlines()
+            ]
+
+        self.assertEqual(result["dispatched"], 2)
+        self.assertEqual(len(rows), 2)
+        rows_by_source = {row["source_id"]: row for row in rows}
+        for payload in payloads:
+            row = rows_by_source[payload["source_id"]]
+            self.assertEqual(row["correlation_id"], payload["correlation_id"])
+            self.assertEqual(
+                row["attempt_started_at_utc"], payload["attempt_started_at_utc"]
+            )
+            self.assertEqual(
+                row["task_id"], f"task-{payload['source_id'].split(':')[-1]}"
+            )
+            self.assertEqual(row["dispatch_state"], "accepted")
+            self.assertTrue(row["accepted_at_utc"])
+            self.assertEqual(row["terminal_state"], "")
+
+    def test_dispatch_news_memos_persists_dispatch_failure_outcome(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-failed",
+                "text": "ASX:AAA shares moved after a market update.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+
+        class FailingTask:
+            def delay(self, _payload):
+                raise TimeoutError("broker unavailable")
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            result = mod.dispatch_news_memos(
+                articles,
+                task=FailingTask(),
+                memos_path=memos_path,
+            )
+            outcomes_path = memos_path.with_name("news_memo_outcomes.jsonl")
+            rows = [
+                json.loads(line) for line in outcomes_path.read_text().splitlines()
+            ]
+
+        self.assertEqual(result["dispatched"], 0)
+        self.assertEqual(result["dispatch_failed"], 1)
+        self.assertEqual(result["outcome_write_failed"], 0)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["source_id"], "news:art-failed")
+        self.assertTrue(row["correlation_id"])
+        self.assertEqual(row["task_id"], "")
+        self.assertEqual(row["dispatch_state"], "dispatch_failed")
+        self.assertEqual(row["terminal_state"], "dispatch_failed")
+        self.assertEqual(row["reason"], "broker_dispatch_exception")
+        self.assertEqual(row["error_class"], "TimeoutError")
+        self.assertTrue(row["completed_at_utc"])
+
+    def test_attempt_outcomes_are_reconciled_but_never_suppress_dispatch(self):
+        import load_news_to_qdrant as mod
+        from app.services.news_memo_outcomes import NewsMemoOutcomeStore
+
+        outcome_classes = [
+            "completed",
+            "needs-retry",
+            "failed",
+            "dispatch-failed",
+            "accepted-pending",
+        ]
+        articles = [
+            {
+                "article_id": classification,
+                "text": f"ASX:AAA shares update for {classification}.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+            for classification in outcome_classes
+        ]
+        payloads: list[dict] = []
+
+        class ResultTask:
+            def delay(self, payload):
+                payloads.append(dict(payload))
+                return FakeAsyncResult(f"task-{payload['source_id'].split(':')[-1]}")
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            store = NewsMemoOutcomeStore(memos_path=memos_path)
+            store.record_terminal(
+                correlation_id="old-completed",
+                source_id="news:completed",
+                attempt_started_at_utc="2026-01-01T01:00:00+00:00",
+                task_id="old-task-completed",
+                terminal_state="completed",
+            )
+            store.record_terminal(
+                correlation_id="old-retry",
+                source_id="news:needs-retry",
+                attempt_started_at_utc="2026-01-01T02:00:00+00:00",
+                task_id="old-task-retry",
+                terminal_state="needs_retry",
+                reason="non_substantive_output",
+            )
+            store.record_terminal(
+                correlation_id="old-failed",
+                source_id="news:failed",
+                attempt_started_at_utc="2026-01-01T03:00:00+00:00",
+                task_id="old-task-failed",
+                terminal_state="failed",
+                reason="worker_exception",
+                error_class="RuntimeError",
+            )
+            store.record_dispatch_failed(
+                correlation_id="old-dispatch-failed",
+                source_id="news:dispatch-failed",
+                attempt_started_at_utc="2026-01-01T04:00:00+00:00",
+                error_class="TimeoutError",
+            )
+            store.record_dispatch_accepted(
+                correlation_id="old-pending",
+                source_id="news:accepted-pending",
+                attempt_started_at_utc="2026-01-01T05:00:00+00:00",
+                task_id="old-task-pending",
+            )
+
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=memos_path,
+            )
+
+        self.assertEqual(result["eligible"], 5)
+        self.assertEqual(result["missing_after_dispatch"], 5)
+        self.assertEqual(result["already_persisted_skipped"], 0)
+        self.assertEqual(result["dispatch_candidates"], 5)
+        self.assertEqual(result["dispatched"], 5)
+        self.assertEqual(len(payloads), 5)
+        self.assertEqual(result["outcome_reconciliation"]["status"], "ok")
+        self.assertEqual(
+            result["outcome_reconciliation"]["counts"],
+            {
+                "accepted-pending": 5,
+                "completed": 0,
+                "needs-retry": 0,
+                "failed": 0,
+                "dispatch-failed": 0,
+                "no-attempt": 0,
+            },
+        )
+
+    def test_worker_terminal_outcome_before_loader_acceptance_is_monotonic(self):
+        import load_news_to_qdrant as mod
+        from app.services.news_memo_outcomes import NewsMemoOutcomeStore
+
+        articles = [
+            {
+                "article_id": "race",
+                "text": "ASX:AAA reported higher earnings.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+
+        class EagerResultTask:
+            def delay(self, payload):
+                store = NewsMemoOutcomeStore(memos_path=payload["memos_path"])
+                store.record_terminal(
+                    correlation_id=payload["correlation_id"],
+                    source_id=payload["source_id"],
+                    attempt_started_at_utc=payload["attempt_started_at_utc"],
+                    task_id="task-race",
+                    terminal_state="needs_retry",
+                    reason="non_substantive_output",
+                )
+                return FakeAsyncResult("task-race")
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            result = mod.dispatch_news_memos(
+                articles,
+                task=EagerResultTask(),
+                memos_path=memos_path,
+            )
+            rows = [
+                json.loads(line)
+                for line in memos_path.with_name(
+                    "news_memo_outcomes.jsonl"
+                ).read_text().splitlines()
+            ]
+
+        self.assertEqual(result["dispatched"], 1)
+        self.assertEqual(result["outcome_write_failed"], 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["task_id"], "task-race")
+        self.assertEqual(rows[0]["dispatch_state"], "accepted")
+        self.assertTrue(rows[0]["accepted_at_utc"])
+        self.assertEqual(rows[0]["terminal_state"], "needs_retry")
+        self.assertEqual(rows[0]["reason"], "non_substantive_output")
+        self.assertTrue(rows[0]["completed_at_utc"])
+
+    def test_acceptance_evidence_failure_is_not_dispatch_failure(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "evidence-failure",
+                "text": "ASX:AAA reported higher earnings.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+
+        class ResultTask:
+            def delay(self, _payload):
+                return FakeAsyncResult("task-evidence-failure")
+
+        class FailingOutcomeStore:
+            def __init__(self, *, memos_path=None):
+                self.path = Path(memos_path).with_name("news_memo_outcomes.jsonl")
+
+            def record_dispatch_accepted(self, **_kwargs):
+                raise OSError("sidecar unavailable")
+
+            def reconcile_latest(self, _source_ids):
+                return {
+                    "status": "degraded",
+                    "path": str(self.path),
+                    "exists": False,
+                    "read_errors": 1,
+                    "read_error_classes": ["OSError"],
+                    "counts": {},
+                    "samples": {},
+                }
+
+        with tempfile.TemporaryDirectory() as td, patch.object(
+            mod, "NewsMemoOutcomeStore", FailingOutcomeStore
+        ):
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+            )
+
+        self.assertEqual(result["status"], "degraded")
+        self.assertEqual(result["dispatched"], 1)
+        self.assertEqual(result["dispatch_failed"], 0)
+        self.assertEqual(result["outcome_write_failed"], 1)
+        self.assertEqual(
+            result["outcome_write_failure_samples"],
+            [
+                {
+                    "source_id": "news:evidence-failure",
+                    "task_id": "task-evidence-failure",
+                    "error_class": "OSError",
+                }
+            ],
+        )
+
+    def test_wait_mode_stays_degraded_when_acceptance_evidence_write_fails(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "wait-evidence-failure",
+                "text": "ASX:AAA reported higher earnings.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+
+        class FailingOutcomeStore:
+            def __init__(self, *, memos_path=None):
+                self.path = Path(memos_path).with_name("news_memo_outcomes.jsonl")
+
+            def record_dispatch_accepted(self, **_kwargs):
+                raise OSError("sidecar unavailable")
+
+            def reconcile_latest(self, _source_ids):
+                return {
+                    "status": "degraded",
+                    "path": str(self.path),
+                    "exists": False,
+                    "read_errors": 1,
+                    "read_error_classes": ["OSError"],
+                    "counts": {},
+                    "samples": {},
+                }
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+
+            class CompletingTask:
+                def delay(self, payload):
+                    memos_path.write_text(
+                        json.dumps({"source_id": payload["source_id"]}) + "\n",
+                        encoding="utf-8",
+                    )
+                    return FakeAsyncResult("task-wait-evidence-failure")
+
+            with patch.object(mod, "NewsMemoOutcomeStore", FailingOutcomeStore):
+                result = mod.dispatch_news_memos(
+                    articles,
+                    task=CompletingTask(),
+                    memos_path=memos_path,
+                    wait_for_completion=True,
+                    wait_timeout_seconds=0.0,
+                    poll_interval_seconds=0.0,
+                )
+
+        self.assertEqual(result["missing_after_dispatch"], 0)
+        self.assertEqual(result["tasks_completed"], 1)
+        self.assertEqual(result["outcome_write_failed"], 1)
+        self.assertEqual(result["status"], "degraded")
 
     def test_sync_news_to_qdrant_passes_memo_llm_config_to_dispatch(self):
         import load_news_to_qdrant as mod

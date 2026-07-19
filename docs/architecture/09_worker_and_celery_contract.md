@@ -79,6 +79,74 @@ container worker must see the same path. The compose worker profiles mount the
 durable research-memory directory at the same host path inside the container so
 payload paths remain readable without widening source-PDF mounts.
 
+## News memo attempt outcomes
+
+`extract_news_memo_task` is a bound backend task on `llm_gpu`. The loader adds a
+fresh `correlation_id` and `attempt_started_at_utc` to each dispatch payload;
+the task consumes those lifecycle fields before delegating business arguments
+to `NewsMemoExtractor`. Pre-change payloads remain valid: the worker falls back
+to its Celery request ID, or a generated correlation ID when no request ID is
+available.
+
+Attempt evidence is stored in `news_memo_outcomes.jsonl`, derived beside the
+configured `news_memos.jsonl`. This is a per-attempt sidecar, not a replacement
+for the memo or terminal-skip files. Each schema-version-1 row contains:
+
+- immutable `correlation_id`, `source_id`, and `attempt_started_at_utc`;
+- the Celery `task_id` when the client or worker can observe it;
+- `dispatch_state` and `accepted_at_utc` for a dispatch call that returned;
+- `terminal_state`, stable `reason`, exception class, and completion time; and
+- `updated_at_utc` for sidecar observability only.
+
+Lifecycle timestamps are parsed as timezone-aware ISO-8601 instants and stored
+in canonical UTC form. Reconciliation can therefore order the canonical
+timestamp strings safely; malformed or naive timestamps make the sidecar
+unreadable/degraded and prevent mutation rather than silently changing attempt
+order.
+
+Legal terminal attempt states are `completed`, `needs_retry`, `failed`, and
+`dispatch_failed`. `completed` means the substantive memo call returned; it
+does not assert that every optional downstream signal route succeeded.
+`needs_retry` means the normalized extraction had no key event, claim, or risk.
+Ticker, sentiment, or impact alone is not substantive, so that result writes no
+memo, creates no terminal skip, and routes no signals. Its public return is a
+compact status/source/reason envelope, not a memo-shaped payload. `failed`
+records the worker exception class before the original exception is re-raised.
+
+The loader and worker can update the same attempt in either order. All writers
+use the adjacent persistent lock file, hold an inter-process `fcntl` lock across
+strict read/merge/write, then publish a same-directory temporary file with
+`os.replace` after file flush and `fsync`. Malformed existing evidence prevents
+mutation. Lifecycle merges are monotonic: a worker terminal row written before
+the loader returns cannot be downgraded to accepted-pending, repeated identical
+updates preserve the first lifecycle timestamps, and conflicting immutable or
+terminal fields fail closed.
+
+The host loader and container worker may have different UIDs. Both the lock and
+replacement file are normalized to mode `0660`. A privileged writer assigns
+the existing target owner/group, or the bind-mounted parent directory
+owner/group for first creation, before publication. An unprivileged host writer
+keeps its own ownership. This preserves host/root cooperation without making
+lifecycle evidence world-writable; deployments with a non-root worker under an
+unrelated UID still require a shared parent group or matching UID.
+
+Reconciliation selects the latest attempt for each requested candidate source
+by `(attempt_started_at_utc, correlation_id)` and reports one of
+`accepted-pending`, `completed`, `needs-retry`, `failed`, `dispatch-failed`, or
+`no-attempt`. These classes are diagnostic only. Candidate suppression remains
+exactly the union of source IDs in `news_memos.jsonl` and
+`news_memo_skips.jsonl`; no outcome row, including `completed`, suppresses a
+normal later dispatch when neither source-terminal file has that source.
+
+The dispatch and sidecar writes are not one transaction. `dispatch_state` of
+`accepted` means only that the client `.delay(...)` call returned; it is not
+independent proof of worker receipt or completion. A process crash after broker
+publish but before the local acceptance write can leave no acceptance row, and
+an exception from a publish client does not provide exactly-once delivery
+truth. Closing that window requires an outbox or broker event contract outside
+this architecture. Accordingly, the sidecar is durable best-effort lifecycle
+evidence, not an exactly-once broker ledger.
+
 ## Verifying the worker is running correct code
 
 1. **Container and process**
