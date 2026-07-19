@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import stat
 from pathlib import Path
+from types import SimpleNamespace
 
 import app.tasks.news_tasks as news_tasks
 import pytest
@@ -500,6 +501,134 @@ def test_news_memo_outcome_files_preserve_shared_mode_in_either_writer_order(
     assert rows[0]["terminal_state"] == "completed"
     assert ownership_updates
     assert set(ownership_updates) == {(parent_metadata.st_uid, parent_metadata.st_gid)}
+
+
+@pytest.mark.parametrize("first_writer", ["loader", "worker"])
+def test_news_memo_outcome_lock_supports_shared_group_cross_uid_writer_order(
+    tmp_path: Path,
+    first_writer: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    memos_path = tmp_path / "news_memos.jsonl"
+    loader_store = NewsMemoOutcomeStore(memos_path=memos_path)
+    worker_store = NewsMemoOutcomeStore(memos_path=memos_path)
+    common = {
+        "correlation_id": f"cross-uid-{first_writer}",
+        "source_id": f"news:cross-uid-{first_writer}",
+        "attempt_started_at_utc": "2026-07-19T10:35:00+00:00",
+        "task_id": f"task-cross-uid-{first_writer}",
+    }
+    first_uid = 2001
+    second_uid = 2002
+    shared_gid = tmp_path.stat().st_gid
+    current_uid = {"value": first_uid}
+    lock_owner = {"value": None}
+    lock_fchmod_attempts: list[int] = []
+    real_fstat = os.fstat
+    real_fchmod = os.fchmod
+
+    def descriptor_name(file_descriptor: int) -> str:
+        return Path(os.readlink(f"/proc/self/fd/{file_descriptor}")).name
+
+    def simulated_fstat(file_descriptor: int) -> SimpleNamespace:
+        metadata = real_fstat(file_descriptor)
+        if descriptor_name(file_descriptor) == loader_store.lock_path.name:
+            if lock_owner["value"] is None:
+                lock_owner["value"] = current_uid["value"]
+            simulated_uid = lock_owner["value"]
+        else:
+            simulated_uid = current_uid["value"]
+        return SimpleNamespace(
+            st_mode=metadata.st_mode,
+            st_uid=simulated_uid,
+            st_gid=shared_gid,
+        )
+
+    def owner_enforcing_fchmod(file_descriptor: int, mode: int) -> None:
+        if descriptor_name(file_descriptor) == loader_store.lock_path.name:
+            if lock_owner["value"] is None:
+                lock_owner["value"] = current_uid["value"]
+            lock_fchmod_attempts.append(current_uid["value"])
+            if lock_owner["value"] != current_uid["value"]:
+                raise PermissionError("simulated non-owner fchmod EPERM")
+        real_fchmod(file_descriptor, mode)
+
+    monkeypatch.setattr(news_memo_outcomes.os, "geteuid", lambda: current_uid["value"])
+    monkeypatch.setattr(news_memo_outcomes.os, "fstat", simulated_fstat)
+    monkeypatch.setattr(news_memo_outcomes.os, "fchmod", owner_enforcing_fchmod)
+    monkeypatch.setattr(
+        news_memo_outcomes,
+        "_cooperative_owner",
+        lambda _path: (first_uid, shared_gid),
+    )
+
+    if first_writer == "loader":
+        loader_store.record_dispatch_accepted(**common)
+    else:
+        worker_store.record_terminal(**common, terminal_state="completed")
+
+    current_uid["value"] = second_uid
+    if first_writer == "loader":
+        worker_store.record_terminal(**common, terminal_state="completed")
+    else:
+        loader_store.record_dispatch_accepted(**common)
+
+    rows = load_news_memo_outcomes(loader_store.path)
+    assert len(rows) == 1
+    assert rows[0]["dispatch_state"] == "accepted"
+    assert rows[0]["terminal_state"] == "completed"
+    assert lock_fchmod_attempts == [first_uid]
+    assert stat.S_IMODE(loader_store.lock_path.stat().st_mode) == 0o660
+
+
+def test_news_memo_outcome_non_owner_rejects_unsafe_lock_without_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
+    common = {
+        "correlation_id": "unsafe-cross-uid-lock",
+        "source_id": "news:unsafe-cross-uid-lock",
+        "attempt_started_at_utc": "2026-07-19T10:40:00+00:00",
+        "task_id": "task-unsafe-cross-uid-lock",
+    }
+    store.record_dispatch_accepted(**common)
+    original = store.path.read_bytes()
+    store.lock_path.chmod(0o666)
+
+    owner_uid = 2001
+    writer_uid = 2002
+    shared_gid = tmp_path.stat().st_gid
+    real_fstat = os.fstat
+    fchmod_attempts: list[int] = []
+
+    def simulated_fstat(file_descriptor: int) -> SimpleNamespace:
+        metadata = real_fstat(file_descriptor)
+        target_name = Path(os.readlink(f"/proc/self/fd/{file_descriptor}")).name
+        return SimpleNamespace(
+            st_mode=metadata.st_mode,
+            st_uid=owner_uid if target_name == store.lock_path.name else writer_uid,
+            st_gid=shared_gid,
+        )
+
+    def forbidden_fchmod(file_descriptor: int, _mode: int) -> None:
+        fchmod_attempts.append(file_descriptor)
+        raise AssertionError("non-owner must not attempt to repair lock metadata")
+
+    monkeypatch.setattr(news_memo_outcomes.os, "geteuid", lambda: writer_uid)
+    monkeypatch.setattr(news_memo_outcomes.os, "fstat", simulated_fstat)
+    monkeypatch.setattr(news_memo_outcomes.os, "fchmod", forbidden_fchmod)
+    monkeypatch.setattr(
+        news_memo_outcomes,
+        "_cooperative_owner",
+        lambda _path: (owner_uid, shared_gid),
+    )
+
+    with pytest.raises(PermissionError, match="unsafe cooperative lock metadata"):
+        store.record_terminal(**common, terminal_state="completed")
+
+    assert fchmod_attempts == []
+    assert store.path.read_bytes() == original
 
 
 @pytest.mark.parametrize(

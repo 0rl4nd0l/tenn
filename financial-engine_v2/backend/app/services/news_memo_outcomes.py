@@ -3,6 +3,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import stat
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -180,10 +181,27 @@ def _apply_cooperative_metadata(
     *,
     owner_uid: int,
     owner_gid: int,
+    allow_existing_non_owner: bool = False,
 ) -> None:
-    if os.geteuid() == 0:
+    effective_uid = os.geteuid()
+    if effective_uid == 0:
         os.fchown(file_descriptor, owner_uid, owner_gid)
-    os.fchmod(file_descriptor, _SHARED_FILE_MODE)
+        os.fchmod(file_descriptor, _SHARED_FILE_MODE)
+        return
+
+    metadata = os.fstat(file_descriptor)
+    if metadata.st_uid == effective_uid:
+        os.fchmod(file_descriptor, _SHARED_FILE_MODE)
+        return
+
+    if (
+        allow_existing_non_owner
+        and metadata.st_gid == owner_gid
+        and stat.S_IMODE(metadata.st_mode) == _SHARED_FILE_MODE
+    ):
+        return
+
+    raise PermissionError("unsafe cooperative lock metadata for non-owner writer")
 
 
 def _open_cooperative_lock(path: Path, *, owner_source: Path) -> TextIO:
@@ -198,6 +216,7 @@ def _open_cooperative_lock(path: Path, *, owner_source: Path) -> TextIO:
             file_descriptor,
             owner_uid=owner_uid,
             owner_gid=owner_gid,
+            allow_existing_non_owner=True,
         )
         return os.fdopen(file_descriptor, "a+", encoding="utf-8")
     except Exception:
