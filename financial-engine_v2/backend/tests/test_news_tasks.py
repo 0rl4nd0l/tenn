@@ -581,9 +581,50 @@ def test_news_memo_outcome_lock_supports_shared_group_cross_uid_writer_order(
     assert stat.S_IMODE(loader_store.lock_path.stat().st_mode) == 0o660
 
 
+def test_news_memo_outcome_root_normalizes_existing_shared_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock_path = tmp_path / "news_memo_outcomes.jsonl.lock"
+    lock_path.touch(mode=0o660)
+    lock_path.chmod(0o660)
+    owner_uid = 2001
+    owner_gid = lock_path.stat().st_gid
+    ownership_updates: list[tuple[int, int]] = []
+    mode_updates: list[int] = []
+
+    monkeypatch.setattr(news_memo_outcomes.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(
+        news_memo_outcomes.os,
+        "fchown",
+        lambda _descriptor, uid, gid: ownership_updates.append((uid, gid)),
+    )
+    monkeypatch.setattr(
+        news_memo_outcomes.os,
+        "fchmod",
+        lambda _descriptor, mode: mode_updates.append(mode),
+    )
+
+    file_descriptor = os.open(lock_path, os.O_RDWR | os.O_CLOEXEC)
+    try:
+        news_memo_outcomes._apply_cooperative_metadata(
+            file_descriptor,
+            owner_uid=owner_uid,
+            owner_gid=owner_gid,
+            allow_existing_non_owner=True,
+        )
+    finally:
+        os.close(file_descriptor)
+
+    assert ownership_updates == [(owner_uid, owner_gid)]
+    assert mode_updates == [0o660]
+
+
+@pytest.mark.parametrize("unsafe_mode", [0o664, 0o666])
 def test_news_memo_outcome_non_owner_rejects_unsafe_lock_without_mutation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    unsafe_mode: int,
 ) -> None:
     store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
     common = {
@@ -594,7 +635,7 @@ def test_news_memo_outcome_non_owner_rejects_unsafe_lock_without_mutation(
     }
     store.record_dispatch_accepted(**common)
     original = store.path.read_bytes()
-    store.lock_path.chmod(0o666)
+    store.lock_path.chmod(unsafe_mode)
 
     owner_uid = 2001
     writer_uid = 2002

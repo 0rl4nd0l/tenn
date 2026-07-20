@@ -184,21 +184,22 @@ def _apply_cooperative_metadata(
     allow_existing_non_owner: bool = False,
 ) -> None:
     effective_uid = os.geteuid()
+    metadata = os.fstat(file_descriptor)
     if effective_uid == 0:
         os.fchown(file_descriptor, owner_uid, owner_gid)
         os.fchmod(file_descriptor, _SHARED_FILE_MODE)
         return
 
-    metadata = os.fstat(file_descriptor)
-    if metadata.st_uid == effective_uid:
-        os.fchmod(file_descriptor, _SHARED_FILE_MODE)
-        return
-
     if (
         allow_existing_non_owner
+        and metadata.st_uid != effective_uid
         and metadata.st_gid == owner_gid
         and stat.S_IMODE(metadata.st_mode) == _SHARED_FILE_MODE
     ):
+        return
+
+    if metadata.st_uid == effective_uid:
+        os.fchmod(file_descriptor, _SHARED_FILE_MODE)
         return
 
     raise PermissionError("unsafe cooperative lock metadata for non-owner writer")
