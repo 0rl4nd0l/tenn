@@ -130,7 +130,11 @@ def _validate_outcome_row(payload: dict[str, Any], *, lineno: int) -> None:
         raise RuntimeError(
             f"news memo outcome row {lineno} has inconsistent terminal fields"
         )
-    if (dispatch_state == "dispatch_failed") != (terminal_state == "dispatch_failed"):
+    if dispatch_state == "dispatch_failed" and not terminal_state:
+        raise RuntimeError(
+            f"news memo outcome row {lineno} has incomplete dispatch failure"
+        )
+    if terminal_state == "dispatch_failed" and dispatch_state != "dispatch_failed":
         raise RuntimeError(
             f"news memo outcome row {lineno} has inconsistent dispatch failure"
         )
@@ -524,9 +528,27 @@ class NewsMemoOutcomeStore:
                     merged["accepted_at_utc"] = normalized_accepted_at
 
             existing_terminal = str(merged.get("terminal_state") or "").strip()
-            if terminal_state and existing_terminal not in {"", terminal_state}:
+            worker_refines_dispatch_failure = (
+                existing_terminal == "dispatch_failed"
+                and terminal_state in _TERMINAL_STATES
+            )
+            dispatch_failure_follows_worker = (
+                existing_terminal in _TERMINAL_STATES
+                and terminal_state == "dispatch_failed"
+            )
+            if (
+                terminal_state
+                and existing_terminal not in {"", terminal_state}
+                and not worker_refines_dispatch_failure
+                and not dispatch_failure_follows_worker
+            ):
                 raise RuntimeError("news memo outcome terminal_state conflict")
-            if terminal_state:
+            if worker_refines_dispatch_failure:
+                merged["terminal_state"] = terminal_state
+                merged["reason"] = reason
+                merged["error_class"] = error_class
+                merged["completed_at_utc"] = normalized_completed_at
+            elif terminal_state and not dispatch_failure_follows_worker:
                 merged["terminal_state"] = terminal_state
                 for field_name, field_value in (
                     ("reason", reason),

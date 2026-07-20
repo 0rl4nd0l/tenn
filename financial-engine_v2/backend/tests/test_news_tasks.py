@@ -383,6 +383,66 @@ def test_news_memo_outcome_replays_are_idempotent(monkeypatch, tmp_path: Path) -
     assert len(rows) == 1
 
 
+@pytest.mark.parametrize("dispatch_failure_first", [True, False])
+@pytest.mark.parametrize(
+    ("terminal_state", "reason", "error_class"),
+    [
+        ("completed", "", ""),
+        ("needs_retry", "non_substantive_output", ""),
+        ("failed", "worker_exception", "ValueError"),
+    ],
+)
+def test_worker_terminal_refines_ambiguous_dispatch_failure_in_either_order(
+    tmp_path: Path,
+    dispatch_failure_first: bool,
+    terminal_state: str,
+    reason: str,
+    error_class: str,
+) -> None:
+    store = NewsMemoOutcomeStore(memos_path=tmp_path / "news_memos.jsonl")
+    common = {
+        "correlation_id": f"ambiguous-{terminal_state}-{dispatch_failure_first}",
+        "source_id": f"news:ambiguous-{terminal_state}-{dispatch_failure_first}",
+        "attempt_started_at_utc": "2026-07-20T09:15:00+00:00",
+    }
+
+    if dispatch_failure_first:
+        store.record_dispatch_failed(**common, error_class="TimeoutError")
+        store.record_terminal(
+            **common,
+            task_id="task-published-despite-client-error",
+            terminal_state=terminal_state,
+            reason=reason,
+            error_class=error_class,
+        )
+    else:
+        store.record_terminal(
+            **common,
+            task_id="task-published-despite-client-error",
+            terminal_state=terminal_state,
+            reason=reason,
+            error_class=error_class,
+        )
+        store.record_dispatch_failed(**common, error_class="TimeoutError")
+
+    rows = load_news_memo_outcomes(store.path)
+    assert len(rows) == 1
+    assert rows[0]["dispatch_state"] == "dispatch_failed"
+    assert rows[0]["accepted_at_utc"] == ""
+    assert rows[0]["terminal_state"] == terminal_state
+    assert rows[0]["reason"] == reason
+    assert rows[0]["error_class"] == error_class
+    assert rows[0]["task_id"] == "task-published-despite-client-error"
+    assert rows[0]["completed_at_utc"]
+
+    reconciliation = store.reconcile_latest([common["source_id"]])
+    expected_classification = (
+        "needs-retry" if terminal_state == "needs_retry" else terminal_state
+    )
+    assert reconciliation["counts"][expected_classification] == 1
+    assert reconciliation["counts"]["dispatch-failed"] == 0
+
+
 def test_news_memo_outcome_corruption_fails_closed_without_overwrite(
     tmp_path: Path,
 ) -> None:

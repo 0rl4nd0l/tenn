@@ -112,6 +112,13 @@ Ticker, sentiment, or impact alone is not substantive, so that result writes no
 memo, creates no terminal skip, and routes no signals. Its public return is a
 compact status/source/reason envelope, not a memo-shaped payload. `failed`
 records the worker exception class before the original exception is re-raised.
+`dispatch_failed` is the terminal classification only while a client-side
+`.delay(...)` exception has no worker terminal observation for the same
+attempt. Because a publish client can raise after broker acceptance, a later
+worker `completed`, `needs_retry`, or `failed` observation refines that
+classification while preserving `dispatch_state=dispatch_failed` as the client
+observation. The worker terminal state, reason/error, task ID, and completion
+time then remain authoritative for reconciliation.
 
 The loader and worker can update the same attempt in either order. All writers
 use the adjacent persistent lock file, hold an inter-process `fcntl` lock across
@@ -120,7 +127,10 @@ strict read/merge/write, then publish a same-directory temporary file with
 mutation. Lifecycle merges are monotonic: a worker terminal row written before
 the loader returns cannot be downgraded to accepted-pending, repeated identical
 updates preserve the first lifecycle timestamps, and conflicting immutable or
-terminal fields fail closed.
+terminal fields fail closed. The one cross-state refinement is an ambiguous
+client dispatch failure paired with an actual worker terminal observation for
+the same immutable attempt identity; it converges to the worker terminal result
+in either update order.
 
 The host loader and container worker may have different UIDs. Both the lock and
 replacement file are normalized to mode `0660`. A privileged writer assigns

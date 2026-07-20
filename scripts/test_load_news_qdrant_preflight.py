@@ -554,9 +554,9 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             )
             rows = [
                 json.loads(line)
-                for line in memos_path.with_name(
-                    "news_memo_outcomes.jsonl"
-                ).read_text().splitlines()
+                for line in memos_path.with_name("news_memo_outcomes.jsonl")
+                .read_text()
+                .splitlines()
             ]
 
             self.assertEqual(result["dispatched"], 1)
@@ -710,6 +710,62 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertEqual(row["reason"], "broker_dispatch_exception")
         self.assertEqual(row["error_class"], "TimeoutError")
         self.assertTrue(row["completed_at_utc"])
+
+    def test_publish_exception_after_worker_terminal_preserves_worker_truth(self):
+        import load_news_to_qdrant as mod
+        from app.services.news_memo_outcomes import NewsMemoOutcomeStore
+
+        articles = [
+            {
+                "article_id": "published-then-raised",
+                "text": "ASX:AAA shares moved after a market update.",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+
+        class PublishedThenRaisedTask:
+            def delay(self, payload):
+                store = NewsMemoOutcomeStore(memos_path=payload["memos_path"])
+                store.record_terminal(
+                    correlation_id=payload["correlation_id"],
+                    source_id=payload["source_id"],
+                    attempt_started_at_utc=payload["attempt_started_at_utc"],
+                    task_id="task-published-then-raised",
+                    terminal_state="needs_retry",
+                    reason="non_substantive_output",
+                )
+                raise TimeoutError("client lost publish acknowledgement")
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            result = mod.dispatch_news_memos(
+                articles,
+                task=PublishedThenRaisedTask(),
+                memos_path=memos_path,
+            )
+            rows = [
+                json.loads(line)
+                for line in memos_path.with_name(
+                    "news_memo_outcomes.jsonl"
+                ).read_text().splitlines()
+            ]
+
+        self.assertEqual(result["dispatched"], 0)
+        self.assertEqual(result["dispatch_failed"], 1)
+        self.assertEqual(result["outcome_write_failed"], 0)
+        self.assertEqual(result["outcome_reconciliation"]["counts"]["needs-retry"], 1)
+        self.assertEqual(
+            result["outcome_reconciliation"]["counts"]["dispatch-failed"], 0
+        )
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["task_id"], "task-published-then-raised")
+        self.assertEqual(row["dispatch_state"], "dispatch_failed")
+        self.assertEqual(row["accepted_at_utc"], "")
+        self.assertEqual(row["terminal_state"], "needs_retry")
+        self.assertEqual(row["reason"], "non_substantive_output")
+        self.assertEqual(row["error_class"], "")
 
     def test_attempt_outcomes_are_reconciled_but_never_suppress_dispatch(self):
         import load_news_to_qdrant as mod
