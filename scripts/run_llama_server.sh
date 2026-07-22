@@ -52,17 +52,29 @@ if [[ "${ALLOW_LLAMA_DURING_GPU_EXCLUSIVE:-0}" != "1" ]]; then
   fi
 fi
 
-BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
-if [[ ! -x "${BIN_PATH}" && -x "/home/l4nd0/.local/bin/llama-server" ]]; then
-  BIN_PATH="/home/l4nd0/.local/bin/llama-server"
-fi
-if [[ ! -x "${BIN_PATH}" ]]; then
-  BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
-  if [[ -x "${BIN_PATH_FALLBACK}" ]]; then
-    BIN_PATH="${BIN_PATH_FALLBACK}"
+if [[ -n "${LLAMA_SERVER_BIN:-}" ]]; then
+  BIN_PATH="${LLAMA_SERVER_BIN}"
+else
+  BIN_PATH="${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server"
+  if [[ ! -x "${BIN_PATH}" && -x "/home/l4nd0/.local/bin/llama-server" ]]; then
+    BIN_PATH="/home/l4nd0/.local/bin/llama-server"
+  fi
+  if [[ ! -x "${BIN_PATH}" ]]; then
+    BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
+    if [[ -x "${BIN_PATH_FALLBACK}" ]]; then
+      BIN_PATH="${BIN_PATH_FALLBACK}"
+    fi
   fi
 fi
-BIN_DIR="$(cd "$(dirname "${BIN_PATH}")" && pwd)"
+if ! RESOLVED_BIN_PATH="$(realpath -e -- "${BIN_PATH}" 2>/dev/null)"; then
+  echo "ERROR: Unable to resolve llama-server binary target at ${BIN_PATH}" >&2
+  exit 1
+fi
+if [[ ! -x "${RESOLVED_BIN_PATH}" ]]; then
+  echo "ERROR: llama-server binary target is not executable at ${RESOLVED_BIN_PATH}" >&2
+  exit 1
+fi
+BIN_DIR="$(dirname "${RESOLVED_BIN_PATH}")"
 if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
   export LD_LIBRARY_PATH="${BIN_DIR}:${LD_LIBRARY_PATH}"
 else
@@ -89,11 +101,6 @@ if [[ -n "${LLAMA_SERVER_CUDA_VISIBLE_DEVICES:-}" ]]; then
 fi
 if [[ "${LLAMA_SERVER_DISABLE_CUDA_GRAPHS:-0}" == "1" ]]; then
   export GGML_CUDA_DISABLE_GRAPHS=1
-fi
-
-if [[ ! -x "${BIN_PATH}" ]]; then
-  echo "llama-server binary not found at ${BIN_PATH}" >&2
-  exit 1
 fi
 
 if [[ -n "${HF_MODEL}" ]]; then
