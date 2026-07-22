@@ -161,6 +161,35 @@ Audit ticker financial quality (confidence, source-linkage, period gaps):
 - `CONFIG["full_history"]["years"]`
 - `CONFIG["daily_marketindex"]["download_limit"]`
 
+## Change Impact Log (Engineering Workflow)
+Use `scripts/log_change_impact.py` while a change is still present in the
+working tree or index. It records why the change is needed, its expected
+impact, validation, and rollback instructions in
+`reports/change_impact_log.md`.
+
+```bash
+python3 scripts/log_change_impact.py \
+  --scope "financial updater quality gates" \
+  --why "make zero-row handling explicit for operators" \
+  --expected-impact "failed extractions and empty datasets are visible before release" \
+  --risk-level low \
+  --validation "python3 -m unittest scripts/test_log_change_impact_cli.py" \
+  --rollback "git revert COMMIT_SHA"
+```
+
+The script:
+
+- detects unstaged and staged files across the Git repository, plus untracked
+  files under `financial-engine_v2/`;
+- supplies a date/commit-based `--change-id` and Git-configured `--author`
+  unless they are overridden;
+- appends one entry to the log without changing application runtime state.
+
+`--scope`, `--why`, `--expected-impact`, `--validation`, and `--rollback`
+must be explicit. Blank values or `TBD` exit with code `2` and do not append an
+entry. Run the command before committing: committed files are not included in
+its changed-file scan.
+
 ## Cockpit TUI (v1)
 Operate chat + ingestion + updater + verification from a single terminal UI.
 
