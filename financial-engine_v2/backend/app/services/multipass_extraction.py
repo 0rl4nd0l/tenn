@@ -853,7 +853,11 @@ def _merge_cf_tables(
     ordered = sorted(candidates, key=lambda x: x[1].page_number)
 
     # Use the headers from the highest-scoring table (most informative column headers)
-    best_headers = max(candidates, key=lambda x: x[0])[1].headers
+    best_table = max(candidates, key=lambda x: x[0])[1]
+    best_headers = best_table.headers
+    best_raw_header_rows = list(
+        getattr(best_table, "raw_header_rows", None) or [best_headers]
+    )
     best_page = ordered[0][1].page_number
 
     merged_rows = [best_headers]  # start with header row
@@ -886,6 +890,7 @@ def _merge_cf_tables(
         caption="Merged cashflow statement (Appendix 5B)",
         rows=merged_rows,
         headers=best_headers,
+        raw_header_rows=best_raw_header_rows,
     )
 
 
@@ -1838,15 +1843,122 @@ def _table_to_markdown(
     rows_override: if provided, use these rows instead of table.rows (for pre-filtered rows).
     """
     rows = rows_override if rows_override is not None else (table.rows if table else [])
-    if not rows:
+    headers = list(getattr(table, "headers", []) or []) if table else []
+    if not rows and not headers:
         return ""
-    lines = []
-    for i, row in enumerate(rows[:max_rows]):
-        line = " | ".join(str(c) for c in row)
-        lines.append(line)
-        if i == 0:
-            lines.append(" | ".join("---" for _ in row))
+    body_rows = list(rows)
+    if headers and body_rows and list(body_rows[0]) == headers:
+        body_rows = body_rows[1:]
+    header_row = headers or list(body_rows.pop(0))
+    lines = [" | ".join(str(c) for c in header_row)]
+    lines.append(" | ".join("---" for _ in header_row))
+    for row in body_rows[:max_rows]:
+        lines.append(" | ".join(str(c) for c in row))
     return "\n".join(lines)
+
+
+_PERIOD_HEADER_DATE_RE = re.compile(
+    r"\b(?:"
+    r"\d{4}[-/]\d{1,2}[-/]\d{1,2}"
+    r"|\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}"
+    r"|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{4}"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _period_dates_from_header_cell(cell: Any) -> list[date]:
+    dates: list[date] = []
+    for match in _PERIOD_HEADER_DATE_RE.finditer(str(cell or "")):
+        try:
+            parsed = dtparser.parse(match.group(0), dayfirst=True).date()
+        except Exception:
+            continue
+        if parsed not in dates:
+            dates.append(parsed)
+    return dates
+
+
+def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
+    """Bind an exact source header date to one value column, or fail closed."""
+    requested = parse_period_end(str(period_end) if period_end else None)
+    raw_rows = [
+        [str(cell or "") for cell in row]
+        for row in (getattr(table, "raw_header_rows", None) or [])
+    ]
+    if not raw_rows and getattr(table, "headers", None):
+        raw_rows = [[str(cell or "") for cell in table.headers]]
+    width = max((len(row) for row in raw_rows), default=0)
+    column_dates: dict[int, list[date]] = {}
+    source_cells: dict[int, list[dict[str, Any]]] = {}
+    for row_index, row in enumerate(raw_rows):
+        for column_index in range(width):
+            if column_index == 0:
+                # The first column is the row-label axis. Statement titles and
+                # period phrases may span it, but it is never a value column.
+                continue
+            cell = row[column_index] if column_index < len(row) else ""
+            dates = _period_dates_from_header_cell(cell)
+            if not dates:
+                continue
+            for parsed in dates:
+                if parsed not in column_dates.setdefault(column_index, []):
+                    column_dates[column_index].append(parsed)
+            source_cells.setdefault(column_index, []).append(
+                {
+                    "header_row_index": row_index,
+                    "column_index": column_index,
+                    "text": cell,
+                    "dates": [parsed.isoformat() for parsed in dates],
+                }
+            )
+
+    base = {
+        "requested_period_end": requested.isoformat() if requested else None,
+        "column_index": None,
+        "header_cell": None,
+        "source_header_cells": source_cells,
+        "comparative_columns": [],
+    }
+    if requested is None:
+        return {**base, "status": "DATA_MISSING", "reason": "requested_period_invalid"}
+    conflicting = [index for index, dates in column_dates.items() if len(dates) > 1]
+    if conflicting:
+        return {
+            **base,
+            "status": "DATA_MISSING",
+            "reason": "conflicting_period_headers",
+            "conflicting_columns": conflicting,
+        }
+    matches = [index for index, dates in column_dates.items() if dates == [requested]]
+    if len(matches) > 1:
+        return {
+            **base,
+            "status": "DATA_MISSING",
+            "reason": "duplicate_current_period_header",
+            "duplicate_columns": matches,
+        }
+    if not matches:
+        reason = (
+            "requested_period_header_missing" if column_dates else "period_headers_missing"
+        )
+        return {**base, "status": "DATA_MISSING", "reason": reason}
+
+    column_index = matches[0]
+    evidence = source_cells[column_index][0]
+    return {
+        **base,
+        "status": "BOUND",
+        "reason": "exact_unique_period_header",
+        "column_index": column_index,
+        "header_cell": evidence["text"],
+        "header_row_index": evidence["header_row_index"],
+        "comparative_columns": sorted(
+            index
+            for index, dates in column_dates.items()
+            if dates and dates != [requested]
+        ),
+    }
 
 
 def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
@@ -2115,11 +2227,132 @@ def _row_label_before_numeric_cells(row: list[Any]) -> str:
         if not text:
             continue
         if _parse_accounting_metric_number(text) is not None:
+            if not label_cells:
+                # Appendix statement item numbers can precede the actual row
+                # label in a separate column (for example, "2.6", label, value).
+                continue
             break
         if _CASHFLOW_EXPLICIT_AMOUNT_RE.search(text):
             break
         label_cells.append(text)
     return _normalise_fragmented_pdf_text(" ".join(label_cells))[:180]
+
+
+_PERIOD_BOUND_STATEMENT_METRICS = {
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+}
+
+
+def _period_bound_source_cell(
+    table: Any,
+    row_ref: Any,
+    column_index: int,
+    scale: str,
+) -> dict[str, Any] | None:
+    normalized_ref = _normalise_fragmented_pdf_text(str(row_ref or "")).lower()
+    if not normalized_ref:
+        return None
+    exact_matches: list[tuple[int, list[Any], str]] = []
+    fuzzy_matches: list[tuple[int, list[Any], str]] = []
+    for row_index, row in enumerate(getattr(table, "rows", []) or []):
+        if column_index >= len(row):
+            continue
+        row_label = _row_label_before_numeric_cells(row)
+        normalized_label = _normalise_fragmented_pdf_text(row_label).lower()
+        if not normalized_label:
+            continue
+        candidate = (row_index, row, row_label)
+        if normalized_label == normalized_ref:
+            exact_matches.append(candidate)
+        elif normalized_label in normalized_ref or normalized_ref in normalized_label:
+            fuzzy_matches.append(candidate)
+    matches = exact_matches if exact_matches else fuzzy_matches
+    if len(matches) != 1:
+        return None
+
+    row_index, row, row_label = matches[0]
+    raw_cell = str(row[column_index] or "").strip()
+    parsed = _parse_accounting_metric_number(raw_cell)
+    if parsed is None:
+        return None
+    raw_value, has_explicit_unit = parsed
+    scaled_value = (
+        raw_value
+        if has_explicit_unit
+        else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+    )
+    return {
+        "page_number": getattr(table, "page_number", None),
+        "row_index": row_index,
+        "column_index": column_index,
+        "row_label": row_label,
+        "raw_value": raw_cell,
+        "scaled_value": scaled_value,
+    }
+
+
+def _bind_statement_metrics_to_current_period_cells(
+    extracted: dict[str, Any],
+    table: Any,
+    *,
+    period_end: Any,
+    scale: str,
+) -> dict[str, Any]:
+    """Replace statement metrics with their unique requested-period source cells."""
+    binding = _bind_current_period_column(table, period_end)
+    extracted["_period_binding"] = binding
+    metric_names = [
+        metric_name
+        for metric_name in _PERIOD_BOUND_STATEMENT_METRICS
+        if metric_name in extracted
+    ]
+    row_refs = extracted.get("row_refs", {})
+    extracted["_period_source_cells"] = {}
+    if binding.get("status") != "BOUND":
+        # Missing, malformed, duplicated, or conflicting period evidence can
+        # never preserve a value or source binding from an earlier pass.
+        for metric_name in metric_names:
+            extracted[metric_name] = None
+            row_refs.pop(metric_name, None)
+        extracted["period_col"] = None
+        return extracted
+
+    column_index = int(binding["column_index"])
+    source_cells: dict[str, dict[str, Any]] = {}
+    for metric_name in metric_names:
+        if extracted.get(metric_name) is None:
+            row_refs.pop(metric_name, None)
+            continue
+        source_cell = _period_bound_source_cell(
+            table,
+            row_refs.get(metric_name),
+            column_index,
+            scale,
+        )
+        if source_cell is None:
+            extracted[metric_name] = None
+            row_refs.pop(metric_name, None)
+            continue
+        source_cell["header_cell"] = binding["header_cell"]
+        source_cell["requested_period_end"] = binding["requested_period_end"]
+        extracted[metric_name] = source_cell["scaled_value"]
+        source_cells[metric_name] = source_cell
+
+    extracted["_period_source_cells"] = source_cells
+    headers = list(getattr(table, "headers", []) or [])
+    extracted["period_col"] = (
+        headers[column_index]
+        if column_index < len(headers) and headers[column_index]
+        else binding["header_cell"]
+    )
+    return extracted
 
 
 def _parse_current_period_metric_cell(row: list[Any], scale: str) -> float | None:
@@ -3693,6 +3926,13 @@ def _extract_single_table(
                         metric_name,
                         getattr(table, "page_number", "?"),
                     )
+        if table_type in {"income_statement", "cashflow_statement"}:
+            extracted = _bind_statement_metrics_to_current_period_cells(
+                extracted,
+                table,
+                period_end=pass1_result.get("period_end"),
+                scale=scale_for_table,
+            )
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -5473,6 +5713,7 @@ def _build_field_provenance_entry(
     scale: Any,
     scale_source: Any,
     pass1_result: dict,
+    source_cell: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build structured payload provenance from already source-bound evidence."""
     source_text = str(source or "unknown").strip() or "unknown"
@@ -5495,6 +5736,20 @@ def _build_field_provenance_entry(
         "period_type": str(pass1_result.get("report_type") or "unknown"),
         "period_end": str(pass1_result.get("period_end") or "unknown"),
     }
+    if source_cell:
+        entry["source_cell"] = {
+            key: source_cell[key]
+            for key in (
+                "page_number",
+                "row_index",
+                "column_index",
+                "row_label",
+                "raw_value",
+                "header_cell",
+                "requested_period_end",
+            )
+            if key in source_cell
+        }
     for output_key, input_keys in {
         "source_document_id": (
             "source_document_id",
@@ -5576,6 +5831,7 @@ def _run_pass4_reconciler(
                     scale=metric_scale,
                     scale_source=metric_scale_sources.get(m),
                     pass1_result=pass1_result,
+                    source_cell=(extraction.get("_period_source_cells") or {}).get(m),
                 )
                 confidence_weighted_sum += conf
                 confidence_weight += 1

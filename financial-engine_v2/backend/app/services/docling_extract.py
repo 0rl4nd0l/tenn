@@ -119,6 +119,60 @@ class DoclingTable:
     caption: str  # nearest heading text, or ""
     rows: list[list[str]]  # rows[i][j] = cell text at row i, col j
     headers: list[str]  # first row, if detected as header
+    # Exact parser header rows before flattening.  PyMuPDF may expose a date row
+    # outside the table body and a unit/note row inside it; retaining both is
+    # required for source-local period-to-column provenance.
+    raw_header_rows: list[list[str]] = field(default_factory=list)
+
+
+_PYMUPDF_SUBHEADER_MARKER_RE = re.compile(
+    r"(?:^|\b)(?:note|notes|aud|usd|gbp|eur|nzd|a\$|us\$|\$|£|€)"
+    r"|(?:'|’)000|\b(?:thousand|million|billion)s?\b",
+    re.IGNORECASE,
+)
+
+
+def _pymupdf_table_header_evidence(
+    table: Any,
+    rows: list[list[str]],
+) -> tuple[list[str], list[list[str]]]:
+    """Preserve PyMuPDF's external header and safely flatten unit subheaders."""
+    width = max((len(row) for row in rows), default=0)
+    header = getattr(table, "header", None)
+    external_names = (
+        [str(cell or "").strip() for cell in (getattr(header, "names", None) or [])]
+        if bool(getattr(header, "external", False))
+        else []
+    )
+    if external_names:
+        width = max(width, len(external_names))
+        external_names.extend([""] * (width - len(external_names)))
+        raw_header_rows = [external_names]
+
+        first_row = [str(cell or "").strip() for cell in (rows[0] if rows else [])]
+        first_row.extend([""] * (width - len(first_row)))
+        first_row_text = " ".join(cell for cell in first_row if cell)
+        has_subheader_marker = bool(_PYMUPDF_SUBHEADER_MARKER_RE.search(first_row_text))
+        has_financial_amount = any(
+            re.fullmatch(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", cell.replace(" ", ""))
+            for cell in first_row
+            if cell
+        )
+        if has_subheader_marker and not has_financial_amount:
+            raw_header_rows.append(first_row)
+
+        combined: list[str] = []
+        for column_index in range(width):
+            parts: list[str] = []
+            for raw_row in raw_header_rows:
+                part = raw_row[column_index].strip()
+                if part and part not in parts:
+                    parts.append(part)
+            combined.append(" ".join(parts))
+        return combined, raw_header_rows
+
+    headers = [str(cell or "").strip() for cell in (rows[0] if rows else [])]
+    return headers, [headers] if headers else []
 
 
 @dataclass
@@ -531,6 +585,7 @@ def _summarize_openability_parser_output(
                 {
                     "caption": table.caption,
                     "headers": table.headers,
+                    "raw_header_rows": table.raw_header_rows,
                     "cell_count": len(cells),
                     "nonempty_cell_count": len(nonempty),
                     "sample_nonempty_cells": nonempty[:8],
@@ -895,7 +950,9 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
                     if not raw_rows:
                         continue
                     rows_str = [[str(c or "") for c in row] for row in raw_rows]
-                    headers = rows_str[0] if rows_str else []
+                    headers, raw_header_rows = _pymupdf_table_header_evidence(
+                        tab, rows_str
+                    )
 
                     # Caption: find nearest heading above the table's top edge
                     table_top_y = tab.bbox[1] if tab.bbox else 0
@@ -911,6 +968,7 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
                             caption=caption,
                             rows=rows_str,
                             headers=headers,
+                            raw_header_rows=raw_header_rows,
                         )
                     )
             except Exception as e:
@@ -989,8 +1047,12 @@ def extract_structured(
 
     if cache_path.exists() and cache_path.stat().st_mtime > pdf_mtime:
         try:
-            cached = _load_cache(cache_path)
-            # For docling cache, validate version; pymupdf cache is always valid
+            cached = _load_cache(
+                cache_path,
+                require_raw_header_rows=chosen == "pymupdf",
+            )
+            # Docling caches use their parser version. PyMuPDF caches must
+            # preserve the raw header rows required for exact period binding.
             if chosen != "docling" or cached.docling_version == DOCLING_VERSION:
                 if chosen == "docling" and _docling_cache_looks_stale(
                     cached,
@@ -1277,6 +1339,7 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
                     caption=caption,
                     rows=rows,
                     headers=headers,
+                    raw_header_rows=[headers] if headers else [],
                 )
             )
         except Exception as e:
@@ -1366,12 +1429,16 @@ def _pymupdf_fallback(pdf_path: str) -> StructuredDocument:
                         rows = tab.extract()
                         if rows:
                             rows_str = [[str(c or "") for c in row] for row in rows]
+                            headers, raw_header_rows = _pymupdf_table_header_evidence(
+                                tab, rows_str
+                            )
                             tables.append(
                                 DoclingTable(
                                     page_number=page_num,
                                     caption="",
                                     rows=rows_str,
-                                    headers=rows_str[0] if rows_str else [],
+                                    headers=headers,
+                                    raw_header_rows=raw_header_rows,
                                 )
                             )
                 except Exception:
@@ -1422,6 +1489,7 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
                 "caption": t.caption,
                 "rows": t.rows,
                 "headers": t.headers,
+                "raw_header_rows": t.raw_header_rows,
             }
             for t in doc.tables
         ],
@@ -1433,16 +1501,26 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
     cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
 
-def _load_cache(cache_path: Path) -> StructuredDocument:
+def _load_cache(
+    cache_path: Path,
+    *,
+    require_raw_header_rows: bool = False,
+) -> StructuredDocument:
     data = json.loads(cache_path.read_text(encoding="utf-8"))
+    table_data = data.get("tables", [])
+    if require_raw_header_rows and any(
+        "raw_header_rows" not in table for table in table_data
+    ):
+        raise ValueError("legacy PyMuPDF cache lacks raw_header_rows")
     tables = [
         DoclingTable(
             page_number=t["page_number"],
             caption=t["caption"],
             rows=t["rows"],
             headers=t["headers"],
+            raw_header_rows=t.get("raw_header_rows", [t["headers"]]),
         )
-        for t in data.get("tables", [])
+        for t in table_data
     ]
     return StructuredDocument(
         tables=tables,
