@@ -89,6 +89,7 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
                 caption="Cached table",
                 rows=[["Metric", "Value"], ["Revenue", "100"]],
                 headers=["Metric", "Value"],
+                raw_header_rows=[["Metric", "Value"]],
             )
         ],
         sections=[{"heading": True, "text": "Cached heading", "page": 1}],
@@ -112,6 +113,143 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
     loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == cached_doc
+
+
+def test_pymupdf_legacy_cache_without_raw_headers_is_reextracted(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    cache_path = _test_cache_path(pdf_path, ".pymupdf.json")
+    cache_path.write_text(
+        json.dumps(
+            {
+                "extraction_method": "pymupdf",
+                "page_count": 1,
+                "tables": [
+                    {
+                        "page_number": 1,
+                        "caption": "Legacy table",
+                        "headers": ["", "Current", "Prior"],
+                        "rows": [["Revenue", "100", "90"]],
+                    }
+                ],
+                "sections": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+    refreshed_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="Refreshed table",
+                headers=["", "31 Dec 2025", "31 Dec 2024"],
+                raw_header_rows=[["", "31 Dec 2025", "31 Dec 2024"]],
+                rows=[["Revenue", "100", "90"]],
+            )
+        ],
+        extraction_method="pymupdf",
+        page_count=1,
+    )
+    extraction_calls: list[str] = []
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+    monkeypatch.setattr(
+        docling_extract,
+        "_extract_pymupdf",
+        lambda path: extraction_calls.append(path) or refreshed_doc,
+    )
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="pymupdf")
+
+    assert loaded == refreshed_doc
+    assert extraction_calls == [str(pdf_path)]
+
+
+def test_pymupdf_current_cache_with_raw_headers_is_reused(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    cached_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="Current table",
+                headers=["", "31 Dec 2025", "31 Dec 2024"],
+                raw_header_rows=[["", "31 Dec 2025", "31 Dec 2024"]],
+                rows=[["Revenue", "100", "90"]],
+            )
+        ],
+        extraction_method="pymupdf",
+        page_count=1,
+    )
+    cache_path = _test_cache_path(pdf_path, ".pymupdf.json")
+    docling_extract._save_cache(cache_path, cached_doc)
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+    monkeypatch.setattr(
+        docling_extract,
+        "_extract_pymupdf",
+        lambda path: (_ for _ in ()).throw(
+            AssertionError("PyMuPDF should not run for a valid current cache")
+        ),
+    )
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="pymupdf")
+
+    assert loaded == cached_doc
+
+
+def test_pymupdf_external_header_is_preserved_and_combined_with_unit_row():
+    table = SimpleNamespace(
+        header=SimpleNamespace(
+            external=True,
+            names=["", "", "31 December 2025", "31 December 2024"],
+        )
+    )
+    rows = [
+        ["", "Note", "US$m", "US$m"],
+        ["Operating sales revenue", "2", "8,439", "7,638"],
+    ]
+
+    headers, raw_header_rows = docling_extract._pymupdf_table_header_evidence(
+        table, rows
+    )
+
+    assert raw_header_rows == [
+        ["", "", "31 December 2025", "31 December 2024"],
+        ["", "Note", "US$m", "US$m"],
+    ]
+    assert headers == [
+        "",
+        "Note",
+        "31 December 2025 US$m",
+        "31 December 2024 US$m",
+    ]
+
+
+def test_pymupdf_external_header_does_not_consume_first_data_row():
+    table = SimpleNamespace(
+        header=SimpleNamespace(
+            external=True,
+            names=["", "30 JUNE 2025 US$M", "30 JUNE 2024 US$M"],
+        )
+    )
+    rows = [
+        ["Operating activities", "", ""],
+        ["Net cash flows from operating activities", "1,756", "1,212"],
+    ]
+
+    headers, raw_header_rows = docling_extract._pymupdf_table_header_evidence(
+        table, rows
+    )
+
+    assert headers == ["", "30 JUNE 2025 US$M", "30 JUNE 2024 US$M"]
+    assert raw_header_rows == [
+        ["", "30 JUNE 2025 US$M", "30 JUNE 2024 US$M"]
+    ]
 
 
 def test_openability_diagnostics_default_off_does_not_run(tmp_path, monkeypatch):

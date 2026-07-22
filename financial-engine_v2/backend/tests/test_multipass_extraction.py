@@ -1121,6 +1121,7 @@ def test_pass3a_applies_thousands_multiplier():
         caption="Cash Flow Statement",
         rows=[["", "H1 2025"], ["Net cash from operations", "3,241"]],
         headers=["", "H1 2025"],
+        raw_header_rows=[["", "31 Dec 2024"]],
     )
     labelled = {
         "cashflow_statement": table,
@@ -1164,7 +1165,8 @@ def test_pass3a_negative_values_preserved():
         page_number=2,
         caption="Cash Flow",
         rows=[["", "H1"], ["Investing activities", "(412)"]],
-        headers=[],
+        headers=["", "31 Dec 2024"],
+        raw_header_rows=[["", "31 Dec 2024"]],
     )
     labelled = {
         "cashflow_statement": table,
@@ -1186,7 +1188,7 @@ def test_pass3a_negative_values_preserved():
         "financing_cf": None,
         "cash_end": None,
         "pass3_confidence": 0.9,
-        "row_refs": {},
+        "row_refs": {"investing_cf": "Investing activities"},
     }
     with patch(
         "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
@@ -1213,6 +1215,7 @@ def test_pass3a_parses_common_accounting_number_strings():
             ["Net profit attributable", "A$4.5 million"],
         ],
         headers=["", "FY2026"],
+        raw_header_rows=[["", "30 Jun 2026"]],
     )
     labelled = {
         "income_statement": table,
@@ -1813,6 +1816,7 @@ def test_pass3a_applies_idr_trillion_scale_without_aud_cap_fallback():
         page_number=3,
         caption="Consolidated statement of profit or loss",
         headers=["Metric", "2025 Rp trillion"],
+        raw_header_rows=[["Metric", "31 Dec 2025 Rp trillion"]],
         rows=[
             ["Revenue", "12.5"],
             ["Operating profit", "2.4"],
@@ -1962,6 +1966,7 @@ def test_pass3a_applies_corrected_scale_multiplier():
         caption="Cash Flow Statement",
         rows=[["", "H1 2025 $'000"], ["Net cash from operations", "3,241"]],
         headers=["", "H1 2025 $'000"],
+        raw_header_rows=[["", "31 Dec 2024 $'000"]],
     )
     labelled = {
         "cashflow_statement": table,
@@ -3164,6 +3169,7 @@ def test_pass3a_uses_selected_table_scale_over_document_scale():
         page_number=25,
         caption="Consolidated profit & loss statement",
         headers=["", "FY25", "FY24"],
+        raw_header_rows=[["", "30 Jun 2025", "30 Jun 2024"]],
         rows=[
             ["", "FY25", "FY24"],
             ["", "$'000", "$'000"],
@@ -3216,6 +3222,7 @@ def test_pass3a_expands_lbl_income_combined_metric_name_row_refs():
         page_number=21,
         caption="Income statement",
         headers=["A$000", "FY22", "FY23", "FY24", "FY25", "1HFY26"],
+        raw_header_rows=[["", "", "", "", "", "31 Dec 2025"]],
         rows=[
             ["A$000", "FY22", "FY23", "FY24", "FY25", "1HFY26"],
             ["Sales Revenue", "30,711.1", "38,612.4", "41,983.6", "43,475.6", "23,008.9"],
@@ -3259,9 +3266,9 @@ def test_pass3a_expands_lbl_income_combined_metric_name_row_refs():
         )
 
     assert result is not None
-    assert result["revenue"] == 230_089_000
-    assert result["ebit"] == 213_677_000
-    assert result["np_attributable"] == 22_159_000
+    assert result["revenue"] == 23_008_900
+    assert result["ebit"] == 213_677_700
+    assert result["np_attributable"] == 2_215_900
     assert result["row_refs"] == {
         "revenue": "Sales Revenue",
         "ebit": "EBIT",
@@ -3279,6 +3286,7 @@ def test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting
         page_number=9,
         caption="Income statement",
         headers=["A$m", "FY25"],
+        raw_header_rows=[["", "30 Jun 2025"]],
         rows=[
             ["A$m", "FY25"],
             ["Total operating income", "1,200"],
@@ -3606,6 +3614,7 @@ def test_cashflow_capex_prefers_ppe_row_over_acquisition_outflow():
             "",
             "",
         ],
+        raw_header_rows=[["", "", "31 Dec 2025", "", "31 Dec 2024"]],
         rows=[
             ["2025", "", "", "2024", ""],
             ["Note", "", "$'000", "", "$'000"],
@@ -3739,6 +3748,7 @@ def test_cashflow_capex_prefers_bank_other_assets_over_investment_securities():
         page_number=28,
         caption="Condensed consolidated statement of cash flows",
         headers=["", "Mar 2025 $m", "Mar 2024 $m"],
+        raw_header_rows=[["", "31 Mar 2025", "31 Mar 2024"]],
         rows=[
             ["Cash flows from investing activities", "", ""],
             ["Investment securities assets: Purchases", "(1,073)", "(872)"],
@@ -3878,8 +3888,8 @@ def test_cashflow_statement_text_recovers_bank_other_assets_capex():
     )
 
 
-def test_cashflow_capex_prefers_grouped_current_ppe_intangibles_row():
-    """WOW grouped cashflow rows should use current-period PP&E plus intangibles."""
+def test_cashflow_capex_abstains_when_grouped_value_is_detached_from_label():
+    """A grouped value on an unlabeled row is not a unique source cell."""
     from unittest.mock import patch
 
     from app.services.docling_extract import DoclingTable
@@ -3889,6 +3899,7 @@ def test_cashflow_capex_prefers_grouped_current_ppe_intangibles_row():
         page_number=12,
         caption="8",
         headers=["NOTE", "4 JANUARY\n2026\n$M", "5 JANUARY\n2025\n(RESTATED)1\n$M"],
+        raw_header_rows=[["", "4 Jan 2026", "5 Jan 2025"]],
         rows=[
             [
                 "Cash flows from investing activities\n"
@@ -3943,11 +3954,8 @@ def test_cashflow_capex_prefers_grouped_current_ppe_intangibles_row():
         )
 
     assert result is not None
-    assert result["capex"] == -1_304_000_000
-    assert (
-        result["row_refs"]["capex"]
-        == "Payments for property, plant and equipment and intangible assets"
-    )
+    assert result["capex"] is None
+    assert "capex" not in result["row_refs"]
 
 
 def test_cashflow_capex_keeps_same_row_current_value_in_grouped_rows():
@@ -3961,6 +3969,7 @@ def test_cashflow_capex_keeps_same_row_current_value_in_grouped_rows():
         page_number=14,
         caption="Consolidated Statement of Cash Flows",
         headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        raw_header_rows=[["", "31 Dec 2025", "31 Dec 2024"]],
         rows=[
             [
                 "Cash flows from Investing Activities\n"
@@ -4018,6 +4027,7 @@ def test_cashflow_capex_grouped_rows_skip_note_column_for_current_value():
         page_number=14,
         caption="Consolidated Statement of Cash Flows",
         headers=["Notes", "Note", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        raw_header_rows=[["", "", "31 Dec 2025", "31 Dec 2024"]],
         rows=[
             [
                 "Cash flows from Investing Activities\n"
@@ -4076,6 +4086,7 @@ def test_cashflow_capex_grouped_rows_keep_small_current_value_without_note_colum
         page_number=14,
         caption="Consolidated Statement of Cash Flows",
         headers=["Notes", "December\n2025\nUS$m", "December\n2024\nUS$m"],
+        raw_header_rows=[["", "31 Dec 2025", "31 Dec 2024"]],
         rows=[
             [
                 "Cash flows from Investing Activities\n"
@@ -4137,6 +4148,7 @@ def test_cashflow_cash_end_prefers_cash_equivalents_over_cash_and_gold():
             "",
             "",
         ],
+        raw_header_rows=[["", "", "31 Dec 2025", "", "31 Dec 2024"]],
         rows=[
             ["2025", "", "", "2024", ""],
             ["Note", "", "$'000", "", "$'000"],
@@ -4209,6 +4221,7 @@ def test_cashflow_cash_end_does_not_replace_without_cash_equivalents_row():
             "",
             "",
         ],
+        raw_header_rows=[["", "", "31 Dec 2025", "", "31 Dec 2024"]],
         rows=[
             ["2025", "", "", "2024", ""],
             ["Note", "", "$'000", "", "$'000"],
@@ -4411,6 +4424,7 @@ def test_cashflow_capex_recovers_small_millions_ppe_row():
         page_number=21,
         caption="Consolidated statement of cash flows",
         headers=["", "30 June 2025 US$M", "30 June 2024 US$M"],
+        raw_header_rows=[["", "30 Jun 2025", "30 Jun 2024"]],
         rows=[
             ["Investing activities", "", ""],
             ["Payments for purchase of intangible assets", "(36)", "(45)"],
@@ -4513,8 +4527,8 @@ def test_cashflow_row_ref_over_scaled_millions_values_recover_from_source_rows()
     assert result["cash_end"] == 74_700_000
 
 
-def test_cashflow_capex_recovers_grouped_multiline_ppe_row():
-    """Grouped cashflow rows can put current-period values under a multiline label."""
+def test_cashflow_capex_abstains_on_multiline_label_with_detached_value():
+    """A multiline label cannot bind a value from a separate unlabeled row."""
     from unittest.mock import patch
 
     from app.services.docling_extract import DoclingTable
@@ -4572,15 +4586,12 @@ def test_cashflow_capex_recovers_grouped_multiline_ppe_row():
         )
 
     assert result is not None
-    assert result["capex"] == -9_000_000
-    assert (
-        result["row_refs"]["capex"]
-        == "Payments for purchase of property, plant and equipment"
-    )
+    assert result["capex"] is None
+    assert "capex" not in result["row_refs"]
 
 
-def test_cashflow_capex_prefers_ppe_over_mine_development_row():
-    """Mine-development spend is weak evidence for PPE-only capex."""
+def test_cashflow_capex_abstains_on_fragmented_narrative_amount():
+    """A narrative amount split across cells is not a period-bound source cell."""
     from unittest.mock import patch
 
     from app.services.docling_extract import DoclingTable
@@ -4590,6 +4601,7 @@ def test_cashflow_capex_prefers_ppe_over_mine_development_row():
         page_number=15,
         caption="Directors report cash used in investing activities",
         headers=["", "", "", "", "", "", "", ""],
+        raw_header_rows=[["", "31 Dec 2025", "", "", "", "", "", ""]],
         rows=[
             [
                 "",
@@ -4642,12 +4654,8 @@ def test_cashflow_capex_prefers_ppe_over_mine_development_row():
         )
 
     assert result is not None
-    assert result["capex"] == -25_200_000
-    assert "propertyplantandequipment" in "".join(
-        ch
-        for ch in result["row_refs"]["capex"].lower()
-        if ch.isalnum()
-    )
+    assert result["capex"] is None
+    assert "capex" not in result["row_refs"]
 
 
 def test_appendix5b_cashflow_prefers_current_quarter_section_totals():
@@ -4661,6 +4669,7 @@ def test_appendix5b_cashflow_prefers_current_quarter_section_totals():
         page_number=14,
         caption="Merged cashflow statement (Appendix 5B)",
         headers=["", "", "Current quarter $A'000", "Year to date $A'000"],
+        raw_header_rows=[["", "", "31 Dec 2025", "31 Dec 2024"]],
         rows=[
             ["2.", "Cash flows from investing activities", "", ""],
             ["2.1", "Payments to acquire or for:", "", ""],
@@ -4715,8 +4724,8 @@ def test_appendix5b_cashflow_prefers_current_quarter_section_totals():
     )
 
 
-def test_appendix5b_multiline_summary_recovers_current_quarter_items():
-    """Appendix 5B section 4 summary rows can pack labels and values into cells."""
+def test_appendix5b_multiline_summary_abstains_without_unique_cells():
+    """Packed multi-value cells cannot source-bind individual cashflow metrics."""
     from unittest.mock import patch
 
     from app.services.docling_extract import DoclingTable
@@ -4730,6 +4739,7 @@ def test_appendix5b_multiline_summary_recovers_current_quarter_items():
             "Current quarter $A'000",
             "Year to date $A'000",
         ],
+        raw_header_rows=[["", "", "31 Dec 2025", "31 Dec 2024"]],
         rows=[
             [
                 "1.9",
@@ -4775,9 +4785,14 @@ def test_appendix5b_multiline_summary_recovers_current_quarter_items():
         )
 
     assert result is not None
-    assert result["operating_cf"] == 1_154_000
-    assert result["investing_cf"] == -2_656_000
-    assert result["financing_cf"] == 12_012_000
+    assert result["operating_cf"] is None
+    assert result["investing_cf"] is None
+    assert result["financing_cf"] is None
+    assert not {
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+    }.intersection(result["row_refs"])
 
 
 def test_appendix_wrapper_recovers_rms_ebit_and_npat_from_exact_table_rows():
@@ -8371,6 +8386,7 @@ def _mock_structured_doc():
                 page_number=1,
                 caption="Income Statement",
                 headers=["", "H1 2025 $'000"],
+                raw_header_rows=[["", "30 Jun 2025 $'000"]],
                 rows=[
                     ["", "H1 2025 $'000"],
                     ["Revenue", "500,000"],
@@ -8407,7 +8423,11 @@ def _pass3a_response():
         "shares_outstanding": None,
         "total_debt": None,
         "pass3_confidence": 0.88,
-        "row_refs": {},
+        "row_refs": {
+            "revenue": "Revenue",
+            "ebit": "EBIT",
+            "np_attributable": "Net profit",
+        },
     }
 
 
@@ -9355,6 +9375,7 @@ def test_pass3a_retries_full_table_when_filtered_output_misses_key_metric():
         caption="Income Statement",
         rows=rows,
         headers=["Item", "Current", "Prior"],
+        raw_header_rows=[["Item", "31 Dec 2024", "31 Dec 2023"]],
     )
     labelled = {
         "cashflow_statement": None,
@@ -10015,3 +10036,377 @@ class TestDerivedNetDebtFragmentsCoverageGate:
         assert len(_DERIVED_NET_DEBT_ROW_FRAGMENTS) >= 10, (
             f"Expected at least 10 derived-row fragments; got {len(_DERIVED_NET_DEBT_ROW_FRAGMENTS)}"
         )
+
+
+class TestCurrentPeriodColumnBinding:
+    def test_binds_exact_requested_period_and_ignores_note_column(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=21,
+            caption="Income statement",
+            headers=[
+                "",
+                "Note",
+                "31 December 2025 US$m",
+                "31 December 2024 US$m",
+            ],
+            raw_header_rows=[
+                ["", "", "31 December 2025", "31 December 2024"],
+                ["", "Note", "US$m", "US$m"],
+            ],
+            rows=[["Operating sales revenue", "2", "8,439", "7,638"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-12-31")
+
+        assert binding["status"] == "BOUND"
+        assert binding["column_index"] == 2
+        assert binding["header_cell"] == "31 December 2025"
+        assert binding["comparative_columns"] == [3]
+
+    def test_fails_closed_on_duplicate_current_period_headers(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income statement",
+            headers=["", "31 Dec 2025", "31 Dec 2025", "31 Dec 2024"],
+            raw_header_rows=[
+                ["", "31 Dec 2025", "31 Dec 2025", "31 Dec 2024"]
+            ],
+            rows=[["Revenue", "100", "100", "90"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-12-31")
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "duplicate_current_period_header"
+        assert binding["column_index"] is None
+
+    def test_fails_closed_on_conflicting_dates_in_one_column(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income statement",
+            headers=["", "31 Dec 2025 30 Jun 2025", "31 Dec 2024"],
+            raw_header_rows=[
+                ["", "31 Dec 2025 30 Jun 2025", "31 Dec 2024"]
+            ],
+            rows=[["Revenue", "100", "90"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-12-31")
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "conflicting_period_headers"
+
+    def test_missing_requested_period_abstains_instead_of_using_comparative(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Cash flows",
+            headers=["", "31 Dec 2024", "31 Dec 2023"],
+            raw_header_rows=[["", "31 Dec 2024", "31 Dec 2023"]],
+            rows=[["Net cash inflow from operating activities", "90", "80"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-12-31")
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "requested_period_header_missing"
+
+    def test_markdown_uses_preserved_header_without_dropping_first_data_row(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _table_to_markdown
+
+        table = DoclingTable(
+            page_number=21,
+            caption="Cash flows",
+            headers=["", "30 June 2025 US$m", "30 June 2024 US$m"],
+            raw_header_rows=[["", "30 June 2025 US$m", "30 June 2024 US$m"]],
+            rows=[
+                ["Operating activities", "", ""],
+                ["Net cash flows from operating activities", "1,756", "1,212"],
+            ],
+        )
+
+        markdown = _table_to_markdown(table)
+
+        assert markdown.splitlines()[:3] == [
+            " | 30 June 2025 US$m | 30 June 2024 US$m",
+            "--- | --- | ---",
+            "Operating activities |  | ",
+        ]
+        assert "Net cash flows from operating activities | 1,756 | 1,212" in markdown
+
+    def test_metric_value_is_rebound_from_comparative_to_exact_source_cell(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _bind_statement_metrics_to_current_period_cells,
+        )
+
+        table = DoclingTable(
+            page_number=21,
+            caption="Income statement",
+            headers=[
+                "",
+                "Note",
+                "31 December 2025 US$m",
+                "31 December 2024 US$m",
+            ],
+            raw_header_rows=[
+                ["", "", "31 December 2025", "31 December 2024"],
+                ["", "Note", "US$m", "US$m"],
+            ],
+            rows=[["Operating sales revenue", "2", "8,439", "7,638"]],
+        )
+        extracted = {
+            "revenue": 7_638_000_000,
+            "row_refs": {"revenue": "Operating sales revenue"},
+            "period_col": "31 December 2024",
+        }
+
+        rebound = _bind_statement_metrics_to_current_period_cells(
+            extracted,
+            table,
+            period_end="2025-12-31",
+            scale="millions",
+        )
+
+        assert rebound["revenue"] == 8_439_000_000
+        assert rebound["period_col"] == "31 December 2025 US$m"
+        assert rebound["_period_source_cells"]["revenue"] == {
+            "page_number": 21,
+            "row_index": 0,
+            "column_index": 2,
+            "row_label": "Operating sales revenue",
+            "raw_value": "8,439",
+            "scaled_value": 8_439_000_000,
+            "header_cell": "31 December 2025",
+            "requested_period_end": "2025-12-31",
+        }
+
+    def test_exact_row_label_wins_over_longer_narrative_label(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _period_bound_source_cell
+
+        table = DoclingTable(
+            page_number=21,
+            caption="Income statement",
+            headers=["", "Note", "31 December 2025", "31 December 2024"],
+            raw_header_rows=[
+                ["", "", "31 December 2025", "31 December 2024"]
+            ],
+            rows=[
+                ["Equity holders of the Company", "", "1,914", "1,553"],
+                [
+                    "Earnings per share attributable to the ordinary equity holders of the Company:",
+                    "",
+                    "0.42",
+                    "0.33",
+                ],
+            ],
+        )
+
+        source_cell = _period_bound_source_cell(
+            table,
+            "Equity holders of the Company",
+            2,
+            "millions",
+        )
+
+        assert source_cell is not None
+        assert source_cell["row_index"] == 0
+        assert source_cell["raw_value"] == "1,914"
+
+    def test_ambiguous_header_nulls_period_bound_metrics(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _bind_statement_metrics_to_current_period_cells,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Cash flows",
+            headers=["", "31 Dec 2025", "31 Dec 2025"],
+            raw_header_rows=[["", "31 Dec 2025", "31 Dec 2025"]],
+            rows=[["Net cash from operating activities", "100", "100"]],
+        )
+        extracted = {
+            "operating_cf": 100,
+            "row_refs": {"operating_cf": "Net cash from operating activities"},
+            "period_col": "31 Dec 2024",
+            "_period_source_cells": {
+                "operating_cf": {"column_index": 2, "raw_value": "100"}
+            },
+        }
+
+        rebound = _bind_statement_metrics_to_current_period_cells(
+            extracted,
+            table,
+            period_end="2025-12-31",
+            scale="units",
+        )
+
+        assert rebound["operating_cf"] is None
+        assert rebound["row_refs"] == {}
+        assert rebound["period_col"] is None
+        assert rebound["_period_source_cells"] == {}
+        assert rebound["_period_binding"]["reason"] == "duplicate_current_period_header"
+
+    def test_missing_dated_headers_clear_comparative_metric_binding(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _bind_statement_metrics_to_current_period_cells,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income statement",
+            headers=["", "Current", "Prior"],
+            raw_header_rows=[["", "Current", "Prior"]],
+            rows=[["Revenue", "100", "90"]],
+        )
+        extracted = {
+            "revenue": 90,
+            "row_refs": {"revenue": "Revenue"},
+            "period_col": "Prior",
+            "_period_source_cells": {
+                "revenue": {"column_index": 2, "raw_value": "90"}
+            },
+        }
+
+        rebound = _bind_statement_metrics_to_current_period_cells(
+            extracted,
+            table,
+            period_end="2025-12-31",
+            scale="units",
+        )
+
+        assert rebound["revenue"] is None
+        assert rebound["row_refs"] == {}
+        assert rebound["period_col"] is None
+        assert rebound["_period_source_cells"] == {}
+        assert rebound["_period_binding"]["reason"] == "period_headers_missing"
+
+    def test_malformed_period_header_clears_existing_metric_binding(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _bind_statement_metrics_to_current_period_cells,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income statement",
+            headers=["", "31 Smarch 2025", "31 Dec 2024"],
+            raw_header_rows=[["", "31 Smarch 2025", "31 Dec 2024"]],
+            rows=[["Revenue", "100", "90"]],
+        )
+        extracted = {
+            "revenue": 90,
+            "row_refs": {"revenue": "Revenue"},
+            "period_col": "31 Dec 2024",
+        }
+
+        rebound = _bind_statement_metrics_to_current_period_cells(
+            extracted,
+            table,
+            period_end="2025-12-31",
+            scale="units",
+        )
+
+        assert rebound["revenue"] is None
+        assert rebound["row_refs"] == {}
+        assert rebound["period_col"] is None
+        assert rebound["_period_source_cells"] == {}
+        assert rebound["_period_binding"]["reason"] == "requested_period_header_missing"
+
+    def test_bound_column_without_unique_source_cell_abstains(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _bind_statement_metrics_to_current_period_cells,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income statement",
+            headers=["", "31 Dec 2025", "31 Dec 2024"],
+            raw_header_rows=[["", "31 Dec 2025", "31 Dec 2024"]],
+            rows=[
+                ["Revenue", "100", "90"],
+                ["Revenue", "101", "91"],
+            ],
+        )
+        extracted = {
+            "revenue": 90,
+            "row_refs": {"revenue": "Revenue"},
+            "period_col": "31 Dec 2024",
+            "_period_source_cells": {
+                "revenue": {"column_index": 2, "raw_value": "90"}
+            },
+        }
+
+        rebound = _bind_statement_metrics_to_current_period_cells(
+            extracted,
+            table,
+            period_end="2025-12-31",
+            scale="units",
+        )
+
+        assert rebound["_period_binding"]["status"] == "BOUND"
+        assert rebound["revenue"] is None
+        assert rebound["row_refs"] == {}
+        assert rebound["_period_source_cells"] == {}
+
+    def test_reconciler_preserves_exact_period_source_cell_provenance(self) -> None:
+        from app.services.multipass_extraction import _run_pass4_reconciler
+
+        payload = _run_pass4_reconciler(
+            [
+                {
+                    "_source": "income_statement",
+                    "_page_number": 21,
+                    "_scale": "millions",
+                    "_scale_source": "table",
+                    "revenue": 8_439_000_000,
+                    "row_refs": {"revenue": "Operating sales revenue"},
+                    "_period_source_cells": {
+                        "revenue": {
+                            "page_number": 21,
+                            "row_index": 1,
+                            "column_index": 2,
+                            "row_label": "Operating sales revenue",
+                            "raw_value": "8,439",
+                            "header_cell": "31 December 2025",
+                            "requested_period_end": "2025-12-31",
+                        }
+                    },
+                    "pass3_confidence": 0.9,
+                }
+            ],
+            {},
+            {
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+                "scale": "millions",
+            },
+        )
+
+        source_cell = payload["field_provenance"]["revenue"]["source_cell"]
+        assert source_cell == {
+            "page_number": 21,
+            "row_index": 1,
+            "column_index": 2,
+            "row_label": "Operating sales revenue",
+            "raw_value": "8,439",
+            "header_cell": "31 December 2025",
+            "requested_period_end": "2025-12-31",
+        }
