@@ -11,7 +11,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _write_override_env(path: Path, model_path: Path, extraction_model_path: Path) -> None:
+def _write_override_env(
+    path: Path, model_path: Path, extraction_model_path: Path
+) -> None:
     path.write_text(
         "\n".join(
             [
@@ -37,6 +39,53 @@ def _base_env(tmp_path: Path, env_file: Path) -> dict[str, str]:
     env["PYTHON_BIN"] = sys.executable
     env["TENN_EXTRACTION_ACTIVE_FILE"] = str(tmp_path / "gpu-active.json")
     return env
+
+
+def _write_fake_llama_server(path: Path) -> None:
+    path.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'printf "FAKE_EXECUTABLE=%s\\n" "$0"',
+                'printf "FAKE_LD_LIBRARY_PATH=%s\\n" "${LD_LIBRARY_PATH:-}"',
+                'printf "FAKE_ARGS=%s\\n" "$*"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def _run_llama_launcher(
+    tmp_path: Path,
+    binary: Path,
+    *,
+    ld_library_path: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_BIN"] = str(binary)
+    env["LLAMA_SERVER_ROUTER_MODE"] = "0"
+    if ld_library_path is None:
+        env.pop("LD_LIBRARY_PATH", None)
+    else:
+        env["LD_LIBRARY_PATH"] = ld_library_path
+
+    return subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_run_llama_server_loads_host_override_file(tmp_path: Path) -> None:
@@ -176,6 +225,76 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
     assert "--batch-size" not in stdout
     assert "--ubatch-size" not in stdout
     assert "--n-gpu-layers" not in stdout
+
+
+def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "resolved-bin"
+    target_dir.mkdir()
+    target = target_dir / "llama-server"
+    _write_fake_llama_server(target)
+    link_dir = tmp_path / "configured-bin"
+    link_dir.mkdir()
+    link = link_dir / "llama-server"
+    link.symlink_to(target)
+
+    completed = _run_llama_launcher(tmp_path, link)
+
+    assert completed.returncode == 0, completed.stderr
+    assert f"FAKE_EXECUTABLE={link}" in completed.stdout
+    assert f"FAKE_LD_LIBRARY_PATH={target_dir}" in completed.stdout
+
+
+def test_run_llama_server_uses_direct_executable_directory_for_library_path(
+    tmp_path: Path,
+) -> None:
+    bin_dir = tmp_path / "direct-bin"
+    bin_dir.mkdir()
+    binary = bin_dir / "llama-server"
+    _write_fake_llama_server(binary)
+
+    completed = _run_llama_launcher(tmp_path, binary)
+
+    assert completed.returncode == 0, completed.stderr
+    assert f"FAKE_EXECUTABLE={binary}" in completed.stdout
+    assert f"FAKE_LD_LIBRARY_PATH={bin_dir}" in completed.stdout
+
+
+def test_run_llama_server_prepends_library_dir_to_existing_path(
+    tmp_path: Path,
+) -> None:
+    bin_dir = tmp_path / "direct-bin"
+    bin_dir.mkdir()
+    binary = bin_dir / "llama-server"
+    _write_fake_llama_server(binary)
+    existing_path = "/existing/first:/existing/second"
+
+    completed = _run_llama_launcher(
+        tmp_path,
+        binary,
+        ld_library_path=existing_path,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert f"FAKE_LD_LIBRARY_PATH={bin_dir}:{existing_path}" in completed.stdout
+
+
+def test_run_llama_server_fails_closed_for_broken_configured_target(
+    tmp_path: Path,
+) -> None:
+    broken_link = tmp_path / "broken-bin" / "llama-server"
+    broken_link.parent.mkdir()
+    broken_link.symlink_to(tmp_path / "missing" / "llama-server")
+
+    completed = _run_llama_launcher(tmp_path, broken_link)
+
+    assert completed.returncode == 1
+    assert (
+        f"Unable to resolve llama-server binary target at {broken_link}"
+        in completed.stderr
+    )
+    assert "Starting llama-server" not in completed.stdout
 
 
 def test_run_llama_server_refuses_during_gpu_exclusive_activity(
