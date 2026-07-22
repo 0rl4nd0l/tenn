@@ -179,7 +179,8 @@ python3 scripts/log_change_impact.py \
 
 The script:
 
-- detects unstaged, staged, and untracked files under `financial-engine_v2/`;
+- detects unstaged and staged files across the Git repository, plus untracked
+  files under `financial-engine_v2/`;
 - supplies a date/commit-based `--change-id` and Git-configured `--author`
   unless they are overridden;
 - appends one entry to the log without changing application runtime state.
