@@ -10,20 +10,28 @@ proposed_run_package/
 ├── schema_bindings.json
 ├── prompts/
 │   └── ASXFP_01_SCORECARDS-implementer-01.held.txt
-└── ticket_state/
-    └── ASXFP_01_SCORECARDS.json
+├── ticket_state/
+│   └── ASXFP_01_SCORECARDS.json
+└── revisions/
+    └── pr513_disposition_20260724/
+        ├── run_manifest.json
+        ├── schema_bindings.json
+        └── ticket_state/
+            └── ASXFP_01_SCORECARDS.json
 ```
 
-The manifest pins the repository, canonical SHA, spec hash, ordered ticket set
-and hash, bounded resources, two-failed-attempt limit, and separate owner
-authorization boundaries. The first materialized ticket state conforms to the
-read-only design schema and is terminal `BLOCKED` for this pinned revision
-because PR #513 is unresolved.
+The original manifest and ticket state remain the immutable terminal view
+pinned by report-only commit `d5dd1dd...`. The additive disposition revision
+records PR #513 closed as superseded and PR #521 accepted as the unmerged
+successor. Its ticket state remains schema-valid `BLOCKED`, classified
+`DEPENDS_ON_SUCCESSOR_INTEGRATION`.
 
 No `events.jsonl` is fabricated: this is a pre-launch proposal, not a started
-orchestrator run. On owner resolution, the supervisor creates a fresh run
-revision and appends its first manifest event then. A materialized ticket state
-never substitutes for the future hash-chained ledger.
+orchestrator run. No child prompt was regenerated because the successor is not
+canonical and ticket 01 is not `READY`. After separate merge authorization and
+canonical integration, the supervisor must create another fresh run revision.
+A materialized ticket state never substitutes for the future hash-chained
+ledger.
 
 ## Result structures
 

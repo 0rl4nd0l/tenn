@@ -2,14 +2,14 @@
 
 ## Outcome
 
-Reconciliation is complete and stopped before child launch.
+PR #513 has the exact disposition `ADOPT_SUCCESSOR` and is closed as
+superseded. Fresh draft PR #521 carries the isolated declarative
+metric-authority delta on exact canonical `2f5a8aac...`; its exact-head local
+validation, independent review, and GitHub checks pass.
 
-The completed planning set was recovered from an isolated Codex X workspace,
-hashed, and compared with canonical Tenn and live PRs #508, #513, and #517.
-There is no currently launchable `READY` ticket. The earliest useful ticket,
-`ASXFP_01_SCORECARDS`, overlaps open draft PR #513 in the real-gold evaluator
-and scorecard contract. Launching it now would risk defining a denominator
-against an unresolved metric authority.
+There is still no launchable `READY` ticket. `ASXFP_01_SCORECARDS` is now
+`DEPENDS_ON_SUCCESSOR_INTEGRATION`: the ambiguity is resolved, but canonical
+does not contain PR #521. No child was launched.
 
 ## Canonical identity
 
@@ -55,11 +55,13 @@ workspace. They are planning inputs only, not current repository truth.
 - PR #508 is an open draft at
   `4913ef0883410fcc6436b1387fa7c17642190d05`. It owns NPAT owner attribution
   and OCI boundaries. Ticket 09 remains held.
-- PR #513 is an open draft at
-  `12ecb02fee3eebe9fd19527bc55a444502ec26d4`. It owns declarative
-  metric-contract authority and changes evaluator/persistence consumers.
-  Tickets 01, 04, 05, 06, 08, and 09 cannot safely advance across that
-  unresolved authority.
+- PR #513 is closed as superseded at
+  `12ecb02fee3eebe9fd19527bc55a444502ec26d4`.
+- Replacement draft PR #521 is open at
+  `7c421ad9e7721796e07dd6427f4caf584a577155`, tree
+  `17eecd8c81c3deb8c57c0565fbd13e9d31954bcc`. Both checks pass. It owns the
+  accepted behavior-preserving declarative metric-contract authority delta but
+  remains unmerged.
 
 ## Package
 
@@ -68,13 +70,18 @@ workspace. They are planning inputs only, not current repository truth.
 - [Artifact hashes](ARTIFACT_HASHES.json)
 - [Run-package proposal](RUN_PACKAGE_PROPOSAL.md)
 - [Exact held first prompt](FIRST_CHILD_PROMPT.md)
+- [PR #513 disposition](PR513_DISPOSITION.md)
+- [PR #521 independent review](PR521_INDEPENDENT_REVIEW.json)
 - `proposed_run_package/run_manifest.json`
 - `proposed_run_package/schema_bindings.json`
 - `proposed_run_package/ticket_state/ASXFP_01_SCORECARDS.json`
+- `proposed_run_package/revisions/pr513_disposition_20260724/`
 
-No child, reviewer, integrator, simulator, extraction, runtime, data, source,
-gold-label, prompt-bundle, store, service, merge, or deployment action ran.
-No product file or PR was modified.
+The original proposed run files remain the immutable terminal view pinned by
+report-only commit `d5dd1dd476a496d74a5e0cf77ca26f00e03f4fb9`. The disposition
+revision is additive. No Codex X child, integrator, simulator, extraction,
+runtime, data, source, gold-label, prompt-bundle, store, service, merge, or
+deployment action ran.
 
 ## Validation
 
@@ -85,13 +92,16 @@ No product file or PR was modified.
 - Proposed run manifest against design schema: `PASS`
 - Proposed first ticket state against design schema: `PASS`
 - JSON parsing, `git diff --check`, and report-only changed-path check: `PASS`
-- Child launch: `NOT_RUN`, required stop on unresolved overlap
+- Replacement exact-commit suites: `464 passed`, 14 existing warnings
+- Independent read-only review: `PASS`, zero findings
+- PR #521 checks: `lint-and-test=SUCCESS`, `scan=SUCCESS`
+- Child launch: `NOT_RUN`, required stop pending canonical integration
 - Runtime functionality: `DATA_MISSING` until separately authorized canary
 
 ## Next safe action
 
-Obtain an exact owner disposition for PR #513: merge it onto the accepted
-canonical spine, close/supersede it, or explicitly park its scorecard and
-persistence-consumer scope. Then refresh canonical and re-reconcile ticket 01
-against the resulting metric-contract authority. Do not launch the held prompt
-against the current spine.
+Obtain separate authorization to merge draft PR #521 at exact head
+`7c421ad9e7721796e07dd6427f4caf584a577155`. After merge, refresh canonical,
+create another run revision, verify the authority and parity digest on that
+canonical SHA, and reclassify only the residual ticket 01 gap. Do not launch
+the old held prompt.

@@ -104,5 +104,16 @@
     },
     "ticket_set_sha256": "664527b0c95f11d3ce4e1841d902b324be34ab1041b5a333d00e3f0e654a2026",
     "status": "PRESENT_PLANNING_ONLY"
+  },
+  "pr513_disposition": {
+    "canonical_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+    "old_pr_head_sha": "12ecb02fee3eebe9fd19527bc55a444502ec26d4",
+    "successor_pr": 521,
+    "successor_head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
+    "successor_tree_sha": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+    "parity_digest": "cc042df11e1743d9cf3085020991bd6dd8f73da835a7ece2efb48edf1c9f51ce",
+    "exact_commit_waiter_sha256": "78ac0f244630656954903a5b6bdf4bad60a565343ab34bc556609a7ec580fe4e",
+    "exact_commit_log_sha256": "da11bc9f08749a8d10a8da6a0a8ac75a64eaffbd9c97fc31e881bc377fd98307",
+    "pr521_checks_waiter_sha256": "d646036a3240dd5fc0565223310681ee715b8504809a02842b35f32bb8549631"
   }
 }

@@ -1,0 +1,30 @@
+{
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "state": "BLOCKED",
+  "allowed_scope_hash": "9273df987143b5f7dad3b60fcc3358c3ee8971369ec5b0993b847d309e353e1a",
+  "implementation_attempts": 0,
+  "retry_count": 0,
+  "implementer_session_ids": [],
+  "reviewer_session_id": null,
+  "integrator_session_id": null,
+  "blocker": {
+    "code": "AWAITING_SUCCESSOR_PR_521_INTEGRATION",
+    "classification": "DEPENDS_ON_SUCCESSOR_INTEGRATION",
+    "evidence": {
+      "canonical_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+      "old_pr": 513,
+      "old_pr_state": "CLOSED_SUPERSEDED",
+      "successor_pr": 521,
+      "successor_pr_state": "OPEN_DRAFT",
+      "successor_head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
+      "successor_tree_sha": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+      "successor_checks": "PASS",
+      "contained_in_canonical": false
+    },
+    "restart_rule": "After separate exact-head merge authorization and canonical integration of PR #521, refresh canonical and create another run revision before planning ticket 01."
+  },
+  "result_hashes": [],
+  "output_hash": null,
+  "child_result_hash": null,
+  "review_result_hash": null
+}

@@ -1,8 +1,9 @@
 {
   "schema_version": 2,
   "run_id": "tenn_codex_x_extraction_programme_20260724",
-  "updated_at": "2026-07-24T06:08:16Z",
+  "updated_at": "2026-07-24T06:41:52Z",
   "state": "RECONCILED_HELD",
+  "current_revision": "proposed_run_package/revisions/pr513_disposition_20260724",
   "repository": "0rl4nd0l/tenn",
   "canonical": {
     "branch": "migration/clean-runtime-baseline-reconstruct-v1",
@@ -36,23 +37,31 @@
       "checks": "PASS"
     },
     "PR-513": {
-      "state": "OPEN_DRAFT",
+      "state": "CLOSED_SUPERSEDED",
       "head_sha": "12ecb02fee3eebe9fd19527bc55a444502ec26d4",
-      "checks": "PASS"
+      "checks": "PASS",
+      "superseded_by": 521
+    },
+    "PR-521": {
+      "state": "OPEN_DRAFT",
+      "head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
+      "tree_sha": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+      "checks": "PASS",
+      "contained_in_canonical": false
     }
   },
   "tickets": [
     {
       "ticket_id": "ASXFP_01_SCORECARDS",
       "ticket_sha256": "4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a",
-      "status": "OVERLAPS_EXISTING",
+      "status": "DEPENDS_ON_SUCCESSOR_INTEGRATION",
       "child_session": null,
       "output_commit_or_patch": null,
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "PR #513 changes metric authority and real-gold scorecard consumers; the precision/recall denominator is unresolved.",
-      "next_action": "Resolve PR #513, refresh canonical, and re-scope the residual scorecard gap."
+      "blocker": "PR #513 is closed as superseded and PR #521 is the accepted authority successor, but canonical does not contain it; the precision/recall denominator must follow the integrated authority.",
+      "next_action": "Separately authorize an exact-head PR #521 merge, refresh canonical, and re-scope the residual scorecard gap."
     },
     {
       "ticket_id": "ASXFP_02_DIAGNOSTIC_CORPUS",
@@ -81,14 +90,14 @@
     {
       "ticket_id": "ASXFP_04_EXTRACTION_CONTRACTS",
       "ticket_sha256": "707f1d083b06ffc40e800709da1f4f10df92ba488afa56d736d0b74c1cdf1d1f",
-      "status": "OVERLAPS_EXISTING",
+      "status": "DEPENDS_ON",
       "child_session": null,
       "output_commit_or_patch": null,
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "PR #513 owns declarative metric-contract authority.",
-      "next_action": "Resolve PR #513 and 02; do not duplicate contract authority."
+      "blocker": "PR #521 is the accepted declarative metric authority but is not canonical.",
+      "next_action": "Integrate PR #521 and complete 02; do not duplicate contract authority."
     },
     {
       "ticket_id": "ASXFP_05_OBSERVATION_SEAM",
@@ -99,8 +108,8 @@
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "The seam must consume the final metric authority; PR #513 changes pipeline persistence consumers.",
-      "next_action": "Resolve PR #513, then reclassify a code-only seam without migration execution or data access."
+      "blocker": "The seam must consume the final metric authority; PR #521 changes pipeline persistence consumers without changing behavior.",
+      "next_action": "Integrate PR #521, then reclassify a code-only seam without migration execution or data access."
     },
     {
       "ticket_id": "ASXFP_06_STATUTORY_PROJECTION",
@@ -111,8 +120,8 @@
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "No immutable observation/profile projection exists; canonical metric authority is unresolved.",
-      "next_action": "Complete 05 after PR #513 disposition."
+      "blocker": "No immutable observation/profile projection exists; accepted metric authority is not canonical.",
+      "next_action": "Complete 05 after PR #521 canonical integration."
     },
     {
       "ticket_id": "ASXFP_07_PERIOD_BASIS",
@@ -129,26 +138,26 @@
     {
       "ticket_id": "ASXFP_08_APPENDIX4C_PROFILE",
       "ticket_sha256": "75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca",
-      "status": "OVERLAPS_EXISTING",
+      "status": "DEPENDS_ON",
       "child_session": null,
       "output_commit_or_patch": null,
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "PR #513 owns allowed metric authority; eight-metric production expansion is not authorized.",
-      "next_action": "Resolve PR #513, complete 07, and use approved diagnostic source cases."
+      "blocker": "PR #521 owns accepted metric authority but is not canonical; eight-metric production expansion is not authorized.",
+      "next_action": "Integrate PR #521, complete 07, and use approved diagnostic source cases."
     },
     {
       "ticket_id": "ASXFP_09_ACCOUNTING_BASIS",
       "ticket_sha256": "79c319878337c2f8c6b1782c2b734c7a8815d2ef2b9a01ab5405ab8887b0e077",
-      "status": "OVERLAPS_EXISTING",
+      "status": "DEPENDS_ON",
       "child_session": null,
       "output_commit_or_patch": null,
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "PR #508 owns NPAT/OCI boundaries and PR #513 owns metric authority.",
-      "next_action": "Obtain exact owner disposition for both drafts before residual accounting-basis work."
+      "blocker": "PR #508 owns NPAT/OCI boundaries and PR #521 owns accepted metric authority but is not canonical.",
+      "next_action": "Obtain exact owner disposition for PR #508 and integrate PR #521 before residual accounting-basis work."
     },
     {
       "ticket_id": "ASXFP_10_RESTATEMENT_PRECEDENCE",
@@ -260,7 +269,7 @@
     }
   ],
   "execution_order": [
-    "OWNER_RESOLVE_PR_513",
+    "OWNER_AUTHORIZE_PR_521_MERGE",
     "ASXFP_01_SCORECARDS",
     "OWNER_PROVIDE_ASXFP_02_DATA",
     "ASXFP_02_DIAGNOSTIC_CORPUS",
@@ -287,8 +296,8 @@
   "first_child_prompt_path": "FIRST_CHILD_PROMPT.md",
   "first_child_launchable": false,
   "stop": {
-    "code": "FIRST_TICKET_OVERLAPS_OPEN_PR_513",
-    "detail": "The earliest measurable ticket requires files and denominator authority changed by unresolved draft PR #513.",
-    "resume_only_if": "PR #513 receives an exact owner disposition and canonical is refreshed."
+    "code": "FIRST_TICKET_DEPENDS_ON_PR_521_INTEGRATION",
+    "detail": "The old overlap is resolved, but the earliest measurable ticket requires the accepted metric authority to be integrated into canonical.",
+    "resume_only_if": "PR #521 is separately authorized and merged at exact reviewed head, then canonical is refreshed into a new run revision."
   }
 }

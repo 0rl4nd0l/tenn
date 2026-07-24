@@ -17,15 +17,15 @@ ordered ticket IDs in `run_manifest.json`. Individual source hashes are in
 
 | ID | Ticket | Status | Current-truth reconciliation | Blocker / next action |
 | --- | --- | --- | --- | --- |
-| 01 | Trustworthy real-ASX release scorecards | `OVERLAPS_EXISTING` | Canonical still lacks period-basis/accounting-basis release gates and lets provenance remain diagnostic, but PR #513 changes the metric authority plus `extraction_gold_eval.py` and its scorecard consumer. The precision/recall denominator must follow that authority. | Owner resolves PR #513; refresh canonical; then re-scope only the remaining scorecard gap. |
+| 01 | Trustworthy real-ASX release scorecards | `DEPENDS_ON_SUCCESSOR_INTEGRATION` | PR #513 is closed as superseded. Draft PR #521 is the accepted, behavior-preserving metric-authority successor, but canonical `2f5a8aac...` does not contain it. The precision/recall denominator must follow the integrated authority. | Separately authorize an exact-head PR #521 merge; refresh canonical; then re-scope only the remaining scorecard gap. |
 | 02 | Lock 12-document diagnostic corpus | `DATA_MISSING` | Canonical has 15 prior real fixtures but not the required two independently verified documents for each of six classes, complete labels, or locked source/label manifest. | Separate approval and provision of source PDFs and independently reviewed gold labels. |
 | 03 | Lock 36-document release holdout | `DATA_MISSING` | The required 48-document corpus, protected 36-document holdout, source hashes, and review metadata do not exist on canonical. | Complete 01 and 02, then separately authorize/provide protected source and label assets. |
-| 04 | Explicit extraction contracts | `OVERLAPS_EXISTING` | Pure document classification exists, but production contracts do not. PR #513 is the open declarative metric-contract authority and directly owns allowed metric semantics. | Do not duplicate. Resolve PR #513 and 02 before a residual routing ticket. |
-| 05 | Immutable observation seam | `DEPENDS_ON` | Canonical still mutates `asx_periodic_financials`; no immutable observation store exists. The atomic seam must consume the final metric authority, and PR #513 changes `pipeline.py` persistence behavior. | Resolve PR #513 first; then a code-only seam may be reclassified `READY` without running migrations or touching data. |
-| 06 | Project all statutory metrics | `DEPENDS_ON` | No observation projection exists. PR #513 also decides the declarative canonical/persistence metric set. | Depends on 05 and owner-resolved PR #513. |
+| 04 | Explicit extraction contracts | `DEPENDS_ON` | Pure document classification exists, but production contracts do not. PR #521 is the accepted declarative metric authority and directly owns allowed metric semantics. | Integrate PR #521 and complete 02 before a residual routing ticket; do not duplicate the authority. |
+| 05 | Immutable observation seam | `DEPENDS_ON` | Canonical still mutates `asx_periodic_financials`; no immutable observation store exists. The atomic seam must consume the final metric authority, and PR #521 changes `pipeline.py` persistence consumers without changing behavior. | Integrate PR #521 first; then a code-only seam may be reclassified `READY` without running migrations or touching data. |
+| 06 | Project all statutory metrics | `DEPENDS_ON` | No observation projection exists. PR #521 supplies the declarative canonical/persistence metric set once integrated. | Depends on 05 and canonical integration of PR #521. |
 | 07 | Quarter-only and YTD observations | `DEPENDS_ON` | Sidecar parsers preserve current-quarter/YTD roles, and PR #517 improved current-column binding, but production output/persistence cannot retain both typed bases. | Depends on 04 and 05; preserve PR #517 rather than reimplement it. |
-| 08 | Appendix 4C cash profile | `OVERLAPS_EXISTING` | A read-only 4C parser exists, but production/profile authority for the eight requested metrics does not. PR #513 currently centralizes the allowed metric contract and explicitly avoids unauthorized ontology expansion. | Owner resolves PR #513; then depends on 07 and source-approved diagnostic cases. |
-| 09 | Statutory versus adjusted | `OVERLAPS_EXISTING` | Canonical has statutory guards, but no separate adjusted disclosure/profile lane. PR #508 owns NPAT owner attribution and OCI boundaries; PR #513 owns metric authority. | Exact owner instruction for PRs #508/#513; do not modify either draft. |
+| 08 | Appendix 4C cash profile | `DEPENDS_ON` | A read-only 4C parser exists, but production/profile authority for the eight requested metrics does not. PR #521 centralizes the accepted metric contract and avoids unauthorized ontology expansion. | Integrate PR #521; then depend on 07 and source-approved diagnostic cases. |
+| 09 | Statutory versus adjusted | `DEPENDS_ON` | Canonical has statutory guards, but no separate adjusted disclosure/profile lane. PR #508 owns NPAT owner attribution and OCI boundaries; PR #521 owns accepted metric authority. | Exact owner instruction for PR #508 plus canonical integration of PR #521. |
 | 10 | Restatement precedence | `DEPENDS_ON` | No immutable observations or supersession model exists. | Depends on 06 and 07. |
 | 11 | Evidence-backed review | `DEPENDS_ON` | An extraction-review service exists, but it is not connected to the proposed observation/profile conflict model. | Depends on 08, 09, and 10. |
 | 12 | Scanned announcements | `DATA_MISSING` | Canonical has OCR/openability diagnostics but not the required trusted scanned-document evidence lane. | Depends on 01/04/05 and separately approved scanned PDFs plus reviewed labels. |
@@ -43,9 +43,9 @@ satisfy an entire card. No ticket is currently `READY`.
 
 This preserves the existing ticket graph while applying current-truth holds:
 
-1. Owner disposition of PR #513, then refresh canonical.
-2. Reconcile and execute residual 01 (scorecard contract) if it no longer
-   overlaps.
+1. Separately authorize an exact-head merge of PR #521, then refresh canonical.
+2. Reconcile and execute residual 01 (scorecard contract) if it is then
+   `READY`.
 3. Separately approve/provide the 12-document source-and-label package for 02.
 4. Execute residual 04, then code-only 05.
 5. Execute 07, then 08; execute 06, 09, and 10 as their prerequisites clear.

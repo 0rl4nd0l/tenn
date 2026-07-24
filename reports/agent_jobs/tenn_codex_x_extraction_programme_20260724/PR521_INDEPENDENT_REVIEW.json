@@ -1,0 +1,22 @@
+{
+  "status": "SUCCESS",
+  "reviewed_commit": "7c421ad9e7721796e07dd6427f4caf584a577155",
+  "reviewed_parent": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+  "reviewed_tree": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+  "read_only": true,
+  "files_modified": [],
+  "validation_checks": [
+    "Exact nine-file parent-to-head diff inspected.",
+    "No task-card or control-plane artifact is present.",
+    "Canonical extractor and persistence order are unchanged.",
+    "Evaluation aliases, family/status rows, and parity semantics are unchanged.",
+    "Parity digest is cc042df11e1743d9cf3085020991bd6dd8f73da835a7ece2efb48edf1c9f51ce.",
+    "Net debt is direct-source-required with no authorized derivation.",
+    "Only the Appendix 5B explicit capex sub-item sum is authorized.",
+    "PR #517 current-period and Docling behavior is preserved.",
+    "Exact-commit waiter evidence records 464 passed and 14 warnings."
+  ],
+  "critical": [],
+  "warnings": [],
+  "suggestions": []
+}
