@@ -182,7 +182,9 @@ surfaces, period/source mismatches, or noncandidate documents must fail closed.
 ## Metric Ontology V1
 
 The canonical extractor ontology is `metric_ontology_v1`. Supported canonical
-fields are the current `METRIC_FIELDS` set:
+fields are owned by the typed backend registry at
+`app.services.financial_metric_contract.CANONICAL_METRIC_FIELDS` and exposed to
+the extractor through its compatibility `METRIC_FIELDS` list:
 
 - `revenue`
 - `ebit`
@@ -199,6 +201,28 @@ Eval aliases such as `operating_cash_flow -> operating_cf` are scorecard-only
 normalizations. Unsupported, ambiguous, persisted-only, and internal-only metric
 families are reportable but are not canonical-use allowed without a separate
 policy change.
+
+### Shared metric-contract authority
+
+`app.services.financial_metric_contract` is the declarative authority for:
+
+- canonical output-field and persistence-column ordering;
+- evaluation-only aliases and production-relevance mappings;
+- metric families and their supported, persisted-only, internal-only, planned,
+  unsupported, or policy-ambiguous status;
+- allowed statement contexts and unit kinds;
+- direct-source and provenance requirements; and
+- authorized derivations.
+
+The registry authorizes only the Appendix 5B sum of explicit capex sub-items.
+An empty derivation list means the contract does not authorize a derivation.
+Evaluation aliases are explicitly not production row-matching or semantic
+substitution rules.
+
+The registry is metadata and ordering authority. It does not itself extract,
+normalize, derive, evaluate, or persist values. Existing caller exports remain
+available for compatibility, but their definitions are imported from the
+registry rather than duplicated.
 
 `ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
 populate canonical `ebit`.

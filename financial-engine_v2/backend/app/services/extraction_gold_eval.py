@@ -40,12 +40,8 @@ from app.services.extraction_eval import (
     summarize_provenance_summaries,
     str_or_none,
 )
+from app.services.financial_metric_contract import REAL_GOLD_METRIC_ALIASES
 from app.services.multipass_extraction import METRIC_FIELDS
-
-
-REAL_GOLD_METRIC_ALIASES = {
-    "operating_cash_flow": "operating_cf",
-}
 
 
 class RealTrustOutcome(str, Enum):
