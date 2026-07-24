@@ -7,7 +7,6 @@ import sys
 import time
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -43,15 +42,10 @@ def _base_env(tmp_path: Path, env_file: Path) -> dict[str, str]:
 
 def _write_fake_llama_server(path: Path) -> None:
     path.write_text(
-        "\n".join(
-            [
-                "#!/usr/bin/env bash",
-                'printf "FAKE_EXECUTABLE=%s\\n" "$0"',
-                'printf "FAKE_LD_LIBRARY_PATH=%s\\n" "${LD_LIBRARY_PATH:-}"',
-                'printf "FAKE_ARGS=%s\\n" "$*"',
-            ]
-        )
-        + "\n",
+        "#!/usr/bin/env bash\n"
+        'printf "FAKE_EXECUTABLE=%s\\n" "$0"\n'
+        'printf "FAKE_LD_LIBRARY_PATH=%s\\n" "${LD_LIBRARY_PATH:-}"\n'
+        'printf "FAKE_ARGS=%s\\n" "$*"\n',
         encoding="utf-8",
     )
     path.chmod(0o755)
@@ -85,6 +79,7 @@ def _run_llama_launcher(
         env=env,
         capture_output=True,
         text=True,
+        check=False,
     )
 
 
@@ -183,6 +178,7 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
             [
                 "#!/usr/bin/env bash",
                 'if [[ "${1:-}" == "--help" ]]; then',
+                f'  [[ "$0" == "{fake_bin}" ]] || exit 126',
                 '  case ":${LD_LIBRARY_PATH:-}:" in',
                 f'    *":{bin_dir}:"*) echo "--models-dir PATH"; exit 0 ;;',
                 "    *) exit 127 ;;",
@@ -195,6 +191,10 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
         encoding="utf-8",
     )
     fake_bin.chmod(0o755)
+    configured_dir = tmp_path / "configured-router-bin"
+    configured_dir.mkdir()
+    configured_bin = configured_dir / "llama-server"
+    configured_bin.symlink_to(fake_bin)
     env_file.write_text(
         "\n".join(
             [
@@ -206,7 +206,7 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
         encoding="utf-8",
     )
     env = _base_env(tmp_path, env_file)
-    env["LLAMA_SERVER_BIN"] = str(fake_bin)
+    env["LLAMA_SERVER_BIN"] = str(configured_bin)
     env["LLAMA_SERVER_PORT"] = "8125"
 
     completed = subprocess.run(
@@ -230,11 +230,11 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
 def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
     tmp_path: Path,
 ) -> None:
-    target_dir = tmp_path / "resolved-bin"
+    target_dir = tmp_path / "resolved bin"
     target_dir.mkdir()
     target = target_dir / "llama-server"
     _write_fake_llama_server(target)
-    link_dir = tmp_path / "configured-bin"
+    link_dir = tmp_path / "configured bin"
     link_dir.mkdir()
     link = link_dir / "llama-server"
     link.symlink_to(target)
@@ -242,8 +242,14 @@ def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
     completed = _run_llama_launcher(tmp_path, link)
 
     assert completed.returncode == 0, completed.stderr
-    assert f"FAKE_EXECUTABLE={link}" in completed.stdout
+    assert f"[llama-server] CONFIGURED_BIN_PATH={link}" in completed.stdout
+    assert f"[llama-server] RESOLVED_BIN_PATH={target}" in completed.stdout
+    assert f"FAKE_EXECUTABLE={target}" in completed.stdout
     assert f"FAKE_LD_LIBRARY_PATH={target_dir}" in completed.stdout
+    assert "FAKE_ARGS=--main-gpu 0 --threads 4 --host 127.0.0.1" in completed.stdout
+    assert "--port 8123 --spec-type ngram-simple" in completed.stdout
+    assert f"-m {tmp_path / 'chat-model.gguf'} -a test-chat-model" in completed.stdout
+    assert "--parallel 1" in completed.stdout
 
 
 def test_run_llama_server_uses_direct_executable_directory_for_library_path(
@@ -297,6 +303,37 @@ def test_run_llama_server_fails_closed_for_broken_configured_target(
     assert "Starting llama-server" not in completed.stdout
 
 
+def test_run_llama_server_fails_closed_for_missing_configured_target(
+    tmp_path: Path,
+) -> None:
+    missing_binary = tmp_path / "missing-bin" / "llama-server"
+
+    completed = _run_llama_launcher(tmp_path, missing_binary)
+
+    assert completed.returncode == 1
+    assert (
+        f"Unable to resolve llama-server binary target at {missing_binary}"
+        in completed.stderr
+    )
+    assert "Starting llama-server" not in completed.stdout
+
+
+def test_run_llama_server_fails_closed_for_non_executable_target(
+    tmp_path: Path,
+) -> None:
+    binary = tmp_path / "non-executable-bin" / "llama-server"
+    binary.parent.mkdir()
+    binary.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+
+    completed = _run_llama_launcher(tmp_path, binary)
+
+    assert completed.returncode == 1
+    assert (
+        f"llama-server binary target is not executable at {binary}" in completed.stderr
+    )
+    assert "Starting llama-server" not in completed.stdout
+
+
 def test_run_llama_server_refuses_during_gpu_exclusive_activity(
     tmp_path: Path,
 ) -> None:
@@ -331,6 +368,7 @@ def test_run_llama_server_refuses_during_gpu_exclusive_activity(
         env=_base_env(tmp_path, env_file),
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert completed.returncode == 75

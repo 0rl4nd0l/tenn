@@ -176,6 +176,14 @@ def test_start_config_engine_root_tracks_the_current_checkout() -> None:
     assert 'ENGINE_ROOT="${REPO_ROOT}/financial-engine_v2"' in config
 
 
+def test_start_config_uses_stable_llama_symlink_for_launcher_resolution() -> None:
+    config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
+
+    assert (
+        'export LLAMA_SERVER_BIN="/home/l4nd0/.local/bin/llama-server"' in config
+    )
+
+
 def test_start_full_stack_propagates_marketplace_runtime_flags() -> None:
     script = (REPO_ROOT / "scripts" / "start_full_stack.sh").read_text(encoding="utf-8")
 
