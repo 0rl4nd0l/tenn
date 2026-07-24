@@ -1,92 +1,294 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": "tenn_codex_x_extraction_programme_20260724",
-  "updated_at": "2026-07-24T05:54:55Z",
-  "state": "WAITING_ON_USER",
+  "updated_at": "2026-07-24T06:08:16Z",
+  "state": "RECONCILED_HELD",
   "repository": "0rl4nd0l/tenn",
   "canonical": {
     "branch": "migration/clean-runtime-baseline-reconstruct-v1",
     "commit_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
     "tree_sha": "cba105b2ff945fb0279158c7f54de2bcf4517e5d",
+    "local_launch_branch": "deploy/canonical-runtime-v1",
     "remote_default_branch": "main",
-    "remote_default_sha": "cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b",
-    "selection_reason": "Live extraction PRs target migration/clean-runtime-baseline-reconstruct-v1; it contains merged PR 517 and is newer than default main."
+    "remote_default_sha": "cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b"
   },
   "planning_inputs": {
-    "design_contract_root": "/home/l4nd0/codex-x-orchestrator-design",
-    "design_contract_status": "PRESENT_READ_ONLY",
-    "extraction_workspace_path": null,
-    "extraction_spec_path": null,
-    "extraction_spec_sha256": null,
-    "extraction_adr_paths": [],
-    "extraction_ticket_paths": [],
-    "extraction_ticket_set_sha256": null,
-    "status": "DATA_MISSING"
+    "workspace": "/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source",
+    "spec_path": "docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md",
+    "spec_sha256": "ecba77e0185fe5fe4d38c840624bb7da4ce5f4f6290458c7f6e2b33b3a8b8b67",
+    "plan_path": "docs/plans/asx_financial_profile_extraction_recovery_plan.md",
+    "plan_sha256": "16ff026fa5cec820f9ce4cbe558b6fb4d168e6fc0e23c98854d81b1abf4b12ba",
+    "adr_paths": [],
+    "adr_note": "No standalone ADR artifact; decisions are embedded in the spec.",
+    "ticket_set_sha256": "664527b0c95f11d3ce4e1841d902b324be34ab1041b5a333d00e3f0e654a2026",
+    "truth_status": "PLANNING_INPUT_NOT_REPO_TRUTH"
   },
-  "tickets": [],
-  "known_work": [
-    {
-      "id": "PR-517",
+  "known_work": {
+    "PR-517": {
       "state": "MERGED",
       "head_sha": "273d962823da5c96effff3c9275165d98418a125",
       "integration_sha": "d438cb454b56b4718c5a1c4721e48831a7b107a5",
-      "canonical_contains_integration": true,
-      "ticket_classification_if_exact_match": [
-        "SUPERSEDED",
-        "DONE"
-      ],
-      "blocker": null,
-      "next_action": "Map exact ticket behavior and exclude duplicate implementation."
+      "contained_in_canonical": true
     },
-    {
-      "id": "PR-508",
+    "PR-508": {
       "state": "OPEN_DRAFT",
       "head_sha": "4913ef0883410fcc6436b1387fa7c17642190d05",
-      "checks": "PASS",
-      "ticket_classification_if_overlap": "OVERLAPS_EXISTING",
-      "blocker": "Owner instruction required before modifying or duplicating NPAT owner-attribution/OCI-boundary work.",
-      "next_action": "Map exact tickets and hold overlaps."
+      "checks": "PASS"
     },
-    {
-      "id": "PR-513",
+    "PR-513": {
       "state": "OPEN_DRAFT",
       "head_sha": "12ecb02fee3eebe9fd19527bc55a444502ec26d4",
-      "checks": "PASS",
-      "ticket_classification_if_overlap": "OVERLAPS_EXISTING",
-      "blocker": "Owner instruction required before modifying or duplicating declarative metric-contract authority work.",
-      "next_action": "Map exact tickets and hold overlaps."
+      "checks": "PASS"
+    }
+  },
+  "tickets": [
+    {
+      "ticket_id": "ASXFP_01_SCORECARDS",
+      "ticket_sha256": "4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a",
+      "status": "OVERLAPS_EXISTING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "PR #513 changes metric authority and real-gold scorecard consumers; the precision/recall denominator is unresolved.",
+      "next_action": "Resolve PR #513, refresh canonical, and re-scope the residual scorecard gap."
+    },
+    {
+      "ticket_id": "ASXFP_02_DIAGNOSTIC_CORPUS",
+      "ticket_sha256": "f49dac44fe50bb3073640d85657ccc3a00be6d20070477b1fc73785a745b6ddb",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Required source PDFs and independently reviewed six-class labels are not approved or present.",
+      "next_action": "Obtain separate source/gold approval and provide the locked 12-document package."
+    },
+    {
+      "ticket_id": "ASXFP_03_RELEASE_HOLDOUT",
+      "ticket_sha256": "5d0e2c866f4eb2d903d07a260e1f75e2dc2a4fcaab356b0267bac58e2c1338db",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Protected 36-document holdout, hashes, and review metadata are absent.",
+      "next_action": "Complete 01/02 and separately authorize/provide holdout assets."
+    },
+    {
+      "ticket_id": "ASXFP_04_EXTRACTION_CONTRACTS",
+      "ticket_sha256": "707f1d083b06ffc40e800709da1f4f10df92ba488afa56d736d0b74c1cdf1d1f",
+      "status": "OVERLAPS_EXISTING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "PR #513 owns declarative metric-contract authority.",
+      "next_action": "Resolve PR #513 and 02; do not duplicate contract authority."
+    },
+    {
+      "ticket_id": "ASXFP_05_OBSERVATION_SEAM",
+      "ticket_sha256": "27f03834bba372c3c3f470cf1a1fa7f90b7a586b7015e6b453a77599920aac78",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "The seam must consume the final metric authority; PR #513 changes pipeline persistence consumers.",
+      "next_action": "Resolve PR #513, then reclassify a code-only seam without migration execution or data access."
+    },
+    {
+      "ticket_id": "ASXFP_06_STATUTORY_PROJECTION",
+      "ticket_sha256": "3fec223fffa68a49384064d58ec8e6aa9c4a207b7a7b9f8cd2c08661faade7a4",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "No immutable observation/profile projection exists; canonical metric authority is unresolved.",
+      "next_action": "Complete 05 after PR #513 disposition."
+    },
+    {
+      "ticket_id": "ASXFP_07_PERIOD_BASIS",
+      "ticket_sha256": "6c3630e469e58e5b7974bc687fa63ca3be8935d6a8b1a4cf049896098044d488",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Production cannot retain separate quarter-only and YTD observations.",
+      "next_action": "Complete 04 and 05 while preserving PR #517 current-column binding."
+    },
+    {
+      "ticket_id": "ASXFP_08_APPENDIX4C_PROFILE",
+      "ticket_sha256": "75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca",
+      "status": "OVERLAPS_EXISTING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "PR #513 owns allowed metric authority; eight-metric production expansion is not authorized.",
+      "next_action": "Resolve PR #513, complete 07, and use approved diagnostic source cases."
+    },
+    {
+      "ticket_id": "ASXFP_09_ACCOUNTING_BASIS",
+      "ticket_sha256": "79c319878337c2f8c6b1782c2b734c7a8815d2ef2b9a01ab5405ab8887b0e077",
+      "status": "OVERLAPS_EXISTING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "PR #508 owns NPAT/OCI boundaries and PR #513 owns metric authority.",
+      "next_action": "Obtain exact owner disposition for both drafts before residual accounting-basis work."
+    },
+    {
+      "ticket_id": "ASXFP_10_RESTATEMENT_PRECEDENCE",
+      "ticket_sha256": "c025e1d2e05a89e8e8c99577e6479283c8377fc632fc308b3b7634938873e9a0",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "No immutable observation or supersession model exists.",
+      "next_action": "Complete 06 and 07."
+    },
+    {
+      "ticket_id": "ASXFP_11_EVIDENCE_REVIEW",
+      "ticket_sha256": "e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Review routing lacks the proposed observation/profile conflict model.",
+      "next_action": "Complete 08, 09, and 10."
+    },
+    {
+      "ticket_id": "ASXFP_12_SCANNED_DOCS",
+      "ticket_sha256": "8ca1ea1e997107a0955b50c6ce349b38d432093233b98edf2daf6b0526c7e7b4",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Approved scanned PDFs and independently reviewed OCR labels are absent.",
+      "next_action": "Complete 01/04/05 and obtain separate source/gold approval."
+    },
+    {
+      "ticket_id": "ASXFP_13_TABLE_PERIOD_SELECTION",
+      "ticket_sha256": "5a2cb12766c23efade3adf8977db06290327371d177f40d1eccbf32912317fda",
+      "status": "SUPERSEDED",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "PR_517_PASS",
+      "review": "MERGED_PR_517",
+      "integration_sha": "d438cb454b56b4718c5a1c4721e48831a7b107a5",
+      "blocker": "The broad old card would duplicate merged current-period source-column binding.",
+      "next_action": "Retire the card; issue only new measured residual failures after 02/07."
+    },
+    {
+      "ticket_id": "ASXFP_14_NORMALIZATION",
+      "ticket_sha256": "4860393ad4a1a1c528e966af34f5fac268ea831de7a485923a1ec67d5c467cbe",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "No approved diagnostic 4C slice exists for remaining sign/subtotal failure families.",
+      "next_action": "Complete 02 and 08, then repair only measured source-bound failures."
+    },
+    {
+      "ticket_id": "ASXFP_15_LEGACY_WRITE_RETIREMENT",
+      "ticket_sha256": "79c8b9df7d4f277b2b3edfdc69558916616646400474d2ca90106b065a57880b",
+      "status": "DEPENDS_ON",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "No authoritative observation projection exists.",
+      "next_action": "Complete 06, 08, 09, 10, and 11."
+    },
+    {
+      "ticket_id": "ASXFP_16_RELEASE_GATE",
+      "ticket_sha256": "12741f7c9eac6c295a54a5c38528bf8d665142d1da9cf30918017422cdfc4d88",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Complete locked corpus, frozen configuration, and authorized extraction execution are absent.",
+      "next_action": "Complete 03 and 11-15, then obtain separate runtime/model/source approval."
+    },
+    {
+      "ticket_id": "ASXFP_17_CANARY",
+      "ticket_sha256": "ce2bdfa49a223927f0adfec8791497b6d3d113838cdd8f6fbcd8a15aa28d56a2",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "Final canary has no separate owner authorization.",
+      "next_action": "Complete 16 and obtain runtime authorization; retain DATA_MISSING until then."
+    },
+    {
+      "ticket_id": "ASXFP_18_BACKFILL",
+      "ticket_sha256": "726129291b551fb8be0cc03147cd421080b22ff71c9df43f953842f5a14ea039",
+      "status": "DATA_MISSING",
+      "child_session": null,
+      "output_commit_or_patch": null,
+      "validation": "NOT_RUN",
+      "review": "NOT_RUN",
+      "integration_sha": null,
+      "blocker": "No approved canary or bounded company/date backfill scope exists.",
+      "next_action": "Complete 17 and obtain explicit data/backfill authorization."
     }
   ],
-  "ticket_record_contract": {
-    "required_fields": [
-      "ticket_id",
-      "canonical_sha",
-      "spec_sha256",
-      "ticket_sha256",
-      "status",
-      "child_session",
-      "output_commit_or_patch",
-      "validation",
-      "review",
-      "integration_sha",
-      "blocker",
-      "next_action"
-    ],
-    "allowed_statuses": [
-      "READY",
-      "SUPERSEDED",
-      "OVERLAPS_EXISTING",
-      "DEPENDS_ON",
-      "DATA_MISSING",
-      "DONE"
-    ]
-  },
-  "execution_order": [],
-  "first_child_prompt": null,
-  "blocker": {
-    "code": "EXTRACTION_PLANNING_ARTIFACTS_MISSING",
-    "detail": "The authoritative completed extraction workspace, spec, ADRs, and ticket files were not located. A ticket inventory, ticket hashes, exact reconciliation, valid run manifest, and bounded first child prompt cannot be constructed safely.",
-    "resume_only_if": "The owner supplies an exact local path or accessible URL for the completed extraction workspace."
-  },
-  "next_action": "Supply the existing extraction workspace root; rerun reconciliation only. Do not launch a child yet."
+  "execution_order": [
+    "OWNER_RESOLVE_PR_513",
+    "ASXFP_01_SCORECARDS",
+    "OWNER_PROVIDE_ASXFP_02_DATA",
+    "ASXFP_02_DIAGNOSTIC_CORPUS",
+    "ASXFP_04_EXTRACTION_CONTRACTS",
+    "ASXFP_05_OBSERVATION_SEAM",
+    "ASXFP_07_PERIOD_BASIS",
+    "ASXFP_08_APPENDIX4C_PROFILE",
+    "ASXFP_06_STATUTORY_PROJECTION",
+    "OWNER_RESOLVE_PR_508",
+    "ASXFP_09_ACCOUNTING_BASIS",
+    "ASXFP_10_RESTATEMENT_PRECEDENCE",
+    "ASXFP_12_SCANNED_DOCS",
+    "ASXFP_14_NORMALIZATION",
+    "ASXFP_11_EVIDENCE_REVIEW",
+    "ASXFP_15_LEGACY_WRITE_RETIREMENT",
+    "OWNER_PROVIDE_ASXFP_03_DATA",
+    "ASXFP_03_RELEASE_HOLDOUT",
+    "ASXFP_16_RELEASE_GATE",
+    "OWNER_AUTHORIZE_ASXFP_17_RUNTIME",
+    "ASXFP_17_CANARY",
+    "OWNER_AUTHORIZE_ASXFP_18_DATA",
+    "ASXFP_18_BACKFILL"
+  ],
+  "first_child_prompt_path": "FIRST_CHILD_PROMPT.md",
+  "first_child_launchable": false,
+  "stop": {
+    "code": "FIRST_TICKET_OVERLAPS_OPEN_PR_513",
+    "detail": "The earliest measurable ticket requires files and denominator authority changed by unresolved draft PR #513.",
+    "resume_only_if": "PR #513 receives an exact owner disposition and canonical is refreshed."
+  }
 }

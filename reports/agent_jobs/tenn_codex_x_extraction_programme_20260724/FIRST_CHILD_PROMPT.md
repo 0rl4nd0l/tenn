@@ -1,35 +1,21 @@
-# First Child Prompt
+# Exact First Child Prompt
 
-`DATA_MISSING — NOT GENERATED`
+Candidate ticket: `ASXFP_01_SCORECARDS`
 
-No exact first child prompt exists because no authoritative extraction ticket
-or ticket hash was found. Generating a launchable prompt from PR titles,
-historical reports, or the orchestration design contract would invent a ticket
-and rewrite the completed plan.
+Status: `HELD — OVERLAPS_EXISTING`
 
-The prompt will be rendered only after these inputs exist:
+Exact prompt:
+`proposed_run_package/prompts/ASXFP_01_SCORECARDS-implementer-01.held.txt`
 
-- exact extraction spec path and SHA-256,
-- exact first `READY` ticket path and SHA-256,
-- accepted integration-spine commit and tree SHA,
-- ticket allowed scope and its canonical hash,
-- source-case identities and immutable evidence hashes,
-- focused acceptance gates and scorecard denominator,
-- PR #508/#513 non-overlap proof and PR #517 supersedence check.
+Prompt SHA-256:
+`270529ebe90bf0655a7eafcb060f9dea1f1a1da02888510cd1728e637827a8ae`
 
-The future exact prompt must include:
+The prompt is complete and immutable for the pinned
+`2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7` run revision. It deliberately
+contains a fail-closed pre-launch hold because open draft PR #513 changes the
+metric authority and real-gold evaluation consumers needed by ticket 01.
 
-- role `IMPLEMENTER` and a fresh `codex-x` session ID,
-- one ticket and one bounded allowed scope,
-- no supervisor transcript,
-- explicit-only metrics and no derived net debt,
-- exact document/page/table/row/cell, period, currency, and scale binding,
-- narrative outside Extraction,
-- fail-closed missing/ambiguous/degraded evidence,
-- focused source cases before the approved regression pool,
-- required changed files, commit/patch, commands/exits, replay evidence,
-  scorecard deltas, risks, and stop condition,
-- no runtime/data/backfill/re-extraction/source/gold/prompt/store/service/merge/
-  deployment authority.
-
-No `codex-x` launch is permitted from this placeholder.
+It must not be launched. After exact owner disposition of PR #513, refresh
+canonical identity and regenerate the prompt if the base, ticket, spec, scope,
+or authority hash changes. Reusing this prompt on a new spine would violate the
+design contract's artifact-derived prompt rule.

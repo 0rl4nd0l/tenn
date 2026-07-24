@@ -1,184 +1,97 @@
-# Tenn Codex X Extraction Programme Supervisor
+# Tenn Codex X Extraction Programme Reconciliation
 
-## Objective
+## Outcome
 
-Reconcile the completed Tenn extraction specification and ticket set against
-fresh canonical and live pull-request evidence, then prepare a thin,
-restartable Codex X run package without changing extraction code or launching
-a child.
+Reconciliation is complete and stopped before child launch.
 
-## Current state
-
-`WAITING_ON_USER`
-
-The orchestration design contract is present, but the Tenn extraction workspace,
-specification, ADRs, and ticket files were not found. The ticket inventory,
-ticket hashes, complete reconciliation, execution order, and exact first child
-prompt therefore cannot be produced without inventing or rewriting planning
-inputs.
+The completed planning set was recovered from an isolated Codex X workspace,
+hashed, and compared with canonical Tenn and live PRs #508, #513, and #517.
+There is no currently launchable `READY` ticket. The earliest useful ticket,
+`ASXFP_01_SCORECARDS`, overlaps open draft PR #513 in the real-gold evaluator
+and scorecard contract. Launching it now would risk defining a denominator
+against an unresolved metric authority.
 
 ## Canonical identity
 
 - Repository: `0rl4nd0l/tenn`
-- Live extraction canonical branch:
+- Accepted extraction canonical branch:
   `migration/clean-runtime-baseline-reconstruct-v1`
-- Canonical commit: `2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7`
-- Canonical tree: `cba105b2ff945fb0279158c7f54de2bcf4517e5d`
+- Commit: `2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7`
+- Tree: `cba105b2ff945fb0279158c7f54de2bcf4517e5d`
 - Commit subject: `fix(runtime): resolve llama symlink library path (#518)`
-- Evidence: remote branch resolution, fresh fetch, live PR bases, and
-  ancestry checks
-- GitHub default branch `main` is not the extraction canonical line for this
-  programme: its current SHA `cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b`
-  does not contain PR #517.
+- Local supervisor launch branch: `deploy/canonical-runtime-v1`
+- GitHub default `main`: `cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b`
 
-## Design contract
+The extraction canonical selection is fresh: all three named extraction PRs
+target the migration branch, that branch contains merged PR #517, and default
+`main` does not.
 
-Read-only source:
-`/home/l4nd0/codex-x-orchestrator-design`
+## Planning inputs
 
-Used:
+- Codex X run:
+  `/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589`
+- Read-only planning workspace:
+  `/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source`
+- Specification:
+  `docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md`
+- Delivery plan:
+  `docs/plans/asx_financial_profile_extraction_recovery_plan.md`
+- Tickets:
+  `.scratch/asx-financial-profile-extraction-recovery/issues/01-*.md`
+  through `18-*.md`
+- ADRs: no standalone ADR files exist in the recovered planning package.
+  The governing design decisions are embedded in the spec under
+  `Implementation Decisions`, `Testing Decisions`, and `Out of Scope`.
 
-- `ORCHESTRATOR_SPEC.md`
-- `TRANSITIONS.md`
-- `PROMPT_TEMPLATES.md`
-- `RESTARTABILITY_TEST.md`
-- `CLEAN_EXPORT_GATE.md`
-- `schemas/run_manifest.schema.json`
-- `schemas/ticket_state.schema.json`
-- `schemas/child_result.schema.json`
-- `schemas/review_result.schema.json`
-- `schemas/integration_result.schema.json`
+The spec, plan, and tickets are untracked artifacts inside the isolated
+workspace. They are planning inputs only, not current repository truth.
 
-The simulator was neither executed nor modified.
+## Live work boundaries
 
-## Reconciliation result
+- PR #517 is merged as
+  `d438cb454b56b4718c5a1c4721e48831a7b107a5` and contained in canonical.
+  It owns current-period source-column binding; ticket 13 is superseded rather
+  than replayed.
+- PR #508 is an open draft at
+  `4913ef0883410fcc6436b1387fa7c17642190d05`. It owns NPAT owner attribution
+  and OCI boundaries. Ticket 09 remains held.
+- PR #513 is an open draft at
+  `12ecb02fee3eebe9fd19527bc55a444502ec26d4`. It owns declarative
+  metric-contract authority and changes evaluator/persistence consumers.
+  Tickets 01, 04, 05, 06, 08, and 09 cannot safely advance across that
+  unresolved authority.
 
-See:
+## Package
 
-- [RECONCILIATION.md](RECONCILIATION.md)
-- [RECONCILIATION_LEDGER.json](RECONCILIATION_LEDGER.json)
-- [ARTIFACT_HASHES.json](ARTIFACT_HASHES.json)
-- [RUN_PACKAGE_PROPOSAL.md](RUN_PACKAGE_PROPOSAL.md)
-- [FIRST_CHILD_PROMPT.md](FIRST_CHILD_PROMPT.md)
+- [Reconciliation table](RECONCILIATION.md)
+- [Compact ledger](RECONCILIATION_LEDGER.json)
+- [Artifact hashes](ARTIFACT_HASHES.json)
+- [Run-package proposal](RUN_PACKAGE_PROPOSAL.md)
+- [Exact held first prompt](FIRST_CHILD_PROMPT.md)
+- `proposed_run_package/run_manifest.json`
+- `proposed_run_package/schema_bindings.json`
+- `proposed_run_package/ticket_state/ASXFP_01_SCORECARDS.json`
 
-Known current work is sealed as follows:
+No child, reviewer, integrator, simulator, extraction, runtime, data, source,
+gold-label, prompt-bundle, store, service, merge, or deployment action ran.
+No product file or PR was modified.
 
-- PR #517 is merged and contained in canonical. Any ticket whose behavior is
-  current-period source-column binding must be classified `SUPERSEDED` or
-  `DONE` after exact ticket comparison.
-- PR #508 is an open draft with successful checks and owns NPAT owner
-  attribution and OCI-boundary behavior. Any matching ticket is
-  `OVERLAPS_EXISTING`.
-- PR #513 is an open draft with successful checks and owns declarative
-  metric-contract authority. Any matching ticket is `OVERLAPS_EXISTING`.
+## Validation
 
-No extraction ticket was classified `READY`, because the ticket set is absent.
-No execution order or child assignment was started.
+- Canonical identity and PR ancestry: `PASS`
+- Complete planning inventory and SHA-256 hashes: `PASS`
+- Standalone ADR search: `PASS`, none present
+- All 18 tickets reconciled: `PASS`
+- Proposed run manifest against design schema: `PASS`
+- Proposed first ticket state against design schema: `PASS`
+- JSON parsing, `git diff --check`, and report-only changed-path check: `PASS`
+- Child launch: `NOT_RUN`, required stop on unresolved overlap
+- Runtime functionality: `DATA_MISSING` until separately authorized canary
 
-## Constraints and unsafe actions avoided
+## Next safe action
 
-- No product, extraction, test, source, gold-label, prompt, runtime, data,
-  service, queue, store, model, GPU, deployment, or merge action was taken.
-- No pull request was modified.
-- No `codex-x` child was launched.
-- No simulator or orchestration infrastructure was executed or changed.
-- No old planning file was promoted to current repository truth.
-- No ticket was invented from a PR title or historical report.
-- The stale/default `main` branch was not treated as canonical.
-
-## Evidence used
-
-- Fresh remote identity for `0rl4nd0l/tenn`.
-- Live GitHub metadata, commits, changed paths, and checks for PRs #508,
-  #513, and #517.
-- Fresh canonical ancestry checks.
-- Read-only Tenn Git Guard preflight and task-ledger/registry evidence.
-- Local filesystem search and a bounded connected-Drive search for the named
-  extraction programme.
-- The read-only Codex X orchestration design contract listed above.
-
-## Files touched
-
-Only this report package under
-`reports/agent_jobs/tenn_codex_x_extraction_programme_20260724/`.
-
-## Files intentionally not touched
-
-- All product and extraction source files.
-- `AGENTS.md`, `.codex/`, hooks, policies, workflows, and automation controls.
-- `/home/l4nd0/codex-x-orchestrator-design/**`.
-- PR #508 and PR #513 branches and worktrees.
-- The merged PR #517 worktree.
-
-## Validation status
-
-- Canonical remote fetch and identity: `PASS`.
-- PR state/head/base/check inspection: `PASS`.
-- PR #517 ancestry in canonical: `PASS`.
-- Design-contract SHA-256 inventory: `PASS`.
-- Extraction spec/ticket inventory: `DATA_MISSING`.
-- JSON parse and report diff checks: `PASS`.
-- Runtime functionality: `DATA_MISSING`, by owner boundary.
-
-## Commands and exits
-
-- Local Git identity/status/upstream inspection: exit `0`.
-- `git ls-remote --symref origin HEAD` and named branch lookup: exit `0`.
-- Fresh fetch of `origin/main` and
-  `origin/migration/clean-runtime-baseline-reconstruct-v1`: exit `0`.
-- PR #517 ancestry in extraction canonical: exit `0`.
-- PR #517 ancestry in `main`: exit `1` as expected.
-- Portable Git Guard with full fallback detail: exit `1` after its bounded
-  `git branch -a` subprocess timed out.
-- Portable Git Guard with summary fallback: exit `0`, final decision `pass`.
-- Live GitHub PR inspection: exit `0`.
-- Initial `gh pr view` request used one unsupported JSON field and exited
-  non-zero; the corrected query exited `0`.
-- Local and connected-document artifact searches: completed with no matching
-  extraction spec/ticket package.
-
-## Raw logs
-
-No product or child logs were generated. Concise evidence is embedded in this
-report package; the current supervisor session retains command output.
-
-## Ignored and untracked artifact note
-
-No child delta exists, so dependency classification has not started. The future
-clean-export gate must reject every ignored or untracked required dependency.
-This report branch began from a clean exact-canonical worktree.
-
-## Approvals needed
-
-No approval is needed to continue read-only reconciliation once the missing
-artifact path is supplied. Runtime/data/backfill/re-extraction, source PDFs,
-gold labels, prompts, stores, services, merge, and deployment remain separately
-owner-authorized transitions.
-
-## Remaining risk
-
-The absent ticket set prevents exact scope comparison. Mapping tickets from PR
-titles or older repository plans would risk duplicating canonical work,
-overlapping unresolved drafts, and changing the completed programme plan.
-
-## Waiting protocol
-
-`WAITING_ON_USER`
-
-Needed: exact local path or accessible URL for the completed Tenn extraction
-workspace containing the spec, ADRs, and ticket files.
-
-Why: this unlocks hashing, complete ticket-by-ticket reconciliation, the first
-`READY` selection, valid run-manifest construction, ticket-state planning, and
-the exact first bounded child prompt.
-
-Current safe state: canonical and live PR boundaries are sealed; a clean
-report-only supervisor worktree and blocked ledger exist; no child or product
-work started.
-
-Options: provide the workspace root; provide the spec plus ticket/ADR paths; or
-state that the artifacts were not persisted and explicitly authorize a
-different planning recovery lane.
-
-Recommended: provide the existing workspace root so the completed plan remains
-authoritative.
+Obtain an exact owner disposition for PR #513: merge it onto the accepted
+canonical spine, close/supersede it, or explicitly park its scorecard and
+persistence-consumer scope. Then refresh canonical and re-reconcile ticket 01
+against the resulting metric-contract authority. Do not launch the held prompt
+against the current spine.

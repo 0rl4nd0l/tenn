@@ -1,0 +1,40 @@
+{
+  "design_root": "/home/l4nd0/codex-x-orchestrator-design",
+  "read_only": true,
+  "simulator_executed": false,
+  "schemas": {
+    "run_manifest": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/run_manifest.schema.json",
+      "sha256": "a955a447195ff997147979beb538f26c1cbbf636dc6efb19e392d3726641a4cd",
+      "instances": [
+        "run_manifest.json"
+      ]
+    },
+    "ticket_state": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/ticket_state.schema.json",
+      "sha256": "080eb2460f136941daf7a0d45c93b4abcc724d97675f3d5dcc266a706bc67404",
+      "instances": [
+        "ticket_state/ASXFP_01_SCORECARDS.json"
+      ]
+    },
+    "child_result": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/child_result.schema.json",
+      "sha256": "32d5cc22256eab747e3bafaf31fbd589603fe71de92929c74a55ed3a105c95ea",
+      "instances": []
+    },
+    "review_result": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/review_result.schema.json",
+      "sha256": "7981d02876208587ced7fe3db09359dac2df8ca36c90250af5a2c97c1c3f47c4",
+      "instances": []
+    },
+    "integration_result": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/integration_result.schema.json",
+      "sha256": "67c597466c338e1273ffe159b058da0429adf0dc182704e9ddd048a14099b005",
+      "instances": []
+    }
+  },
+  "result_instance_rule": "Child, review, and integration result instances are immutable evidence and must not be fabricated before their fresh sessions complete.",
+  "retry_rule": "Two equivalent failed implementation attempts cause BLOCKED.",
+  "reviewer_separation_rule": "Reviewer session ID must differ from every implementer session ID and receives no transcript.",
+  "clean_export_rule": "Integrate only an independently approved exact diff on fresh canonical; reject ignored or untracked dependencies and preserve repository control files."
+}

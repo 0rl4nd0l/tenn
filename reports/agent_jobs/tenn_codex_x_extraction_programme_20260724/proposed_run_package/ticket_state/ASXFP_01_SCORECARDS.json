@@ -1,0 +1,27 @@
+{
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "state": "BLOCKED",
+  "allowed_scope_hash": "9273df987143b5f7dad3b60fcc3358c3ee8971369ec5b0993b847d309e353e1a",
+  "implementation_attempts": 0,
+  "retry_count": 0,
+  "implementer_session_ids": [],
+  "reviewer_session_id": null,
+  "integrator_session_id": null,
+  "blocker": {
+    "code": "OVERLAPS_EXISTING_PR_513",
+    "evidence": {
+      "pr": 513,
+      "state": "OPEN_DRAFT",
+      "head_sha": "12ecb02fee3eebe9fd19527bc55a444502ec26d4",
+      "overlapping_paths": [
+        "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ]
+    },
+    "restart_rule": "After exact owner disposition, refresh canonical and create a new run revision; do not mutate this terminal view."
+  },
+  "result_hashes": [],
+  "output_hash": null,
+  "child_result_hash": null,
+  "review_result_hash": null
+}

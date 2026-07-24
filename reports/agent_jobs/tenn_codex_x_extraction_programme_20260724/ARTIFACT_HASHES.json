@@ -13,11 +13,96 @@
     "/home/l4nd0/codex-x-orchestrator-design/schemas/integration_result.schema.json": "67c597466c338e1273ffe159b058da0429adf0dc182704e9ddd048a14099b005"
   },
   "extraction_programme": {
-    "workspace": null,
-    "spec": null,
-    "adrs": {},
-    "tickets": {},
-    "ticket_set_sha256": null,
-    "status": "DATA_MISSING"
+    "workspace": "/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source",
+    "workspace_head": "c290055a192f7341f586111f1ac4e2c04fc71802",
+    "workspace_tree": "aaa68e0c992aa20ae9f854d14b70ed64fcf2fc5b",
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md",
+      "sha256": "ecba77e0185fe5fe4d38c840624bb7da4ce5f4f6290458c7f6e2b33b3a8b8b67"
+    },
+    "plan": {
+      "path": "docs/plans/asx_financial_profile_extraction_recovery_plan.md",
+      "sha256": "16ff026fa5cec820f9ce4cbe558b6fb4d168e6fc0e23c98854d81b1abf4b12ba"
+    },
+    "adrs": {
+      "standalone_files": [],
+      "decision_source": "spec sections Implementation Decisions, Testing Decisions, and Out of Scope"
+    },
+    "tickets": {
+      "ASXFP_01_SCORECARDS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/01-trustworthy-real-asx-release-scorecards.md",
+        "sha256": "4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a"
+      },
+      "ASXFP_02_DIAGNOSTIC_CORPUS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/02-lock-diagnostic-corpus.md",
+        "sha256": "f49dac44fe50bb3073640d85657ccc3a00be6d20070477b1fc73785a745b6ddb"
+      },
+      "ASXFP_03_RELEASE_HOLDOUT": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/03-lock-release-holdout.md",
+        "sha256": "5d0e2c866f4eb2d903d07a260e1f75e2dc2a4fcaab356b0267bac58e2c1338db"
+      },
+      "ASXFP_04_EXTRACTION_CONTRACTS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/04-explicit-extraction-contracts.md",
+        "sha256": "707f1d083b06ffc40e800709da1f4f10df92ba488afa56d736d0b74c1cdf1d1f"
+      },
+      "ASXFP_05_OBSERVATION_SEAM": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/05-immutable-observation-seam.md",
+        "sha256": "27f03834bba372c3c3f470cf1a1fa7f90b7a586b7015e6b453a77599920aac78"
+      },
+      "ASXFP_06_STATUTORY_PROJECTION": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/06-project-statutory-metrics.md",
+        "sha256": "3fec223fffa68a49384064d58ec8e6aa9c4a207b7a7b9f8cd2c08661faade7a4"
+      },
+      "ASXFP_07_PERIOD_BASIS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/07-quarter-and-ytd-observations.md",
+        "sha256": "6c3630e469e58e5b7974bc687fa63ca3be8935d6a8b1a4cf049896098044d488"
+      },
+      "ASXFP_08_APPENDIX4C_PROFILE": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/08-appendix-4c-cash-profile.md",
+        "sha256": "75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca"
+      },
+      "ASXFP_09_ACCOUNTING_BASIS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/09-separate-statutory-adjusted-results.md",
+        "sha256": "79c319878337c2f8c6b1782c2b734c7a8815d2ef2b9a01ab5405ab8887b0e077"
+      },
+      "ASXFP_10_RESTATEMENT_PRECEDENCE": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/10-restatement-precedence.md",
+        "sha256": "c025e1d2e05a89e8e8c99577e6479283c8377fc632fc308b3b7634938873e9a0"
+      },
+      "ASXFP_11_EVIDENCE_REVIEW": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/11-evidence-backed-review.md",
+        "sha256": "e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8"
+      },
+      "ASXFP_12_SCANNED_DOCS": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/12-scanned-announcements.md",
+        "sha256": "8ca1ea1e997107a0955b50c6ce349b38d432093233b98edf2daf6b0526c7e7b4"
+      },
+      "ASXFP_13_TABLE_PERIOD_SELECTION": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/13-table-period-selection.md",
+        "sha256": "5a2cb12766c23efade3adf8977db06290327371d177f40d1eccbf32912317fda"
+      },
+      "ASXFP_14_NORMALIZATION": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/14-normalize-scale-currency-cashflow.md",
+        "sha256": "4860393ad4a1a1c528e966af34f5fac268ea831de7a485923a1ec67d5c467cbe"
+      },
+      "ASXFP_15_LEGACY_WRITE_RETIREMENT": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/15-retire-direct-legacy-writes.md",
+        "sha256": "79c8b9df7d4f277b2b3edfdc69558916616646400474d2ca90106b065a57880b"
+      },
+      "ASXFP_16_RELEASE_GATE": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/16-pass-locked-release-gate.md",
+        "sha256": "12741f7c9eac6c295a54a5c38528bf8d665142d1da9cf30918017422cdfc4d88"
+      },
+      "ASXFP_17_CANARY": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/17-twelve-company-canary.md",
+        "sha256": "ce2bdfa49a223927f0adfec8791497b6d3d113838cdd8f6fbcd8a15aa28d56a2"
+      },
+      "ASXFP_18_BACKFILL": {
+        "path": ".scratch/asx-financial-profile-extraction-recovery/issues/18-reversible-bounded-backfills.md",
+        "sha256": "726129291b551fb8be0cc03147cd421080b22ff71c9df43f953842f5a14ea039"
+      }
+    },
+    "ticket_set_sha256": "664527b0c95f11d3ce4e1841d902b324be34ab1041b5a333d00e3f0e654a2026",
+    "status": "PRESENT_PLANNING_ONLY"
   }
 }
