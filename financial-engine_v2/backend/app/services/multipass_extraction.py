@@ -2848,6 +2848,7 @@ _NP_ATTRIBUTABLE_OWNER_MARKERS = (
     "attributabletomembers",
     "attributabletoequityholders",
 )
+_NP_ATTRIBUTABLE_SAME_ANCHOR_OWNER_MARKERS = ("ownersofthecompany",)
 _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS = (
     "shareholdersof",
     "equityholdersof",
@@ -2884,18 +2885,51 @@ def _income_owner_attributable_line_index(
     label_lines: list[str],
     previous_labels: list[str],
 ) -> int | None:
-    context = _normalize_filter_text(" ".join(previous_labels[-6:]))
-    context_is_attributable_profit = "attributable" in context and "profit" in context
+    nearest_attribution_context = next(
+        (
+            _normalize_filter_text(label)
+            for label in reversed(previous_labels[-6:])
+            if "attributable" in _normalize_filter_text(label)
+        ),
+        "",
+    )
+    context_is_attributable_profit = (
+        "attributable" in nearest_attribution_context
+        and "profit" in nearest_attribution_context
+        and "comprehensive" not in nearest_attribution_context
+        and "pershare" not in nearest_attribution_context
+    )
+    same_cell_attributable_profit = False
     for index, label in enumerate(label_lines):
         compact = _normalize_filter_text(label)
         if not compact:
             continue
         if any(marker in compact for marker in _NP_ATTRIBUTABLE_REJECT_MARKERS):
             continue
-        if any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS):
+        if (
+            "profit" in compact
+            and "attributable" in compact
+            and "pershare" not in compact
+        ):
+            same_cell_attributable_profit = True
+        if "attributableto" in compact and any(
+            marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS
+        ):
             return index
-        if context_is_attributable_profit and any(
-            marker in compact for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+        if (
+            (context_is_attributable_profit or same_cell_attributable_profit)
+            and (
+                any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS)
+                or
+                any(
+                    marker in compact
+                    for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+                )
+                or any(
+                    marker in compact
+                    for marker in _NP_ATTRIBUTABLE_SAME_ANCHOR_OWNER_MARKERS
+                )
+            )
         ):
             return index
     return None
@@ -2907,8 +2941,15 @@ def _row_ref_is_owner_attributable_np(row_ref: Any) -> bool:
         marker in compact for marker in _NP_ATTRIBUTABLE_REJECT_MARKERS
     ):
         return False
-    return any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS) or any(
-        marker in compact for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+    return (
+        any(marker in compact for marker in _NP_ATTRIBUTABLE_OWNER_MARKERS)
+        or any(
+            marker in compact for marker in _NP_ATTRIBUTABLE_CHILD_OWNER_MARKERS
+        )
+        or any(
+            marker in compact
+            for marker in _NP_ATTRIBUTABLE_SAME_ANCHOR_OWNER_MARKERS
+        )
     )
 
 
@@ -3037,6 +3078,58 @@ def _recover_owner_np_attributable_from_income_row(
         return None
 
     row_ref = label_lines[owner_line_index].replace("BH P", "BHP")
+    context_line_index = next(
+        (
+            index
+            for index, label in enumerate(label_lines)
+            if "profit" in _normalize_filter_text(label)
+            and "attributable" in _normalize_filter_text(label)
+            and "comprehensive" not in _normalize_filter_text(label)
+            and "pershare" not in _normalize_filter_text(label)
+        ),
+        None,
+    )
+    if context_line_index is not None and owner_line_index > context_line_index:
+        attribution_line_indices = [
+            index
+            for index, label in enumerate(
+                label_lines[context_line_index + 1 :],
+                start=context_line_index + 1,
+            )
+            if _row_ref_is_owner_attributable_np(label)
+            or any(
+                marker in _normalize_filter_text(label)
+                for marker in ("noncontrolling", "minority")
+            )
+        ]
+        owner_position = next(
+            (
+                position
+                for position, line_index in enumerate(attribution_line_indices)
+                if line_index == owner_line_index
+            ),
+            None,
+        )
+        current_value_lines = (
+            _split_table_cell_lines(row[1]) if len(row) > 1 else []
+        )
+        if (
+            owner_position is None
+            or len(attribution_line_indices) < 2
+            or len(current_value_lines) != len(attribution_line_indices)
+        ):
+            return None
+        aligned_values = [
+            _scaled_metric_value_from_text(value_line, scale)
+            for value_line in current_value_lines
+        ]
+        if any(value is None for value in aligned_values):
+            return None
+        owner_value = aligned_values[owner_position]
+        if owner_value is None:
+            return None
+        return owner_value, row_ref
+
     if len(label_lines) > 1:
         for cell in row[1:]:
             value_lines = _split_table_cell_lines(cell)
@@ -3053,6 +3146,172 @@ def _recover_owner_np_attributable_from_income_row(
     if value is None:
         return None
     return value, row_ref
+
+
+def _recover_fragmented_owner_np_attributable_from_income_rows(
+    rows: list[list[Any]], scale: str
+) -> tuple[float, str] | None:
+    """Bind owner labels to current-period values emitted on following rows."""
+    for row_index, row in enumerate(rows):
+        if not row:
+            continue
+        label_lines = _split_table_cell_lines(row[0])
+        compact_label = _normalize_filter_text(" ".join(label_lines))
+        if (
+            "profit" not in compact_label
+            or "attributable" not in compact_label
+            or "comprehensive" in compact_label
+            or "pershare" in compact_label
+        ):
+            continue
+        context_index = next(
+            (
+                index
+                for index, label in enumerate(label_lines)
+                if "profit" in _normalize_filter_text(label)
+                and "attributable" in _normalize_filter_text(label)
+            ),
+            None,
+        )
+        owner_index = _income_owner_attributable_line_index(label_lines, [])
+        if context_index is None or owner_index is None or owner_index <= context_index:
+            continue
+
+        attribution_lines: list[tuple[int, str]] = []
+        for line_index, label in enumerate(
+            label_lines[context_index + 1 :], start=context_index + 1
+        ):
+            compact = _normalize_filter_text(label)
+            if (
+                _row_ref_is_owner_attributable_np(label)
+                or any(marker in compact for marker in ("noncontrolling", "minority"))
+            ):
+                attribution_lines.append((line_index, label))
+        if len(attribution_lines) < 2:
+            continue
+        owner_position = next(
+            (
+                index
+                for index, (line_index, _label) in enumerate(attribution_lines)
+                if line_index == owner_index
+            ),
+            None,
+        )
+        if owner_position is None:
+            continue
+
+        continuation_values: list[float] = []
+        values_started = False
+        for continuation_row in rows[row_index + 1 :]:
+            if not continuation_row:
+                if values_started:
+                    break
+                continue
+            if _row_label_before_numeric_cells(continuation_row):
+                break
+            value = _parse_current_period_metric_cell(continuation_row, scale)
+            if value is None:
+                if values_started:
+                    break
+                continue
+            values_started = True
+            continuation_values.append(value)
+            if len(continuation_values) >= len(attribution_lines):
+                break
+        if len(continuation_values) == len(attribution_lines):
+            row_ref = attribution_lines[owner_position][1].replace("BH P", "BHP")
+            return continuation_values[owner_position], row_ref
+    return None
+
+
+def _income_statement_table_is_pure_oci(table: Any) -> bool:
+    """Identify standalone OCI statements without excluding combined P&L/OCI."""
+    caption_text = _normalize_filter_text(str(getattr(table, "caption", "") or ""))
+    header_text = _normalize_filter_text(
+        " ".join(str(header) for header in getattr(table, "headers", []) or [])
+    )
+    caption_and_headers = f"{caption_text}{header_text}"
+    if any(
+        marker in caption_and_headers
+        for marker in (
+            "statementofprofitorloss",
+            "statementofcomprehensiveincome",
+            "consolidatedincomestatement",
+        )
+    ):
+        return False
+
+    label_lines = [
+        line
+        for cell in [
+            *(getattr(table, "headers", []) or []),
+            *(
+                row[0]
+                for row in (getattr(table, "rows", []) or [])[:50]
+                if row
+            ),
+        ]
+        for line in _split_table_cell_lines(cell)
+    ]
+    compact_lines = [_normalize_filter_text(line) for line in label_lines]
+    has_oci_structure = any(
+        marker in caption_and_headers
+        for marker in (
+            "statementofothercomprehensiveincome",
+            "statementofothercomprehensiveloss",
+        )
+    ) or any(
+        compact.startswith(("othercomprehensiveincome", "othercomprehensiveloss"))
+        for compact in compact_lines
+    )
+    if not has_oci_structure:
+        return False
+
+    primary_profit_and_loss_labels = {
+        "revenue",
+        "revenues",
+        "totalrevenue",
+        "totalrevenues",
+        "revenuefromcontinuingoperations",
+        "totalrevenuefromordinaryactivities",
+        "sales",
+        "salesrevenue",
+        "costofsales",
+        "grossprofit",
+        "ebit",
+        "earningsbeforeinterestandtax",
+        "operatingprofit",
+        "profitfromoperations",
+        "profitlossfromoperations",
+        "profitbeforeincometax",
+        "profitbeforetax",
+        "incometaxexpense",
+    }
+    return not any(
+        _re.sub(r"\d+$", "", compact) in primary_profit_and_loss_labels
+        for compact in compact_lines
+    )
+
+
+def _np_attributable_source_is_composite_owner_context(
+    row_ref: Any,
+    recovered_row_ref: str,
+) -> bool:
+    """Detect a context-plus-owner row ref that can hide fragmented misalignment."""
+    existing = _normalize_filter_text(str(row_ref or ""))
+    recovered = _normalize_filter_text(recovered_row_ref)
+    if (
+        not existing
+        or not recovered
+        or existing == recovered
+        or recovered not in existing
+        or "profit" not in existing
+        or "attributable" not in existing
+        or "comprehensive" in existing
+        or "pershare" in existing
+    ):
+        return False
+    return _row_ref_is_owner_attributable_np(recovered)
 
 
 def _income_metric_row_ref_for_row(
@@ -3151,6 +3410,18 @@ def _recover_income_statement_metrics_from_table(
     )
     bank_operating_income_total = _table_has_bank_operating_income_total_context(table)
     rows = rows_override if rows_override is not None else getattr(table, "rows", [])
+    pure_oci_statement = _income_statement_table_is_pure_oci(table)
+    if pure_oci_statement:
+        return {}
+    if not pure_oci_statement:
+        fragmented_owner_np = (
+            _recover_fragmented_owner_np_attributable_from_income_rows(
+                rows or [], scale
+            )
+        )
+        if fragmented_owner_np is not None:
+            value, row_ref = fragmented_owner_np
+            recovered["np_attributable"] = (160, value, row_ref)
     for row in rows or []:
         if not row:
             continue
@@ -3174,12 +3445,14 @@ def _recover_income_statement_metrics_from_table(
             if existing is None or priority > existing[0]:
                 recovered["revenue"] = (priority, value, row_ref)
 
-        owner_np_recovery = _recover_owner_np_attributable_from_income_row(
-            row,
-            row_label,
-            previous_labels,
-            scale,
-        )
+        owner_np_recovery = None
+        if not pure_oci_statement:
+            owner_np_recovery = _recover_owner_np_attributable_from_income_row(
+                row,
+                row_label,
+                previous_labels,
+                scale,
+            )
         if owner_np_recovery is not None:
             value, row_ref = owner_np_recovery
             existing = recovered.get("np_attributable")
@@ -3190,6 +3463,8 @@ def _recover_income_statement_metrics_from_table(
             row_label,
             bank_operating_income_total=bank_operating_income_total,
         )
+        if metric_name == "np_attributable" and pure_oci_statement:
+            metric_name = None
         if metric_name == "np_attributable" and not any(
             marker in _normalize_filter_text(row_label)
             for marker in (
@@ -3204,11 +3479,17 @@ def _recover_income_statement_metrics_from_table(
             )
         ):
             metric_name = None
-        if metric_name is None and _income_row_is_attributable_profit(
-            row_label, previous_labels
+        if (
+            metric_name is None
+            and not pure_oci_statement
+            and _income_row_is_attributable_profit(row_label, previous_labels)
         ):
             metric_name = "np_attributable"
-        if metric_name is None and formal_statement_context:
+        if (
+            metric_name is None
+            and formal_statement_context
+            and not pure_oci_statement
+        ):
             compact = _normalize_filter_text(row_label)
             context = _normalize_filter_text(" ".join(previous_labels[-4:]))
             if (
@@ -6760,6 +7041,7 @@ def _table_has_income_statement_source_rows(table: Any) -> bool:
             "revenuefromcontinuingoperations",
             "totalrevenuefromordinaryactivities",
             "profitlossforthehalfyearisattributableto",
+            "profitlossfortheperiodattributabletoownersofthecompany",
             "attributabletobhpshareholders",
             "equityholdersoftheparent",
             "profitbeforecreditimpairmentandincometax",
@@ -6866,6 +7148,12 @@ def _apply_preferred_income_statement_source_payload(
             continue
         table_scale = _detect_scale_from_table(table)
         scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
+        complete_fragmented_owner_np = (
+            _recover_fragmented_owner_np_attributable_from_income_rows(
+                getattr(table, "rows", []) or [],
+                scale_for_table,
+            )
+        )
         for metric_name, (
             recovered_value,
             recovered_row_ref,
@@ -6890,6 +7178,15 @@ def _apply_preferred_income_statement_source_payload(
                     provenance.get(metric_name),
                 )
             )
+            existing_is_composite_np_attributable = (
+                metric_name == "np_attributable"
+                and complete_fragmented_owner_np
+                == (recovered_value, recovered_row_ref)
+                and _np_attributable_source_is_composite_owner_context(
+                    row_refs.get(metric_name),
+                    recovered_row_ref,
+                )
+            )
             existing_scale_conflicts_with_preferred = (
                 _existing_income_statement_metric_scale_conflicts(
                     metric_name,
@@ -6908,6 +7205,7 @@ def _apply_preferred_income_statement_source_payload(
                 or existing_is_appendix_wrapper
                 or existing_is_rejected
                 or existing_is_generic_np_attributable
+                or existing_is_composite_np_attributable
                 or existing_scale_conflicts_with_preferred
                 or existing_has_lower_priority
             ):

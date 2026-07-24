@@ -5075,6 +5075,490 @@ def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
     assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
+def test_income_source_overlay_recovers_fragmented_wds_owner_profit():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    profit_statement = DoclingTable(
+        page_number=13,
+        caption="For personal use only",
+        headers=["Notes", "2021", "2020\nUS$m"],
+        rows=[
+            ["Profit/(loss) after tax", "342", "(4,038)"],
+            [
+                "Profit/(loss) attributable to:\n"
+                "Equity holders of the parent\n"
+                "Non-controlling interest",
+                "",
+                "(4,067)\n29",
+            ],
+            ["", "317", ""],
+            ["", "25", ""],
+            ["Profit/(loss) for the period", "342", "(4,038)"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"np_attributable": 342_000_000},
+        "np_attributable": 342_000_000,
+        "row_refs": {
+            "np_attributable": (
+                "Profit/(loss) attributable to: Equity holders of the parent"
+            )
+        },
+        "provenance": {
+            "np_attributable": (
+                "income_statement:page_13:Profit/(loss) attributable to: "
+                "Equity holders of the parent"
+            )
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [profit_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 317_000_000
+    assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
+    assert payload["provenance"]["np_attributable"].startswith(
+        "income_statement:page_13:"
+    )
+
+
+def test_income_source_overlay_recovers_fragmented_a2m_owners_of_company_profit():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    combined_statement = DoclingTable(
+        page_number=6,
+        caption="for the six months ended 31 December 2025",
+        headers=[
+            "Continuing operations\nSales 2\nCost of sales",
+            "",
+            "835,405\n(417,662)",
+        ],
+        rows=[
+            ["Operating profit", "146,341", "125,829"],
+            ["Profit before tax", "162,504", "150,539"],
+            ["Profit for the period", "8,447", "83,996"],
+            [
+                "Profit/(loss) for the period attributable to:\n"
+                "Owners of the Company\n"
+                "Non-controlling interests",
+                "",
+                "91,725\n(7,729)",
+            ],
+            ["", "10,913", ""],
+            ["", "(2,466)", ""],
+            ["", "8,447", "83,996"],
+            ["Other comprehensive income", "", ""],
+            ["Total comprehensive income", "9,242", "93,391"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "NZD",
+        "scale": "thousands",
+        "metrics": {"np_attributable": 8_447_000},
+        "np_attributable": 8_447_000,
+        "row_refs": {"np_attributable": "Profit for the period"},
+        "provenance": {
+            "np_attributable": "income_statement:page_6:Profit for the period"
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [combined_statement],
+        scale="thousands",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "NZD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 10_913_000
+    assert payload["row_refs"]["np_attributable"] == "Owners of the Company"
+    assert payload["provenance"]["np_attributable"].startswith(
+        "income_statement:page_6:"
+    )
+
+
+def test_income_source_overlay_rejects_wds_standalone_oci_with_imperfect_caption():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    oci_statement = DoclingTable(
+        page_number=14,
+        caption="as at 30 June 2021",
+        headers=["", "2021", "2020\nUS$m"],
+        rows=[
+            ["Profit/(loss) for the period", "342", "(4,038)"],
+            ["Other comprehensive income/(loss)", "", ""],
+            [
+                "Other comprehensive income/(loss) for the period, net of tax",
+                "59",
+                "(85)",
+            ],
+            [
+                "Total comprehensive income/(loss) for the period",
+                "401",
+                "(4,123)",
+            ],
+            [
+                "Total comprehensive income/(loss) attributable to:\n"
+                "Equity holders of the parent\n"
+                "Non-controlling interest",
+                "",
+                "(4,152)\n29",
+            ],
+            ["", "376", ""],
+            ["", "25", ""],
+            [
+                "Total comprehensive income/(loss) for the period",
+                "401",
+                "(4,123)",
+            ],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2021-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"np_attributable": None},
+        "np_attributable": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [oci_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2021-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] is None
+    assert "np_attributable" not in payload["row_refs"]
+    assert "np_attributable" not in payload["provenance"]
+
+
+def test_income_source_overlay_recovers_fragmented_wow_profit_before_pure_oci():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    profit_statement = DoclingTable(
+        page_number=8,
+        caption="4",
+        headers=["NOTE", "4 JANUARY 2026 $M", "5 JANUARY 2025 $M"],
+        rows=[
+            ["Profit for the period", "381", "741"],
+            [
+                "Profit for the period attributable to:\n"
+                "Equity holders of the parent entity\n"
+                "Non-controlling interests",
+                "",
+                "739\n2",
+            ],
+            ["", "", ""],
+            ["", "374", ""],
+            ["", "7", ""],
+        ],
+    )
+    oci_statement = DoclingTable(
+        page_number=9,
+        caption="Consolidated Statement of Other Comprehensive Income or Loss",
+        headers=["", "4 JANUARY 2026 $M", "5 JANUARY 2025 $M"],
+        rows=[
+            ["Profit for the period", "381", "741"],
+            ["Other comprehensive (loss)/income for the period", "(78)", "51"],
+            ["Total comprehensive income for the period", "303", "792"],
+            ["Total comprehensive income for the period attributable to:", "", ""],
+            ["Equity holders of the parent entity", "292", "790"],
+            ["Non-controlling interests", "11", "2"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2026-01-04",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"np_attributable": 381_000_000},
+        "np_attributable": 381_000_000,
+        "row_refs": {"np_attributable": "Profit for the period"},
+        "provenance": {
+            "np_attributable": "income_statement:page_8:Profit for the period"
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [profit_statement, oci_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2026-01-04",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 374_000_000
+    assert payload["row_refs"]["np_attributable"] == (
+        "Equity holders of the parent entity"
+    )
+    assert payload["provenance"]["np_attributable"].startswith(
+        "income_statement:page_8:"
+    )
+
+
+def test_fragmented_profit_attribution_keeps_min_profit_row_over_oci_and_eps():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    profit_statement = DoclingTable(
+        page_number=14,
+        caption="14",
+        headers=["", "31 DECEMBER 2025 $M", "31 DECEMBER 2024 $M"],
+        rows=[
+            ["Profit for the half-year", "573", "400"],
+            [
+                "Profit for the half-year attributable to:\n"
+                "Equity holders of the parent\n"
+                "Non-controlling interests",
+                "",
+                "390\n10",
+            ],
+            ["", "495", ""],
+            ["", "78", ""],
+            [
+                "Earnings per share attributable to equity holders of the parent\n"
+                "Basic earnings per share\n"
+                "Diluted earnings per share",
+                "",
+                "250.0\n249.0",
+            ],
+            ["", "251.4", ""],
+            ["", "250.1", ""],
+        ],
+    )
+    oci_statement = DoclingTable(
+        page_number=15,
+        caption="Consolidated Statement of Other Comprehensive Income",
+        headers=["", "31 DECEMBER 2025 $M", "31 DECEMBER 2024 $M"],
+        rows=[
+            ["Other comprehensive loss for the half-year", "(80)", "(5)"],
+            ["Total comprehensive income for the half-year", "571", "395"],
+            ["Total comprehensive income for the half-year attributable to:", "", ""],
+            ["Equity holders of the parent", "493", "385"],
+            ["Non-controlling interests", "78", "10"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {"np_attributable": 573_000_000},
+        "np_attributable": 573_000_000,
+        "row_refs": {"np_attributable": "Profit for the period"},
+        "provenance": {
+            "np_attributable": "income_statement:page_14:Profit for the period"
+        },
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [profit_statement, oci_statement],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+        },
+    )
+
+    assert payload["metrics"]["np_attributable"] == 495_000_000
+    assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
+    assert payload["provenance"]["np_attributable"].startswith(
+        "income_statement:page_14:"
+    )
+
+
+def test_same_anchor_owner_values_bind_by_attribution_position():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _recover_income_statement_metrics_from_table,
+    )
+
+    table = DoclingTable(
+        page_number=6,
+        caption="Consolidated statement of profit or loss",
+        headers=["", "2025 NZ$m", "2024 NZ$m"],
+        rows=[
+            [
+                "Profit for the period attributable to:\n"
+                "Owners of the Company\n"
+                "Non-controlling interests",
+                "100\n10",
+                "80\n8",
+            ],
+        ],
+    )
+
+    recovered = _recover_income_statement_metrics_from_table(table, "millions")
+
+    assert recovered["np_attributable"] == (100_000_000, "Owners of the Company")
+
+
+def test_fragmented_owner_values_require_complete_attribution_cardinality():
+    from app.services.multipass_extraction import (
+        _recover_fragmented_owner_np_attributable_from_income_rows,
+    )
+
+    rows = [
+        [
+            "Profit for the period attributable to:\n"
+            "Owners of the Company\n"
+            "Non-controlling interests",
+            "",
+            "80\n8",
+        ],
+        ["", "777", ""],
+    ]
+
+    assert (
+        _recover_fragmented_owner_np_attributable_from_income_rows(
+            rows, "millions"
+        )
+        is None
+    )
+
+
+def test_fragmented_owner_values_reject_internal_continuation_gap():
+    from app.services.multipass_extraction import (
+        _recover_fragmented_owner_np_attributable_from_income_rows,
+    )
+
+    rows = [
+        [
+            "Profit for the period attributable to:\n"
+            "Owners of the Company\n"
+            "Non-controlling interests",
+            "",
+            "80\n8",
+        ],
+        ["", "100", ""],
+        ["", "", ""],
+        ["", "10", ""],
+    ]
+
+    assert (
+        _recover_fragmented_owner_np_attributable_from_income_rows(
+            rows, "millions"
+        )
+        is None
+    )
+
+
+def test_owners_of_company_under_total_comprehensive_income_cannot_replace_npat():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _recover_income_statement_metrics_from_table,
+    )
+
+    table = DoclingTable(
+        page_number=7,
+        caption="Consolidated statement of profit or loss and other comprehensive income",
+        headers=["", "2025 $m", "2024 $m"],
+        rows=[
+            ["Revenue", "500", "450"],
+            ["Profit after tax", "110", "90"],
+            ["Other comprehensive income", "(5)", "2"],
+            ["Total comprehensive income attributable to:", "", ""],
+            ["Owners of the Company", "105", "92"],
+            ["Non-controlling interests", "0", "0"],
+        ],
+    )
+
+    recovered = _recover_income_statement_metrics_from_table(table, "millions")
+
+    assert recovered["np_attributable"] == (110_000_000, "Profit after tax")
+
+
+def test_compact_combined_profit_and_oci_statement_remains_income_eligible():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _recover_income_statement_metrics_from_table,
+    )
+
+    table = DoclingTable(
+        page_number=7,
+        caption="Consolidated statement of profit or loss and other comprehensive income",
+        headers=["", "2025 $m", "2024 $m"],
+        rows=[
+            ["Profit after tax", "110", "90"],
+            ["Other comprehensive income/(loss)", "(5)", "2"],
+            ["Total comprehensive income", "105", "92"],
+        ],
+    )
+
+    recovered = _recover_income_statement_metrics_from_table(table, "millions")
+
+    assert recovered["np_attributable"] == (110_000_000, "Profit after tax")
+
+
+def test_standalone_oci_revenue_component_does_not_make_table_income_statement():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _recover_income_statement_metrics_from_table,
+    )
+
+    table = DoclingTable(
+        page_number=8,
+        caption="Consolidated statement of other comprehensive income or loss",
+        headers=["", "2025 $m", "2024 $m"],
+        rows=[
+            ["Profit for the period", "110", "90"],
+            ["Other comprehensive income/(loss)", "", ""],
+            ["Cash-flow hedge reserve on revenue contracts", "(5)", "2"],
+            ["Total comprehensive income attributable to:", "", ""],
+            ["Equity holders of the parent", "105", "92"],
+            ["Non-controlling interests", "0", "0"],
+        ],
+    )
+
+    recovered = _recover_income_statement_metrics_from_table(table, "millions")
+
+    assert recovered == {}
+
+
 def test_income_source_overlay_prefers_bhp_shareholder_attributable_row():
     """BHP split numeric cells should still bind NPAT to the shareholder row."""
     from app.services.docling_extract import DoclingTable

@@ -1,0 +1,62 @@
+{
+  "artifact_type": "extraction_no_write_case_manifest_v1",
+  "certification": {
+    "allow_broad_extraction": false,
+    "allow_live_fetch": false,
+    "allow_production_writes": false,
+    "allow_remote_llm": false,
+    "loopback_llm_only": true,
+    "notes": "Issue #97 source-bound WDS/A2M NPAT generalization cases. Fixed local PDFs only; writes remain limited to report-local artifacts and the replay runner's isolated temporary cache. This manifest does not modify or promote gold labels."
+  },
+  "cases": [
+    {
+      "case_id": "WDS_H_2021-06-30_NPAT_OWNER_OCI",
+      "role": "wow_npat_unseen_owner_oci_no_write_replay",
+      "ticker": "WDS",
+      "document_id": "wds_20210630_h_npat_owner_oci",
+      "title": "2021-08-18_half-year-report-2021_c75efa0f-68bb-433a-8ee8-75b743da23a6.pdf",
+      "source_path": "asx/docs/WDS/financial_performance/2021-08-18_half-year-report-2021_c75efa0f-68bb-433a-8ee8-75b743da23a6.pdf",
+      "source_sha256": "96d074d5cf19711a39f5c4b28563477b42fd293fb3a26615eac0dd8545846099",
+      "expected_status": "ok",
+      "expected_period_type": "H",
+      "expected_period_end": "2021-06-30",
+      "expected_currency": "USD",
+      "expected_scale": "millions",
+      "expected_np_attributable": 317000000,
+      "expected_row_ref": "Equity holders of the parent",
+      "expected_provenance_prefix": "income_statement:page_13:",
+      "rejected_np_attributable_values": [
+        29000000,
+        342000000,
+        376000000
+      ],
+      "parser_backend": "pymupdf",
+      "strict_parser": false,
+      "skip_narrative": true
+    },
+    {
+      "case_id": "A2M_H_2025-12-31_NPAT_OWNER_OCI",
+      "role": "wow_npat_unseen_owner_oci_no_write_replay",
+      "ticker": "A2M",
+      "document_id": "a2m_20251231_h_npat_owner_oci",
+      "title": "2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "source_path": "asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "source_sha256": "cf33ccb4a2729a88dcb30c44bbd77f6b0ebad258231facd29adeb4e7d6f86f52",
+      "expected_status": "ok",
+      "expected_period_type": "H",
+      "expected_period_end": "2025-12-31",
+      "expected_currency": "NZD",
+      "expected_scale": "thousands",
+      "expected_np_attributable": 10913000,
+      "expected_row_ref": "Owners of the Company",
+      "expected_provenance_prefix": "income_statement:page_6:",
+      "rejected_np_attributable_values": [
+        8447000,
+        12071000
+      ],
+      "parser_backend": "pymupdf",
+      "strict_parser": false,
+      "skip_narrative": true
+    }
+  ]
+}
