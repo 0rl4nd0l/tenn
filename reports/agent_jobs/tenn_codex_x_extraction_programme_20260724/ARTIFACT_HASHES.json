@@ -1,0 +1,23 @@
+{
+  "hash_algorithm": "sha256",
+  "design_contract": {
+    "/home/l4nd0/codex-x-orchestrator-design/ORCHESTRATOR_SPEC.md": "29fcf6399eb1c31fcb34ee538f705db43a1c51ba5d040054924f9720d4ad14a6",
+    "/home/l4nd0/codex-x-orchestrator-design/TRANSITIONS.md": "56622f3e97a64cc617f04dd7fbff2506ecd9f7b2077302c3b6898818e2d8a59b",
+    "/home/l4nd0/codex-x-orchestrator-design/PROMPT_TEMPLATES.md": "8e3c5197b63e28dab3958961c676d03f6107b5ca212e58239b4483579ef83d64",
+    "/home/l4nd0/codex-x-orchestrator-design/RESTARTABILITY_TEST.md": "b16f1cb984f1167c0f6e14b080943772f2dd1f3fa7e2916574b4e738e1ebdcea",
+    "/home/l4nd0/codex-x-orchestrator-design/CLEAN_EXPORT_GATE.md": "72a19152b60eb4d7af53ab03e4478efe1633893df8dafeead5e166808c5de692",
+    "/home/l4nd0/codex-x-orchestrator-design/schemas/run_manifest.schema.json": "a955a447195ff997147979beb538f26c1cbbf636dc6efb19e392d3726641a4cd",
+    "/home/l4nd0/codex-x-orchestrator-design/schemas/ticket_state.schema.json": "080eb2460f136941daf7a0d45c93b4abcc724d97675f3d5dcc266a706bc67404",
+    "/home/l4nd0/codex-x-orchestrator-design/schemas/child_result.schema.json": "32d5cc22256eab747e3bafaf31fbd589603fe71de92929c74a55ed3a105c95ea",
+    "/home/l4nd0/codex-x-orchestrator-design/schemas/review_result.schema.json": "7981d02876208587ced7fe3db09359dac2df8ca36c90250af5a2c97c1c3f47c4",
+    "/home/l4nd0/codex-x-orchestrator-design/schemas/integration_result.schema.json": "67c597466c338e1273ffe159b058da0429adf0dc182704e9ddd048a14099b005"
+  },
+  "extraction_programme": {
+    "workspace": null,
+    "spec": null,
+    "adrs": {},
+    "tickets": {},
+    "ticket_set_sha256": null,
+    "status": "DATA_MISSING"
+  }
+}

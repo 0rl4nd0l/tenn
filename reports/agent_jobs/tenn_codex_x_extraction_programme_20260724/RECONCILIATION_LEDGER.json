@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "run_id": "tenn_codex_x_extraction_programme_20260724",
+  "updated_at": "2026-07-24T05:54:55Z",
+  "state": "WAITING_ON_USER",
+  "repository": "0rl4nd0l/tenn",
+  "canonical": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "commit_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+    "tree_sha": "cba105b2ff945fb0279158c7f54de2bcf4517e5d",
+    "remote_default_branch": "main",
+    "remote_default_sha": "cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b",
+    "selection_reason": "Live extraction PRs target migration/clean-runtime-baseline-reconstruct-v1; it contains merged PR 517 and is newer than default main."
+  },
+  "planning_inputs": {
+    "design_contract_root": "/home/l4nd0/codex-x-orchestrator-design",
+    "design_contract_status": "PRESENT_READ_ONLY",
+    "extraction_workspace_path": null,
+    "extraction_spec_path": null,
+    "extraction_spec_sha256": null,
+    "extraction_adr_paths": [],
+    "extraction_ticket_paths": [],
+    "extraction_ticket_set_sha256": null,
+    "status": "DATA_MISSING"
+  },
+  "tickets": [],
+  "known_work": [
+    {
+      "id": "PR-517",
+      "state": "MERGED",
+      "head_sha": "273d962823da5c96effff3c9275165d98418a125",
+      "integration_sha": "d438cb454b56b4718c5a1c4721e48831a7b107a5",
+      "canonical_contains_integration": true,
+      "ticket_classification_if_exact_match": [
+        "SUPERSEDED",
+        "DONE"
+      ],
+      "blocker": null,
+      "next_action": "Map exact ticket behavior and exclude duplicate implementation."
+    },
+    {
+      "id": "PR-508",
+      "state": "OPEN_DRAFT",
+      "head_sha": "4913ef0883410fcc6436b1387fa7c17642190d05",
+      "checks": "PASS",
+      "ticket_classification_if_overlap": "OVERLAPS_EXISTING",
+      "blocker": "Owner instruction required before modifying or duplicating NPAT owner-attribution/OCI-boundary work.",
+      "next_action": "Map exact tickets and hold overlaps."
+    },
+    {
+      "id": "PR-513",
+      "state": "OPEN_DRAFT",
+      "head_sha": "12ecb02fee3eebe9fd19527bc55a444502ec26d4",
+      "checks": "PASS",
+      "ticket_classification_if_overlap": "OVERLAPS_EXISTING",
+      "blocker": "Owner instruction required before modifying or duplicating declarative metric-contract authority work.",
+      "next_action": "Map exact tickets and hold overlaps."
+    }
+  ],
+  "ticket_record_contract": {
+    "required_fields": [
+      "ticket_id",
+      "canonical_sha",
+      "spec_sha256",
+      "ticket_sha256",
+      "status",
+      "child_session",
+      "output_commit_or_patch",
+      "validation",
+      "review",
+      "integration_sha",
+      "blocker",
+      "next_action"
+    ],
+    "allowed_statuses": [
+      "READY",
+      "SUPERSEDED",
+      "OVERLAPS_EXISTING",
+      "DEPENDS_ON",
+      "DATA_MISSING",
+      "DONE"
+    ]
+  },
+  "execution_order": [],
+  "first_child_prompt": null,
+  "blocker": {
+    "code": "EXTRACTION_PLANNING_ARTIFACTS_MISSING",
+    "detail": "The authoritative completed extraction workspace, spec, ADRs, and ticket files were not located. A ticket inventory, ticket hashes, exact reconciliation, valid run manifest, and bounded first child prompt cannot be constructed safely.",
+    "resume_only_if": "The owner supplies an exact local path or accessible URL for the completed extraction workspace."
+  },
+  "next_action": "Supply the existing extraction workspace root; rerun reconciliation only. Do not launch a child yet."
+}
