@@ -1,0 +1,67 @@
+{
+  "schema_version": "tenn_codex_x_child_attempt_validation_v1",
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "attempt": 1,
+  "launcher": {
+    "run_id": "20260725T025129Z-107c926930-f5a65a",
+    "manifest_path": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T025129Z-107c926930-f5a65a/manifest.json",
+    "source_ref": "refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
+    "source_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "base_source_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "baseline_sha": "0781dca17faf978992a7ad8ff62e207f4ba3a505"
+  },
+  "prompt": {
+    "path": "../pr521_integration_20260725/prompts/ASXFP_01_SCORECARDS-implementer-01.txt",
+    "expected_sha256": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+    "submitted_sha256": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+    "byte_length": 8243,
+    "validation": "PASS"
+  },
+  "session_identity": {
+    "actual_codex_session_id": "019f9733-17d2-7853-a844-f2aacc0dc1a2",
+    "returned_session_id": "20260725T025129Z-107c926930-f5a65a",
+    "validation": "FAIL",
+    "reason": "The child returned the launcher run ID instead of the fresh Codex thread ID."
+  },
+  "returned_json": {
+    "status": "DATA_MISSING",
+    "syntax_validation": "PASS",
+    "requested_top_level_shape_validation": "PASS",
+    "canonical_json_sha256": "f1019e7160033113bca512a80a449678539bc2f1b00807fced82d169e2988a32",
+    "raw_output_text_sha256": "f6603ef228c597281cfa51270441c2d1b69f65f313c506b345d558bc972986ca"
+  },
+  "output_verification": {
+    "output_commit_sha": null,
+    "output_patch_reference": null,
+    "output_tree_sha": null,
+    "launcher_baseline_parent_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "final_head_sha": "0781dca17faf978992a7ad8ff62e207f4ba3a505",
+    "final_tree_sha": "3923a6f85997bd8d210bf3f0237dfb2706033099",
+    "changed_paths": [],
+    "untracked_paths": [],
+    "git_diff_check": "PASS",
+    "orphan_child_processes": 0
+  },
+  "command_and_scorecard_verification": {
+    "returned_commands_recorded": 3,
+    "returned_nonzero_commands": 1,
+    "focused_evaluator_tests_run": false,
+    "scorecard_comparison_produced": false,
+    "returned_scorecard_objects_empty": true
+  },
+  "stop_condition_assessment": {
+    "classification": "FALSE_BLOCKER_FROM_SOURCE_SURFACE_SELECTION",
+    "reference_only_source_head": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+    "reference_only_source_tree": "cba105b2ff945fb0279158c7f54de2bcf4517e5d",
+    "implementation_worktree_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "assessment": "The child inspected the stale reference-only source checkout instead of the launcher-pinned implementation worktree. The fail-closed response is real, but it does not establish canonical drift."
+  },
+  "disposition": {
+    "orchestrator_outcome": "FAILED",
+    "implementation_attempt_consumed": true,
+    "reviewable_output_exists": false,
+    "reviewer_prompt_runnable": false,
+    "reviewer_launch_authorized": false,
+    "retry_authorized": false
+  }
+}

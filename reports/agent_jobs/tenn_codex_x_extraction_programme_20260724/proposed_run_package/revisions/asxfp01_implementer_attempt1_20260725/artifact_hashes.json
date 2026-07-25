@@ -1,0 +1,14 @@
+{
+  "hash_algorithm": "sha256",
+  "revision_id": "asxfp01_implementer_attempt1_20260725",
+  "artifacts": {
+    "README.md": "5a97336f7e835a42da72e8e31ece7060b189679deb3f0af949bb9e4d114d61f1",
+    "attempt_validation.json": "4e7823efd8746e276a521aa1c67dc4f46b809173478eee41c308563a8ed67be6",
+    "child_outputs/ASXFP_01_SCORECARDS-implementer-01.json": "9855099fdddbcdf523b98875b35a76cefcfbbd67cb212bf1cee27fcf09fb9aad",
+    "child_results/ASXFP_01_SCORECARDS-implementer-01.json": "2624c63f5a01be502787fd948578dc5a1c5d8879dacb3eb1eadf9474467fda25",
+    "prompts/ASXFP_01_SCORECARDS-reviewer-01.PROHIBITED.txt": "76232c262175fdc29b51e711eaff8e382484d049978a81a57391cbda90d0b632",
+    "revision_summary.json": "245ec7b62eb0846c41c035a6f58a8330eeeb8da5e6d064be5fe147f85047a234",
+    "schema_bindings.json": "43ca6deddf3e05b5b68e0de9abd20726a05741d9970bdeb59258bf772522ffcc",
+    "ticket_state/ASXFP_01_SCORECARDS.json": "ab6bf8e685c52aff3e413103b771597e876ec8052d5849c03ff27fe789acc250"
+  }
+}

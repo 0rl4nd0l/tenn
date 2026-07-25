@@ -1,0 +1,30 @@
+{
+  "design_root": "/home/l4nd0/codex-x-orchestrator-design",
+  "read_only": true,
+  "simulator_executed": false,
+  "schemas": {
+    "ticket_state": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/ticket_state.schema.json",
+      "sha256": "080eb2460f136941daf7a0d45c93b4abcc724d97675f3d5dcc266a706bc67404",
+      "instances": [
+        "ticket_state/ASXFP_01_SCORECARDS.json"
+      ]
+    },
+    "child_result": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/child_result.schema.json",
+      "sha256": "32d5cc22256eab747e3bafaf31fbd589603fe71de92929c74a55ed3a105c95ea",
+      "instances": [
+        "child_results/ASXFP_01_SCORECARDS-implementer-01.json"
+      ]
+    },
+    "review_result": {
+      "path": "/home/l4nd0/codex-x-orchestrator-design/schemas/review_result.schema.json",
+      "sha256": "7981d02876208587ced7fe3db09359dac2df8ca36c90250af5a2c97c1c3f47c4",
+      "instances": []
+    }
+  },
+  "result_hash_rule": "result_hash is sha256 over the canonical JSON form of the exact returned child JSON.",
+  "failure_transition_rule": "Attempt 1 failed with no output; state remains IMPLEMENTING and no reviewer transition is valid.",
+  "reviewer_separation_rule": "No reviewer prompt may be rendered without an exact child result and output hash. Any future reviewer requires separate authorization and a distinct fresh session.",
+  "retry_rule": "No retry is authorized by this revision. A second implementation attempt requires a new owner authorization."
+}

@@ -1,0 +1,18 @@
+REVIEWER PROMPT NOT GENERATED — LAUNCH PROHIBITED
+
+Ticket: ASXFP_01_SCORECARDS
+Implementer attempt: 1
+Implementer session: 019f9733-17d2-7853-a844-f2aacc0dc1a2
+Implementer outcome: FAILED / DATA_MISSING
+
+A reviewer prompt requires an exact output commit or hash-bound patch, an
+output hash, a valid child-result identity, and a deterministic scorecard
+comparison. Attempt 1 produced none of those bindings. Its returned session ID
+also did not match the actual fresh Codex session ID.
+
+There is therefore no reviewable delta and no safe runnable reviewer prompt.
+Do not launch a reviewer.
+
+The next possible action is a separately authorized implementation retry after
+correcting the canonical verification surface. This file is a disposition
+record, not an executable prompt.

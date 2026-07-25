@@ -1,0 +1,44 @@
+{
+  "schema_version": "tenn_codex_x_extraction_revision_v1",
+  "revision_id": "asxfp01_implementer_attempt1_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "canonical_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+  "ticket": {
+    "ticket_id": "ASXFP_01_SCORECARDS",
+    "attempt": 1,
+    "classification": "FAILED_ATTEMPT_RETRY_REQUIRES_AUTHORIZATION",
+    "orchestrator_state": "IMPLEMENTING",
+    "child_outcome": "FAILED",
+    "child_status": "DATA_MISSING",
+    "reviewable_output_exists": false
+  },
+  "identity": {
+    "prompt_sha256": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+    "launcher_run_id": "20260725T025129Z-107c926930-f5a65a",
+    "fresh_codex_session_id": "019f9733-17d2-7853-a844-f2aacc0dc1a2",
+    "returned_session_id": "20260725T025129Z-107c926930-f5a65a",
+    "session_identity_validation": "FAIL"
+  },
+  "output": {
+    "commit_sha": null,
+    "patch_reference": null,
+    "tree_sha": null,
+    "changed_paths": [],
+    "scorecard_comparison": "NOT_PRODUCED"
+  },
+  "validation": {
+    "returned_json": "PASS",
+    "returned_json_shape": "PASS",
+    "prompt_hash": "PASS",
+    "isolated_worktree_clean": true,
+    "git_diff_check": "PASS",
+    "child_result_schema": "PASS",
+    "ticket_state_schema": "PASS",
+    "artifact_hashes": "PASS"
+  },
+  "reviewer": {
+    "prompt_disposition": "NOT_GENERATED_NO_REVIEWABLE_OUTPUT",
+    "launch_authorized": false
+  },
+  "next_safe_action": "Stop. Do not launch a reviewer or retry. A second implementer attempt requires separate owner authorization after correcting the canonical verification surface."
+}

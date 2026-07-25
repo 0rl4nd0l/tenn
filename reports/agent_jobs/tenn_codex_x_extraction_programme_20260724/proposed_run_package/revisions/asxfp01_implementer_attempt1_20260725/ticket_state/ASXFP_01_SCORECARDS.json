@@ -1,0 +1,19 @@
+{
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "state": "IMPLEMENTING",
+  "allowed_scope_hash": "9273df987143b5f7dad3b60fcc3358c3ee8971369ec5b0993b847d309e353e1a",
+  "implementation_attempts": 1,
+  "retry_count": 0,
+  "implementer_session_ids": [
+    "019f9733-17d2-7853-a844-f2aacc0dc1a2"
+  ],
+  "reviewer_session_id": null,
+  "integrator_session_id": null,
+  "blocker": null,
+  "result_hashes": [
+    "f1019e7160033113bca512a80a449678539bc2f1b00807fced82d169e2988a32"
+  ],
+  "output_hash": null,
+  "child_result_hash": null,
+  "review_result_hash": null
+}

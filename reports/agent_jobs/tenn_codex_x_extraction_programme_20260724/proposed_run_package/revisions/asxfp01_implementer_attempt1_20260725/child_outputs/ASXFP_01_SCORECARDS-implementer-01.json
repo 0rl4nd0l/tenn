@@ -1,0 +1,67 @@
+{
+  "status": "DATA_MISSING",
+  "work_log": {
+    "assumptions": [
+      "The launcher run_id is the session ID.",
+      "Canonical state means the live repository at CODEX_X_SOURCE_ROOT with launcher Git bindings unset.",
+      "Launcher-owned untracked control files are not substantive implementation changes."
+    ],
+    "sources_used": [
+      "Launcher manifest",
+      "Pinned specification hash",
+      "Pinned ticket hash",
+      "Live canonical Git commit and tree"
+    ],
+    "files_read": [
+      "/home/l4nd0/codex-x-pilot/.state/user-home/.agents/skills/tdd/SKILL.md",
+      "/home/l4nd0/codex-x-pilot/.state/runs/20260725T025129Z-107c926930-f5a65a/manifest.json",
+      "/home/l4nd0/codex-x-pilot/.state/runs/20260725T025129Z-107c926930-f5a65a/SOURCE.md",
+      "/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md",
+      "/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/.scratch/asx-financial-profile-extraction-recovery/issues/01-trustworthy-real-asx-release-scorecards.md"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "Expected canonical commit 107c926930ef5a14783a8293bac9b47c9046bfed; live canonical HEAD was 2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7.",
+      "Expected canonical tree 9e43e6380c357e1a40a23bff6d4a07522c86ff98; live canonical tree was cba105b2ff945fb0279158c7f54de2bcf4517e5d.",
+      "Specification SHA-256 matched ecba77e0185fe5fe4d38c840624bb7da4ce5f4f6290458c7f6e2b33b3a8b8b67.",
+      "Ticket SHA-256 matched 4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a.",
+      "Stopped before implementation and remaining validations because the mandatory canonical commit/tree precondition failed.",
+      "No tracked or staged paths were changed."
+    ]
+  },
+  "result": {
+    "session_id": "20260725T025129Z-107c926930-f5a65a",
+    "output_commit_sha": null,
+    "output_tree_sha": null,
+    "output_patch_reference": null,
+    "output_sha256": null,
+    "commands": [
+      {
+        "command": "sed -n '1,240p' /home/l4nd0/codex-x-pilot/.state/user-home/.agents/skills/tdd/SKILL.md && env | rg '^(CODEX_X_SOURCE_ROOT|CODEX_X_WORKTREE_ROOT|GIT_DIR|GIT_WORK_TREE)=' && sed -n '1,240p' manifest.json && git status --short && git rev-parse HEAD^{commit} HEAD^{tree}",
+        "exit_code": 0
+      },
+      {
+        "command": "env -u GIT_DIR -u GIT_WORK_TREE git -C /home/l4nd0/tenn rev-parse HEAD^{commit} HEAD^{tree}; sha256sum /home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md /home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/.scratch/asx-financial-profile-extraction-recovery/issues/01-trustworthy-real-asx-release-scorecards.md; rg -n \"664527b0|9273df98|cc042df1|allowed.scope|ticket.set|live PR|overlap\" manifest.json SOURCE.md /home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/.scratch/asx-financial-profile-extraction-recovery -g '*'",
+        "exit_code": 1
+      },
+      {
+        "command": "git diff --name-only; git diff --cached --name-only; git status --short; rg -n '\"source\"|branch|commit|tree|sha|ref' manifest.json | tail -n 40; find /home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/.scratch/asx-financial-profile-extraction-recovery -maxdepth 2 -type f -print | sort",
+        "exit_code": 0
+      }
+    ],
+    "scorecard_before_after": {
+      "present_correct": {},
+      "present_wrong_value": {},
+      "missing_expected_metric": {},
+      "source_unbound": {},
+      "comparative_period": {},
+      "side_effects": {}
+    },
+    "risks": [
+      "Implementing against the current live canonical tree could produce a patch not bound to the ticket's pinned authority.",
+      "Ticket-set, allowed-scope, metric-authority, and live-PR-overlap checks were not completed after the mandatory canonical precondition failed."
+    ],
+    "unresolved_assumptions": [],
+    "stop_condition": "DATA_MISSING: the live canonical repository no longer matches pinned commit 107c926930ef5a14783a8293bac9b47c9046bfed and tree 9e43e6380c357e1a40a23bff6d4a07522c86ff98. It was observed at commit 2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7 and tree cba105b2ff945fb0279158c7f54de2bcf4517e5d. No substantive changes were made."
+  }
+}

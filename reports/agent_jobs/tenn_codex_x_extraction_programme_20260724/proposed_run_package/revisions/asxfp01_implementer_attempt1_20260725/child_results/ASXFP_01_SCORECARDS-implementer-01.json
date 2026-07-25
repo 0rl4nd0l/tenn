@@ -1,0 +1,22 @@
+{
+  "role": "IMPLEMENTER",
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "fresh_session_id": "019f9733-17d2-7853-a844-f2aacc0dc1a2",
+  "prompt_hash": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+  "allowed_scope": [
+    "financial-engine_v2/backend/app/services/extraction_eval.py",
+    "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+    "financial-engine_v2/backend/tests/test_extraction_eval.py",
+    "financial-engine_v2/backend/tests/test_extraction_eval_harness.py",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval.py"
+  ],
+  "started_at": "2026-07-25T02:55:36.275Z",
+  "ended_at": "2026-07-25T02:56:38.746Z",
+  "output": {
+    "kind": "none",
+    "reference": "",
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "result_hash": "f1019e7160033113bca512a80a449678539bc2f1b00807fced82d169e2988a32",
+  "outcome": "FAILED"
+}
