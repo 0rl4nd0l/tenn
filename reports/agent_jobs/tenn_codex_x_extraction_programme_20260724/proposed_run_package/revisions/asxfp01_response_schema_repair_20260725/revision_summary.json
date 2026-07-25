@@ -15,13 +15,15 @@
   },
   "ticket": {
     "ticket_id": "ASXFP_01_SCORECARDS",
-    "classification": "READY",
-    "orchestrator_state": "PLANNED",
-    "implementation_attempts": 0,
+    "classification": "FAILED_ATTEMPT_BLOCKED_PENDING_SEPARATE_AUTHORIZATION",
+    "orchestrator_state": "BLOCKED",
+    "implementation_attempts": 1,
     "retry_count": 0,
-    "implementer_session_ids": [],
+    "implementer_session_ids": [
+      "019f978e-6163-77f3-b30c-4b124d4a029f"
+    ],
     "reviewer_launch_authorized": false,
-    "implementation_launch_authorized_by_this_revision": false
+    "implementation_launch_authorized_by_owner": true
   },
   "schema_repair": {
     "prior_model_output_schema_sha256": "258765f57cc47c784e9673dc65c7aa1d26cd762bb4269b301b4fe8c146e7c84e",
@@ -35,13 +37,13 @@
     "superseded_prepared_run_id": "20260725T032937Z-107c926930-fb7928",
     "superseded_reason": "The retained orchestration-failure run already has an exclusive session-identity record.",
     "run_id": "20260725T041849Z-107c926930-e0e992",
-    "session_id": null,
+    "session_id": "019f978e-6163-77f3-b30c-4b124d4a029f",
     "writable_checkout": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/workspace/source",
     "writable_head": "107c926930ef5a14783a8293bac9b47c9046bfed",
     "writable_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
     "reference_checkout": "/home/l4nd0/tenn",
     "reference_checkout_identity_ignored": true,
-    "child_started": false
+    "child_started": true
   },
   "transport_contract": {
     "prior_launcher_commit": "4a16a59d619bbc195e457a3cb573b19735229d52",
@@ -54,6 +56,26 @@
     "path": "prompts/ASXFP_01_SCORECARDS-implementer-transport-v3.txt",
     "sha256": "1bbb5077adb1fbd0c57230d931197897e68204e534c05a09d9513bf3620ee9fc",
     "semantic_change": "Only the strict scorecard delta representation and fresh writable checkout path changed."
+  },
+  "implementer_result": {
+    "status": "DATA_MISSING",
+    "outcome": "FAILED",
+    "result_hash": "62b30c5514db04c1ee4a985976a83a955aaf94ee9fd09ad775002847b19bfe86",
+    "commit_sha": null,
+    "patch_reference": null,
+    "tree_sha": null,
+    "changed_paths": [],
+    "tests": [],
+    "scorecard_comparison": "EMPTY_NO_IMPLEMENTATION_OUTPUT",
+    "stop_condition": "The child resolved the enclosing launcher control repository for git -C status and mistook its SOURCE.md and manifest.json control files for product checkout dirt.",
+    "isolated_product_checkout_clean": true
+  },
+  "reviewer": {
+    "prompt_path": "prompts/ASXFP_01_SCORECARDS-reviewer-01.txt",
+    "prompt_sha256": "f41fe5feb88107e18fe74c560d232fcd68a3e27809218f5cd79c53f1852e656e",
+    "prompt_disposition": "PROPOSED_READ_ONLY_NOT_AUTHORIZED",
+    "product_output_reviewable": false,
+    "launch_authorized": false
   },
   "validation": {
     "canonical_remote_identity": "PASS",
@@ -70,7 +92,16 @@
     "launcher_full_tests": "PASS_104",
     "transport_dry_run": "PASS",
     "shell_syntax": "PASS",
-    "child_launches": 0
+    "child_launches": 1,
+    "thread_started_identity": "PASS",
+    "model_output_schema_instance": "PASS",
+    "child_result_schema_instance": "PASS",
+    "result_hash": "PASS",
+    "isolated_checkout_clean": "PASS",
+    "changed_path_scope": "PASS_EMPTY",
+    "output_commit_or_patch": "NONE",
+    "tests": "NOT_RUN_IMPLEMENTER_STOPPED_AT_PREFLIGHT",
+    "scorecard_comparison": "EMPTY_SCHEMA_VALID"
   },
-  "next_safe_action": "Stop. Await separate authorization before executing proposed_launch_command.sh. Reviewer, integration, Tenn product publication, PR mutation, runtime, data, merge, and deployment actions remain prohibited."
+  "next_safe_action": "Stop. Await separate authorization before launching the proposed read-only reviewer or repairing the checkout-status contract for any retry. Integration, Tenn product publication, PR mutation, runtime, data, merge, and deployment actions remain prohibited."
 }

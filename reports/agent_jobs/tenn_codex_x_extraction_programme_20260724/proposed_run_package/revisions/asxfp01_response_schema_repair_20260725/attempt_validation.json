@@ -1,0 +1,56 @@
+{
+  "schema_version": "tenn_codex_x_implementer_attempt_validation_v1",
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "implementation_attempt": 1,
+  "retry_count": 0,
+  "transport": {
+    "run_id": "20260725T041849Z-107c926930-e0e992",
+    "session_id": "019f978e-6163-77f3-b30c-4b124d4a029f",
+    "thread_started_count": 1,
+    "turn_started_count": 1,
+    "turn_completed_count": 1,
+    "command_count": 1,
+    "strict_schema_admission": "PASS",
+    "model_execution_began": true,
+    "identity_validation": "PASS"
+  },
+  "structured_output": {
+    "status": "DATA_MISSING",
+    "model_output_schema": "PASS",
+    "child_result_schema": "PASS",
+    "result_hash": "62b30c5514db04c1ee4a985976a83a955aaf94ee9fd09ad775002847b19bfe86",
+    "model_output_file_sha256": "bfb0f03de24bf8e6f456be72477675ca1dc4c215be27ae7b125883eebef7170a",
+    "child_result_file_sha256": "4ca698d84826e96b1e075cf0cd80483c6d89ce451838f6fe67b68ca8af0c8b41",
+    "events_file_sha256": "e83710e32beff9809e52899c8d9af09fa99879b6645dc9fdd368e6793c9822c3"
+  },
+  "output": {
+    "commit_sha": null,
+    "patch_reference": null,
+    "tree_sha": null,
+    "changed_paths": [],
+    "tests": [],
+    "scorecard_comparison": {
+      "present_correct": [],
+      "present_wrong_value": [],
+      "missing_expected_metric": [],
+      "source_unbound": [],
+      "comparative_period": [],
+      "side_effects": []
+    }
+  },
+  "checkout_validation": {
+    "isolated_git_head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "isolated_git_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "isolated_git_status": "CLEAN",
+    "isolated_git_diff_check": "PASS",
+    "child_git_top_level": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992",
+    "child_reported_untracked": [
+      "SOURCE.md",
+      "manifest.json"
+    ],
+    "classification": "FAIL_CLOSED_FALSE_DIRTY_SIGNAL_FROM_ENCLOSING_CONTROL_REPOSITORY"
+  },
+  "verdict": "FAILED_NO_IMPLEMENTATION_OUTPUT",
+  "reviewable_product_output_exists": false,
+  "reviewer_launch_authorized": false
+}

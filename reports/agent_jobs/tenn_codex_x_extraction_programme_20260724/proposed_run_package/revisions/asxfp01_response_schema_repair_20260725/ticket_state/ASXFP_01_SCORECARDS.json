@@ -1,15 +1,23 @@
 {
   "ticket_id": "ASXFP_01_SCORECARDS",
-  "state": "PLANNED",
+  "state": "BLOCKED",
   "allowed_scope_hash": "9273df987143b5f7dad3b60fcc3358c3ee8971369ec5b0993b847d309e353e1a",
-  "implementation_attempts": 0,
+  "implementation_attempts": 1,
   "retry_count": 0,
-  "implementer_session_ids": [],
+  "implementer_session_ids": [
+    "019f978e-6163-77f3-b30c-4b124d4a029f"
+  ],
   "reviewer_session_id": null,
   "integrator_session_id": null,
-  "blocker": null,
-  "result_hashes": [],
+  "blocker": {
+    "classification": "IMPLEMENTER_PRECHECK_DATA_MISSING",
+    "detail": "The child used git -C on the checkout path, which resolved the enclosing launcher control repository and reported control files as untracked. The isolated product Git metadata proves the product checkout itself is clean.",
+    "next_safe_action": "Obtain separate authorization for a read-only reviewer or for a narrowly corrected checkout-status contract before any retry."
+  },
+  "result_hashes": [
+    "62b30c5514db04c1ee4a985976a83a955aaf94ee9fd09ad775002847b19bfe86"
+  ],
   "output_hash": null,
-  "child_result_hash": null,
+  "child_result_hash": "4ca698d84826e96b1e075cf0cd80483c6d89ce451838f6fe67b68ca8af0c8b41",
   "review_result_hash": null
 }
