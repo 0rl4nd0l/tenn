@@ -2,20 +2,21 @@
 
 Candidate ticket: `ASXFP_01_SCORECARDS`
 
-Status: `HELD — OVERLAPS_EXISTING`
+Status: `READY`; orchestrator state `PLANNED`
 
-Exact prompt:
-`proposed_run_package/prompts/ASXFP_01_SCORECARDS-implementer-01.held.txt`
+Exact current prompt:
+`proposed_run_package/revisions/pr521_integration_20260725/prompts/ASXFP_01_SCORECARDS-implementer-01.txt`
 
 Prompt SHA-256:
-`270529ebe90bf0655a7eafcb060f9dea1f1a1da02888510cd1728e637827a8ae`
+`be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5`
 
-The prompt is complete and immutable for the pinned
-`2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7` run revision. It deliberately
-contains a fail-closed pre-launch hold because open draft PR #513 changes the
-metric authority and real-gold evaluation consumers needed by ticket 01.
+The prompt is pinned to canonical
+`107c926930ef5a14783a8293bac9b47c9046bfed`, tree
+`9e43e6380c357e1a40a23bff6d4a07522c86ff98`. It is derived from the unchanged
+spec/ticket hashes and the now-canonical metric authority.
 
-It must not be launched. After exact owner disposition of PR #513, refresh
-canonical identity and regenerate the prompt if the base, ticket, spec, scope,
-or authority hash changes. Reusing this prompt on a new spine would violate the
-design contract's artifact-derived prompt rule.
+The old held prompt remains immutable at
+`proposed_run_package/prompts/ASXFP_01_SCORECARDS-implementer-01.held.txt`. It
+must not be reused.
+
+No child was launched. A launch requires separate explicit authorization.

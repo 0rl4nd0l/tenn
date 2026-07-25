@@ -1,0 +1,43 @@
+{
+  "run_id": "tenn_codex_x_extraction_pr521_integrated_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "canonical_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+  "spec_path": "/home/l4nd0/codex-x-pilot/.state/runs/20260723T062310Z-2f5a8aac38-470589/workspace/source/docs/superpowers/specs/2026-07-23-asx-financial-profile-extraction-recovery.md",
+  "spec_hash": "ecba77e0185fe5fe4d38c840624bb7da4ce5f4f6290458c7f6e2b33b3a8b8b67",
+  "ticket_set": [
+    "ASXFP_01_SCORECARDS",
+    "ASXFP_02_DIAGNOSTIC_CORPUS",
+    "ASXFP_03_RELEASE_HOLDOUT",
+    "ASXFP_04_EXTRACTION_CONTRACTS",
+    "ASXFP_05_OBSERVATION_SEAM",
+    "ASXFP_06_STATUTORY_PROJECTION",
+    "ASXFP_07_PERIOD_BASIS",
+    "ASXFP_08_APPENDIX4C_PROFILE",
+    "ASXFP_09_ACCOUNTING_BASIS",
+    "ASXFP_10_RESTATEMENT_PRECEDENCE",
+    "ASXFP_11_EVIDENCE_REVIEW",
+    "ASXFP_12_SCANNED_DOCS",
+    "ASXFP_13_TABLE_PERIOD_SELECTION",
+    "ASXFP_14_NORMALIZATION",
+    "ASXFP_15_LEGACY_WRITE_RETIREMENT",
+    "ASXFP_16_RELEASE_GATE",
+    "ASXFP_17_CANARY",
+    "ASXFP_18_BACKFILL"
+  ],
+  "ticket_set_hash": "664527b0c95f11d3ce4e1841d902b324be34ab1041b5a333d00e3f0e654a2026",
+  "budgets": {
+    "max_children": 54,
+    "max_attempts_per_ticket": 2,
+    "max_child_minutes": 90,
+    "max_run_minutes": 10080,
+    "max_log_bytes": 104857600,
+    "max_disk_bytes": 1073741824
+  },
+  "owner_boundaries": {
+    "owner": "Tenn owner",
+    "runtime_authorization": "SEPARATE_REQUIRED",
+    "data_authorization": "SEPARATE_REQUIRED",
+    "merge_authorization": "SEPARATE_REQUIRED",
+    "deploy_authorization": "SEPARATE_REQUIRED"
+  }
+}

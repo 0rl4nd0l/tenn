@@ -1,0 +1,12 @@
+{
+  "hash_algorithm": "sha256",
+  "revision_id": "pr521_integration_20260725",
+  "artifacts": {
+    "README.md": "02bcf7700efdbcd82cedcb6adddf83459ece12b12e5e2107dfe984fcd17bc345",
+    "run_manifest.json": "c8c9a0f1bddc0b198e8214586ea12892d5b5a34d7b074e57eaf9e160495e3691",
+    "schema_bindings.json": "bd5a37012ea8032db5b939b1d6fd8b065e7afa0f55fc976ce02470fd8454ce16",
+    "revision_summary.json": "ece7e3dbb52613a379b74d61ff97f7e762da189da8bd73486f1bcbd3a511eba0",
+    "ticket_state/ASXFP_01_SCORECARDS.json": "3790acf20dc80abadef2859700ff5e7a7e8dda3c88cef2111db87ccd40e60acb",
+    "prompts/ASXFP_01_SCORECARDS-implementer-01.txt": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5"
+  }
+}

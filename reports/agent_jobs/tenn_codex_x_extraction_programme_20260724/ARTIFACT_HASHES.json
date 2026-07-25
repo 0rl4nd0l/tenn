@@ -115,5 +115,15 @@
     "exact_commit_waiter_sha256": "78ac0f244630656954903a5b6bdf4bad60a565343ab34bc556609a7ec580fe4e",
     "exact_commit_log_sha256": "da11bc9f08749a8d10a8da6a0a8ac75a64eaffbd9c97fc31e881bc377fd98307",
     "pr521_checks_waiter_sha256": "d646036a3240dd5fc0565223310681ee715b8504809a02842b35f32bb8549631"
+  },
+  "pr521_integration_20260725": {
+    "reviewed_head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
+    "reviewed_head_tree": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+    "merge_and_canonical_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "canonical_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "parity_digest": "cc042df11e1743d9cf3085020991bd6dd8f73da835a7ece2efb48edf1c9f51ce",
+    "ticket_01_classification": "READY",
+    "prompt_sha256": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+    "revision_artifact_hashes_sha256": "d9ea1cafc94ee3e0f42431200141563548f91facf97220840ad50ffd9610f3ad"
   }
 }

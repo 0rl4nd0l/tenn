@@ -1,14 +1,17 @@
 {
   "schema_version": 2,
   "run_id": "tenn_codex_x_extraction_programme_20260724",
-  "updated_at": "2026-07-24T06:41:52Z",
-  "state": "RECONCILED_HELD",
-  "current_revision": "proposed_run_package/revisions/pr513_disposition_20260724",
+  "updated_at": "2026-07-25T01:36:01Z",
+  "state": "RECONCILED_READY",
+  "current_revision": "proposed_run_package/revisions/pr521_integration_20260725",
+  "refresh_scope": [
+    "ASXFP_01_SCORECARDS"
+  ],
   "repository": "0rl4nd0l/tenn",
   "canonical": {
     "branch": "migration/clean-runtime-baseline-reconstruct-v1",
-    "commit_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
-    "tree_sha": "cba105b2ff945fb0279158c7f54de2bcf4517e5d",
+    "commit_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree_sha": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
     "local_launch_branch": "deploy/canonical-runtime-v1",
     "remote_default_branch": "main",
     "remote_default_sha": "cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b"
@@ -43,25 +46,26 @@
       "superseded_by": 521
     },
     "PR-521": {
-      "state": "OPEN_DRAFT",
+      "state": "MERGED",
       "head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
       "tree_sha": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+      "integration_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
       "checks": "PASS",
-      "contained_in_canonical": false
+      "contained_in_canonical": true
     }
   },
   "tickets": [
     {
       "ticket_id": "ASXFP_01_SCORECARDS",
       "ticket_sha256": "4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a",
-      "status": "DEPENDS_ON_SUCCESSOR_INTEGRATION",
+      "status": "READY",
       "child_session": null,
       "output_commit_or_patch": null,
       "validation": "NOT_RUN",
       "review": "NOT_RUN",
       "integration_sha": null,
-      "blocker": "PR #513 is closed as superseded and PR #521 is the accepted authority successor, but canonical does not contain it; the precision/recall denominator must follow the integrated authority.",
-      "next_action": "Separately authorize an exact-head PR #521 merge, refresh canonical, and re-scope the residual scorecard gap."
+      "blocker": null,
+      "next_action": "Separately authorize one fresh Codex X implementer launch from the exact hash-bound prompt."
     },
     {
       "ticket_id": "ASXFP_02_DIAGNOSTIC_CORPUS",
@@ -269,7 +273,6 @@
     }
   ],
   "execution_order": [
-    "OWNER_AUTHORIZE_PR_521_MERGE",
     "ASXFP_01_SCORECARDS",
     "OWNER_PROVIDE_ASXFP_02_DATA",
     "ASXFP_02_DIAGNOSTIC_CORPUS",

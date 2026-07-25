@@ -17,7 +17,7 @@ ordered ticket IDs in `run_manifest.json`. Individual source hashes are in
 
 | ID | Ticket | Status | Current-truth reconciliation | Blocker / next action |
 | --- | --- | --- | --- | --- |
-| 01 | Trustworthy real-ASX release scorecards | `DEPENDS_ON_SUCCESSOR_INTEGRATION` | PR #513 is closed as superseded. Draft PR #521 is the accepted, behavior-preserving metric-authority successor, but canonical `2f5a8aac...` does not contain it. The precision/recall denominator must follow the integrated authority. | Separately authorize an exact-head PR #521 merge; refresh canonical; then re-scope only the remaining scorecard gap. |
+| 01 | Trustworthy real-ASX release scorecards | `READY` | PR #521 is canonical at `107c9269...`; the metric authority and parity digest are verified. Residual work is bounded to explicit precision/recall, period-basis/accounting-basis correctness, and supported document-class grouping. Open PR #508 does not overlap the allowed scorecard scope. | Separately authorize one fresh Codex X implementer launch from the exact regenerated prompt. |
 | 02 | Lock 12-document diagnostic corpus | `DATA_MISSING` | Canonical has 15 prior real fixtures but not the required two independently verified documents for each of six classes, complete labels, or locked source/label manifest. | Separate approval and provision of source PDFs and independently reviewed gold labels. |
 | 03 | Lock 36-document release holdout | `DATA_MISSING` | The required 48-document corpus, protected 36-document holdout, source hashes, and review metadata do not exist on canonical. | Complete 01 and 02, then separately authorize/provide protected source and label assets. |
 | 04 | Explicit extraction contracts | `DEPENDS_ON` | Pure document classification exists, but production contracts do not. PR #521 is the accepted declarative metric authority and directly owns allowed metric semantics. | Integrate PR #521 and complete 02 before a residual routing ticket; do not duplicate the authority. |
@@ -37,15 +37,16 @@ ordered ticket IDs in `run_manifest.json`. Individual source hashes are in
 | 18 | Reversible bounded backfills | `DATA_MISSING` | No approved canary or bounded company/date window exists; backfill is separately owner-controlled. | Depends on 17 and explicit data/backfill approval. |
 
 No whole ticket is `DONE`; several canonical foundations are useful but do not
-satisfy an entire card. No ticket is currently `READY`.
+satisfy an entire card. Ticket 01 is `READY`. Rows 02-18 remain the prior
+reconciliation snapshot and were not re-planned in this narrow refresh.
 
 ## Shortest safe order
 
 This preserves the existing ticket graph while applying current-truth holds:
 
-1. Separately authorize an exact-head merge of PR #521, then refresh canonical.
-2. Reconcile and execute residual 01 (scorecard contract) if it is then
-   `READY`.
+1. Separately authorize and execute one fresh ticket-01 implementer session
+   from the exact regenerated prompt.
+2. Independently review and clean-export ticket 01 before any publication.
 3. Separately approve/provide the 12-document source-and-label package for 02.
 4. Execute residual 04, then code-only 05.
 5. Execute 07, then 08; execute 06, 09, and 10 as their prerequisites clear.

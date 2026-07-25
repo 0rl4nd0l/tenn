@@ -13,23 +13,33 @@ proposed_run_package/
 ├── ticket_state/
 │   └── ASXFP_01_SCORECARDS.json
 └── revisions/
-    └── pr513_disposition_20260724/
+    ├── pr513_disposition_20260724/
+    │   ├── run_manifest.json
+    │   ├── schema_bindings.json
+    │   └── ticket_state/
+    │       └── ASXFP_01_SCORECARDS.json
+    └── pr521_integration_20260725/
+        ├── README.md
+        ├── artifact_hashes.json
         ├── run_manifest.json
         ├── schema_bindings.json
+        ├── revision_summary.json
+        ├── prompts/
+        │   └── ASXFP_01_SCORECARDS-implementer-01.txt
         └── ticket_state/
             └── ASXFP_01_SCORECARDS.json
 ```
 
 The original manifest and ticket state remain the immutable terminal view
 pinned by report-only commit `d5dd1dd...`. The additive disposition revision
-records PR #513 closed as superseded and PR #521 accepted as the unmerged
-successor. Its ticket state remains schema-valid `BLOCKED`, classified
-`DEPENDS_ON_SUCCESSOR_INTEGRATION`.
+records PR #513 closed as superseded and PR #521 accepted as the then-unmerged
+successor. The additive PR #521 integration revision records the protected
+squash merge, refreshed canonical identity/tree, parity verification, and the
+ticket-01 transition to schema-valid `PLANNED`, classified `READY`.
 
-No `events.jsonl` is fabricated: this is a pre-launch proposal, not a started
-orchestrator run. No child prompt was regenerated because the successor is not
-canonical and ticket 01 is not `READY`. After separate merge authorization and
-canonical integration, the supervisor must create another fresh run revision.
+No `events.jsonl` is fabricated: this is still a pre-launch package, not a
+started orchestrator run. One artifact-derived child prompt was regenerated
+because ticket 01 is now `READY`, but no child/session/result instance exists.
 A materialized ticket state never substitutes for the future hash-chained
 ledger.
 
@@ -57,7 +67,8 @@ fresh session and a fresh checkout.
 ## Transition and restart rules
 
 - Only a reconciled `READY` ticket enters `PLANNED`.
-- The current first ticket is `BLOCKED`; no transition or retry occurred.
+- Ticket 01 is `READY`, represented as schema state `PLANNED`; no attempt or
+  retry occurred.
 - At most two equivalent failed implementation attempts are permitted.
 - Equivalent scope is keyed by ticket, allowed-scope hash, and input hashes.
 - Any scope/evidence change creates a new ticket/run revision rather than
@@ -85,5 +96,6 @@ Clean export starts only after independent review passes. It must:
 - pass changed-scope checks, `git diff --check`, focused tests, no-write replay,
   fixed-denominator scorecard comparison, and independent review.
 
-Publication, merge, runtime, data, source PDFs, gold labels, prompts, stores,
-services, deployment, canary, and backfill remain separately authorized.
+Publication, future merges, child launch, runtime, data, source PDFs, gold
+labels, stores, services, deployment, canary, and backfill remain separately
+authorized.

@@ -1,0 +1,83 @@
+{
+  "schema_version": "tenn_codex_x_extraction_revision_v1",
+  "revision_id": "pr521_integration_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "pr_521": {
+    "disposition": "SQUASH_MERGED_EXACT_HEAD",
+    "reviewed_head_sha": "7c421ad9e7721796e07dd6427f4caf584a577155",
+    "reviewed_head_tree": "17eecd8c81c3deb8c57c0565fbd13e9d31954bcc",
+    "reviewed_base_sha": "2f5a8aac38cf31ecbed3bcb50420fbd5b32ec8d7",
+    "premerge_canonical_sha": "a144a69fc0c69f631fc24942506ff483406bd3dc",
+    "merge_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "merged_at": "2026-07-25T01:34:19Z",
+    "merge_method": "SQUASH",
+    "expected_head_protected": true,
+    "merge_attempts": 1,
+    "changed_path_count": 9,
+    "checks": {
+      "lint-and-test": "SUCCESS",
+      "scan": "SUCCESS"
+    }
+  },
+  "canonical": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "parent_sha": "a144a69fc0c69f631fc24942506ff483406bd3dc",
+    "contains_pr_517_merge_sha": "d438cb454b56b4718c5a1c4721e48831a7b107a5",
+    "reviewed_nine_path_content_exact": true,
+    "canonical_control_files_preserved": true
+  },
+  "registry_parity": {
+    "caller_import_smoke": "PASS",
+    "parity_digest": "cc042df11e1743d9cf3085020991bd6dd8f73da835a7ece2efb48edf1c9f51ce",
+    "expected_digest_match": true,
+    "net_debt_direct_source_required": true,
+    "net_debt_authorized_derivations": [],
+    "all_authorized_derivations": [
+      {
+        "canonical_field": "capex",
+        "derivation": "appendix_5b_explicit_capex_subitem_sum"
+      }
+    ]
+  },
+  "ticket_01": {
+    "ticket_id": "ASXFP_01_SCORECARDS",
+    "ticket_sha256": "4bf1baa76146b3e2f2a115c4c7df208ca15ab444246e8ef280034cccfa63334a",
+    "classification": "READY",
+    "orchestrator_state": "PLANNED",
+    "classification_reason": "PR #521 is canonical; the residual scorecard gap is bounded and has no remaining dependency.",
+    "residual_gap": [
+      "numeric precision and supported-metric recall are not explicit",
+      "period-basis and accounting-basis correctness are not explicit",
+      "real scorecard results are not grouped by declared supported ASX document class"
+    ],
+    "already_present_and_must_be_preserved": [
+      "missing evidence fails accepted metric scoring",
+      "real and synthetic evaluation lanes are distinct"
+    ],
+    "open_pr_508": {
+      "state": "OPEN_DRAFT",
+      "head_sha": "4913ef0883410fcc6436b1387fa7c17642190d05",
+      "owns": "NPAT owner attribution and OCI boundaries",
+      "overlaps_ticket_01_allowed_scope": false
+    },
+    "allowed_scope_hash": "9273df987143b5f7dad3b60fcc3358c3ee8971369ec5b0993b847d309e353e1a",
+    "prompt_path": "prompts/ASXFP_01_SCORECARDS-implementer-01.txt",
+    "prompt_sha256": "be4525a7b253cdc3a9c6aa11138365b9c9edfffeffbce3bb00d37f22117038c5",
+    "child_launched": false,
+    "launch_authorized_by_this_revision": false
+  },
+  "validation": {
+    "merged_canonical_focused_tests": {
+      "status": "PASS",
+      "passed": 348,
+      "command_result": "/tmp/tenn-pr521-merged-validation-20260725.json",
+      "command_log": "/tmp/tenn-pr521-merged-validation-20260725.json.log"
+    },
+    "planning_input_hashes_unchanged": true,
+    "schema_validation": "PASS",
+    "artifact_hash_validation": "PASS"
+  },
+  "next_safe_action": "Obtain a separate explicit authorization to launch one fresh Codex X implementer from the exact hash-bound ticket-01 prompt; do not launch from this supervisor goal."
+}
