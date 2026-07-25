@@ -1,0 +1,52 @@
+{
+  "schema_version": "tenn_codex_x_child_launcher_preflight_v2",
+  "validated_without_child_launch": true,
+  "would_start_child": false,
+  "launcher": {
+    "worktree": "/home/l4nd0/codex-x-pilot-transport-contract-v1-20260725",
+    "commit_sha": "4a16a59d619bbc195e457a3cb573b19735229d52",
+    "tree_sha": "fa2f4d867255657684c67c40783ec9df565b4357",
+    "state_root": "/home/l4nd0/codex-x-pilot/.state"
+  },
+  "prepared_run": {
+    "run_id": "20260725T032937Z-107c926930-fb7928",
+    "session_id": null,
+    "manifest_path": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T032937Z-107c926930-fb7928/manifest.json",
+    "manifest_schema_version": 7,
+    "writable_checkout": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T032937Z-107c926930-fb7928/workspace/source",
+    "git_metadata": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T032937Z-107c926930-fb7928/git-metadata",
+    "writable_head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "writable_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "status_clean": true,
+    "reference_checkout": "/home/l4nd0/tenn",
+    "reference_checkout_role": "READ_ONLY_EVIDENCE_ONLY",
+    "reference_checkout_identity_ignored": true,
+    "admission": "PASS"
+  },
+  "transport": {
+    "run_id_source": "launcher_run_directory",
+    "session_id_source": "codex_exec_thread_started_event",
+    "model_supplies_transport_identifiers": false,
+    "result_envelope_injected_by": "launcher_supervisor",
+    "child_result_schema_requires_run_id": true,
+    "child_result_schema_requires_session_id": true
+  },
+  "prompt": {
+    "path": "prompts/ASXFP_01_SCORECARDS-implementer-transport-v2.txt",
+    "sha256": "fc87a7be4c52ecd4fd501e7810581bda1e344a0b0bdb6961303a80f582ed728d",
+    "contains_exact_writable_checkout": true,
+    "contains_reference_read_only_boundary": true,
+    "asks_model_for_transport_identifiers": false,
+    "validation": "PASS"
+  },
+  "tests": {
+    "focused_transport_and_worktree_tests": "PASS",
+    "full_launcher_suite": {
+      "status": "PASS",
+      "tests_run": 96,
+      "state_root_binding": "/home/l4nd0/codex-x-pilot/.state"
+    },
+    "dry_run_transport_preflight": "PASS",
+    "git_diff_check": "PASS"
+  }
+}

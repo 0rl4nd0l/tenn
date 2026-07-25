@@ -1,0 +1,26 @@
+{
+  "ticket_state": {
+    "schema_path": "/home/l4nd0/codex-x-orchestrator-design/schemas/ticket_state.schema.json",
+    "schema_sha256": "080eb2460f136941daf7a0d45c93b4abcc724d97675f3d5dcc266a706bc67404",
+    "instances": [
+      "ticket_state/ASXFP_01_SCORECARDS.json"
+    ]
+  },
+  "child_result": {
+    "schema_path": "schemas/child_result.schema.json",
+    "schema_sha256": "9c515e0beb143a0262f21e4964ba3d1e2b3fee75bca7e39b4920be295ce10810",
+    "required_transport_fields": [
+      "run_id",
+      "session_id"
+    ],
+    "identity_injection": "launcher_supervisor",
+    "model_supplies_transport_identifiers": false
+  },
+  "model_output": {
+    "schema_path": "schemas/model_output.schema.json",
+    "schema_sha256": "258765f57cc47c784e9673dc65c7aa1d26cd762bb4269b301b4fe8c146e7c84e",
+    "contains_run_id": false,
+    "contains_session_id": false
+  },
+  "retry_rule": "The prior transport failure consumes zero implementation attempts. Ticket 01 remains READY with implementation_attempts=0 and retry_count=0."
+}

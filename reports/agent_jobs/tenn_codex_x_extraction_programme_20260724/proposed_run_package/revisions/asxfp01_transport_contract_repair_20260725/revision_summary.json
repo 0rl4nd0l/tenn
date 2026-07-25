@@ -1,0 +1,56 @@
+{
+  "schema_version": "tenn_codex_x_extraction_revision_v1",
+  "revision_id": "asxfp01_transport_contract_repair_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "canonical_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+  "canonical_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+  "incident": {
+    "classification": "ORCHESTRATION_TRANSPORT_FAILURE_NOT_IMPLEMENTATION_ATTEMPT",
+    "implementation_attempt_consumed": false,
+    "prior_failed_run_id": "20260725T025129Z-107c926930-f5a65a",
+    "prior_actual_session_id": "019f9733-17d2-7853-a844-f2aacc0dc1a2"
+  },
+  "ticket": {
+    "ticket_id": "ASXFP_01_SCORECARDS",
+    "classification": "READY",
+    "orchestrator_state": "PLANNED",
+    "implementation_attempts": 0,
+    "retry_count": 0,
+    "implementer_session_ids": [],
+    "reviewer_launch_authorized": false,
+    "retry_launch_authorized_by_this_revision": false
+  },
+  "prepared_retry": {
+    "run_id": "20260725T032937Z-107c926930-fb7928",
+    "session_id": null,
+    "writable_checkout": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T032937Z-107c926930-fb7928/workspace/source",
+    "writable_head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "writable_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "reference_checkout": "/home/l4nd0/tenn",
+    "reference_checkout_identity_ignored": true,
+    "child_started": false
+  },
+  "transport_contract": {
+    "launcher_commit": "4a16a59d619bbc195e457a3cb573b19735229d52",
+    "run_id_injected_from": "launcher_run_directory",
+    "session_id_injected_from": "codex_exec_thread_started_event",
+    "model_returns_transport_identifiers": false,
+    "child_result_schema": "schemas/child_result.schema.json",
+    "model_output_schema": "schemas/model_output.schema.json"
+  },
+  "prompt": {
+    "path": "prompts/ASXFP_01_SCORECARDS-implementer-transport-v2.txt",
+    "sha256": "fc87a7be4c52ecd4fd501e7810581bda1e344a0b0bdb6961303a80f582ed728d"
+  },
+  "validation": {
+    "prepared_run_admission": "PASS",
+    "prompt_hash": "PASS",
+    "prompt_checkout_boundary": "PASS",
+    "child_result_schema": "PASS",
+    "ticket_state_schema": "PASS",
+    "launcher_tests": "PASS_96",
+    "transport_dry_run": "PASS",
+    "child_launches": 0
+  },
+  "next_safe_action": "Stop. Await separate authorization before executing proposed_retry_command.sh. Reviewer, integration, GitHub, runtime, data, merge, and deployment actions remain prohibited."
+}

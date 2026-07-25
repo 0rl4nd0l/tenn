@@ -1,0 +1,30 @@
+{
+  "schema_version": "tenn_codex_x_transport_incident_v1",
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "classification": "ORCHESTRATION_TRANSPORT_FAILURE_NOT_IMPLEMENTATION_ATTEMPT",
+  "failed_transport": {
+    "run_id": "20260725T025129Z-107c926930-f5a65a",
+    "actual_session_id": "019f9733-17d2-7853-a844-f2aacc0dc1a2",
+    "returned_identifier": "20260725T025129Z-107c926930-f5a65a",
+    "implementation_attempt_consumed": false,
+    "product_files_modified": [],
+    "implementation_commit": null,
+    "implementation_patch": null
+  },
+  "root_causes": [
+    "The old model-output contract asked the model to infer and repeat a session identifier.",
+    "The old child context exposed a stale reference checkout without making the writable checkout the sole implementation-admission identity.",
+    "The old launcher created a synthetic sanitized baseline commit instead of keeping the writable checkout at the pinned canonical HEAD and tree."
+  ],
+  "corrective_controls": [
+    "The launcher owns run_id from the run directory.",
+    "The transport captures session_id only from the Codex exec thread.started event.",
+    "The model output contains neither identifier.",
+    "The supervisor injects and validates both identifiers in the result envelope.",
+    "The writable checkout begins exactly at the pinned canonical HEAD and tree.",
+    "The reference checkout is persisted as read-only evidence only and ignored for admission.",
+    "Every implementation Git, test, commit, and patch command is bound to the exact writable checkout path."
+  ],
+  "supersedes_state_claim_in_revision": "asxfp01_implementer_attempt1_20260725",
+  "audit_note": "The earlier revision remains immutable evidence of the failed transport. This revision corrects its attempt accounting and ticket transition."
+}
