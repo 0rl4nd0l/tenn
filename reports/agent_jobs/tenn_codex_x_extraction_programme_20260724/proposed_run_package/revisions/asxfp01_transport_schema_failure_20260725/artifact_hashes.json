@@ -1,0 +1,15 @@
+{
+  "algorithm": "sha256",
+  "files": {
+    "README.md": "b63069dbaa8d27cfac08aa176f2cef023e5b5838ff2f3299fe46130d262a6fbb",
+    "child_results/ASXFP_01_SCORECARDS-implementer-transport-v2.json": "323189be93427a6d5f95f130391332c59c65ab6b4eb31132ef6cdcf087f3635a",
+    "prompts/ASXFP_01_SCORECARDS-reviewer-01.PROHIBITED.txt": "f3af19b190be3455da2a2743e874f49362c4f5dd8f65b197b9fb0c2fc441d7d7",
+    "revision_summary.json": "97d5e6ddec54d13c10ee8cc4c9d31dffc616040bc63c5cbac189a16d54217829",
+    "schema_bindings.json": "07a28590f42d06d808b096e5c6822db2039bbcef92c6534cac9ee778bb63f7a8",
+    "ticket_state/ASXFP_01_SCORECARDS.json": "3790acf20dc80abadef2859700ff5e7a7e8dda3c88cef2111db87ccd40e60acb",
+    "transport_events/ASXFP_01_SCORECARDS-implementer-transport-v2.jsonl": "926fdc8adf911d54767cc4331a736f3fdf7d1843dc2ca4bcc3eb3c91bb093e01",
+    "transport_failure.json": "2b7a83cb9c71010aa3b434545569cc97c60bdab8242ac558ba34315b89a5fb92",
+    "waiter/command.log": "34d235761d85b63fc04273dbc7ab8cb5d8ebd45686e19137b25a24d5280375d6",
+    "waiter/command_result.json": "3b7d4dcdf8ea1fb8aa3f176a8ca485154fce0772a9abffe3143228d817df2a1a"
+  }
+}

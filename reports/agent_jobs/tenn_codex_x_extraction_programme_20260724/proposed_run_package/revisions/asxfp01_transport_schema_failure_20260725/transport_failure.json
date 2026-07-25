@@ -1,0 +1,47 @@
+{
+  "schema_version": "tenn_codex_x_transport_failure_v1",
+  "ticket_id": "ASXFP_01_SCORECARDS",
+  "classification": "ORCHESTRATION_OUTPUT_SCHEMA_REJECTION_BEFORE_MODEL_EXECUTION",
+  "run_id": "20260725T032937Z-107c926930-fb7928",
+  "session_id": "019f9763-8a2c-7350-b095-d4648bac329b",
+  "thread_started": true,
+  "ticket_work_began": false,
+  "model_response_produced": false,
+  "model_commands_executed": 0,
+  "implementation_attempt_consumed": false,
+  "error": {
+    "type": "invalid_request_error",
+    "code": "invalid_json_schema",
+    "status": 400,
+    "message": "Invalid schema for response_format 'codex_output_schema': In context=('properties', 'result', 'properties', 'scorecard_before_after', 'properties', 'present_correct'), 'additionalProperties' is required to be supplied and to be false."
+  },
+  "identity_evidence": {
+    "event_type": "thread.started",
+    "event_field": "thread_id",
+    "events_sha256": "926fdc8adf911d54767cc4331a736f3fdf7d1843dc2ca4bcc3eb3c91bb093e01",
+    "rollout_sha256": "578251a89f80d798495f88d929b40f407c84c9b7addd4557111a6651faa30ddd"
+  },
+  "waiter": {
+    "wait_id": "54d209ce-aef1-4b76-8029-9511165d8cd5",
+    "started_at": "2026-07-25T03:48:30.483070Z",
+    "finished_at": "2026-07-25T03:48:33.556994Z",
+    "duration_seconds": 3.074,
+    "exit_code": 1,
+    "result_sha256": "3b7d4dcdf8ea1fb8aa3f176a8ca485154fce0772a9abffe3143228d817df2a1a",
+    "log_sha256": "9b2fc78a77f7cab0d3634ee47a7b42287d6b60e60fcea9f74c3b5c3a1e967e9f"
+  },
+  "checkout": {
+    "path": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T032937Z-107c926930-fb7928/workspace/source",
+    "head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "changed_paths": [],
+    "clean": true
+  },
+  "child_output": {
+    "model_output": null,
+    "implementation_commit": null,
+    "implementation_patch": null,
+    "scorecard_comparison": null
+  },
+  "next_action": "Stop. Repair and revalidate the model-output JSON schema only under separate authorization; do not retry or launch a reviewer."
+}

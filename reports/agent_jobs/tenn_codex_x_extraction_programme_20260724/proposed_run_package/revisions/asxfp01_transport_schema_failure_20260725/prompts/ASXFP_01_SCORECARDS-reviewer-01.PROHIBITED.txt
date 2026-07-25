@@ -1,0 +1,12 @@
+REVIEWER LAUNCH PROHIBITED
+
+No implementation result exists for `ASXFP_01_SCORECARDS`.
+
+The single authorized transport created Codex session
+`019f9763-8a2c-7350-b095-d4648bac329b`, then the API rejected the
+model-output JSON schema before model execution. No model response, command,
+changed path, commit, patch, output tree, or scorecard comparison exists.
+
+A reviewer prompt cannot be bound to an implementation output. Do not launch a
+reviewer. The next safe action is a separately authorized schema-only
+orchestration repair and no-launch validation.

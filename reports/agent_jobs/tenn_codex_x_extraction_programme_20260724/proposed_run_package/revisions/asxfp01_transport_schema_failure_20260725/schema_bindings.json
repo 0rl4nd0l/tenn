@@ -1,0 +1,19 @@
+{
+  "ticket_state": {
+    "schema_path": "/home/l4nd0/codex-x-orchestrator-design/schemas/ticket_state.schema.json",
+    "schema_sha256": "080eb2460f136941daf7a0d45c93b4abcc724d97675f3d5dcc266a706bc67404",
+    "instances": [
+      "ticket_state/ASXFP_01_SCORECARDS.json"
+    ]
+  },
+  "child_result": {
+    "schema_path": "../asxfp01_transport_contract_repair_20260725/schemas/child_result.schema.json",
+    "schema_sha256": "9c515e0beb143a0262f21e4964ba3d1e2b3fee75bca7e39b4920be295ce10810",
+    "instances": [
+      "child_results/ASXFP_01_SCORECARDS-implementer-transport-v2.json"
+    ]
+  },
+  "identity_rule": "run_id is launcher-owned and session_id is captured from thread.started.thread_id; neither value came from model output.",
+  "attempt_rule": "The API rejected the response schema before model execution, so implementation_attempts and retry_count remain zero.",
+  "review_rule": "No reviewer prompt may be launched without an implementation output commit or patch and scorecard comparison."
+}

@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/l4nd0/codex-x-pilot-transport-contract-v1-20260725/src/child_transport.py", line 336, in <module>
+    raise SystemExit(main())
+  File "/home/l4nd0/codex-x-pilot-transport-contract-v1-20260725/src/child_transport.py", line 303, in main
+    raise codex_x.PilotError(
+src.codex_x.PilotError: Codex child transport exited 1:
