@@ -1,0 +1,59 @@
+{
+  "schema_version": "tenn_codex_x_extraction_revision_v2",
+  "revision_id": "asxfp01_worktree_resolution_repair_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "canonical_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "canonical_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+  "canonical_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+  "root_cause": "The writable product clone lost standalone repository discovery when its .git directory was relocated; ordinary child git -C could resolve enclosing launcher control context.",
+  "launcher_repair": {
+    "commit": "263dc65b7be87e47c4ed761a8c63bc89333e100b",
+    "tree": "33f608e26f2fdae1c6f9e0df5bdb28ef573f29a6",
+    "checkout": "/home/l4nd0/codex-x-pilot-transport-contract-v1-20260725",
+    "remote": null,
+    "push_status": "NOT_AVAILABLE_NO_REMOTE",
+    "protections": [
+      "regular product .git indirection to launcher-owned metadata",
+      "immutable launcher-owned Git wrapper first on child PATH",
+      "manifest-bound expected root, Git directory, HEAD, tree, remote, and repository identity",
+      "ordinary and explicit top-level parity before model execution",
+      "product-only status and staged/unstaged diff checks",
+      "fail-closed rejection of metadata drift, wrong Git directory, dirty product worktree, and symlinked roots"
+    ]
+  },
+  "ticket": {
+    "ticket_id": "ASXFP_01_SCORECARDS",
+    "state": "READY",
+    "implementation_attempts": 0,
+    "retry_count": 0,
+    "reviewable_product_output": false,
+    "reviewer_launch_authorized": false
+  },
+  "prepared_worker": {
+    "run_id": "20260725T050234Z-107c926930-7bfbc3",
+    "session_id": null,
+    "child_started": false,
+    "repository_root": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T050234Z-107c926930-7bfbc3/workspace/source",
+    "git_directory": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T050234Z-107c926930-7bfbc3/git-metadata",
+    "git_wrapper": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T050234Z-107c926930-7bfbc3/bin/git",
+    "head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "clean": true
+  },
+  "prompt": {
+    "path": "prompts/ASXFP_01_SCORECARDS-implementer-transport-v4.txt",
+    "sha256": "b28ccf846b744a17abdd5bc91c5961314505252d058b1f3876a0cc0ba8e9bb91"
+  },
+  "validation": {
+    "launcher_focused_tests": "PASS_83",
+    "launcher_full_tests": "PASS_113_PLUS_3_SUBTESTS",
+    "python_compile": "PASS",
+    "shell_syntax": "PASS",
+    "schema_and_hash_validation": "PASS",
+    "git_diff_check": "PASS",
+    "no_launch_transport_preflight": "PASS",
+    "exact_tenn_top_level": "PASS",
+    "child_launches": 0
+  },
+  "next_safe_action": "Stop before launch. Ticket 01 is READY with product attempts 0; a fresh implementer requires separate launch authorization."
+}

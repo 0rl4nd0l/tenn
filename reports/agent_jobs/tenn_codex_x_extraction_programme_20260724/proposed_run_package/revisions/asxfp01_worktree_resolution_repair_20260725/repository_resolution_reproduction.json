@@ -1,0 +1,41 @@
+{
+  "schema_version": "codex_x_repository_resolution_reproduction_v1",
+  "failed_run_id": "20260725T041849Z-107c926930-e0e992",
+  "exact_layout": {
+    "control_root": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992",
+    "control_git_directory": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/.git",
+    "product_source": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/workspace/source",
+    "product_git_directory": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/git-metadata",
+    "product_source_dot_git": "MISSING_BY_LAUNCHER_DESIGN"
+  },
+  "unbound_child_git": {
+    "command": "git -C <product_source> status --porcelain",
+    "head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "reported_untracked": [
+      "SOURCE.md",
+      "manifest.json"
+    ],
+    "reported_product_clean": false,
+    "child_stop": "DATA_MISSING"
+  },
+  "independent_explicit_binding": {
+    "command_shape": "git --git-dir=<product_git_directory> --work-tree=<product_source> <operation>",
+    "show_toplevel": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/workspace/source",
+    "head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "status": "CLEAN",
+    "diff_check": "PASS"
+  },
+  "root_cause": {
+    "classification": "ORCHESTRATION_WORKTREE_RESOLUTION_FAILURE",
+    "detail": "The launcher moved the product clone's .git directory to launcher-owned git-metadata and left no .git indirection at workspace/source. It also initialized an enclosing control repository. Admission used explicit GIT_DIR/GIT_WORK_TREE inside the launcher, but the model-visible command relied on ambient propagation and ordinary git -C discovery. Git could therefore bind to enclosing control context and surface launcher files as product dirt.",
+    "product_defect": false
+  },
+  "evidence_sha256": {
+    "failed_manifest": "4245c3dc48c2be0068787734b17cc816fbb8b7b26eba77ed6600d27c57fc4b5e",
+    "failed_source_document": "3c070c4ccfcb1ba3560e3097b1f543124c8180e7fc2d9d5f765bfdd79c754130",
+    "failed_session_identity": "79182d97f19764a88fef3c72f3852a51837f0d5fcd34401f9cd73478c651b4a0",
+    "failed_session_rollout": "7d73e328f55d3533dc5f5463e219758bf6f24a792e4eb7df955fb4bf5563ee2d"
+  }
+}

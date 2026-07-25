@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "validator": "Draft202012Validator",
+  "schemas": {
+    "schemas/ticket_state.schema.json": "VALID",
+    "schemas/model_output.schema.json": "VALID",
+    "schemas/child_result.schema.json": "VALID"
+  },
+  "instances": {
+    "ticket_state/ASXFP_01_SCORECARDS.json": "PASS"
+  },
+  "strict_model_output_meta_schema": "PASS",
+  "hash_inventory": "PASS",
+  "shell_syntax": "PASS",
+  "child_started": false
+}

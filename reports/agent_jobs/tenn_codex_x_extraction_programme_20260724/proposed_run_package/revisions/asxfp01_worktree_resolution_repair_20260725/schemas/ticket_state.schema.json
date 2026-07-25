@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Derived Ticket State v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket_id",
+    "state",
+    "allowed_scope_hash",
+    "implementation_attempts",
+    "retry_count",
+    "implementer_session_ids",
+    "reviewer_session_id",
+    "integrator_session_id",
+    "blocker",
+    "result_hashes",
+    "output_hash",
+    "child_result_hash",
+    "review_result_hash"
+  ],
+  "properties": {
+    "ticket_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]{1,63}$"},
+    "state": {
+      "enum": [
+        "PLANNED",
+        "READY",
+        "IMPLEMENTING",
+        "IMPLEMENTED",
+        "REVIEWING",
+        "CHANGES_REQUESTED",
+        "READY_FOR_INTEGRATION",
+        "INTEGRATING",
+        "COMPLETE",
+        "BLOCKED",
+        "CANCELLED"
+      ]
+    },
+    "allowed_scope_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "implementation_attempts": {"type": "integer", "minimum": 0, "maximum": 3},
+    "retry_count": {"type": "integer", "minimum": 0, "maximum": 2},
+    "implementer_session_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "reviewer_session_id": {"type": ["string", "null"]},
+    "integrator_session_id": {"type": ["string", "null"]},
+    "blocker": {"type": ["object", "null"]},
+    "result_hashes": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "output_hash": {"type": ["string", "null"]},
+    "child_result_hash": {"type": ["string", "null"]},
+    "review_result_hash": {"type": ["string", "null"]}
+  }
+}

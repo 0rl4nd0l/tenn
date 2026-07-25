@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ASXFP Ticket 01 Implementer Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "work_log", "result"],
+  "properties": {
+    "status": {"enum": ["SUCCESS", "DATA_MISSING", "ERROR"]},
+    "work_log": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assumptions", "sources_used", "files_read", "files_modified", "validation_checks"],
+      "properties": {
+        "assumptions": {"type": "array", "items": {"type": "string"}},
+        "sources_used": {"type": "array", "items": {"type": "string"}},
+        "files_read": {"type": "array", "items": {"type": "string"}},
+        "files_modified": {"type": "array", "items": {"type": "string"}},
+        "validation_checks": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_commit_sha",
+        "output_tree_sha",
+        "output_patch_reference",
+        "output_sha256",
+        "commands",
+        "scorecard_before_after",
+        "risks",
+        "unresolved_assumptions",
+        "stop_condition"
+      ],
+      "properties": {
+        "output_commit_sha": {"type": ["string", "null"]},
+        "output_tree_sha": {"type": ["string", "null"]},
+        "output_patch_reference": {"type": ["string", "null"]},
+        "output_sha256": {"type": ["string", "null"]},
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command", "exit_code"],
+            "properties": {
+              "command": {"type": "string"},
+              "exit_code": {"type": "integer"}
+            }
+          }
+        },
+        "scorecard_before_after": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "present_correct",
+            "present_wrong_value",
+            "missing_expected_metric",
+            "source_unbound",
+            "comparative_period",
+            "side_effects"
+          ],
+          "properties": {
+            "present_correct": {"$ref": "#/$defs/scorecard_delta_records"},
+            "present_wrong_value": {"$ref": "#/$defs/scorecard_delta_records"},
+            "missing_expected_metric": {"$ref": "#/$defs/scorecard_delta_records"},
+            "source_unbound": {"$ref": "#/$defs/scorecard_delta_records"},
+            "comparative_period": {"$ref": "#/$defs/scorecard_delta_records"},
+            "side_effects": {"$ref": "#/$defs/scorecard_delta_records"}
+          }
+        },
+        "risks": {"type": "array", "items": {"type": "string"}},
+        "unresolved_assumptions": {"type": "array", "items": {"type": "string"}},
+        "stop_condition": {"type": "string"}
+      }
+    }
+  },
+  "$defs": {
+    "scorecard_delta_records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/scorecard_delta_record"}
+    },
+    "scorecard_delta_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "before", "after"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "before": {"type": "number"},
+        "after": {"type": "number"}
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "ticket_state": {
+    "schema_path": "schemas/ticket_state.schema.json",
+    "schema_sha256": "abb5e2a4305198275739f34300c6c69c75e303590fc3364cda264a5cb667a0e7",
+    "instances": [
+      "ticket_state/ASXFP_01_SCORECARDS.json"
+    ],
+    "ready_state_added": true
+  },
+  "model_output": {
+    "schema_path": "schemas/model_output.schema.json",
+    "schema_sha256": "b0475bdf6b08191d6e42b0c8403a9fad0a06944e751a3d2b08d733e861b597ab",
+    "strict_object_admission": "PASS",
+    "model_supplies_transport_identifiers": false
+  },
+  "child_result": {
+    "schema_path": "schemas/child_result.schema.json",
+    "schema_sha256": "9c515e0beb143a0262f21e4964ba3d1e2b3fee75bca7e39b4920be295ce10810",
+    "instances": [],
+    "launcher_injects": [
+      "run_id",
+      "session_id"
+    ]
+  },
+  "identity_rule": "The launcher admits exact repository root, Git directory, HEAD, tree, remote, and repository identity before model execution.",
+  "attempt_rule": "All three preserved failures are orchestration failures. Ticket 01 is READY with implementation_attempts 0 and retry_count 0.",
+  "review_rule": "No reviewer may launch because no product output exists."
+}

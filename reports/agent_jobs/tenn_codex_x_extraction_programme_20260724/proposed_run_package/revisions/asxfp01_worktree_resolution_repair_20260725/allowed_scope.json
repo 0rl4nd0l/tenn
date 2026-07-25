@@ -1,0 +1,7 @@
+[
+  "financial-engine_v2/backend/app/services/extraction_eval.py",
+  "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+  "financial-engine_v2/backend/tests/test_extraction_eval.py",
+  "financial-engine_v2/backend/tests/test_extraction_eval_harness.py",
+  "financial-engine_v2/backend/tests/test_extraction_gold_eval.py"
+]

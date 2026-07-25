@@ -1,0 +1,23 @@
+{
+  "schema_version": "tenn_codex_x_artifact_hashes_v1",
+  "algorithm": "sha256",
+  "self_excluded": true,
+  "artifacts": {
+    "CODE_REVIEW.json": "cf7ed85bc3181113546e933e0da3f2f781f65f48a1e4f14c75b2e30387dbb764",
+    "README.md": "5d35ecd76e61963c4003a7033b3d5845c8c22de2b7862d00f4e0a9229d87ba03",
+    "allowed_scope.json": "e44f15d192d7c82cf8f35dacbf36dbac9f60d73b1deff814fbb2868c903d9531",
+    "attempt_validation.json": "4d9a5328aa5613ceb546b80288f6d91742f9a944115ff54cd8c17876d45f4962",
+    "incident_classification.json": "a1aece72c7386c53234025b5a87ebcbdc56de5de00de4010749ef6548082de89",
+    "launcher_preflight.json": "6d84c1772cbca506838a7996220dcf8171fb96dee0ec5db12674406ef087b97d",
+    "prompts/ASXFP_01_SCORECARDS-implementer-transport-v4.txt": "b28ccf846b744a17abdd5bc91c5961314505252d058b1f3876a0cc0ba8e9bb91",
+    "proposed_launch_command.sh": "5c8671b5b2862835e93c304c2baa5d616bcd5c3ac1b8a5069d934056c6f673c0",
+    "repository_resolution_reproduction.json": "cecab81bc770bd02c673cf9ccecafd1b486f037c6bcb41bb9a235ea1982331b8",
+    "revision_summary.json": "90e6650811ad9aa32a684caca7be56edd56fcf6a2215644e858eae5e2712b2a1",
+    "schema_bindings.json": "35f462519c85d2618c6d64ba8ab2c1433aa5f98f21735c43c17c2b94f0ee461f",
+    "schema_validation.json": "afc9b52e26f0f7c56397b32e0b2d741fd55ee0a98042bb4b75914ad8a94e52ee",
+    "schemas/child_result.schema.json": "9c515e0beb143a0262f21e4964ba3d1e2b3fee75bca7e39b4920be295ce10810",
+    "schemas/model_output.schema.json": "b0475bdf6b08191d6e42b0c8403a9fad0a06944e751a3d2b08d733e861b597ab",
+    "schemas/ticket_state.schema.json": "abb5e2a4305198275739f34300c6c69c75e303590fc3364cda264a5cb667a0e7",
+    "ticket_state/ASXFP_01_SCORECARDS.json": "bd02f600bf2637f6ea2de59f6177e14f5d38f7c06d02522402fb3bfbc0b1e936"
+  }
+}
