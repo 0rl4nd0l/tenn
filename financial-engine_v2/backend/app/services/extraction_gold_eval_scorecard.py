@@ -14,7 +14,6 @@ import hashlib
 import io
 import json
 from collections import Counter
-from collections.abc import Iterable as IterableABC
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -28,6 +27,14 @@ from app.services.extraction_eval import (
     MetricEvalStatus,
     evaluate_fixture,
     str_or_none,
+)
+from app.services.financial_metric_contract import (
+    INTERNAL_METRIC_FIELDS,
+    METRIC_CONTRACT_FAMILIES,
+    METRIC_NAME_MAP,
+    PRODUCTION_RELEVANCE_TIERS,
+    MetricContractFamily,
+    MetricContractStatus,
 )
 from app.services.multipass_extraction import (
     EXTRACTOR_VERSION,
@@ -84,34 +91,6 @@ PROFILE_DEFINITIONS = {
     },
 }
 
-METRIC_NAME_MAP = {
-    "revenue": "revenue",
-    "ebit": "ebit",
-    "np_attributable": "np_attributable",
-    "operating_cf": "operating_cf",
-    "operating_cash_flow": "operating_cf",
-    "investing_cf": "investing_cf",
-    "financing_cf": "financing_cf",
-    "capex": "capex",
-    "cash_end": "cash_end",
-    "net_debt": "net_debt",
-    "shares_outstanding": "shares_outstanding",
-}
-
-PRODUCTION_RELEVANCE_TIERS = {
-    "revenue": "core",
-    "ebit": "core",
-    "np_attributable": "core",
-    "operating_cf": "core",
-    "net_debt": "core",
-    "cash_end": "cash_flow",
-    "investing_cf": "cash_flow",
-    "financing_cf": "cash_flow",
-    "capex": "cash_flow",
-    "shares_outstanding": "capital_structure",
-}
-
-
 PERSISTED_METRIC_FIELD_EXCLUSIONS = {
     "ticker",
     "period_end",
@@ -163,18 +142,6 @@ _PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES = tuple(
     for status in PayloadScoreStatus
     if status.value not in _PRE_PERSISTENCE_ALLOWED_RESULT_CLASSES
 )
-
-
-class MetricContractStatus(str, Enum):
-    SUPPORTED = "supported"
-    EXTRACTOR_SUPPORTED = "extractor_supported"
-    EVALUATOR_SUPPORTED = "evaluator_supported"
-    PERSISTED_ONLY = "persisted_only"
-    GOLD_ONLY = "gold_only"
-    PLANNED = "planned"
-    INTERNAL_ONLY = "internal_only"
-    UNSUPPORTED = "unsupported"
-    AMBIGUOUS_REQUIRES_POLICY = "ambiguous_requires_policy"
 
 
 class SourceAssetResolutionStatus(str, Enum):
@@ -301,127 +268,6 @@ class CoverageExpectation:
         return self.support_status == CoverageSupportStatus.SCORED
 
 
-@dataclass(frozen=True)
-class MetricContractFamily:
-    family: str
-    canonical_field: str | None
-    aliases: tuple[str, ...]
-    planned: bool = False
-    internal_only: bool = False
-    ambiguous_requires_policy: bool = False
-    notes: str = ""
-
-
-METRIC_CONTRACT_FAMILIES = (
-    MetricContractFamily(
-        family="revenue",
-        canonical_field="revenue",
-        aliases=("sales_revenue", "top_line_revenue"),
-        notes="Top-line revenue family.",
-    ),
-    MetricContractFamily(
-        family="operating_cash_flow",
-        canonical_field="operating_cf",
-        aliases=("operating_cf", "cash_flow_from_operations"),
-        notes="Fixture/gold alias maps to the extractor field operating_cf.",
-    ),
-    MetricContractFamily(
-        family="net_debt",
-        canonical_field="net_debt",
-        aliases=("net_borrowings", "net_cash"),
-        notes="Canonical only when explicit net-debt evidence or approved derivation gates pass.",
-    ),
-    MetricContractFamily(
-        family="total_equity",
-        canonical_field="total_equity",
-        aliases=("shareholders_equity", "equity_attributable"),
-        notes="Persisted field exists, but extractor/evaluator support is not approved.",
-    ),
-    MetricContractFamily(
-        family="interest_expense",
-        canonical_field="interest_expense",
-        aliases=("interest_cost", "interest_paid"),
-        notes="Persisted field exists, but extractor/evaluator support is not approved.",
-    ),
-    MetricContractFamily(
-        family="finance_costs",
-        canonical_field=None,
-        aliases=("finance_cost", "finance_expense"),
-        ambiguous_requires_policy=True,
-        notes="Potential interest_expense alias, but finance costs can include non-interest items.",
-    ),
-    MetricContractFamily(
-        family="cash",
-        canonical_field="cash_end",
-        aliases=("cash_end", "cash_and_cash_equivalents", "closing_cash"),
-        notes="Canonical family is period-end cash/cash equivalents.",
-    ),
-    MetricContractFamily(
-        family="debt_borrowings",
-        canonical_field="total_debt",
-        aliases=("debt", "borrowings", "total_borrowings"),
-        internal_only=True,
-        notes="Internal balance-sheet capture used only for guarded net_debt derivation.",
-    ),
-    MetricContractFamily(
-        family="capex",
-        canonical_field="capex",
-        aliases=("capital_expenditure", "payments_for_ppe"),
-        notes="Supported with convention-specific source evidence requirements.",
-    ),
-    MetricContractFamily(
-        family="eps",
-        canonical_field=None,
-        aliases=("earnings_per_share", "basic_eps", "diluted_eps"),
-        planned=True,
-        notes="Broad metric catalogue candidate; not canonical extraction output.",
-    ),
-    MetricContractFamily(
-        family="dividends",
-        canonical_field=None,
-        aliases=("dividend", "dividends_paid", "dividend_per_share"),
-        planned=True,
-        notes="Broad metric catalogue candidate; not canonical extraction output.",
-    ),
-    MetricContractFamily(
-        family="np_attributable",
-        canonical_field="np_attributable",
-        aliases=("npat", "profit_attributable", "profit attributable"),
-        notes="Profit attributable to ordinary/security holders family.",
-    ),
-    MetricContractFamily(
-        family="ebit",
-        canonical_field="ebit",
-        aliases=("operating_profit", "profit_before_tax"),
-        notes="Supported, but source label policy remains stricter than generic PBT.",
-    ),
-    MetricContractFamily(
-        family="investing_cf",
-        canonical_field="investing_cf",
-        aliases=("investing_cash_flow",),
-        notes="Extractor field for cash-flow statement support.",
-    ),
-    MetricContractFamily(
-        family="financing_cf",
-        canonical_field="financing_cf",
-        aliases=("financing_cash_flow",),
-        notes="Extractor field for cash-flow statement support.",
-    ),
-    MetricContractFamily(
-        family="shares_outstanding",
-        canonical_field="shares_outstanding",
-        aliases=("shares_on_issue", "ordinary_shares_on_issue"),
-        notes="Supported when the source reports period-end share count, not weighted-average EPS denominator.",
-    ),
-    MetricContractFamily(
-        family="total_assets",
-        canonical_field=None,
-        aliases=("assets",),
-        notes="Unsupported in the current extraction/evaluation contract.",
-    ),
-)
-
-
 def get_scorecard_profiles() -> dict[str, dict[str, Any]]:
     """Return deterministic metadata for all extraction scorecard profiles."""
 
@@ -542,8 +388,8 @@ def build_metric_contract_parity_matrix(
         "sources": {
             "persisted_model": "app.models.asx_financials.ASXPeriodicFinancial",
             "extractor_output_fields": "app.services.multipass_extraction.METRIC_FIELDS",
-            "internal_extractor_fields": "app.services.multipass_extraction._METRIC_SCHEMA_BY_TABLE",
-            "evaluator_mapping": "app.services.extraction_gold_eval_scorecard.METRIC_NAME_MAP",
+            "internal_extractor_fields": "app.services.financial_metric_contract.INTERNAL_METRIC_FIELDS",
+            "evaluator_mapping": "app.services.financial_metric_contract.METRIC_NAME_MAP",
             "confirmed_fixtures_dir": str(confirmed_dir),
             "real_gold_fixtures_dir": str(real_gold_dir),
         },
@@ -2054,15 +1900,7 @@ def _persisted_periodic_financial_metric_fields() -> set[str]:
 
 
 def _internal_extractor_metric_fields() -> set[str]:
-    from app.services import multipass_extraction
-
-    schema = getattr(multipass_extraction, "_METRIC_SCHEMA_BY_TABLE", {})
-    fields: set[str] = set()
-    if isinstance(schema, Mapping):
-        for values in schema.values():
-            if isinstance(values, IterableABC) and not isinstance(values, str):
-                fields.update(str(value) for value in values)
-    return fields - set(METRIC_FIELDS)
+    return set(INTERNAL_METRIC_FIELDS)
 
 
 def _evaluator_supported_metric_fields() -> set[str]:

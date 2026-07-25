@@ -29,6 +29,9 @@ from app.core.config import settings
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.services.extraction_run_observability import has_run_status
+from app.services.financial_metric_contract import (
+    REVIEW_GOLD_METRIC_ALIASES as _GOLD_METRIC_ALIASES,
+)
 from app.services.multipass_extraction import METRIC_FIELDS
 from app.services.provenance import from_extraction_payload_metric
 
@@ -58,10 +61,6 @@ ERROR_QUEUE_PATH = REVIEW_ROOT / "wrong_metric_queue.json"
 REAL_GOLD_REVIEW_DIR = BACKEND_ROOT / "data" / "extraction_gold_real"
 
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
-_GOLD_METRIC_ALIASES = {
-    "operating_cf": "operating_cash_flow",
-    "operating_cash_flow": "operating_cf",
-}
 _PAGE_RE = re.compile(r"page_(\d+)")
 _WHITESPACE_RE = re.compile(r"\s+")
 _ASCII_CHARS = " .:-=+*#%@"
