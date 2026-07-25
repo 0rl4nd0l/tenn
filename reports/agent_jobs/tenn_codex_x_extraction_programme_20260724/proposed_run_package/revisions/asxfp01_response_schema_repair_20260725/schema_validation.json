@@ -1,0 +1,48 @@
+{
+  "schema_version": "tenn_codex_x_response_schema_validation_v1",
+  "prior_schema": {
+    "sha256": "258765f57cc47c784e9673dc65c7aa1d26cd762bb4269b301b4fe8c146e7c84e",
+    "strict_admission": "REJECTED",
+    "first_rejected_context": [
+      "properties",
+      "result",
+      "properties",
+      "scorecard_before_after",
+      "properties",
+      "present_correct"
+    ],
+    "reason": "additionalProperties is required to be supplied and to be false for every object schema"
+  },
+  "corrected_schema": {
+    "sha256": "b0475bdf6b08191d6e42b0c8403a9fad0a06944e751a3d2b08d733e861b597ab",
+    "strict_admission": "PASS",
+    "json_schema_draft_2020_12": "PASS",
+    "semantic_top_level_fields_unchanged": [
+      "status",
+      "work_log",
+      "result"
+    ],
+    "semantic_result_fields_unchanged": [
+      "commands",
+      "scorecard_before_after",
+      "risks",
+      "unresolved_assumptions",
+      "stop_condition"
+    ],
+    "scorecard_delta_representation": "Each required category is an array of closed records with name, before, and after.",
+    "representative_payloads": {
+      "SUCCESS": "PASS",
+      "DATA_MISSING": "PASS",
+      "ERROR": "PASS"
+    },
+    "fail_closed_cases": {
+      "missing_fields": "PASS",
+      "extra_fields": "PASS",
+      "malformed_commands": "PASS",
+      "malformed_scorecard_entries": "PASS",
+      "model_transport_identifiers": "REJECTED"
+    }
+  },
+  "launcher_commit": "4c626bbf24f4632fefe76c96d4acf258c90bfde1",
+  "launcher_tree": "be80bf5e5bfcc2b02751c7375fe4708c46811755"
+}

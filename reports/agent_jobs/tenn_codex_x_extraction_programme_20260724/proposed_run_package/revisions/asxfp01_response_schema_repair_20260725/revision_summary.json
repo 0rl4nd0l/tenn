@@ -1,0 +1,76 @@
+{
+  "schema_version": "tenn_codex_x_extraction_revision_v1",
+  "revision_id": "asxfp01_response_schema_repair_20260725",
+  "repository": "0rl4nd0l/tenn",
+  "canonical_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "canonical_base_sha": "107c926930ef5a14783a8293bac9b47c9046bfed",
+  "canonical_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+  "open_pr_508_head": "4913ef0883410fcc6436b1387fa7c17642190d05",
+  "incidents": {
+    "classification": "ORCHESTRATION_FAILURES_NOT_IMPLEMENTATION_ATTEMPTS",
+    "prior_launch_count": 2,
+    "implementation_attempts_consumed": 0,
+    "model_responses_produced": 0,
+    "product_changes": 0
+  },
+  "ticket": {
+    "ticket_id": "ASXFP_01_SCORECARDS",
+    "classification": "READY",
+    "orchestrator_state": "PLANNED",
+    "implementation_attempts": 0,
+    "retry_count": 0,
+    "implementer_session_ids": [],
+    "reviewer_launch_authorized": false,
+    "implementation_launch_authorized_by_this_revision": false
+  },
+  "schema_repair": {
+    "prior_model_output_schema_sha256": "258765f57cc47c784e9673dc65c7aa1d26cd762bb4269b301b4fe8c146e7c84e",
+    "corrected_model_output_schema_sha256": "b0475bdf6b08191d6e42b0c8403a9fad0a06944e751a3d2b08d733e861b597ab",
+    "child_result_schema_sha256": "9c515e0beb143a0262f21e4964ba3d1e2b3fee75bca7e39b4920be295ce10810",
+    "dynamic_scorecard_maps_replaced_by": "arrays of closed name/before/after records",
+    "launcher_identity_behavior_changed": false,
+    "model_returns_transport_identifiers": false
+  },
+  "prepared_worker": {
+    "superseded_prepared_run_id": "20260725T032937Z-107c926930-fb7928",
+    "superseded_reason": "The retained orchestration-failure run already has an exclusive session-identity record.",
+    "run_id": "20260725T041849Z-107c926930-e0e992",
+    "session_id": null,
+    "writable_checkout": "/home/l4nd0/codex-x-pilot/.state/runs/20260725T041849Z-107c926930-e0e992/workspace/source",
+    "writable_head": "107c926930ef5a14783a8293bac9b47c9046bfed",
+    "writable_tree": "9e43e6380c357e1a40a23bff6d4a07522c86ff98",
+    "reference_checkout": "/home/l4nd0/tenn",
+    "reference_checkout_identity_ignored": true,
+    "child_started": false
+  },
+  "transport_contract": {
+    "prior_launcher_commit": "4a16a59d619bbc195e457a3cb573b19735229d52",
+    "schema_repair_launcher_commit": "4c626bbf24f4632fefe76c96d4acf258c90bfde1",
+    "run_id_injected_from": "launcher_run_directory",
+    "session_id_injected_from": "codex_exec_thread_started_event",
+    "child_result_envelope_changed": false
+  },
+  "prompt": {
+    "path": "prompts/ASXFP_01_SCORECARDS-implementer-transport-v3.txt",
+    "sha256": "1bbb5077adb1fbd0c57230d931197897e68204e534c05a09d9513bf3620ee9fc",
+    "semantic_change": "Only the strict scorecard delta representation and fresh writable checkout path changed."
+  },
+  "validation": {
+    "canonical_remote_identity": "PASS",
+    "open_pr_508_identity": "PASS",
+    "prepared_run_admission": "PASS",
+    "prompt_hash": "PASS",
+    "prompt_checkout_boundary": "PASS",
+    "model_output_meta_schema": "PASS",
+    "model_output_strict_schema": "PASS",
+    "child_result_meta_schema": "PASS",
+    "ticket_state_schema": "PASS",
+    "allowed_scope_canonical_hash": "PASS",
+    "launcher_focused_tests": "PASS_12",
+    "launcher_full_tests": "PASS_104",
+    "transport_dry_run": "PASS",
+    "shell_syntax": "PASS",
+    "child_launches": 0
+  },
+  "next_safe_action": "Stop. Await separate authorization before executing proposed_launch_command.sh. Reviewer, integration, Tenn product publication, PR mutation, runtime, data, merge, and deployment actions remain prohibited."
+}
