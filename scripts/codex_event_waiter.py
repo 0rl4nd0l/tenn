@@ -265,6 +265,55 @@ def build_readiness_result(
     }
 
 
+def _service_artifact_paths_are_distinct(
+    output_path: Path,
+    ready_output_path: Path,
+) -> bool:
+    log_path = Path(f"{output_path}.log")
+    return (
+        len(
+            {
+                output_path.resolve(),
+                ready_output_path.resolve(),
+                log_path.resolve(),
+            }
+        )
+        == 3
+    )
+
+
+def write_service_configuration_error(
+    payload: dict[str, Any],
+    *,
+    output_path: Path,
+    ready_output_path: Path,
+) -> None:
+    try:
+        paths_are_distinct = _service_artifact_paths_are_distinct(
+            output_path,
+            ready_output_path,
+        )
+    except (OSError, RuntimeError):
+        paths_are_distinct = False
+    if not paths_are_distinct:
+        return
+
+    ready_payload = dict(payload)
+    ready_payload["evidence"] = {
+        "result_path": str(ready_output_path),
+        "terminal_result_path": str(output_path),
+    }
+    try:
+        _atomic_write_text(
+            ready_output_path,
+            json.dumps(ready_payload, sort_keys=True, separators=(",", ":")) + "\n",
+        )
+    except OSError as exc:
+        payload.setdefault("observed", {})["ready_result_write_error"] = redact_text(
+            str(exc)
+        )
+
+
 def write_and_emit(payload: dict[str, Any], output_path: Path) -> None:
     evidence = payload.setdefault("evidence", {})
     evidence.setdefault("result_path", str(output_path))
@@ -719,12 +768,7 @@ def run_service_wait(
     ):
         raise ValueError("timeouts, poll interval, and max-log-bytes must be positive")
     log_path = Path(f"{output_path}.log")
-    artifact_paths = {
-        output_path.resolve(),
-        ready_output_path.resolve(),
-        log_path.resolve(),
-    }
-    if len(artifact_paths) != 3:
+    if not _service_artifact_paths_are_distinct(output_path, ready_output_path):
         raise ValueError(
             "--output, --ready-output, and the derived log must be different paths"
         )
@@ -1056,6 +1100,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             observed={"error": redact_text(str(exc))},
             summary="waiter configuration or execution failed",
         )
+        if args.mode == "service":
+            write_service_configuration_error(
+                payload,
+                output_path=output_path,
+                ready_output_path=args.ready_output,
+            )
     write_and_emit(payload, output_path)
     return 0 if payload["state"] in SUCCESS_STATES else 1
 

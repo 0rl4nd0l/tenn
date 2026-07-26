@@ -1010,6 +1010,7 @@ def test_ordinary_shell_writer_destinations_remain_autonomous(
     "command",
     [
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"curl\",\"-fsS\",\"http://127.0.0.1:8081\"]' -- cockpit start new",
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- uv run git reset --hard",
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- bash -c 'git reset --hard'",
         "python3 scripts/codex_event_waiter.py command --output data/results.sqlite -- git status --short",
@@ -1038,6 +1039,43 @@ def test_waiter_nested_commands_and_outputs_require_actual_authorization(
         tier34_authorized=False,
     )
     assert payload["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cockpit start new",
+        "cockpit stop",
+        "cockpit kill root",
+        "cockpit restart backend",
+        "cockpit reboot full",
+        "cockpit smoke routing",
+        "cockpit bugagent",
+    ],
+)
+def test_cockpit_runtime_actions_require_actual_authorization(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
     assert allowed.get("decision") != "block"
 
 

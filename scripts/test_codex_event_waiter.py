@@ -878,6 +878,40 @@ class ServiceWaitTests(unittest.TestCase):
             self.assertEqual(lifecycle["wait_id"], result["wait_id"])
             self.assertNotEqual(lifecycle["wait_id"], "stale")
 
+    def test_service_cli_configuration_error_invalidates_stale_ready(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready_path = root / "ready.json"
+            terminal_path = root / "terminal.json"
+            ready_path.write_text(
+                '{"state":"READY","wait_id":"stale"}\n',
+                encoding="utf-8",
+            )
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                exit_code = waiter.main(
+                    [
+                        "service",
+                        "--output",
+                        str(terminal_path),
+                        "--ready-output",
+                        str(ready_path),
+                        "--readiness-command-json",
+                        "not-json",
+                        "--",
+                        sys.executable,
+                        "-c",
+                        "raise SystemExit(0)",
+                    ]
+                )
+
+            ready = json.loads(ready_path.read_text(encoding="utf-8"))
+            terminal = json.loads(terminal_path.read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(ready["state"], "ERROR")
+            self.assertEqual(ready["wait_id"], terminal["wait_id"])
+            self.assertNotEqual(ready["wait_id"], "stale")
+
     def test_service_rejects_non_finite_timing_values(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

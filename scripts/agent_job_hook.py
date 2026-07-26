@@ -3973,6 +3973,20 @@ def _high_risk_tokens_issue(
                 return protected_entrypoint_issue
     if executable in {"chrt", "ionice", "taskset"}:
         return "shared process scheduling mutation"
+    if executable == "cockpit":
+        action = normalized_tokens[1] if len(normalized_tokens) > 1 else None
+        if action is not None and _unresolved_shell_value(action):
+            return "unresolved Tenn Cockpit action"
+        if action in {
+            "bugagent",
+            "kill",
+            "reboot",
+            "restart",
+            "smoke",
+            "start",
+            "stop",
+        }:
+            return f"Tenn Cockpit runtime/service mutation ({action})"
     shell_command = _shell_c_command(normalized_tokens)
     if shell_command is not None:
         if depth >= 8 or not shell_command:
