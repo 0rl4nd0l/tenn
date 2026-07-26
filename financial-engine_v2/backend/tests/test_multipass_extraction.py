@@ -5075,6 +5075,163 @@ def test_income_source_overlay_fills_missing_and_weak_wrapper_metrics():
     assert payload["row_refs"]["np_attributable"] == "Equity holders of the parent"
 
 
+def test_income_source_overlay_preserves_fmg_current_period_source_cells():
+    """Preferred FMG income rows must retain their exact current-period cells."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated Income Statement",
+        headers=[
+            "",
+            "Note",
+            "31 December 2025 US$m",
+            "31 December 2024 US$m",
+        ],
+        raw_header_rows=[
+            ["", "", "31 December 2025", "31 December 2024"],
+            ["", "Note", "US$m", "US$m"],
+        ],
+        rows=[
+            ["Operating sales revenue", "2", "8,439", "7,638"],
+            ["Profit for the period attributable to:", "", "", ""],
+            ["Equity holders of the Company", "", "1,914", "1,553"],
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"revenue": None, "ebit": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 8_439_000_000
+    assert payload["metrics"]["np_attributable"] == 1_914_000_000
+    assert payload["field_provenance"]["revenue"]["source_cell"] == {
+        "page_number": 21,
+        "row_index": 0,
+        "column_index": 2,
+        "row_label": "Operating sales revenue",
+        "raw_value": "8,439",
+        "header_cell": "31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
+    assert payload["field_provenance"]["np_attributable"]["source_cell"] == {
+        "page_number": 21,
+        "row_index": 2,
+        "column_index": 2,
+        "row_label": "Equity holders of the Company",
+        "raw_value": "1,914",
+        "header_cell": "31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
+
+
+def test_income_source_overlay_does_not_claim_ambiguous_period_source_cells():
+    """Duplicate current-period columns must not produce exact-cell provenance."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated Income Statement",
+        headers=["", "31 Dec 2025", "31 Dec 2025", "31 Dec 2024"],
+        raw_header_rows=[["", "31 Dec 2025", "31 Dec 2025", "31 Dec 2024"]],
+        rows=[
+            ["Operating sales revenue", "8,439", "8,439", "7,638"],
+            ["Profit for the period attributable to:", "", "", ""],
+            ["Equity holders of the Company", "1,914", "1,914", "1,553"],
+        ],
+    )
+    payload = {
+        "metrics": {"revenue": None, "np_attributable": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_income_statement_source_payload(
+        payload,
+        [table],
+        scale="millions",
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["metrics"]["revenue"] == 8_439_000_000
+    assert payload["metrics"]["np_attributable"] == 1_914_000_000
+    assert "source_cell" not in payload["field_provenance"]["revenue"]
+    assert "source_cell" not in payload["field_provenance"]["np_attributable"]
+
+
+def test_income_source_overlay_does_not_claim_value_mismatched_source_cell():
+    """A bound cell must agree with the recovered value before it is claimed."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated Income Statement",
+        headers=[
+            "",
+            "Note",
+            "31 December 2025 US$m",
+            "31 December 2024 US$m",
+        ],
+        raw_header_rows=[
+            ["", "", "31 December 2025", "31 December 2024"],
+            ["", "Note", "US$m", "US$m"],
+        ],
+        rows=[["Operating sales revenue", "2", "75", "70"]],
+    )
+    payload = {
+        "metrics": {"revenue": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._recover_income_statement_metrics_from_table",
+        return_value={"revenue": (50_000_000, "Operating sales revenue")},
+    ):
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            [table],
+            scale="millions",
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+        )
+
+    assert payload["metrics"]["revenue"] == 50_000_000
+    assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+
 def test_income_source_overlay_prefers_bhp_shareholder_attributable_row():
     """BHP split numeric cells should still bind NPAT to the shareholder row."""
     from app.services.docling_extract import DoclingTable
