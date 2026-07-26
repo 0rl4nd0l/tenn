@@ -19,6 +19,7 @@ def _write_override_env(
                 f"LLAMA_SERVER_MODEL={model_path}",
                 "LLAMA_SERVER_ALIAS=test-chat-model",
                 "LLAMA_SERVER_PORT=8123",
+                "LLAMA_SERVER_ROUTER_MODE=0",
                 f"EXTRACTION_SERVER_MODEL={extraction_model_path}",
                 "EXTRACTION_SERVER_ALIAS=test-extract-model",
                 "EXTRACTION_SERVER_PORT=8124",
@@ -225,6 +226,59 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
     assert "--batch-size" not in stdout
     assert "--ubatch-size" not in stdout
     assert "--n-gpu-layers" not in stdout
+
+
+def test_run_llama_server_fails_closed_when_router_capability_is_missing(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    fake_bin = tmp_path / "llama-server"
+    fake_bin.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "${1:-}" == "--help" ]]; then',
+                '  echo "--model PATH"',
+                "  exit 0",
+                "fi",
+                'echo "FAKE_SERVER_STARTED"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    fake_bin.chmod(0o755)
+    env_file.write_text(
+        "\n".join(
+            [
+                f"LLAMA_SERVER_MODELS_DIR={models_dir}",
+                "LLAMA_SERVER_ROUTER_MODE=1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_BIN"] = str(fake_bin)
+    env["LLAMA_SERVER_PORT"] = "8125"
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert "router mode was requested" in completed.stderr
+    assert "FAKE_SERVER_STARTED" not in completed.stdout
+    assert "ROUTER_MODE=disabled" not in completed.stdout
 
 
 def test_run_llama_server_uses_resolved_symlink_target_for_library_path(

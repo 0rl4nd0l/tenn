@@ -168,18 +168,21 @@ if [[ "${ROUTER_MODE}" == "1" ]]; then
     echo "[llama-server] Set LLAMA_SERVER_MODELS_DIR to an existing NVMe-backed GGUF directory." >&2
     exit 1
   fi
-  # Verify the binary supports --models-dir.
-  if "${RESOLVED_BIN_PATH}" --help 2>&1 | grep -q 'models-dir'; then
-    cmd+=(--models-dir "${MODELS_DIR}" --models-max 1)
-    if [[ -f "${PRESET_PATH}" ]]; then
-      cmd+=(--models-preset "${PRESET_PATH}")
-    fi
-    echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
-  else
-    echo "[llama-server] WARNING: binary does not support --models-dir, falling back to single-model mode" >&2
-    echo "[llama-server] ROUTER_MODE=disabled (unsupported binary)"
-    ROUTER_MODE=0
+  # Capture help before inspecting it so pipefail cannot turn grep's early exit
+  # into a false capability failure.
+  if ! ROUTER_HELP="$("${RESOLVED_BIN_PATH}" --help 2>&1)"; then
+    echo "[llama-server] ERROR: router mode was requested but binary capability inspection failed" >&2
+    exit 1
   fi
+  if [[ "${ROUTER_HELP}" != *"--models-dir"* ]]; then
+    echo "[llama-server] ERROR: router mode was requested but binary does not support --models-dir" >&2
+    exit 1
+  fi
+  cmd+=(--models-dir "${MODELS_DIR}" --models-max 1)
+  if [[ -f "${PRESET_PATH}" ]]; then
+    cmd+=(--models-preset "${PRESET_PATH}")
+  fi
+  echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
 fi
 
 if [[ "${ROUTER_MODE}" != "1" ]]; then
