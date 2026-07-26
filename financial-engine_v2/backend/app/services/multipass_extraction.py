@@ -6857,6 +6857,10 @@ def _apply_preferred_income_statement_source_payload(
             continue
         table_scale = _detect_scale_from_table(table)
         scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
+        period_binding = _bind_current_period_column(
+            table,
+            pass1_result.get("period_end"),
+        )
         for metric_name, (
             recovered_value,
             recovered_row_ref,
@@ -6913,6 +6917,23 @@ def _apply_preferred_income_statement_source_payload(
                 metric_scale_sources[metric_name] = (
                     "table" if table_scale != "unknown" else "document"
                 )
+            source_cell = None
+            if period_binding.get("status") == "BOUND":
+                candidate_source_cell = _period_bound_source_cell(
+                    table,
+                    recovered_row_ref,
+                    period_binding["column_index"],
+                    scale_for_table,
+                )
+                if (
+                    candidate_source_cell is not None
+                    and candidate_source_cell.get("scaled_value") == recovered_value
+                ):
+                    candidate_source_cell["header_cell"] = period_binding["header_cell"]
+                    candidate_source_cell["requested_period_end"] = period_binding[
+                        "requested_period_end"
+                    ]
+                    source_cell = candidate_source_cell
             field_provenance[metric_name] = _build_field_provenance_entry(
                 metric_name=metric_name,
                 source="income_statement",
@@ -6921,6 +6942,7 @@ def _apply_preferred_income_statement_source_payload(
                 scale=scale_for_table,
                 scale_source=metric_scale_sources.get(metric_name),
                 pass1_result=pass1_result,
+                source_cell=source_cell,
             )
 
     payload["metrics"] = metrics
