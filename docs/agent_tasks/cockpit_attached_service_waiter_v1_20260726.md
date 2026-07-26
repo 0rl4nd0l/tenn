@@ -16,6 +16,7 @@ allowed_files:
   - scripts/test_codex_event_waiter.py
   - scripts/agent_job_hook.py
   - scripts/test_agent_job_hook.py
+  - .agents/skills/tenn-fix/SKILL.md
   - docs/dev_flow/CODEX_OPERATOR_GUIDE.md
 ---
 

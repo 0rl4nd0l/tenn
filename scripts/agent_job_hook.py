@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import shlex
@@ -3763,21 +3764,44 @@ def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
     if len(tokens) < 3:
         return "malformed codex_event_waiter mode"
     mode = tokens[2]
-    if mode not in {"command", "github-pr"}:
+    if mode not in {"command", "service", "github-pr"}:
         return "malformed codex_event_waiter mode"
     output_paths: list[str] = []
+    ready_output_paths: list[str] = []
+    readiness_command: list[str] | None = None
     nested: list[str] | None = None
     index = 3
-    value_options = {"--output", "--poll-seconds", "--timeout-seconds"}
-    github_value_options = {"--repo", "--pr", "--head-sha"}
+    mode_value_options = {
+        "command": {
+            "--output",
+            "--timeout-seconds",
+            "--max-log-bytes",
+        },
+        "service": {
+            "--output",
+            "--ready-output",
+            "--readiness-command-json",
+            "--readiness-timeout-seconds",
+            "--poll-seconds",
+            "--max-log-bytes",
+        },
+        "github-pr": {
+            "--output",
+            "--poll-seconds",
+            "--timeout-seconds",
+            "--repo",
+            "--pr",
+            "--head-sha",
+        },
+    }
     while index < len(tokens):
         token = tokens[index]
-        if mode == "command" and token == "--":
+        if mode in {"command", "service"} and token == "--":
             nested = tokens[index + 1 :]
             break
         if token.startswith("--"):
             option, separator, value = token.partition("=")
-            allowed = value_options | (github_value_options if mode == "github-pr" else set())
+            allowed = mode_value_options[mode]
             if option not in allowed:
                 return f"unclassified codex_event_waiter option: {option}"
             if not separator:
@@ -3785,13 +3809,43 @@ def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
                     return f"malformed codex_event_waiter option: {option}"
                 value = tokens[index + 1]
                 index += 1
-            if not value or _unresolved_shell_value(value):
+            if not value or (
+                option != "--readiness-command-json"
+                and _unresolved_shell_value(value)
+            ):
                 return f"ambiguous codex_event_waiter option: {option}"
             if option == "--output":
                 output_paths.append(value)
-            elif option in {"--poll-seconds", "--timeout-seconds"}:
+            elif option == "--ready-output":
+                ready_output_paths.append(value)
+            elif option == "--readiness-command-json":
                 try:
-                    if float(value) <= 0:
+                    decoded = json.loads(value)
+                except json.JSONDecodeError:
+                    return "invalid codex_event_waiter readiness command JSON"
+                if (
+                    not isinstance(decoded, list)
+                    or not decoded
+                    or any(not isinstance(item, str) or not item for item in decoded)
+                ):
+                    return "invalid codex_event_waiter readiness command JSON"
+                if any(_unresolved_shell_value(item) for item in decoded):
+                    return "ambiguous codex_event_waiter readiness command JSON"
+                readiness_command = decoded
+            elif option == "--max-log-bytes":
+                try:
+                    if int(value) <= 0:
+                        return f"invalid codex_event_waiter numeric option: {option}"
+                except ValueError:
+                    return f"invalid codex_event_waiter numeric option: {option}"
+            elif option in {
+                "--poll-seconds",
+                "--timeout-seconds",
+                "--readiness-timeout-seconds",
+            }:
+                try:
+                    numeric_value = float(value)
+                    if not math.isfinite(numeric_value) or numeric_value <= 0:
                         return f"invalid codex_event_waiter numeric option: {option}"
                 except ValueError:
                     return f"invalid codex_event_waiter numeric option: {option}"
@@ -3803,10 +3857,37 @@ def _waiter_invocation_issue(tokens: list[str], *, depth: int) -> str | None:
     output_issue = _protected_destination_issue(output_paths, label="waiter output")
     if output_issue is not None:
         return output_issue
-    if mode == "command":
+    if mode in {"command", "service"}:
         if not nested:
-            return "codex_event_waiter command mode requires a command after `--`"
-        return _high_risk_tokens_issue(nested, depth=depth + 1, classify_outputs=True)
+            return f"codex_event_waiter {mode} mode requires a command after `--`"
+        nested_issue = _high_risk_tokens_issue(
+            nested,
+            depth=depth + 1,
+            classify_outputs=True,
+        )
+        if nested_issue is not None:
+            return nested_issue
+        if mode == "service":
+            if len(ready_output_paths) != 1:
+                return "codex_event_waiter service mode requires exactly one ready output path"
+            ready_output_issue = _protected_destination_issue(
+                ready_output_paths,
+                label="waiter ready output",
+            )
+            if ready_output_issue is not None:
+                return ready_output_issue
+            output_path = os.path.normpath(output_paths[0])
+            ready_output_path = os.path.normpath(ready_output_paths[0])
+            if ready_output_path in {output_path, f"{output_path}.log"}:
+                return "codex_event_waiter output paths must be different"
+            if readiness_command is None:
+                return "codex_event_waiter service mode requires a readiness command"
+            return _high_risk_tokens_issue(
+                readiness_command,
+                depth=depth + 1,
+                classify_outputs=True,
+            )
+        return None
     if nested is not None:
         return "malformed codex_event_waiter github-pr arguments"
     return None

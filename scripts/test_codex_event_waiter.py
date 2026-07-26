@@ -389,6 +389,522 @@ class CommandWaitTests(unittest.TestCase):
                         pass
 
 
+class ServiceWaitTests(unittest.TestCase):
+    def assert_not_ready(self, path: Path) -> None:
+        self.assertTrue(path.exists())
+        self.assertNotEqual(
+            json.loads(path.read_text(encoding="utf-8"))["state"],
+            "READY",
+        )
+
+    def wait_for_ready(
+        self,
+        path: Path,
+        process: subprocess.Popen[str],
+        *,
+        timeout_seconds: float = 3,
+    ) -> dict[str, object]:
+        deadline = time.monotonic() + timeout_seconds
+        while process.poll() is None and time.monotonic() < deadline:
+            if path.exists():
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("state") == "READY":
+                    return payload
+            time.sleep(0.02)
+        self.fail("service did not emit READY before exiting or timing out")
+
+    @unittest.skipUnless(os.name == "posix", "attached process supervision is POSIX-specific")
+    def test_service_ready_record_is_written_while_process_remains_alive(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service_pid_path = root / "service pid.txt"
+            ready_path = root / "service ready.json"
+            result_path = root / "service terminal.json"
+            service_code = "\n".join(
+                [
+                    "import os",
+                    "import time",
+                    f"open({str(service_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    "while True:",
+                    "    time.sleep(0.05)",
+                ]
+            )
+            readiness_code = "\n".join(
+                [
+                    "import os",
+                    "from pathlib import Path",
+                    f"path = Path({str(service_pid_path)!r})",
+                    "if not path.exists():",
+                    "    raise SystemExit(1)",
+                    "os.kill(int(path.read_text(encoding='utf-8')), 0)",
+                ]
+            )
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    str(Path(waiter.__file__).resolve()),
+                    "service",
+                    "--output",
+                    str(result_path),
+                    "--ready-output",
+                    str(ready_path),
+                    "--readiness-command-json",
+                    json.dumps([sys.executable, "-c", readiness_code]),
+                    "--readiness-timeout-seconds",
+                    "2",
+                    "--poll-seconds",
+                    "0.02",
+                    "--",
+                    sys.executable,
+                    "-c",
+                    service_code,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                ready = self.wait_for_ready(ready_path, process)
+                service_pid = int(service_pid_path.read_text(encoding="utf-8"))
+                self.assertEqual(ready["state"], "READY")
+                self.assertEqual(ready["observed"]["service_pid"], service_pid)
+                os.kill(service_pid, 0)
+
+                process.send_signal(signal.SIGINT)
+                process.communicate(timeout=5)
+
+                terminal = json.loads(result_path.read_text(encoding="utf-8"))
+                self.assertEqual(terminal["state"], "CANCELLED")
+                self.assertTrue(terminal["observed"]["ready_observed"])
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(service_pid, 0)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=5)
+
+    @unittest.skipUnless(os.name == "posix", "attached process supervision is POSIX-specific")
+    def test_service_cli_preserves_exact_cockpit_start_new_argv(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fake_bin = root / "fake bin"
+            fake_bin.mkdir()
+            argv_path = root / "cockpit argv.json"
+            service_pid_path = root / "cockpit pid.txt"
+            ready_path = root / "ready.json"
+            result_path = root / "terminal.json"
+            cockpit_path = fake_bin / "cockpit"
+            cockpit_path.write_text(
+                f"#!{sys.executable}\n"
+                "import json\n"
+                "import os\n"
+                "import sys\n"
+                "import time\n"
+                f"open({str(argv_path)!r}, 'w', encoding='utf-8').write(json.dumps(sys.argv[1:]))\n"
+                f"open({str(service_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))\n"
+                "while True:\n"
+                "    time.sleep(0.05)\n",
+                encoding="utf-8",
+            )
+            cockpit_path.chmod(0o755)
+            readiness_code = "\n".join(
+                [
+                    "import json",
+                    "import os",
+                    "from pathlib import Path",
+                    f"argv_path = Path({str(argv_path)!r})",
+                    f"pid_path = Path({str(service_pid_path)!r})",
+                    "if not argv_path.exists() or not pid_path.exists():",
+                    "    raise SystemExit(1)",
+                    "os.kill(int(pid_path.read_text(encoding='utf-8')), 0)",
+                    "raise SystemExit(0 if json.loads(argv_path.read_text(encoding='utf-8')) == ['start', 'new'] else 1)",
+                ]
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}:{env['PATH']}"
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    str(Path(waiter.__file__).resolve()),
+                    "service",
+                    "--output",
+                    str(result_path),
+                    "--ready-output",
+                    str(ready_path),
+                    "--readiness-command-json",
+                    json.dumps([sys.executable, "-c", readiness_code]),
+                    "--readiness-timeout-seconds",
+                    "2",
+                    "--poll-seconds",
+                    "0.02",
+                    "--",
+                    "cockpit",
+                    "start",
+                    "new",
+                ],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                ready = self.wait_for_ready(ready_path, process)
+                self.assertEqual(ready["target"]["executable"], "cockpit")
+                self.assertEqual(ready["target"]["arg_count"], 3)
+                self.assertEqual(
+                    json.loads(argv_path.read_text(encoding="utf-8")),
+                    ["start", "new"],
+                )
+
+                process.send_signal(signal.SIGINT)
+                process.communicate(timeout=5)
+                terminal = json.loads(result_path.read_text(encoding="utf-8"))
+                self.assertEqual(terminal["state"], "CANCELLED")
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=5)
+
+    @unittest.skipUnless(os.name == "posix", "attached signal supervision is POSIX-specific")
+    def test_service_cli_signals_clean_up_process_and_write_terminal(self) -> None:
+        supervised_signals = [signal.SIGTERM]
+        if hasattr(signal, "SIGHUP"):
+            supervised_signals.append(signal.SIGHUP)
+
+        for supervised_signal in supervised_signals:
+            with self.subTest(signal=supervised_signal), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                service_pid_path = root / "service.pid"
+                ready_path = root / "ready.json"
+                result_path = root / "terminal.json"
+                service_code = "\n".join(
+                    [
+                        "import os",
+                        "import time",
+                        f"open({str(service_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                        "time.sleep(30)",
+                    ]
+                )
+                readiness_code = "\n".join(
+                    [
+                        "from pathlib import Path",
+                        f"raise SystemExit(0 if Path({str(service_pid_path)!r}).exists() else 1)",
+                    ]
+                )
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        str(Path(waiter.__file__).resolve()),
+                        "service",
+                        "--output",
+                        str(result_path),
+                        "--ready-output",
+                        str(ready_path),
+                        "--readiness-command-json",
+                        json.dumps([sys.executable, "-c", readiness_code]),
+                        "--readiness-timeout-seconds",
+                        "2",
+                        "--poll-seconds",
+                        "0.02",
+                        "--",
+                        sys.executable,
+                        "-c",
+                        service_code,
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                try:
+                    self.wait_for_ready(ready_path, process)
+                    service_pid = int(service_pid_path.read_text(encoding="utf-8"))
+                    process.send_signal(supervised_signal)
+                    process.communicate(timeout=5)
+
+                    terminal = json.loads(result_path.read_text(encoding="utf-8"))
+                    self.assertEqual(terminal["state"], "CANCELLED")
+                    self.assertIn(
+                        signal.Signals(supervised_signal).name,
+                        terminal["summary"],
+                    )
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(service_pid, 0)
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                    process.communicate(timeout=5)
+
+    def test_service_exiting_before_readiness_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = waiter.run_service_wait(
+                [sys.executable, "-c", "raise SystemExit(7)"],
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                readiness_timeout_seconds=2,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=root / "ready.json",
+            )
+
+            self.assertEqual(result["state"], "FAILURE")
+            self.assertEqual(result["observed"]["exit_code"], 7)
+            self.assertFalse(result["observed"]["ready_observed"])
+            self.assert_not_ready(root / "ready.json")
+
+    @unittest.skipUnless(os.name == "posix", "process-group cleanup is POSIX-specific")
+    def test_service_wrapper_exit_cleans_up_live_descendant(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child_pid_path = root / "child.pid"
+            child_code = "\n".join(
+                [
+                    "import os",
+                    "import time",
+                    f"open({str(child_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    "time.sleep(30)",
+                ]
+            )
+            wrapper_code = "\n".join(
+                [
+                    "import subprocess",
+                    "import sys",
+                    "import time",
+                    "from pathlib import Path",
+                    f"subprocess.Popen([sys.executable, '-c', {child_code!r}])",
+                    f"path = Path({str(child_pid_path)!r})",
+                    "while not path.exists():",
+                    "    time.sleep(0.01)",
+                ]
+            )
+            result = waiter.run_service_wait(
+                [sys.executable, "-c", wrapper_code],
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                readiness_timeout_seconds=2,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=root / "ready.json",
+            )
+
+            self.assertEqual(result["state"], "FAILURE")
+            self.assertTrue(result["observed"]["termination_attempted"])
+            child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(child_pid, 0)
+
+    def test_readiness_probe_exit_cleans_up_live_descendant(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            probe_child_pid_path = root / "probe-child.pid"
+            probe_child_code = "\n".join(
+                [
+                    "import os",
+                    "import time",
+                    f"open({str(probe_child_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    "time.sleep(30)",
+                ]
+            )
+            probe_wrapper_code = "\n".join(
+                [
+                    "import subprocess",
+                    "import sys",
+                    "import time",
+                    "from pathlib import Path",
+                    f"subprocess.Popen([sys.executable, '-c', {probe_child_code!r}])",
+                    f"path = Path({str(probe_child_pid_path)!r})",
+                    "while not path.exists():",
+                    "    time.sleep(0.01)",
+                ]
+            )
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = waiter.run_service_wait(
+                    [sys.executable, "-c", "import time; time.sleep(0.2)"],
+                    [sys.executable, "-c", probe_wrapper_code],
+                    readiness_timeout_seconds=2,
+                    poll_seconds=0.02,
+                    max_log_bytes=1024,
+                    output_path=root / "terminal.json",
+                    ready_output_path=root / "ready.json",
+                )
+
+            self.assertTrue(result["observed"]["ready_observed"])
+            probe_child_pid = int(probe_child_pid_path.read_text(encoding="utf-8"))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(probe_child_pid, 0)
+
+    def test_service_readiness_timeout_terminates_process(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service_pid_path = root / "service.pid"
+            service_code = "\n".join(
+                [
+                    "import os",
+                    "import time",
+                    f"open({str(service_pid_path)!r}, 'w', encoding='utf-8').write(str(os.getpid()))",
+                    "time.sleep(30)",
+                ]
+            )
+            result = waiter.run_service_wait(
+                [sys.executable, "-c", service_code],
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                readiness_timeout_seconds=0.15,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=root / "ready.json",
+            )
+
+            self.assertEqual(result["state"], "TIMEOUT")
+            self.assertTrue(result["observed"]["termination_attempted"])
+            service_pid = int(service_pid_path.read_text(encoding="utf-8"))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(service_pid, 0)
+
+    def test_service_and_readiness_arguments_preserve_spaces_without_shell(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            value = "value with spaces; touch should-not-run"
+            observed_path = root / "observed value.txt"
+            ready_path = root / "ready result.json"
+            service_code = "\n".join(
+                [
+                    "import sys",
+                    "import time",
+                    f"open({str(observed_path)!r}, 'w', encoding='utf-8').write(sys.argv[1])",
+                    "time.sleep(0.2)",
+                ]
+            )
+            readiness_code = (
+                "import sys\n"
+                "from pathlib import Path\n"
+                "path = Path(sys.argv[1])\n"
+                "expected = sys.argv[2]\n"
+                "raise SystemExit(0 if path.exists() and "
+                "path.read_text(encoding='utf-8') == expected else 1)"
+            )
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = waiter.run_service_wait(
+                    [sys.executable, "-c", service_code, value],
+                    [sys.executable, "-c", readiness_code, str(observed_path), value],
+                    readiness_timeout_seconds=2,
+                    poll_seconds=0.02,
+                    max_log_bytes=1024,
+                    output_path=root / "terminal result.json",
+                    ready_output_path=ready_path,
+                )
+
+            self.assertTrue(ready_path.exists())
+            self.assertEqual(observed_path.read_text(encoding="utf-8"), value)
+            self.assertFalse((root / "should-not-run").exists())
+            self.assertEqual(result["state"], "FAILURE")
+            self.assertTrue(result["observed"]["ready_observed"])
+
+    def test_service_missing_readiness_executable_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = waiter.run_service_wait(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                [str(root / "missing readiness executable")],
+                readiness_timeout_seconds=2,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=root / "ready.json",
+            )
+
+            self.assertEqual(result["state"], "ERROR")
+            self.assertTrue(result["observed"]["termination_attempted"])
+            self.assert_not_ready(root / "ready.json")
+
+    def test_service_missing_executable_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = waiter.run_service_wait(
+                [str(root / "missing service executable")],
+                [sys.executable, "-c", "raise SystemExit(0)"],
+                readiness_timeout_seconds=2,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=root / "ready.json",
+            )
+
+            self.assertEqual(result["state"], "ERROR")
+            self.assertIsNone(result["observed"]["service_pid"])
+            self.assert_not_ready(root / "ready.json")
+
+    def test_parse_argv_json_rejects_non_string_or_empty_argv(self) -> None:
+        for value in ("{}", "[]", '[""]', '["python3", 1]'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                waiter.parse_argv_json(value, option="--readiness-command-json")
+
+    def test_service_artifact_paths_must_be_distinct(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output_path = root / "terminal.json"
+            for ready_path in (output_path, Path(f"{output_path}.log")):
+                with self.subTest(ready_path=ready_path), self.assertRaises(ValueError):
+                    waiter.run_service_wait(
+                        [sys.executable, "-c", "raise SystemExit(0)"],
+                        [sys.executable, "-c", "raise SystemExit(0)"],
+                        readiness_timeout_seconds=2,
+                        poll_seconds=0.02,
+                        max_log_bytes=1024,
+                        output_path=output_path,
+                        ready_output_path=ready_path,
+                    )
+
+    def test_service_replaces_stale_ready_before_startup(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready_path = root / "ready.json"
+            ready_path.write_text(
+                '{"state":"READY","wait_id":"stale"}\n',
+                encoding="utf-8",
+            )
+            result = waiter.run_service_wait(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                readiness_timeout_seconds=0.1,
+                poll_seconds=0.02,
+                max_log_bytes=1024,
+                output_path=root / "terminal.json",
+                ready_output_path=ready_path,
+            )
+
+            lifecycle = json.loads(ready_path.read_text(encoding="utf-8"))
+            self.assertEqual(lifecycle["state"], "STARTING")
+            self.assertEqual(lifecycle["wait_id"], result["wait_id"])
+            self.assertNotEqual(lifecycle["wait_id"], "stale")
+
+    def test_service_rejects_non_finite_timing_values(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for readiness_timeout, poll_seconds in (
+                (float("nan"), 1.0),
+                (float("inf"), 1.0),
+                (1.0, float("nan")),
+                (1.0, float("inf")),
+            ):
+                with (
+                    self.subTest(
+                        readiness_timeout=readiness_timeout,
+                        poll_seconds=poll_seconds,
+                    ),
+                    self.assertRaises(ValueError),
+                ):
+                    waiter.run_service_wait(
+                        [sys.executable, "-c", "raise SystemExit(0)"],
+                        [sys.executable, "-c", "raise SystemExit(0)"],
+                        readiness_timeout_seconds=readiness_timeout,
+                        poll_seconds=poll_seconds,
+                        max_log_bytes=1024,
+                        output_path=root / "terminal.json",
+                        ready_output_path=root / "ready.json",
+                    )
+
+
 class OutputAndCliTests(unittest.TestCase):
     def test_write_terminal_result_is_atomic_and_stdout_is_one_json_line(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

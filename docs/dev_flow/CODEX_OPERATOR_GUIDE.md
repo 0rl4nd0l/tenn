@@ -222,10 +222,45 @@ python3 scripts/codex_event_waiter.py command \
   -- python3 scripts/<approved-command>.py <args>
 ```
 
+For an authorized foreground service, use `service` mode instead of finite
+`command` mode. The readiness command is a JSON argv array; neither command is
+interpreted by a shell:
+
+```bash
+python3 scripts/codex_event_waiter.py service \
+  --readiness-timeout-seconds 300 \
+  --poll-seconds 2 \
+  --ready-output reports/agent_jobs/<job_id>/SERVICE_READY.json \
+  --output reports/agent_jobs/<job_id>/SERVICE_TERMINAL.json \
+  --readiness-command-json \
+    '["curl","-fsS","--max-time","3","http://127.0.0.1:8081"]' \
+  -- cockpit start new
+```
+
+Keep this waiter attached in a persistent execution session. It atomically
+writes `SERVICE_READY.json` while the service is still running, then continues
+to supervise the same process group. Check the remaining runtime gates from a
+separate execution context. When verification is complete, interrupt the
+attached waiter; it will terminate the exact service process group and write
+`SERVICE_TERMINAL.json` with `CANCELLED`.
+
+Do not wait for service mode to exit before checking readiness. A foreground
+server is expected to remain alive. If it exits, fails readiness, or exceeds
+the readiness deadline, service mode fails closed and cleans up its process
+group. It never detaches or leaves an orphaned service.
+
 Operator rules:
 
 - Ensure the wait artifact is in the active task-card allowlist. Command mode
   also writes `<wait-artifact>.log`, which must be allowlisted separately.
+- Service mode writes a ready artifact, terminal artifact, and
+  `<terminal-artifact>.log`; allowlist all three.
+- A `READY` record is live readiness evidence only, not product functionality
+  proof. Run the remaining health, provenance, and output gates while the
+  waiter remains attached, and require its `wait_id` to match the eventual
+  terminal record.
+- Never put credentials or secrets in readiness-command JSON because command
+  arguments can be visible in the host process table.
 - Record `waiting_on_timer` before a meaningful wait when ledger mutation is
   approved.
 - A `SUCCESS` record means the wait condition completed. It is not proof that
