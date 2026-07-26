@@ -43,6 +43,8 @@ from app.services.extraction_eval import (
     evaluate_fixture,
     summarize_numeric_quality,
     summarize_provenance_summaries,
+    strict_iso_date_or_none,
+    strict_str_or_none,
     str_or_none,
 )
 from app.services.financial_metric_contract import (
@@ -107,7 +109,10 @@ def load_real_gold_fixtures(fixtures_dir: str | Path) -> list[RealGoldFixture]:
     output: list[RealGoldFixture] = []
     for path in sorted(fixture_dir.glob("*.json")):
         payload = _parse_fixture_path(path)
-        document_id = str(payload.get("document_id") or path.stem)
+        document_id = (
+            strict_str_or_none(payload.get("document_id"), field_name="document_id")
+            or path.stem
+        )
 
         metrics = _coerce_metric_map(payload.get("metrics", {}), path)
         tolerances = _coerce_tolerances(payload.get("tolerances", {}), path)
@@ -127,11 +132,17 @@ def load_real_gold_fixtures(fixtures_dir: str | Path) -> list[RealGoldFixture]:
                 raise ValueError(f"expected_trust in {path} must be a string")
 
         context = FixtureContext(
-            period_end=str_or_none(payload.get("period_end")),
-            period_type=str_or_none(payload.get("period_type")),
-            currency=str_or_none(payload.get("currency")),
-            scale=str_or_none(payload.get("scale")),
-            accounting_basis=str_or_none(payload.get("accounting_basis")),
+            period_end=strict_iso_date_or_none(
+                payload.get("period_end"), field_name="period_end"
+            ),
+            period_type=strict_str_or_none(
+                payload.get("period_type"), field_name="period_type"
+            ),
+            currency=strict_str_or_none(payload.get("currency"), field_name="currency"),
+            scale=strict_str_or_none(payload.get("scale"), field_name="scale"),
+            accounting_basis=strict_str_or_none(
+                payload.get("accounting_basis"), field_name="accounting_basis"
+            ),
         )
         document_class = _declared_document_class(payload.get("document_class"))
 
@@ -143,7 +154,10 @@ def load_real_gold_fixtures(fixtures_dir: str | Path) -> list[RealGoldFixture]:
                 tolerances=tolerances,
                 expected_trust=expected_trust,
                 document_class=document_class,
-                source_document_id=str_or_none(payload.get("source_document_id")),
+                source_document_id=strict_str_or_none(
+                    payload.get("source_document_id"),
+                    field_name="source_document_id",
+                ),
             )
         )
     return output
@@ -155,6 +169,10 @@ def evaluate_real_gold_fixture(
 ) -> RealGoldFixtureEvaluation:
     """Evaluate one real fixture against one extraction payload."""
 
+    strict_str_or_none(
+        fixture.source_document_id,
+        field_name="source_document_id",
+    )
     extracted_payload = extracted_payload or {}
     metric_payload = extracted_payload.get("metrics", extracted_payload)
     if not isinstance(metric_payload, dict):
@@ -218,12 +236,16 @@ def build_real_gold_scorecard(
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     fixtures = load_real_gold_fixtures(fixtures_dir)
-    extracted_payloads = extracted_payloads or {}
-    evaluations = classify_real_gold_fixtures(fixtures, extracted_payloads)
+    payloads = (
+        {fixture.document_id: {} for fixture in fixtures}
+        if extracted_payloads is None
+        else extracted_payloads
+    )
+    evaluations = classify_real_gold_fixtures(fixtures, payloads)
     return summarize_real_gold_evaluations(
         fixtures,
         evaluations,
-        extracted_payloads,
+        payloads,
     )
 
 
@@ -493,7 +515,12 @@ def _validate_extracted_payload_identities(
     fixture_ids: set[str],
     extracted_payloads: Mapping[str, Mapping[str, Any]],
 ) -> None:
-    payload_keys = [str(document_id) for document_id in extracted_payloads]
+    raw_payload_keys = list(extracted_payloads)
+    if any(not isinstance(document_id, str) for document_id in raw_payload_keys):
+        raise ValueError("payload keys must be strings")
+    payload_keys = [
+        document_id for document_id in raw_payload_keys if isinstance(document_id, str)
+    ]
     duplicate_payload_keys = _duplicate_document_ids(payload_keys)
     if duplicate_payload_keys:
         raise ValueError("duplicate payload keys: " + ", ".join(duplicate_payload_keys))
@@ -512,7 +539,12 @@ def _validate_extracted_payload_identities(
     mismatches: list[str] = []
     for payload_key in sorted(payload_id_set):
         payload = extracted_payloads[payload_key]
-        embedded_id = str_or_none(payload.get("document_id"))
+        embedded_raw = payload.get("document_id")
+        if embedded_raw is not None and not isinstance(embedded_raw, str):
+            raise ValueError("payload document IDs must be strings")
+        embedded_id = (
+            embedded_raw.strip() if isinstance(embedded_raw, str) else None
+        ) or None
         if embedded_id is None:
             continue
         embedded_ids.append(embedded_id)
@@ -676,7 +708,9 @@ def _build_document_class_groups(
 def _declared_document_class(raw: Any) -> ASXDocumentClass | None:
     if raw is None:
         return None
-    normalized = str(raw).strip().lower().replace("-", "_").replace(" ", "_")
+    if not isinstance(raw, str):
+        return None
+    normalized = raw.strip().lower().replace("-", "_").replace(" ", "_")
     aliases = {
         "annual": ASXDocumentClass.ANNUAL,
         "annual_report": ASXDocumentClass.ANNUAL,

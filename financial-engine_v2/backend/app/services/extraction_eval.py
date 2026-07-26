@@ -137,7 +137,10 @@ def load_fixtures(fixtures_dir: str | Path) -> list[ExtractionFixture]:
     output: list[ExtractionFixture] = []
     for path in sorted(fixture_dir.glob("*.json")):
         payload = _parse_fixture_path(path)
-        fixture_id = str(payload.get("fixture_id") or path.stem)
+        fixture_id = (
+            strict_str_or_none(payload.get("fixture_id"), field_name="fixture_id")
+            or path.stem
+        )
         metrics = _coerce_metric_map(payload.get("metrics", {}), path)
         optional_metrics = _coerce_metric_list(
             payload.get("optional_metrics", []), path
@@ -148,11 +151,17 @@ def load_fixtures(fixtures_dir: str | Path) -> list[ExtractionFixture]:
         _validate_metric_names(path, [*metrics, *expected_nulls, *optional_metrics])
 
         context = FixtureContext(
-            period_end=str_or_none(payload.get("period_end")),
-            period_type=str_or_none(payload.get("period_type")),
-            currency=str_or_none(payload.get("currency")),
-            scale=str_or_none(payload.get("scale")),
-            accounting_basis=str_or_none(payload.get("accounting_basis")),
+            period_end=strict_iso_date_or_none(
+                payload.get("period_end"), field_name="period_end"
+            ),
+            period_type=strict_str_or_none(
+                payload.get("period_type"), field_name="period_type"
+            ),
+            currency=strict_str_or_none(payload.get("currency"), field_name="currency"),
+            scale=strict_str_or_none(payload.get("scale"), field_name="scale"),
+            accounting_basis=strict_str_or_none(
+                payload.get("accounting_basis"), field_name="accounting_basis"
+            ),
         )
         output.append(
             ExtractionFixture(
@@ -196,8 +205,10 @@ def evaluate_fixture(
     """Evaluate one fixture against one extracted metric payload."""
 
     extracted_payload = extracted_payload or {}
+    _validate_fixture_identity_and_context(fixture)
     _validate_fixture_numeric_values(fixture)
     _validate_extracted_metric_values(extracted_metrics)
+    _validate_extracted_payload_types(extracted_payload)
     provenance_summary = _build_provenance_summary(
         extracted_payload,
         expected_context=fixture.context,
@@ -894,12 +905,155 @@ def _validate_fixture_numeric_values(fixture: ExtractionFixture) -> None:
             raise ValueError(f"tolerance for {metric} must be numeric")
 
 
+def _validate_fixture_identity_and_context(fixture: ExtractionFixture) -> None:
+    if not isinstance(fixture.fixture_id, str):
+        raise ValueError("fixture_id must be a string")
+    for field_name in (
+        "period_type",
+        "currency",
+        "scale",
+        "accounting_basis",
+    ):
+        value = getattr(fixture.context, field_name)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+    period_end = fixture.context.period_end
+    if period_end is not None:
+        if not isinstance(period_end, str):
+            raise ValueError("period_end must be a string")
+        _validate_iso_date(period_end, field_name="period_end")
+
+
 def _validate_extracted_metric_values(extracted_metrics: Mapping[str, Any]) -> None:
     for metric, value in extracted_metrics.items():
         if metric not in METRIC_FIELDS or value is None:
             continue
         if not _is_real_number(value):
             raise ValueError(f"metric {metric} actual value must be numeric or null")
+
+
+def _validate_extracted_payload_types(payload: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        payload,
+        (
+            "document_id",
+            "source_document_id",
+            "period_end",
+            "period_type",
+            "currency",
+            "scale",
+            "accounting_basis",
+        ),
+    )
+    _validate_optional_iso_date(payload.get("period_end"), field_name="period_end")
+
+    provenance = payload.get("provenance")
+    if isinstance(provenance, Mapping):
+        for metric_name, value in provenance.items():
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"provenance.{metric_name} must be a string")
+
+    field_provenance = payload.get("field_provenance")
+    if not isinstance(field_provenance, Mapping):
+        return
+    for raw in field_provenance.values():
+        if not isinstance(raw, Mapping):
+            continue
+        _validate_structured_provenance_types(raw)
+
+
+def _validate_structured_provenance_types(raw: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        raw,
+        (
+            "metric",
+            "source",
+            "statement_context",
+            "source_document_id",
+            "period_end",
+            "period_type",
+            "currency",
+            "scale",
+            "page_tag",
+            "table_label",
+            "table_ref",
+            "region_ref",
+            "region",
+            "row_ref",
+            "excerpt",
+            "derivation_identity",
+            "authorized_derivation",
+        ),
+    )
+    _validate_optional_iso_date(raw.get("period_end"), field_name="period_end")
+    _require_page_identity(raw, "page_number")
+
+    source_row_refs = raw.get("source_row_refs")
+    if source_row_refs is not None:
+        if not isinstance(source_row_refs, list) or any(
+            not isinstance(row_ref, str) for row_ref in source_row_refs
+        ):
+            raise ValueError("source_row_refs must be a list of strings")
+
+    source_cell = raw.get("source_cell")
+    if isinstance(source_cell, Mapping):
+        _validate_source_cell_types(source_cell)
+    source_cells = raw.get("source_cells")
+    if isinstance(source_cells, list):
+        for cell in source_cells:
+            if isinstance(cell, Mapping):
+                _validate_source_cell_types(cell)
+
+
+def _validate_source_cell_types(cell: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        cell,
+        (
+            "source_document_id",
+            "table_label",
+            "table_ref",
+            "region_ref",
+            "region",
+            "row_label",
+            "row_ref",
+            "header_cell",
+            "requested_period_end",
+        ),
+    )
+    _validate_optional_iso_date(
+        cell.get("requested_period_end"),
+        field_name="requested_period_end",
+    )
+    _require_page_identity(cell, "page_number")
+    for field_name in ("row_index", "column_index"):
+        value = cell.get(field_name)
+        if value is not None and (
+            not isinstance(value, int) or isinstance(value, bool)
+        ):
+            raise ValueError(f"{field_name} must be an integer")
+    raw_value = cell.get("raw_value")
+    if raw_value is not None and not (
+        isinstance(raw_value, str) or _is_real_number(raw_value)
+    ):
+        raise ValueError("raw_value must be a string or real number")
+
+
+def _require_string_fields(
+    values: Mapping[str, Any],
+    field_names: Iterable[str],
+) -> None:
+    for field_name in field_names:
+        value = values.get(field_name)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+
+
+def _require_page_identity(values: Mapping[str, Any], field_name: str) -> None:
+    value = values.get(field_name)
+    if value is None:
+        return
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{field_name} must be an integer or string")
 
 
 def _payload_metric_value(payload: Mapping[str, Any], metric_name: str) -> Any:
@@ -1051,12 +1205,30 @@ def _strict_provenance_failure_reason(
     }
     if derived_source not in allowed_sources:
         return "statement_context_not_allowed"
+    declared_statement_context = str_or_none(raw.get("statement_context"))
+    if declared_statement_context is not None and _normalized_evidence_text(
+        declared_statement_context
+    ) != _normalized_evidence_text(derived_source):
+        return "statement_context_mismatch"
 
-    page = str_or_none(raw.get("page_tag") or raw.get("page_number"))
-    if page is None or page.lower() == "unknown":
+    page_references = [
+        _normalized_page_reference(raw.get(field_name))
+        for field_name in ("page_number", "page_tag")
+        if raw.get(field_name) is not None
+    ]
+    if not page_references:
         return "page_binding_missing"
-    if not _has_table_or_region_binding(raw):
+    if any(page_reference is None for page_reference in page_references):
+        return "page_binding_invalid"
+    if len(set(page_references)) != 1:
+        return "page_binding_mismatch"
+    parent_bindings = _normalized_table_or_region_bindings(raw)
+    if not parent_bindings:
         return "table_or_region_binding_missing"
+    if len(parent_bindings) != 1:
+        return "table_or_region_binding_mismatch"
+    if _normalized_evidence_text(derived_source) not in parent_bindings:
+        return "statement_table_context_mismatch"
 
     for field_name, expected_value in expected_fields.items():
         actual_context_value = str_or_none(raw.get(field_name))
@@ -1102,13 +1274,6 @@ def _strict_provenance_failure_reason(
     if cell_failure is not None:
         return cell_failure
     return None
-
-
-def _has_table_or_region_binding(raw: Mapping[str, Any]) -> bool:
-    return any(
-        str_or_none(raw.get(field_name)) is not None
-        for field_name in ("table_label", "table_ref", "region_ref", "region")
-    )
 
 
 def _has_explicit_source_row_refs(raw: Mapping[str, Any]) -> bool:
@@ -1186,7 +1351,7 @@ def _structured_source_cells_failure_reason(
         cell_bindings = _normalized_table_or_region_bindings(cell)
         if not cell_bindings:
             return "cell_table_or_region_missing"
-        if parent_bindings.isdisjoint(cell_bindings):
+        if len(cell_bindings) != 1 or cell_bindings != parent_bindings:
             return "cell_table_or_region_mismatch"
 
         expected_row = source_row_refs[index]
@@ -1231,13 +1396,18 @@ def _explicit_source_row_refs(raw: Mapping[str, Any]) -> list[str]:
 
 
 def _normalized_page_reference(value: Any) -> int | None:
-    text = str_or_none(value)
-    if text is None:
+    if isinstance(value, bool):
         return None
-    matches = re.findall(r"\d+", text)
-    if len(matches) != 1:
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str):
         return None
-    return int(matches[0])
+    match = re.fullmatch(
+        r"(?:page[_\s-]*|p\.?\s*)?(\d+)",
+        value.strip(),
+        re.IGNORECASE,
+    )
+    return int(match.group(1)) if match is not None else None
 
 
 def _normalized_table_or_region_bindings(raw: Mapping[str, Any]) -> set[str]:
@@ -1265,9 +1435,9 @@ def _header_matches_period(header: str, expected_period_end: str) -> bool:
         re.escape(value) for value in (period.strftime("%B"), period.strftime("%b"))
     )
     patterns = (
-        rf"(?<!\d){year}[-/]{month}[-/]{day}(?!\d)",
-        rf"(?<!\d){day}[-/]{month}[-/]{year}(?!\d)",
-        rf"(?<!\d){day}\s+(?:{month_names})\s+{year}(?!\d)",
+        rf"(?<![A-Za-z0-9]){year}[-/]{month}[-/]{day}(?![A-Za-z0-9])",
+        rf"(?<![A-Za-z0-9]){day}[-/]{month}[-/]{year}(?![A-Za-z0-9])",
+        rf"(?<![A-Za-z0-9]){day}\s+(?:{month_names})\s+{year}(?![A-Za-z0-9])",
     )
     return any(re.search(pattern, header, re.IGNORECASE) for pattern in patterns)
 
@@ -1325,6 +1495,21 @@ def _safe_ratio(numerator: int, denominator: int) -> float | None:
     return round(numerator / denominator, 4)
 
 
+def _validate_iso_date(value: str, *, field_name: str) -> None:
+    try:
+        date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{field_name} must be a valid ISO date") from exc
+
+
+def _validate_optional_iso_date(value: Any, *, field_name: str) -> None:
+    if value is None:
+        return
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    _validate_iso_date(value, field_name=field_name)
+
+
 def str_or_none(value: Any) -> str | None:
     if value is None:
         return None
@@ -1332,3 +1517,19 @@ def str_or_none(value: Any) -> str | None:
         stripped = value.strip()
         return stripped if stripped else None
     return str(value).strip() or None
+
+
+def strict_str_or_none(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    stripped = value.strip()
+    return stripped if stripped else None
+
+
+def strict_iso_date_or_none(value: Any, *, field_name: str) -> str | None:
+    text = strict_str_or_none(value, field_name=field_name)
+    if text is not None:
+        _validate_iso_date(text, field_name=field_name)
+    return text

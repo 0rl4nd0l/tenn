@@ -400,6 +400,126 @@ def test_load_real_gold_fixtures_rejects_boolean_numbers(
         load_real_gold_fixtures(tmp_path)
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "document_id",
+        "source_document_id",
+        "period_type",
+        "period_end",
+        "currency",
+        "scale",
+        "accounting_basis",
+    ],
+)
+def test_load_real_gold_fixtures_rejects_boolean_identity_and_context_fields(
+    tmp_path,
+    field_name,
+):
+    fixture = {
+        "document_id": "boolean-identity",
+        "source_document_id": "boolean-identity",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "accounting_basis": "statutory",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    fixture[field_name] = True
+    (tmp_path / "boolean.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=rf"{field_name}.*must be a string"):
+        load_real_gold_fixtures(tmp_path)
+
+
+def test_real_gold_rejects_impossible_fixture_and_payload_dates(tmp_path):
+    fixture_payload = {
+        "document_id": "impossible-date",
+        "source_document_id": "impossible-date",
+        "period_type": "A",
+        "period_end": "2025-02-30",
+        "currency": "AUD",
+        "scale": "millions",
+        "accounting_basis": "statutory",
+        "metrics": {"revenue": None},
+        "tolerances": {},
+    }
+    (tmp_path / "impossible.json").write_text(
+        json.dumps(fixture_payload),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="period_end must be a valid ISO date"):
+        load_real_gold_fixtures(tmp_path)
+
+    fixture = RealGoldFixture(
+        document_id="impossible-date",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-02-30",
+            currency="AUD",
+            scale="millions",
+            accounting_basis="statutory",
+        ),
+        metrics={"revenue": None},
+        tolerances={},
+        expected_trust=None,
+        source_document_id="impossible-date",
+    )
+    with pytest.raises(ValueError, match="period_end must be a valid ISO date"):
+        evaluate_real_gold_fixture(
+            fixture,
+            {
+                "period_type": "A",
+                "period_end": "2025-02-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "accounting_basis": "statutory",
+                "source_document_id": "impossible-date",
+                "metrics": {"revenue": None},
+            },
+        )
+
+
+def test_real_gold_rejects_boolean_in_memory_fixture_source_identity():
+    fixture = RealGoldFixture(
+        document_id="boolean-fixture-source",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-06-30",
+            currency="AUD",
+            scale="millions",
+            accounting_basis="statutory",
+        ),
+        metrics={"revenue": 100.0},
+        tolerances={},
+        expected_trust=None,
+        source_document_id=True,
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id="True",
+        source="income_statement",
+    )
+
+    with pytest.raises(ValueError, match="source_document_id must be a string"):
+        evaluate_real_gold_fixture(
+            fixture,
+            {
+                "period_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "accounting_basis": "statutory",
+                "source_document_id": "True",
+                "metrics": {"revenue": 100.0},
+                "field_provenance": field_provenance,
+            },
+        )
+
+
 def test_load_real_gold_fixtures_preserves_numeric_zero(tmp_path):
     fixture = {
         "document_id": "zero-fixture",
@@ -452,6 +572,19 @@ def test_scorecard_script_defaults_to_real_gold_corpus():
     spec.loader.exec_module(module)
 
     assert module.DEFAULT_FIXTURES_DIR == PROJECT_ROOT / "data" / "extraction_gold_real"
+
+
+def test_real_gold_scorecard_distinguishes_legacy_none_from_explicit_empty_payloads():
+    legacy_scorecard = build_real_gold_scorecard(REAL_FIXTURES_DIR)
+
+    assert legacy_scorecard["evaluation_lane"] == "real_document"
+    assert legacy_scorecard["total_fixture_count"] == 8
+
+    with pytest.raises(
+        ValueError,
+        match="fixture/payload document ID sets differ",
+    ):
+        build_real_gold_scorecard(REAL_FIXTURES_DIR, {})
 
 
 def test_real_gold_fixture_evaluates_trust_outcomes():
@@ -610,6 +743,72 @@ def test_real_gold_required_provenance_is_a_fail_closed_trust_gate():
 
 
 @pytest.mark.parametrize(
+    ("scope", "field_name"),
+    [
+        ("payload", "source_document_id"),
+        ("payload", "period_type"),
+        ("payload", "period_end"),
+        ("payload", "currency"),
+        ("payload", "scale"),
+        ("payload", "accounting_basis"),
+        ("provenance", "source_document_id"),
+        ("provenance", "source"),
+        ("provenance", "statement_context"),
+        ("provenance", "period_type"),
+        ("provenance", "period_end"),
+        ("provenance", "currency"),
+        ("provenance", "scale"),
+        ("provenance", "page_number"),
+        ("provenance", "page_tag"),
+        ("provenance", "table_label"),
+        ("provenance", "row_ref"),
+        ("cell", "source_document_id"),
+        ("cell", "page_number"),
+        ("cell", "row_index"),
+        ("cell", "column_index"),
+        ("cell", "row_label"),
+        ("cell", "header_cell"),
+        ("cell", "requested_period_end"),
+        ("cell", "raw_value"),
+    ],
+)
+def test_real_gold_rejects_boolean_payload_and_provenance_fields(
+    scope,
+    field_name,
+):
+    fixture = _in_memory_fixture(
+        "boolean-payload-field",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["statement_context"] = "income_statement"
+    payload = {
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "millions",
+        "accounting_basis": "statutory",
+        "source_document_id": fixture.document_id,
+        "metrics": {"revenue": 100.0},
+        "field_provenance": field_provenance,
+    }
+    target = {
+        "payload": payload,
+        "provenance": field_provenance["revenue"],
+        "cell": field_provenance["revenue"]["source_cell"],
+    }[scope]
+    target[field_name] = True
+
+    with pytest.raises(ValueError, match=rf"{field_name}.*must"):
+        evaluate_real_gold_fixture(fixture, payload)
+
+
+@pytest.mark.parametrize(
     ("mutation", "expected_reason"),
     [
         (
@@ -715,6 +914,107 @@ def test_real_gold_rejects_top_level_source_mismatch_and_page_row_only_evidence(
     ]
     assert incomplete.provenance_trust_failures == [
         "revenue:provenance_invalid:table_or_region_binding_missing"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("page_tag", "expected_reason"),
+    [
+        ("page_999", "page_binding_mismatch"),
+        ("page_1x", "page_binding_invalid"),
+    ],
+)
+def test_real_gold_rejects_contradictory_parent_page_bindings(
+    page_tag,
+    expected_reason,
+):
+    fixture = _in_memory_fixture(
+        "contradictory-page-bindings",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["page_tag"] = page_tag
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        f"revenue:provenance_invalid:{expected_reason}"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("provenance_mutation", "cell_mutation", "expected_reason"),
+    [
+        (
+            {"table_label": "cashflow_statement"},
+            {"table_label": "cashflow_statement"},
+            "statement_table_context_mismatch",
+        ),
+        (
+            {"statement_context": "cashflow_statement"},
+            {},
+            "statement_context_mismatch",
+        ),
+        (
+            {"region_ref": "cashflow_statement"},
+            {},
+            "table_or_region_binding_mismatch",
+        ),
+    ],
+)
+def test_real_gold_rejects_conflicting_source_coordinate_representations(
+    provenance_mutation,
+    cell_mutation,
+    expected_reason,
+):
+    fixture = _in_memory_fixture(
+        "conflicting-source-coordinate",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"].update(provenance_mutation)
+    field_provenance["revenue"]["source_cell"].update(cell_mutation)
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        f"revenue:provenance_invalid:{expected_reason}"
     ]
 
 
@@ -874,6 +1174,40 @@ def test_real_gold_accepts_human_readable_exact_period_header():
 
     assert result.trust == RealTrustOutcome.TRUSTED
     assert result.provenance_trust_failures == []
+
+
+@pytest.mark.parametrize("header_cell", ["30 June 2025x", "x30 June 2025"])
+def test_real_gold_rejects_period_header_prefix_and_suffix_impersonation(header_cell):
+    fixture = _in_memory_fixture(
+        "period-header-impersonation",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cell"]["header_cell"] = header_cell
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        "revenue:provenance_invalid:cell_header_period_mismatch"
+    ]
 
 
 def test_real_gold_rejects_direct_net_debt_from_disallowed_income_statement():
@@ -1496,6 +1830,17 @@ def test_real_scorecard_rejects_duplicate_and_mismatched_document_ids():
         "fixture/payload document ID sets differ: "
         "missing payloads=['half-year']; unexpected payloads=[]"
     )
+
+    boolean_key_payloads = {
+        True: payloads["annual"],
+        "half-year": payloads["half-year"],
+    }
+    with pytest.raises(ValueError, match="payload keys must be strings"):
+        summarize_real_gold_evaluations(
+            fixtures,
+            evaluations,
+            boolean_key_payloads,
+        )
 
     unexpected_payloads = {
         **payloads,
