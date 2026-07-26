@@ -2,10 +2,12 @@ from pathlib import Path
 
 from app.services.extraction_eval import (
     ExtractionFixture,
+    FixtureContext,
     MetricEvalStatus,
     build_fixture_scorecard,
     evaluate_fixture,
     load_fixtures,
+    summarize_numeric_quality,
     summarize_overall_score,
 )
 
@@ -189,6 +191,70 @@ def test_period_type_mismatch_is_enforced_in_context_validation():
     )
 
 
+def test_accounting_basis_mismatch_is_independent_context_failure():
+    fixture = ExtractionFixture(
+        fixture_id="accounting-basis",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-06-30",
+            currency="AUD",
+            scale="millions",
+            accounting_basis="statutory",
+        ),
+        metrics={"revenue": 100.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = _payload(
+        period_end="2025-06-30",
+        scale="millions",
+        metrics={"revenue": 100.0},
+    )
+    payload["accounting_basis"] = "underlying"
+
+    result = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    assert result.context_ok is False
+    assert result.context_mismatches == ["accounting_basis"]
+    assert result.metric_status("revenue") == MetricEvalStatus.QUARANTINE
+
+
+def test_numeric_precision_is_separate_from_supported_metric_recall():
+    fixture = ExtractionFixture(
+        fixture_id="precision-recall",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-06-30",
+            currency="AUD",
+            scale="millions",
+        ),
+        metrics={"revenue": 100.0, "ebit": 20.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = _payload(
+        period_end="2025-06-30",
+        scale="millions",
+        metrics={"revenue": 100.0},
+    )
+    evaluation = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    summary = summarize_numeric_quality([evaluation])
+
+    assert summary["accepted_numeric_precision"] == {
+        "correct_count": 1,
+        "accepted_count": 1,
+        "value": 1.0,
+    }
+    assert summary["supported_metric_recall"] == {
+        "correct_count": 1,
+        "expected_count": 2,
+        "value": 0.5,
+    }
+
+
 def test_scoring_prefers_abstain_over_wrong_for_aggregate_metrics():
     payload = _payload(
         metrics={
@@ -283,6 +349,7 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
 
     scorecard = build_fixture_scorecard(FIXTURES_DIR, payloads)
 
+    assert scorecard["evaluation_lane"] == "synthetic"
     assert scorecard["total_fixture_count"] == 16
     assert scorecard["total_metric_expectations"] == 33
     assert scorecard["correct_count"] == 15
@@ -313,6 +380,12 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
         "expected_count": 16,
         "matched_count": 15,
         "mismatched_count": 1,
+        "missing_count": 0,
+    }
+    assert scorecard["accounting_basis_correctness_summary"] == {
+        "expected_count": 0,
+        "matched_count": 0,
+        "mismatched_count": 0,
         "missing_count": 0,
     }
 

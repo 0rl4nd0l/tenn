@@ -16,6 +16,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from app.services.financial_metric_contract import (
+    METRIC_CONTRACT_BY_CANONICAL_FIELD,
+    MetricContractStatus,
+    ProvenanceRequirement,
+)
 from app.services.multipass_extraction import METRIC_FIELDS
 from app.services.provenance import (
     from_extraction_payload,
@@ -37,6 +42,7 @@ class FixtureContext:
     period_type: str | None
     currency: str | None
     scale: str | None
+    accounting_basis: str | None = None
 
 
 @dataclass(frozen=True)
@@ -115,6 +121,7 @@ def load_fixtures(fixtures_dir: str | Path) -> list[ExtractionFixture]:
             period_type=str_or_none(payload.get("period_type")),
             currency=str_or_none(payload.get("currency")),
             scale=str_or_none(payload.get("scale")),
+            accounting_basis=str_or_none(payload.get("accounting_basis")),
         )
         output.append(
             ExtractionFixture(
@@ -151,11 +158,19 @@ def evaluate_fixture(
     fixture: ExtractionFixture,
     extracted_metrics: dict[str, Any],
     extracted_payload: dict[str, Any] | None = None,
+    *,
+    expected_source_document_id: str | None = None,
+    require_structured_provenance: bool = False,
 ) -> FixtureEvaluation:
     """Evaluate one fixture against one extracted metric payload."""
 
     extracted_payload = extracted_payload or {}
-    provenance_summary = _build_provenance_summary(extracted_payload)
+    provenance_summary = _build_provenance_summary(
+        extracted_payload,
+        expected_context=fixture.context,
+        expected_source_document_id=expected_source_document_id,
+        require_structured=require_structured_provenance,
+    )
     context_mismatches = _validate_context(fixture.context, extracted_payload)
 
     # If we cannot trust extracted context, mark every metric as quarantine.
@@ -282,6 +297,57 @@ def summarize_overall_score(evaluations: Iterable[FixtureEvaluation]) -> dict[st
     }
 
 
+def summarize_numeric_quality(
+    evaluations: Iterable[FixtureEvaluation],
+) -> dict[str, dict[str, int | float | None]]:
+    """Report present-value precision separately from supported-metric recall.
+
+    Precision considers supported numeric outputs that were eligible for value
+    comparison. Recall considers every supported non-null metric expectation,
+    including missing and context-quarantined expectations.
+    """
+
+    accepted_count = 0
+    accepted_correct_count = 0
+    supported_expected_count = 0
+    supported_correct_count = 0
+
+    for evaluation in evaluations:
+        for metric in evaluation.metrics:
+            contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric.metric)
+            if (
+                contract is None
+                or contract.declared_status != MetricContractStatus.SUPPORTED
+            ):
+                continue
+
+            if metric.expected is not None:
+                supported_expected_count += 1
+                if metric.status == MetricEvalStatus.CORRECT:
+                    supported_correct_count += 1
+
+            if metric.actual is not None and metric.status in {
+                MetricEvalStatus.CORRECT,
+                MetricEvalStatus.WRONG,
+            }:
+                accepted_count += 1
+                if metric.status == MetricEvalStatus.CORRECT:
+                    accepted_correct_count += 1
+
+    return {
+        "accepted_numeric_precision": {
+            "correct_count": accepted_correct_count,
+            "accepted_count": accepted_count,
+            "value": _safe_ratio(accepted_correct_count, accepted_count),
+        },
+        "supported_metric_recall": {
+            "correct_count": supported_correct_count,
+            "expected_count": supported_expected_count,
+            "value": _safe_ratio(supported_correct_count, supported_expected_count),
+        },
+    }
+
+
 def build_fixture_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
@@ -321,8 +387,13 @@ def build_fixture_scorecard(
     provenance_summary = summarize_provenance_summaries(
         evaluation.provenance_summary for evaluation in evaluations
     )
+    numeric_quality = summarize_numeric_quality(evaluations)
+    accounting_basis_summary = _build_context_summary(
+        fixtures, fixture_payloads, "accounting_basis"
+    )
 
     return {
+        "evaluation_lane": "synthetic",
         "total_fixture_count": len(fixtures),
         "total_metric_expectations": total_metric_expectations,
         "correct_count": status_counts["correct"],
@@ -331,9 +402,13 @@ def build_fixture_scorecard(
         "abstained_count": status_counts["abstain"],
         "quarantined_count": status_counts["quarantine"],
         "period_correctness_summary": period_summary,
+        "period_end_correctness_summary": period_summary,
         "period_type_correctness_summary": period_type_summary,
+        "period_basis_correctness_summary": period_type_summary,
         "currency_correctness_summary": currency_summary,
         "scale_correctness_summary": scale_summary,
+        "accounting_basis_correctness_summary": accounting_basis_summary,
+        **numeric_quality,
         "provenance_summary": provenance_summary,
         "fixture_summaries": fixture_summaries,
         "status_summary": {
@@ -358,6 +433,9 @@ def summarize_provenance_summaries(
     issue_count = 0
     error_count = 0
     warning_count = 0
+    canonical_required_record_count = 0
+    canonical_valid_record_count = 0
+    canonical_invalid_record_count = 0
 
     for summary in summaries:
         if summary.get("available"):
@@ -373,6 +451,15 @@ def summarize_provenance_summaries(
         issue_count += int(summary.get("issue_count", 0))
         error_count += int(summary.get("error_count", 0))
         warning_count += int(summary.get("warning_count", 0))
+        canonical_required_record_count += int(
+            summary.get("canonical_required_record_count", 0)
+        )
+        canonical_valid_record_count += int(
+            summary.get("canonical_valid_record_count", 0)
+        )
+        canonical_invalid_record_count += int(
+            summary.get("canonical_invalid_record_count", 0)
+        )
 
         status_counts = summary.get("status_counts", {})
         if isinstance(status_counts, dict):
@@ -395,6 +482,9 @@ def summarize_provenance_summaries(
         "issue_count": issue_count,
         "error_count": error_count,
         "warning_count": warning_count,
+        "canonical_required_record_count": canonical_required_record_count,
+        "canonical_valid_record_count": canonical_valid_record_count,
+        "canonical_invalid_record_count": canonical_invalid_record_count,
         "status_counts": dict(sorted(aggregated_status_counts.items())),
     }
 
@@ -447,12 +537,27 @@ def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
         "provenance_issue_count": provenance["issue_count"],
         "provenance_error_count": provenance["error_count"],
         "provenance_warning_count": provenance["warning_count"],
+        "provenance_canonical_required_record_count": provenance[
+            "canonical_required_record_count"
+        ],
+        "provenance_canonical_valid_record_count": provenance[
+            "canonical_valid_record_count"
+        ],
+        "provenance_canonical_invalid_record_count": provenance[
+            "canonical_invalid_record_count"
+        ],
         "provenance_status_counts": provenance["status_counts"],
         "provenance_issues": provenance["issues"],
     }
 
 
-def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _build_provenance_summary(
+    payload: Mapping[str, Any],
+    *,
+    expected_context: FixtureContext | None = None,
+    expected_source_document_id: str | None = None,
+    require_structured: bool = False,
+) -> dict[str, Any]:
     field_provenance = payload.get("field_provenance")
     provenance = payload.get("provenance")
     if not isinstance(field_provenance, Mapping) and not isinstance(
@@ -466,6 +571,9 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             "issue_count": 0,
             "error_count": 0,
             "warning_count": 0,
+            "canonical_required_record_count": 0,
+            "canonical_valid_record_count": 0,
+            "canonical_invalid_record_count": 0,
             "status_counts": {},
             "issues": [],
             "metric_summaries": [],
@@ -486,12 +594,27 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     status_counts: dict[str, int] = {}
     metric_summaries: list[dict[str, Any]] = []
+    canonical_required_record_count = 0
+    canonical_valid_record_count = 0
     for metric_name, record, result in zip(
         metric_names,
         records,
         validation["record_results"],
         strict=False,
     ):
+        canonical_provenance = _evaluate_canonical_provenance(
+            metric_name,
+            record,
+            result,
+            payload=payload,
+            expected_context=expected_context,
+            expected_source_document_id=expected_source_document_id,
+            require_structured=require_structured,
+        )
+        if canonical_provenance["required"]:
+            canonical_required_record_count += 1
+            if canonical_provenance["valid"]:
+                canonical_valid_record_count += 1
         status_counts[record.provenance_status] = (
             status_counts.get(record.provenance_status, 0) + 1
         )
@@ -503,6 +626,9 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
                 "issue_codes": [issue["code"] for issue in result["issues"]],
                 "error_count": result["error_count"],
                 "warning_count": result["warning_count"],
+                "canonical_provenance_required": canonical_provenance["required"],
+                "canonical_provenance_valid": canonical_provenance["valid"],
+                "canonical_provenance_reason": canonical_provenance["reason"],
             }
         )
 
@@ -522,6 +648,11 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "issue_count": len(issues),
         "error_count": validation["error_count"],
         "warning_count": validation["warning_count"],
+        "canonical_required_record_count": canonical_required_record_count,
+        "canonical_valid_record_count": canonical_valid_record_count,
+        "canonical_invalid_record_count": (
+            canonical_required_record_count - canonical_valid_record_count
+        ),
         "status_counts": dict(sorted(status_counts.items())),
         "issues": issues,
         "metric_summaries": metric_summaries,
@@ -618,6 +749,10 @@ def _validate_context(context: FixtureContext, payload: dict[str, Any]) -> list[
         "period_type": (context.period_type, str_or_none(payload.get("period_type"))),
         "currency": (context.currency, str_or_none(payload.get("currency"))),
         "scale": (context.scale, str_or_none(payload.get("scale"))),
+        "accounting_basis": (
+            context.accounting_basis,
+            str_or_none(payload.get("accounting_basis")),
+        ),
     }
 
     mismatches = []
@@ -714,6 +849,249 @@ def _validate_metric_names(path: Path, values: Iterable[str]) -> None:
     for metric in values:
         if metric not in known:
             raise ValueError(f"unknown metric '{metric}' in {path}")
+
+
+def _evaluate_canonical_provenance(
+    metric_name: str,
+    record: Any,
+    validation: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    expected_context: FixtureContext | None,
+    expected_source_document_id: str | None,
+    require_structured: bool,
+) -> dict[str, bool | str]:
+    contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric_name)
+    required = bool(
+        contract is not None
+        and contract.declared_status == MetricContractStatus.SUPPORTED
+        and contract.provenance_requirement != ProvenanceRequirement.NOT_CANONICAL
+    )
+    if not required:
+        return {"required": False, "valid": True, "reason": "not_required"}
+
+    if require_structured:
+        strict_reason = _strict_provenance_failure_reason(
+            contract=contract,
+            record=record,
+            payload=payload,
+            expected_context=expected_context,
+            expected_source_document_id=expected_source_document_id,
+        )
+        if strict_reason is not None:
+            return {
+                "required": True,
+                "valid": False,
+                "reason": strict_reason,
+            }
+
+    if not record.source_document_id:
+        return {
+            "required": True,
+            "valid": False,
+            "reason": "source_document_id_missing",
+        }
+    if not validation.get("ok"):
+        return {
+            "required": True,
+            "valid": False,
+            "reason": "provenance_validation_error",
+        }
+    if record.provenance_status == "precise":
+        return {"required": True, "valid": True, "reason": "direct_source"}
+
+    if record.provenance_status == "derived" and contract is not None:
+        derivation_identity = _explicit_derivation_identity(record.raw_reference)
+        if any(
+            derivation.value == derivation_identity
+            for derivation in contract.authorized_derivations
+        ):
+            return {
+                "required": True,
+                "valid": True,
+                "reason": "authorized_derivation",
+            }
+
+    return {
+        "required": True,
+        "valid": False,
+        "reason": f"invalid_status:{record.provenance_status}",
+    }
+
+
+def _explicit_derivation_identity(raw_reference: Any) -> str | None:
+    if isinstance(raw_reference, Mapping):
+        return str_or_none(
+            raw_reference.get("derivation_identity")
+            or raw_reference.get("authorized_derivation")
+        )
+    if not isinstance(raw_reference, str):
+        return None
+    parts = raw_reference.strip().lower().split(":", maxsplit=2)
+    if len(parts) != 3 or parts[0] != "derived" or not parts[1]:
+        return None
+    return parts[2]
+
+
+def _strict_provenance_failure_reason(
+    *,
+    contract: Any,
+    record: Any,
+    payload: Mapping[str, Any],
+    expected_context: FixtureContext | None,
+    expected_source_document_id: str | None,
+) -> str | None:
+    expected_source = str_or_none(expected_source_document_id)
+    if expected_source is None:
+        return "fixture_source_document_id_missing"
+
+    payload_source = str_or_none(payload.get("source_document_id"))
+    if payload_source is None:
+        return "source_document_id_missing"
+    if payload_source != expected_source:
+        return "source_document_id_mismatch"
+
+    raw = record.raw_reference
+    if not isinstance(raw, Mapping):
+        return "structured_provenance_missing"
+    raw_source_document_id = str_or_none(raw.get("source_document_id"))
+    if raw_source_document_id is None:
+        return "source_document_id_missing"
+    if raw_source_document_id != expected_source:
+        return "source_document_id_mismatch"
+
+    expected_fields = {
+        "period_end": (
+            str_or_none(expected_context.period_end) if expected_context else None
+        ),
+        "period_type": (
+            str_or_none(expected_context.period_type) if expected_context else None
+        ),
+        "currency": (
+            str_or_none(expected_context.currency) if expected_context else None
+        ),
+        "scale": str_or_none(expected_context.scale) if expected_context else None,
+    }
+    for field_name, expected_value in expected_fields.items():
+        if expected_value is None:
+            return f"fixture_{field_name}_missing"
+
+    source = str_or_none(raw.get("source"))
+    derived_source = source.removeprefix("derived:") if source else None
+    allowed_sources = {
+        statement_context.value for statement_context in contract.statement_contexts
+    }
+    if derived_source not in allowed_sources:
+        return "statement_context_not_allowed"
+
+    page = str_or_none(raw.get("page_tag") or raw.get("page_number"))
+    if page is None or page.lower() == "unknown":
+        return "page_binding_missing"
+    if not _has_table_or_region_binding(raw):
+        return "table_or_region_binding_missing"
+
+    for field_name, expected_value in expected_fields.items():
+        actual_value = str_or_none(raw.get(field_name))
+        if actual_value is None:
+            return f"{field_name}_missing"
+        if actual_value.lower() != expected_value.lower():
+            return f"{field_name}_mismatch"
+
+    if record.provenance_status == "derived":
+        if contract.direct_source_required and not contract.authorized_derivations:
+            return "unauthorized_derivation"
+        derivation_identity = _explicit_derivation_identity(raw)
+        if not any(
+            derivation.value == derivation_identity
+            for derivation in contract.authorized_derivations
+        ):
+            return "unauthorized_derivation"
+        if derived_source != "cashflow_statement":
+            return "statement_context_not_allowed"
+        if not _has_explicit_source_row_refs(raw):
+            return "source_row_refs_missing"
+        cell_failure = _structured_source_cells_failure_reason(
+            raw,
+            plural=True,
+            expected_period_end=expected_fields["period_end"],
+        )
+        if cell_failure is not None:
+            return cell_failure
+        return None
+
+    row_ref = str_or_none(raw.get("row_ref"))
+    if row_ref is None or row_ref.lower() == "unknown":
+        return "row_binding_missing"
+    cell_failure = _structured_source_cells_failure_reason(
+        raw,
+        plural=False,
+        expected_period_end=expected_fields["period_end"],
+    )
+    if cell_failure is not None:
+        return cell_failure
+    return None
+
+
+def _has_table_or_region_binding(raw: Mapping[str, Any]) -> bool:
+    return any(
+        str_or_none(raw.get(field_name)) is not None
+        for field_name in ("table_label", "table_ref", "region_ref", "region")
+    )
+
+
+def _has_explicit_source_row_refs(raw: Mapping[str, Any]) -> bool:
+    row_refs = raw.get("source_row_refs")
+    return bool(
+        isinstance(row_refs, list)
+        and len(row_refs) >= 2
+        and all(
+            (value := str_or_none(row_ref)) is not None
+            and value.lower() != "unknown"
+            for row_ref in row_refs
+        )
+    )
+
+
+def _structured_source_cells_failure_reason(
+    raw: Mapping[str, Any],
+    *,
+    plural: bool,
+    expected_period_end: str,
+) -> str | None:
+    if plural:
+        source_cells = raw.get("source_cells")
+        if not isinstance(source_cells, list) or len(source_cells) < 2:
+            return "cell_binding_missing"
+        cells = source_cells
+    else:
+        cells = [raw.get("source_cell")]
+
+    for cell in cells:
+        if not isinstance(cell, Mapping):
+            return "cell_binding_missing"
+        if not all(
+            str_or_none(cell.get(field_name)) is not None
+            for field_name in (
+                "page_number",
+                "row_index",
+                "column_index",
+                "raw_value",
+                "header_cell",
+            )
+        ):
+            return "cell_binding_missing"
+        cell_period_end = str_or_none(cell.get("requested_period_end"))
+        if cell_period_end is None:
+            return "cell_period_missing"
+        if cell_period_end.lower() != expected_period_end.lower():
+            return "cell_period_mismatch"
+    return None
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float | None:
+    if denominator == 0:
+        return None
+    return round(numerator / denominator, 4)
 
 
 def str_or_none(value: Any) -> str | None:

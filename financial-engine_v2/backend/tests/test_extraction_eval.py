@@ -75,6 +75,7 @@ def _fixture_to_model(fixture: dict) -> ExtractionFixture:
             period_type=fixture.get("period_type"),
             currency=fixture.get("currency"),
             scale=fixture.get("scale"),
+            accounting_basis=fixture.get("accounting_basis"),
         ),
         metrics={
             str(metric): float(value)
@@ -97,10 +98,17 @@ def _context_detail(
     extracted_payload: dict[str, object],
 ) -> dict[str, dict[str, object]]:
     detail: dict[str, dict[str, object]] = {}
-    for field in ("period_end", "currency", "scale"):
-        expected = fixture.get(field)
-        actual = extracted_payload.get(field)
-        detail[field] = {
+    fields = {
+        "period_end": "period_end",
+        "period_basis": "period_type",
+        "currency": "currency",
+        "scale": "scale",
+        "accounting_basis": "accounting_basis",
+    }
+    for public_name, payload_name in fields.items():
+        expected = fixture.get(payload_name)
+        actual = extracted_payload.get(payload_name)
+        detail[public_name] = {
             "expected": expected,
             "actual": actual,
             "matched": (
@@ -548,6 +556,7 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
         "period_end": "2025-12-31",
         "currency": "AUD",
         "scale": "thousands",
+        "accounting_basis": "statutory",
         "metrics": {
             "revenue": 73_671_000,
             "shares_outstanding": 280_874_770,
@@ -563,6 +572,7 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
         "period_end": "2025-12-31",
         "currency": "AUD",
         "scale": "thousands",
+        "accounting_basis": "statutory",
         "metrics": {
             "revenue": 73_671_000,
             "shares_outstanding": 280_875,
@@ -580,6 +590,15 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
     assert detail["trust_triggers"] == ["shares_outstanding:wrong"]
     assert detail["failed_metrics"] == ["shares_outstanding"]
     assert detail["context_detail"]["currency"]["matched"] is True
+    assert detail["context_detail"]["period_basis"]["matched"] is True
+    assert detail["context_detail"]["accounting_basis"]["matched"] is True
+    assert set(detail["context_detail"]) == {
+        "period_end",
+        "period_basis",
+        "currency",
+        "scale",
+        "accounting_basis",
+    }
 
     by_metric = {
         item["metric_name"]: item for item in detail["metric_results"]
