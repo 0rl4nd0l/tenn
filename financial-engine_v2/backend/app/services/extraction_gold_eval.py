@@ -26,9 +26,11 @@ when available but does not alter fixture discovery or synthetic evaluation.
 from __future__ import annotations
 
 import json
+import math
 
 from dataclasses import dataclass, field
 from enum import Enum
+from numbers import Real
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -174,7 +176,10 @@ def evaluate_real_gold_fixture(
         expected_source_document_id=fixture.source_document_id,
         require_structured_provenance=True,
     )
-    trust, trust_triggers, provenance_trust_failures = _derive_trust_outcome(evaluation)
+    trust, trust_triggers, provenance_trust_failures = _derive_trust_outcome(
+        evaluation,
+        metric_payload,
+    )
     expected_trust = fixture.expected_trust
     trust_matches_expected = (
         trust == expected_trust if expected_trust is not None else None
@@ -253,6 +258,7 @@ def summarize_real_gold_evaluations(
             f"missing evaluations={missing_evaluations}; "
             f"unexpected evaluations={unexpected_evaluations}"
         )
+    _validate_extracted_payload_identities(fixture_id_set, extracted_payloads)
 
     fixture_by_id = {fixture.document_id: fixture for fixture in fixture_list}
     summary: dict[str, int] = {
@@ -396,8 +402,12 @@ def summarize_real_gold_evaluations(
 
 def _derive_trust_outcome(
     evaluation: FixtureEvaluation,
+    extracted_metrics: Mapping[str, Any],
 ) -> tuple[RealTrustOutcome, list[str], list[str]]:
-    provenance_trust_failures = _required_provenance_failures(evaluation)
+    provenance_trust_failures = _required_provenance_failures(
+        evaluation,
+        extracted_metrics,
+    )
     if not evaluation.context_ok:
         return (
             RealTrustOutcome.QUARANTINE,
@@ -428,17 +438,24 @@ def _derive_trust_outcome(
 
 def _required_provenance_failures(
     evaluation: FixtureEvaluation,
+    extracted_metrics: Mapping[str, Any],
 ) -> list[str]:
     by_metric = {
         str(summary.get("metric")): summary
         for summary in evaluation.provenance_summary.get("metric_summaries", [])
         if isinstance(summary, Mapping)
     }
+    declared_metric_names = [metric.metric for metric in evaluation.metrics]
+    metric_names = [
+        *declared_metric_names,
+        *sorted(set(extracted_metrics) - set(declared_metric_names)),
+    ]
     failures: list[str] = []
-    for metric in evaluation.metrics:
-        if metric.actual is None:
+    for metric_name in metric_names:
+        actual = extracted_metrics.get(metric_name)
+        if actual is None:
             continue
-        contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric.metric)
+        contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric_name)
         required = bool(
             contract is not None
             and contract.declared_status == MetricContractStatus.SUPPORTED
@@ -447,13 +464,18 @@ def _required_provenance_failures(
         if not required:
             continue
 
-        summary = by_metric.get(metric.metric)
+        if not _is_real_number(actual):
+            failures.append(
+                f"{metric_name}:provenance_invalid:metric_value_missing_or_invalid"
+            )
+            continue
+        summary = by_metric.get(metric_name)
         if summary is None:
-            failures.append(f"{metric.metric}:provenance_missing")
+            failures.append(f"{metric_name}:provenance_missing")
             continue
         if not summary.get("canonical_provenance_valid"):
             reason = str(summary.get("canonical_provenance_reason") or "invalid")
-            failures.append(f"{metric.metric}:provenance_invalid:{reason}")
+            failures.append(f"{metric_name}:provenance_invalid:{reason}")
     return failures
 
 
@@ -465,6 +487,45 @@ def _duplicate_document_ids(document_ids: Iterable[str]) -> list[str]:
             duplicates.add(document_id)
         seen.add(document_id)
     return sorted(duplicates)
+
+
+def _validate_extracted_payload_identities(
+    fixture_ids: set[str],
+    extracted_payloads: Mapping[str, Mapping[str, Any]],
+) -> None:
+    payload_keys = [str(document_id) for document_id in extracted_payloads]
+    duplicate_payload_keys = _duplicate_document_ids(payload_keys)
+    if duplicate_payload_keys:
+        raise ValueError("duplicate payload keys: " + ", ".join(duplicate_payload_keys))
+
+    payload_id_set = set(payload_keys)
+    if fixture_ids != payload_id_set:
+        missing_payloads = sorted(fixture_ids - payload_id_set)
+        unexpected_payloads = sorted(payload_id_set - fixture_ids)
+        raise ValueError(
+            "fixture/payload document ID sets differ: "
+            f"missing payloads={missing_payloads}; "
+            f"unexpected payloads={unexpected_payloads}"
+        )
+
+    embedded_ids: list[str] = []
+    mismatches: list[str] = []
+    for payload_key in sorted(payload_id_set):
+        payload = extracted_payloads[payload_key]
+        embedded_id = str_or_none(payload.get("document_id"))
+        if embedded_id is None:
+            continue
+        embedded_ids.append(embedded_id)
+        if embedded_id != payload_key:
+            mismatches.append(f"{payload_key}={embedded_id!r}")
+
+    duplicate_embedded_ids = _duplicate_document_ids(embedded_ids)
+    if duplicate_embedded_ids:
+        raise ValueError(
+            "duplicate payload document IDs: " + ", ".join(duplicate_embedded_ids)
+        )
+    if mismatches:
+        raise ValueError("payload document ID mismatches: " + ", ".join(mismatches))
 
 
 def _metric_status_counts(
@@ -654,7 +715,7 @@ def _coerce_metric_map(raw: Any, path: Path) -> dict[str, float | None]:
         normalized_metric = REAL_GOLD_METRIC_ALIASES.get(metric, metric)
         if value is None:
             parsed[normalized_metric] = None
-        elif isinstance(value, bool) or isinstance(value, (int, float)):
+        elif _is_real_number(value):
             parsed[normalized_metric] = float(value)
         else:
             raise ValueError(f"metric {metric} in {path} must be numeric or null")
@@ -670,7 +731,7 @@ def _coerce_tolerances(raw: Any, path: Path) -> dict[str, float]:
     parsed: dict[str, float] = {}
     for metric, value in raw.items():
         normalized_metric = REAL_GOLD_METRIC_ALIASES.get(metric, metric)
-        if not isinstance(value, int | float):
+        if not _is_real_number(value):
             raise ValueError(f"tolerance for {path}:{metric} must be numeric")
         parsed[normalized_metric] = float(value)
     return parsed
@@ -680,3 +741,12 @@ def _validate_metric_names(path: Path, metrics: dict[str, float | None]) -> None
     for metric in metrics:
         if metric not in METRIC_FIELDS:
             raise ValueError(f"unknown metric '{metric}' in {path}")
+
+
+def _is_real_number(value: Any) -> bool:
+    if not isinstance(value, Real) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False

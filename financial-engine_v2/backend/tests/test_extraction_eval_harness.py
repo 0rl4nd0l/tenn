@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+import pytest
 
 from app.services.extraction_eval import (
     ExtractionFixture,
@@ -61,6 +64,47 @@ def test_load_fixtures_discover_new_scaffold_files():
     assert "net_debt_derived_row_abstain" in fixture_ids
 
 
+@pytest.mark.parametrize("numeric_field", ["metrics", "tolerances"])
+@pytest.mark.parametrize("boolean_value", [False, True])
+def test_load_fixtures_rejects_boolean_numbers(
+    tmp_path,
+    numeric_field,
+    boolean_value,
+):
+    fixture = {
+        "fixture_id": "boolean-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    fixture[numeric_field]["revenue"] = boolean_value
+    (tmp_path / "boolean.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must be numeric"):
+        load_fixtures(tmp_path)
+
+
+def test_load_fixtures_preserves_numeric_zero(tmp_path):
+    fixture = {
+        "fixture_id": "zero-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    (tmp_path / "zero.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    loaded = load_fixtures(tmp_path)
+
+    assert loaded[0].metrics["revenue"] == 0.0
+    assert loaded[0].tolerances["revenue"] == 0.0
+
+
 def test_metric_statuses_include_correct_wrong_missing_abstain():
     payload = _payload(
         metrics={
@@ -91,6 +135,15 @@ def test_metric_statuses_include_correct_wrong_missing_abstain():
         _payload(metrics={}),
     )
     assert missing.metric_status("revenue") == MetricEvalStatus.MISSING
+
+
+@pytest.mark.parametrize("boolean_value", [False, True])
+def test_evaluate_fixture_rejects_boolean_metric_values(boolean_value):
+    fixture = _load_fixture("correct_ok")
+    payload = _payload(metrics={"revenue": boolean_value})
+
+    with pytest.raises(ValueError, match="metric revenue actual value must be numeric"):
+        evaluate_fixture(fixture, payload["metrics"], payload)
 
 
 def test_optional_metric_classifies_as_abstain_when_absent():

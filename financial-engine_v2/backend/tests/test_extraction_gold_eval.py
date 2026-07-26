@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 import os
@@ -48,25 +49,37 @@ def _structured_provenance(
     *,
     source_document_id: str,
     source: str,
+    value: float = 100.0,
     period_type: str = "A",
     period_end: str = "2025-06-30",
     currency: str = "AUD",
     scale: str = "millions",
 ) -> dict[str, dict]:
+    multiplier = {
+        "units": 1,
+        "thousands": 1_000,
+        "millions": 1_000_000,
+        "billions": 1_000_000_000,
+        "trillions": 1_000_000_000_000,
+    }[scale]
+    raw_value = f"{value / multiplier:.15g}"
+    table_label = source.removeprefix("derived:")
     return {
         metric: {
             "metric": metric,
             "source": source,
-            "table_label": source.removeprefix("derived:"),
+            "table_label": table_label,
             "page_number": 1,
             "page_tag": "page_1",
             "row_ref": metric,
             "source_cell": {
+                "source_document_id": source_document_id,
                 "page_number": 1,
+                "table_label": table_label,
                 "row_index": 1,
                 "column_index": 2,
                 "row_label": metric,
-                "raw_value": "100",
+                "raw_value": raw_value,
                 "header_cell": period_end,
                 "requested_period_end": period_end,
             },
@@ -83,6 +96,7 @@ def _structured_provenance_for_metrics(
     metric_sources: dict[str, str],
     *,
     source_document_id: str,
+    metric_values: dict[str, float],
     period_type: str = "A",
     period_end: str = "2025-06-30",
     currency: str = "AUD",
@@ -95,6 +109,7 @@ def _structured_provenance_for_metrics(
                 metric,
                 source_document_id=source_document_id,
                 source=source,
+                value=metric_values[metric],
                 period_type=period_type,
                 period_end=period_end,
                 currency=currency,
@@ -187,6 +202,11 @@ def _real_payloads() -> dict[str, dict]:
                     "net_debt": "net_debt_note",
                 },
                 source_document_id="2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7",
+                metric_values={
+                    "revenue": 51_262_000_000,
+                    "operating_cf": 18_692_000_000,
+                    "net_debt": 12_924_000_000,
+                },
                 period_end="2025-06-30",
                 currency="USD",
                 scale="millions",
@@ -256,6 +276,14 @@ def _real_payloads() -> dict[str, dict]:
                     "cash_end": "cashflow_statement",
                 },
                 source_document_id="508fc892-ae88-45ec-981f-cd9e124c8375",
+                metric_values={
+                    "revenue": 187_743,
+                    "np_attributable": 1_100_860,
+                    "operating_cf": -854_114,
+                    "investing_cf": 301_155,
+                    "financing_cf": 4_103_422,
+                    "cash_end": 3_956_993,
+                },
                 period_end="2025-12-31",
                 currency="USD",
                 scale="units",
@@ -347,6 +375,47 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
     )
     assert fixture_by_id["real_trusted_match"].source_document_id is None
     assert all(fixture.document_class is None for fixture in fixtures)
+
+
+@pytest.mark.parametrize("numeric_field", ["metrics", "tolerances"])
+@pytest.mark.parametrize("boolean_value", [False, True])
+def test_load_real_gold_fixtures_rejects_boolean_numbers(
+    tmp_path,
+    numeric_field,
+    boolean_value,
+):
+    fixture = {
+        "document_id": "boolean-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    fixture[numeric_field]["revenue"] = boolean_value
+    (tmp_path / "boolean.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must be numeric"):
+        load_real_gold_fixtures(tmp_path)
+
+
+def test_load_real_gold_fixtures_preserves_numeric_zero(tmp_path):
+    fixture = {
+        "document_id": "zero-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    (tmp_path / "zero.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    loaded = load_real_gold_fixtures(tmp_path)
+
+    assert loaded[0].metrics["revenue"] == 0.0
+    assert loaded[0].tolerances["revenue"] == 0.0
 
 
 def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_source_paths():
@@ -681,6 +750,132 @@ def test_real_gold_rejects_prior_period_source_cell_binding():
     ]
 
 
+@pytest.mark.parametrize(
+    ("cell_mutation", "expected_reason"),
+    [
+        (
+            {"source_document_id": "wrong-source"},
+            "cell_source_document_id_mismatch",
+        ),
+        ({"page_number": 2}, "cell_page_mismatch"),
+        (
+            {"table_label": "different_table"},
+            "cell_table_or_region_mismatch",
+        ),
+        ({"row_label": "Not revenue"}, "cell_row_mismatch"),
+        ({"header_cell": "30 June 2024"}, "cell_header_period_mismatch"),
+        ({"header_cell": "30 June 20250"}, "cell_header_period_mismatch"),
+        ({"raw_value": "0.0002"}, "cell_value_mismatch"),
+    ],
+)
+def test_real_gold_rejects_incoherent_direct_source_cells(
+    cell_mutation,
+    expected_reason,
+):
+    fixture = _in_memory_fixture(
+        "coherent-revenue",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id="coherent-revenue",
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cell"].update(cell_mutation)
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": "coherent-revenue",
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        f"revenue:provenance_invalid:{expected_reason}"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("missing_field", "expected_reason"),
+    [
+        ("source_document_id", "cell_source_document_id_missing"),
+        ("table_label", "cell_table_or_region_missing"),
+    ],
+)
+def test_real_gold_rejects_incomplete_direct_source_cell_identity(
+    missing_field,
+    expected_reason,
+):
+    fixture = _in_memory_fixture(
+        "complete-cell-identity",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cell"].pop(missing_field)
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        f"revenue:provenance_invalid:{expected_reason}"
+    ]
+
+
+def test_real_gold_accepts_human_readable_exact_period_header():
+    fixture = _in_memory_fixture(
+        "human-period-header",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id="human-period-header",
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cell"]["header_cell"] = "30 June 2025 AUDm"
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": "human-period-header",
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.TRUSTED
+    assert result.provenance_trust_failures == []
+
+
 def test_real_gold_rejects_direct_net_debt_from_disallowed_income_statement():
     fixture = _in_memory_fixture(
         "strict-net-debt",
@@ -709,6 +904,63 @@ def test_real_gold_rejects_direct_net_debt_from_disallowed_income_statement():
     assert result.provenance_trust_failures == [
         "net_debt:provenance_invalid:statement_context_not_allowed"
     ]
+
+
+def test_real_gold_extra_derived_net_debt_fails_trust_without_inflating_quality():
+    fixture = _in_memory_fixture(
+        "extra-derived-net-debt",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    derived_net_debt = _structured_provenance(
+        "net_debt",
+        source_document_id=fixture.document_id,
+        source="derived:balance_sheet",
+        value=70.0,
+    )
+    derived_net_debt["net_debt"]["derivation_identity"] = "total_debt_minus_cash_end"
+    field_provenance.update(derived_net_debt)
+    payload = {
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "millions",
+        "accounting_basis": "statutory",
+        "source_document_id": fixture.document_id,
+        "metrics": {"revenue": 100.0, "net_debt": 70.0},
+        "field_provenance": field_provenance,
+    }
+
+    evaluation = evaluate_real_gold_fixture(fixture, payload)
+    scorecard = summarize_real_gold_evaluations(
+        [fixture],
+        [evaluation],
+        {fixture.document_id: payload},
+    )
+
+    assert [metric.metric for metric in evaluation.metrics] == ["revenue"]
+    assert evaluation.trust == RealTrustOutcome.ABSTAIN
+    assert evaluation.trust_triggers == [
+        "net_debt:provenance_invalid:unauthorized_derivation"
+    ]
+    assert evaluation.provenance_trust_failures == [
+        "net_debt:provenance_invalid:unauthorized_derivation"
+    ]
+    assert scorecard["accepted_numeric_precision"] == {
+        "correct_count": 1,
+        "accepted_count": 1,
+        "value": 1.0,
+    }
+    assert scorecard["supported_metric_recall"] == {
+        "correct_count": 1,
+        "expected_count": 1,
+        "value": 1.0,
+    }
 
 
 def test_real_gold_quarantine_still_reports_present_metric_provenance_failure():
@@ -821,7 +1073,7 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
     capex_fixture = _in_memory_fixture(
         "authorized-capex",
         ASXDocumentClass.QUARTERLY,
-        {"capex": 30.0},
+        {"capex": 30_000_000.0},
     )
     net_debt_fixture = _in_memory_fixture(
         "unauthorized-net-debt",
@@ -839,6 +1091,7 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
         "capex",
         source_document_id="authorized-capex",
         source="derived:cashflow_statement",
+        value=30_000_000.0,
         period_type="Q",
     )
     authorized_capex_provenance["capex"].update(
@@ -847,17 +1100,23 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
             "source_row_refs": ["1.2(a)", "1.2(b)"],
             "source_cells": [
                 {
+                    "source_document_id": "authorized-capex",
                     "page_number": 1,
+                    "table_label": "cashflow_statement",
                     "row_index": 2,
                     "column_index": 2,
+                    "row_label": "1.2(a)",
                     "raw_value": "10",
                     "header_cell": "2025-06-30",
                     "requested_period_end": "2025-06-30",
                 },
                 {
+                    "source_document_id": "authorized-capex",
                     "page_number": 1,
+                    "table_label": "cashflow_statement",
                     "row_index": 3,
                     "column_index": 2,
+                    "row_label": "1.2(b)",
                     "raw_value": "20",
                     "header_cell": "2025-06-30",
                     "requested_period_end": "2025-06-30",
@@ -871,13 +1130,11 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
             **common,
             "period_type": "Q",
             "source_document_id": "authorized-capex",
-            "metrics": {"capex": 30.0},
+            "metrics": {"capex": 30_000_000.0},
             "field_provenance": authorized_capex_provenance,
         },
     )
-    missing_source_row_refs = {
-        "capex": dict(authorized_capex_provenance["capex"])
-    }
+    missing_source_row_refs = {"capex": dict(authorized_capex_provenance["capex"])}
     missing_source_row_refs["capex"].pop("source_row_refs")
     capex_without_source_rows = evaluate_real_gold_fixture(
         capex_fixture,
@@ -885,7 +1142,7 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
             **common,
             "period_type": "Q",
             "source_document_id": "authorized-capex",
-            "metrics": {"capex": 30.0},
+            "metrics": {"capex": 30_000_000.0},
             "field_provenance": missing_source_row_refs,
         },
     )
@@ -903,14 +1160,51 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
             **common,
             "period_type": "Q",
             "source_document_id": "authorized-capex",
-            "metrics": {"capex": 30.0},
+            "metrics": {"capex": 30_000_000.0},
             "field_provenance": embedded_provenance,
+        },
+    )
+    misaligned_source_rows = deepcopy(authorized_capex_provenance)
+    misaligned_source_rows["capex"]["source_cells"][1]["row_label"] = "1.2(c)"
+    capex_with_misaligned_rows = evaluate_real_gold_fixture(
+        capex_fixture,
+        {
+            **common,
+            "period_type": "Q",
+            "source_document_id": "authorized-capex",
+            "metrics": {"capex": 30_000_000.0},
+            "field_provenance": misaligned_source_rows,
+        },
+    )
+    mismatched_source_count = deepcopy(authorized_capex_provenance)
+    mismatched_source_count["capex"]["source_cells"].pop()
+    capex_with_mismatched_source_count = evaluate_real_gold_fixture(
+        capex_fixture,
+        {
+            **common,
+            "period_type": "Q",
+            "source_document_id": "authorized-capex",
+            "metrics": {"capex": 30_000_000.0},
+            "field_provenance": mismatched_source_count,
+        },
+    )
+    wrong_derived_value = deepcopy(authorized_capex_provenance)
+    wrong_derived_value["capex"]["source_cells"][1]["raw_value"] = "21"
+    capex_with_wrong_derived_value = evaluate_real_gold_fixture(
+        capex_fixture,
+        {
+            **common,
+            "period_type": "Q",
+            "source_document_id": "authorized-capex",
+            "metrics": {"capex": 30_000_000.0},
+            "field_provenance": wrong_derived_value,
         },
     )
     derived_net_debt_provenance = _structured_provenance(
         "net_debt",
         source_document_id="unauthorized-net-debt",
         source="derived:balance_sheet",
+        value=70.0,
     )
     derived_net_debt_provenance["net_debt"]["derivation_identity"] = (
         "total_debt_minus_cash_end"
@@ -935,6 +1229,15 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
     assert embedded_capex.trust == RealTrustOutcome.ABSTAIN
     assert embedded_capex.provenance_trust_failures == [
         "capex:provenance_invalid:unauthorized_derivation"
+    ]
+    assert capex_with_misaligned_rows.provenance_trust_failures == [
+        "capex:provenance_invalid:source_row_cell_mismatch"
+    ]
+    assert capex_with_mismatched_source_count.provenance_trust_failures == [
+        "capex:provenance_invalid:source_row_cell_count_mismatch"
+    ]
+    assert capex_with_wrong_derived_value.provenance_trust_failures == [
+        "capex:provenance_invalid:derived_value_mismatch"
     ]
     assert net_debt.trust == RealTrustOutcome.ABSTAIN
     assert net_debt.trust_triggers == [
@@ -1048,6 +1351,7 @@ def test_real_scorecard_separates_quality_trust_class_and_lane_in_memory():
                 "revenue",
                 source_document_id="half-year",
                 source="income_statement",
+                value=250.0,
                 period_type="H",
             ),
         },
@@ -1060,6 +1364,7 @@ def test_real_scorecard_separates_quality_trust_class_and_lane_in_memory():
                 "operating_cf",
                 source_document_id="quarterly-direct",
                 source="cashflow_statement",
+                value=300.0,
                 period_type="Q",
             ),
         },
@@ -1181,6 +1486,57 @@ def test_real_scorecard_rejects_duplicate_and_mismatched_document_ids():
         "missing evaluations=['half-year']; unexpected evaluations=[]"
     )
 
+    with pytest.raises(ValueError) as missing_payload_error:
+        summarize_real_gold_evaluations(
+            fixtures,
+            evaluations,
+            {"annual": payloads["annual"]},
+        )
+    assert str(missing_payload_error.value) == (
+        "fixture/payload document ID sets differ: "
+        "missing payloads=['half-year']; unexpected payloads=[]"
+    )
+
+    unexpected_payloads = {
+        **payloads,
+        "unexpected": payloads["annual"],
+    }
+    with pytest.raises(ValueError) as unexpected_payload_error:
+        summarize_real_gold_evaluations(
+            fixtures,
+            evaluations,
+            unexpected_payloads,
+        )
+    assert str(unexpected_payload_error.value) == (
+        "fixture/payload document ID sets differ: "
+        "missing payloads=[]; unexpected payloads=['unexpected']"
+    )
+
+    mismatched_embedded_payloads = deepcopy(payloads)
+    mismatched_embedded_payloads["annual"]["document_id"] = "different-document"
+    with pytest.raises(ValueError) as mismatched_payload_identity_error:
+        summarize_real_gold_evaluations(
+            fixtures,
+            evaluations,
+            mismatched_embedded_payloads,
+        )
+    assert str(mismatched_payload_identity_error.value) == (
+        "payload document ID mismatches: annual='different-document'"
+    )
+
+    duplicate_embedded_payloads = deepcopy(payloads)
+    duplicate_embedded_payloads["annual"]["document_id"] = "duplicate-document"
+    duplicate_embedded_payloads["half-year"]["document_id"] = "duplicate-document"
+    with pytest.raises(ValueError) as duplicate_payload_identity_error:
+        summarize_real_gold_evaluations(
+            fixtures,
+            evaluations,
+            duplicate_embedded_payloads,
+        )
+    assert str(duplicate_payload_identity_error.value) == (
+        "duplicate payload document IDs: duplicate-document"
+    )
+
 
 def test_canary_failure_regression_payloads_are_not_trusted():
     clv_bad_payload = {
@@ -1291,7 +1647,9 @@ def test_aau_canary_regression_fixture_trusts_source_backed_payload():
         "financing_cf",
         "cash_end",
     }
-    assert all(metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics)
+    assert all(
+        metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics
+    )
 
 
 def test_bhp_canary_regression_fixture_trusts_source_backed_payload():
@@ -1309,7 +1667,9 @@ def test_bhp_canary_regression_fixture_trusts_source_backed_payload():
         "operating_cf",
         "net_debt",
     }
-    assert all(metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics)
+    assert all(
+        metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics
+    )
 
 
 def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
@@ -1891,9 +2251,7 @@ def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_met
     assert captured["payload"]["metrics"] == {"revenue": 10875.0}
 
 
-def test_real_gold_eval_endpoint_reports_review_session_failures(
-    monkeypatch, tmp_path
-):
+def test_real_gold_eval_endpoint_reports_review_session_failures(monkeypatch, tmp_path):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4\n")
 
@@ -1951,7 +2309,9 @@ def test_real_gold_eval_endpoint_reports_review_session_failures(
     assert document["failed_metric_count"] == 1
     assert document["review_session_id"] is None
     assert document["review_item_count"] == 0
-    assert document["review_reason"] == "review_session_failed:unable to persist session"
+    assert (
+        document["review_reason"] == "review_session_failed:unable to persist session"
+    )
     assert document["trust_outcome"] == "abstain"
     assert any(
         reason.startswith("metric:net_debt:") for reason in document["mismatch_reasons"]
@@ -2130,8 +2490,7 @@ def test_real_gold_eval_task_endpoint_reports_completed_result(monkeypatch):
     assert last["result"]["summary"]["total_documents"] == 0
     assert last["error"] is None
     assert any(
-        event.get("message") == "Real-Gold summary ready"
-        for event in last["progress"]
+        event.get("message") == "Real-Gold summary ready" for event in last["progress"]
     )
 
 
@@ -2155,9 +2514,7 @@ def test_real_gold_eval_task_endpoint_reports_failed_error(monkeypatch):
     deadline = time.monotonic() + 3.0
     last: dict = {}
     while time.monotonic() < deadline:
-        last = client.get(
-            f"/api/extraction-eval/real-gold/tasks/{task_id}"
-        ).json()
+        last = client.get(f"/api/extraction-eval/real-gold/tasks/{task_id}").json()
         if last.get("status") in {"completed", "failed"}:
             break
         time.sleep(0.02)
@@ -2169,7 +2526,5 @@ def test_real_gold_eval_task_endpoint_reports_failed_error(monkeypatch):
 
 def test_real_gold_eval_task_endpoint_returns_404_for_unknown_id():
     client = TestClient(main_app.app)
-    response = client.get(
-        "/api/extraction-eval/real-gold/tasks/does-not-exist"
-    )
+    response = client.get("/api/extraction-eval/real-gold/tasks/does-not-exist")
     assert response.status_code == 404

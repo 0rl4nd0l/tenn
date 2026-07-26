@@ -11,8 +11,13 @@ This keeps the scaffold deterministic and fast for unit-level hardening work.
 from __future__ import annotations
 
 import json
+import math
+import re
 from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from enum import Enum
+from numbers import Real
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -21,11 +26,37 @@ from app.services.financial_metric_contract import (
     MetricContractStatus,
     ProvenanceRequirement,
 )
-from app.services.multipass_extraction import METRIC_FIELDS
+from app.services.multipass_extraction import METRIC_FIELDS, SCALE_MULTIPLIERS
 from app.services.provenance import (
     from_extraction_payload,
     validate_provenance_collection,
 )
+
+
+_CELL_NUMERIC_RE = re.compile(
+    r"^(?:(?:[A-Za-z]{1,3})?\$|[£€])?\s*"
+    r"(?P<number>[+-]?(?:\d+(?:,\d{3})*|\d+)(?:\.\d+)?)"
+    r"\s*(?P<suffix>k|thousand|thousands|m|mn|million|millions|"
+    r"b|bn|billion|billions|t|tn|trillion|trillions)?$",
+    re.IGNORECASE,
+)
+_CELL_SUFFIX_MULTIPLIERS = {
+    "k": Decimal(1_000),
+    "thousand": Decimal(1_000),
+    "thousands": Decimal(1_000),
+    "m": Decimal(1_000_000),
+    "mn": Decimal(1_000_000),
+    "million": Decimal(1_000_000),
+    "millions": Decimal(1_000_000),
+    "b": Decimal(1_000_000_000),
+    "bn": Decimal(1_000_000_000),
+    "billion": Decimal(1_000_000_000),
+    "billions": Decimal(1_000_000_000),
+    "t": Decimal(1_000_000_000_000),
+    "tn": Decimal(1_000_000_000_000),
+    "trillion": Decimal(1_000_000_000_000),
+    "trillions": Decimal(1_000_000_000_000),
+}
 
 
 class MetricEvalStatus(str, Enum):
@@ -165,6 +196,8 @@ def evaluate_fixture(
     """Evaluate one fixture against one extracted metric payload."""
 
     extracted_payload = extracted_payload or {}
+    _validate_fixture_numeric_values(fixture)
+    _validate_extracted_metric_values(extracted_metrics)
     provenance_summary = _build_provenance_summary(
         extracted_payload,
         expected_context=fixture.context,
@@ -607,6 +640,7 @@ def _build_provenance_summary(
             record,
             result,
             payload=payload,
+            actual_value=_payload_metric_value(payload, metric_name),
             expected_context=expected_context,
             expected_source_document_id=expected_source_document_id,
             require_structured=require_structured,
@@ -820,7 +854,7 @@ def _coerce_tolerances(raw: Any, path: Path) -> dict[str, float]:
 
     parsed: dict[str, float] = {}
     for metric, value in raw.items():
-        if not isinstance(value, int | float):
+        if not _is_real_number(value):
             raise ValueError(f"tolerance for {path}:{metric} must be numeric")
         parsed[metric] = float(value)
     return parsed
@@ -829,7 +863,7 @@ def _coerce_tolerances(raw: Any, path: Path) -> dict[str, float]:
 def _coerce_metric_value(metric: str, raw: Any, path: Path) -> float | None:
     if raw is None:
         return None
-    if isinstance(raw, bool) or isinstance(raw, (int, float)):
+    if _is_real_number(raw):
         return float(raw)
     raise ValueError(f"metric {metric} in {path} must be numeric or null")
 
@@ -837,11 +871,42 @@ def _coerce_metric_value(metric: str, raw: Any, path: Path) -> float | None:
 def _safe_float(value: Any) -> float | None:
     if value is None:
         return None
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
+    if _is_real_number(value):
         return float(value)
     return None
+
+
+def _is_real_number(value: Any) -> bool:
+    if not isinstance(value, Real) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
+def _validate_fixture_numeric_values(fixture: ExtractionFixture) -> None:
+    for metric, value in fixture.metrics.items():
+        if value is not None and not _is_real_number(value):
+            raise ValueError(f"metric {metric} fixture value must be numeric or null")
+    for metric, tolerance in fixture.tolerances.items():
+        if not _is_real_number(tolerance):
+            raise ValueError(f"tolerance for {metric} must be numeric")
+
+
+def _validate_extracted_metric_values(extracted_metrics: Mapping[str, Any]) -> None:
+    for metric, value in extracted_metrics.items():
+        if metric not in METRIC_FIELDS or value is None:
+            continue
+        if not _is_real_number(value):
+            raise ValueError(f"metric {metric} actual value must be numeric or null")
+
+
+def _payload_metric_value(payload: Mapping[str, Any], metric_name: str) -> Any:
+    metrics = payload.get("metrics")
+    if isinstance(metrics, Mapping):
+        return metrics.get(metric_name)
+    return payload.get(metric_name)
 
 
 def _validate_metric_names(path: Path, values: Iterable[str]) -> None:
@@ -857,6 +922,7 @@ def _evaluate_canonical_provenance(
     validation: Mapping[str, Any],
     *,
     payload: Mapping[str, Any],
+    actual_value: Any,
     expected_context: FixtureContext | None,
     expected_source_document_id: str | None,
     require_structured: bool,
@@ -875,6 +941,7 @@ def _evaluate_canonical_provenance(
             contract=contract,
             record=record,
             payload=payload,
+            actual_value=actual_value,
             expected_context=expected_context,
             expected_source_document_id=expected_source_document_id,
         )
@@ -938,6 +1005,7 @@ def _strict_provenance_failure_reason(
     contract: Any,
     record: Any,
     payload: Mapping[str, Any],
+    actual_value: Any,
     expected_context: FixtureContext | None,
     expected_source_document_id: str | None,
 ) -> str | None:
@@ -991,10 +1059,10 @@ def _strict_provenance_failure_reason(
         return "table_or_region_binding_missing"
 
     for field_name, expected_value in expected_fields.items():
-        actual_value = str_or_none(raw.get(field_name))
-        if actual_value is None:
+        actual_context_value = str_or_none(raw.get(field_name))
+        if actual_context_value is None:
             return f"{field_name}_missing"
-        if actual_value.lower() != expected_value.lower():
+        if actual_context_value.lower() != expected_value.lower():
             return f"{field_name}_mismatch"
 
     if record.provenance_status == "derived":
@@ -1014,6 +1082,8 @@ def _strict_provenance_failure_reason(
             raw,
             plural=True,
             expected_period_end=expected_fields["period_end"],
+            expected_value=actual_value,
+            expected_scale=expected_fields["scale"],
         )
         if cell_failure is not None:
             return cell_failure
@@ -1026,6 +1096,8 @@ def _strict_provenance_failure_reason(
         raw,
         plural=False,
         expected_period_end=expected_fields["period_end"],
+        expected_value=actual_value,
+        expected_scale=expected_fields["scale"],
     )
     if cell_failure is not None:
         return cell_failure
@@ -1045,8 +1117,7 @@ def _has_explicit_source_row_refs(raw: Mapping[str, Any]) -> bool:
         isinstance(row_refs, list)
         and len(row_refs) >= 2
         and all(
-            (value := str_or_none(row_ref)) is not None
-            and value.lower() != "unknown"
+            (value := str_or_none(row_ref)) is not None and value.lower() != "unknown"
             for row_ref in row_refs
         )
     )
@@ -1057,16 +1128,31 @@ def _structured_source_cells_failure_reason(
     *,
     plural: bool,
     expected_period_end: str,
+    expected_value: Any,
+    expected_scale: str,
 ) -> str | None:
     if plural:
         source_cells = raw.get("source_cells")
-        if not isinstance(source_cells, list) or len(source_cells) < 2:
+        if not isinstance(source_cells, list):
             return "cell_binding_missing"
         cells = source_cells
+        source_row_refs = _explicit_source_row_refs(raw)
+        if len(cells) != len(source_row_refs):
+            return "source_row_cell_count_mismatch"
+        if len(cells) < 2:
+            return "cell_binding_missing"
     else:
         cells = [raw.get("source_cell")]
+        source_row_refs = [str_or_none(raw.get("row_ref"))]
 
-    for cell in cells:
+    parent_source_document_id = str_or_none(raw.get("source_document_id"))
+    parent_page = _normalized_page_reference(
+        raw.get("page_number") or raw.get("page_tag")
+    )
+    parent_bindings = _normalized_table_or_region_bindings(raw)
+    normalized_values: list[Decimal] = []
+
+    for index, cell in enumerate(cells):
         if not isinstance(cell, Mapping):
             return "cell_binding_missing"
         if not all(
@@ -1080,12 +1166,157 @@ def _structured_source_cells_failure_reason(
             )
         ):
             return "cell_binding_missing"
+
         cell_period_end = str_or_none(cell.get("requested_period_end"))
         if cell_period_end is None:
             return "cell_period_missing"
         if cell_period_end.lower() != expected_period_end.lower():
             return "cell_period_mismatch"
+
+        cell_source_document_id = str_or_none(cell.get("source_document_id"))
+        if cell_source_document_id is None:
+            return "cell_source_document_id_missing"
+        if cell_source_document_id != parent_source_document_id:
+            return "cell_source_document_id_mismatch"
+
+        cell_page = _normalized_page_reference(cell.get("page_number"))
+        if parent_page is None or cell_page != parent_page:
+            return "cell_page_mismatch"
+
+        cell_bindings = _normalized_table_or_region_bindings(cell)
+        if not cell_bindings:
+            return "cell_table_or_region_missing"
+        if parent_bindings.isdisjoint(cell_bindings):
+            return "cell_table_or_region_mismatch"
+
+        expected_row = source_row_refs[index]
+        cell_row = str_or_none(cell.get("row_label") or cell.get("row_ref"))
+        if expected_row is None or cell_row is None:
+            return "cell_binding_missing"
+        if _normalized_evidence_text(cell_row) != _normalized_evidence_text(
+            expected_row
+        ):
+            return "source_row_cell_mismatch" if plural else "cell_row_mismatch"
+
+        header_cell = str_or_none(cell.get("header_cell"))
+        if header_cell is None or not _header_matches_period(
+            header_cell,
+            expected_period_end,
+        ):
+            return "cell_header_period_mismatch"
+
+        normalized_value = _normalized_source_cell_value(cell, expected_scale)
+        if normalized_value is None:
+            return "cell_value_invalid"
+        normalized_values.append(normalized_value)
+
+    expected_numeric = _decimal_from_real(expected_value)
+    if expected_numeric is None:
+        return "metric_value_missing_or_invalid"
+    reproduced_value = (
+        sum(normalized_values, start=Decimal(0)) if plural else normalized_values[0]
+    )
+    if reproduced_value != expected_numeric:
+        return "derived_value_mismatch" if plural else "cell_value_mismatch"
     return None
+
+
+def _explicit_source_row_refs(raw: Mapping[str, Any]) -> list[str]:
+    row_refs = raw.get("source_row_refs")
+    if not isinstance(row_refs, list):
+        return []
+    return [
+        value for row_ref in row_refs if (value := str_or_none(row_ref)) is not None
+    ]
+
+
+def _normalized_page_reference(value: Any) -> int | None:
+    text = str_or_none(value)
+    if text is None:
+        return None
+    matches = re.findall(r"\d+", text)
+    if len(matches) != 1:
+        return None
+    return int(matches[0])
+
+
+def _normalized_table_or_region_bindings(raw: Mapping[str, Any]) -> set[str]:
+    return {
+        normalized
+        for field_name in ("table_label", "table_ref", "region_ref", "region")
+        if (value := str_or_none(raw.get(field_name))) is not None
+        and (normalized := _normalized_evidence_text(value))
+    }
+
+
+def _normalized_evidence_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _header_matches_period(header: str, expected_period_end: str) -> bool:
+    try:
+        period = date.fromisoformat(expected_period_end)
+    except ValueError:
+        return False
+    day = period.strftime("%d")
+    month = period.strftime("%m")
+    year = period.strftime("%Y")
+    month_names = "|".join(
+        re.escape(value) for value in (period.strftime("%B"), period.strftime("%b"))
+    )
+    patterns = (
+        rf"(?<!\d){year}[-/]{month}[-/]{day}(?!\d)",
+        rf"(?<!\d){day}[-/]{month}[-/]{year}(?!\d)",
+        rf"(?<!\d){day}\s+(?:{month_names})\s+{year}(?!\d)",
+    )
+    return any(re.search(pattern, header, re.IGNORECASE) for pattern in patterns)
+
+
+def _normalized_source_cell_value(
+    cell: Mapping[str, Any],
+    expected_scale: str,
+) -> Decimal | None:
+    parsed = _parse_source_cell_number(cell.get("raw_value"))
+    if parsed is None:
+        return None
+    value, explicit_units = parsed
+    if explicit_units:
+        return value
+    multiplier = SCALE_MULTIPLIERS.get(expected_scale.lower())
+    if multiplier is None:
+        return None
+    return value * Decimal(multiplier)
+
+
+def _parse_source_cell_number(value: Any) -> tuple[Decimal, bool] | None:
+    if not _is_real_number(value) and not isinstance(value, str):
+        return None
+    text = str(value).strip()
+    negative_parentheses = text.startswith("(") and text.endswith(")")
+    if negative_parentheses:
+        text = text[1:-1].strip()
+    match = _CELL_NUMERIC_RE.fullmatch(text)
+    if match is None:
+        return None
+    try:
+        parsed = Decimal(match.group("number").replace(",", ""))
+    except InvalidOperation:
+        return None
+    if not parsed.is_finite():
+        return None
+    if negative_parentheses:
+        parsed = -abs(parsed)
+    suffix = str(match.group("suffix") or "").lower()
+    if suffix:
+        return parsed * _CELL_SUFFIX_MULTIPLIERS[suffix], True
+    return parsed, False
+
+
+def _decimal_from_real(value: Any) -> Decimal | None:
+    if not _is_real_number(value):
+        return None
+    parsed = Decimal(str(value))
+    return parsed if parsed.is_finite() else None
 
 
 def _safe_ratio(numerator: int, denominator: int) -> float | None:
