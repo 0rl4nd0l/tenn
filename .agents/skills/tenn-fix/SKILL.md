@@ -89,12 +89,27 @@ python3 scripts/codex_event_waiter.py github-pr \
 
 python3 scripts/codex_event_waiter.py command \
   --output reports/agent_jobs/<job_id>/WAIT_RESULT.json -- COMMAND ARG...
+
+python3 scripts/codex_event_waiter.py service \
+  --ready-output reports/agent_jobs/<job_id>/SERVICE_READY.json \
+  --output reports/agent_jobs/<job_id>/SERVICE_TERMINAL.json \
+  --readiness-command-json '["curl","-fsS","http://127.0.0.1:<port>/"]' \
+  -- FOREGROUND_SERVICE ARG...
 ```
 
-- Keep the waiter attached to the current tool turn. It stays silent while
-  waiting and emits one terminal JSON record.
+- Keep the waiter attached to the current tool turn. GitHub and finite-command
+  waits stay silent until one terminal JSON record; service waits additionally
+  emit one readiness record while supervision continues.
+- Use `command` only for finite commands. For a foreground service, use
+  `service`, keep the waiter attached after its atomic `READY` record, run live
+  health/functionality gates from a separate execution context, then interrupt
+  the waiter so it terminates the exact service process group.
 - For command waits, allowlist both `WAIT_RESULT.json` and the derived
   `WAIT_RESULT.json.log` artifact in the task card.
+- For service waits, allowlist the ready output, terminal output, and derived
+  terminal log.
+- Never place credentials or secrets in readiness-command JSON; command-line
+  arguments can be visible in the host process table.
 - Before waiting, record `waiting_on_timer` in the Task Ledger when live ledger
   mutation is allowed, including the exact target and result artifact.
 - The result does not grant authority. It must not cause a merge, GitHub write,

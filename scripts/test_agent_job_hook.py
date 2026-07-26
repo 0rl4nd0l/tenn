@@ -1010,6 +1010,7 @@ def test_ordinary_shell_writer_destinations_remain_autonomous(
     "command",
     [
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- systemctl --user restart tenn.service",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"curl\",\"-fsS\",\"http://127.0.0.1:8081\"]' -- cockpit start new",
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- uv run git reset --hard",
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- bash -c 'git reset --hard'",
         "python3 scripts/codex_event_waiter.py command --output data/results.sqlite -- git status --short",
@@ -1038,6 +1039,43 @@ def test_waiter_nested_commands_and_outputs_require_actual_authorization(
         tier34_authorized=False,
     )
     assert payload["decision"] == "block"
+    assert allowed.get("decision") != "block"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cockpit start new",
+        "cockpit stop",
+        "cockpit kill root",
+        "cockpit restart backend",
+        "cockpit reboot full",
+        "cockpit smoke routing",
+        "cockpit bugagent",
+    ],
+)
+def test_cockpit_runtime_actions_require_actual_authorization(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    _, blocked = run_hook(
+        repo,
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+    _, allowed = run_hook(
+        repo,
+        env={"TENN_TIER34_AUTHORIZED": "1"},
+        event="BeforeTool",
+        hook_input={"tool_name": "Bash", "tool_input": {"command": command}},
+        v2_required=False,
+        tier34_authorized=False,
+    )
+
+    assert blocked["decision"] == "block"
     assert allowed.get("decision") != "block"
 
 
@@ -1626,6 +1664,7 @@ def test_safe_dynamic_or_escaped_env_split_strings_remain_autonomous(
     [
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git status --short",
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json -- git diff --output=tmp/diff.patch",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"python3\",\"-c\",\"raise SystemExit(0)\"]' --readiness-timeout-seconds 30 --poll-seconds 1 -- python3 -c 'import time; time.sleep(30)'",
         "python3 scripts/codex_event_waiter.py github-pr --repo 0rl4nd0l/tenn --pr 515 --head-sha c775b4dbd075fd304b80d9946952e176b983757e --output reports/agent_jobs/wait.json",
     ],
 )
@@ -1648,6 +1687,15 @@ def test_safe_waiter_invocations_remain_autonomous(tmp_path: Path, command: str)
         "python3 scripts/codex_event_waiter.py command --output reports/agent_jobs/wait.json --",
         "python3 scripts/codex_event_waiter.py command --bogus x -- git status",
         "python3 scripts/codex_event_waiter.py command --output=data/results.sqlite -- git status",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --readiness-command-json '[\"true\"]' -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output data/ready.json --readiness-command-json '[\"true\"]' -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json not-json -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/result.json --ready-output reports/agent_jobs/result.json --readiness-command-json '[\"true\"]' -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/result.json --ready-output reports/agent_jobs/result.json.log --readiness-command-json '[\"true\"]' -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"true\"]' --timeout-seconds 30 -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"true\"]' --max-log-bytes 1.5 -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"true\"]' --poll-seconds nan -- true",
+        "python3 scripts/codex_event_waiter.py service --output reports/agent_jobs/terminal.json --ready-output reports/agent_jobs/ready.json --readiness-command-json '[\"true\"]' --readiness-timeout-seconds inf -- true",
     ],
 )
 def test_malformed_waiter_arguments_fail_closed(tmp_path: Path, command: str) -> None:

@@ -2,29 +2,31 @@
 """Wait on external work without spending Codex turns on repeated polling.
 
 The supported V1 modes are read-only GitHub PR check observation and attached
-execution of a command. A terminal result is written atomically and printed as
-one JSON line. A successful wait proves only that the wait condition completed;
-it does not prove runtime or extraction functionality.
+execution of a finite command or foreground service. A terminal result is
+written atomically and printed as one JSON line. Service mode also emits one
+atomic readiness record while remaining attached. A successful wait or ready
+record proves only that its condition completed; it does not prove runtime or
+extraction functionality.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import signal
 import subprocess
-import sys
 import tempfile
 import threading
 import time
 import uuid
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Sequence
-
+from typing import Any
 
 SCHEMA_VERSION = "tenn_codex_event_waiter_v1"
 SUCCESS_STATES = {"SUCCESS"}
@@ -40,6 +42,7 @@ DEFAULT_TIMEOUT_SECONDS = 45 * 60.0
 DEFAULT_POLL_SECONDS = 15.0
 DEFAULT_MAX_LOG_BYTES = 128 * 1024
 MAX_CONSECUTIVE_API_ERRORS = 3
+DEFAULT_READINESS_PROBE_TIMEOUT_SECONDS = 5.0
 
 
 GH_PR_QUERY = """
@@ -116,6 +119,12 @@ class RollingBytes:
     def truncated(self) -> bool:
         with self._lock:
             return self._truncated
+
+
+class ServiceWaitInterrupted(Exception):
+    def __init__(self, signum: int) -> None:
+        self.signum = signum
+        super().__init__(signal.Signals(signum).name)
 
 
 def utc_now() -> str:
@@ -230,6 +239,79 @@ def build_terminal_result(
         "evidence": dict(evidence or {}),
         "functionality_proven": False,
     }
+
+
+def build_readiness_result(
+    *,
+    started_at: str,
+    target: dict[str, Any],
+    observed: dict[str, Any],
+    summary: str,
+    evidence: dict[str, Any] | None = None,
+    wait_id: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "wait_id": wait_id,
+        "kind": "service",
+        "state": "READY",
+        "started_at": started_at,
+        "observed_at": utc_now(),
+        "target": target,
+        "observed": observed,
+        "summary": summary,
+        "evidence": dict(evidence or {}),
+        "functionality_proven": False,
+    }
+
+
+def _service_artifact_paths_are_distinct(
+    output_path: Path,
+    ready_output_path: Path,
+) -> bool:
+    log_path = Path(f"{output_path}.log")
+    return (
+        len(
+            {
+                output_path.resolve(),
+                ready_output_path.resolve(),
+                log_path.resolve(),
+            }
+        )
+        == 3
+    )
+
+
+def write_service_configuration_error(
+    payload: dict[str, Any],
+    *,
+    output_path: Path,
+    ready_output_path: Path,
+) -> None:
+    try:
+        paths_are_distinct = _service_artifact_paths_are_distinct(
+            output_path,
+            ready_output_path,
+        )
+    except (OSError, RuntimeError):
+        paths_are_distinct = False
+    if not paths_are_distinct:
+        return
+
+    ready_payload = dict(payload)
+    ready_payload["evidence"] = {
+        "result_path": str(ready_output_path),
+        "terminal_result_path": str(output_path),
+    }
+    try:
+        _atomic_write_text(
+            ready_output_path,
+            json.dumps(ready_payload, sort_keys=True, separators=(",", ":")) + "\n",
+        )
+    except OSError as exc:
+        payload.setdefault("observed", {})["ready_result_write_error"] = redact_text(
+            str(exc)
+        )
 
 
 def write_and_emit(payload: dict[str, Any], output_path: Path) -> None:
@@ -478,8 +560,12 @@ def wait_for_github_pr(
     )
 
 
-def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
+def _terminate_process_group(
+    process: subprocess.Popen[bytes],
+    *,
+    include_exited_leader: bool = False,
+) -> None:
+    if process.poll() is not None and not include_exited_leader:
         return
     if os.name == "posix":
         process_group = process.pid
@@ -516,6 +602,8 @@ def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
             process.wait(timeout=2)
         return
 
+    if process.poll() is not None:
+        return
     process.terminate()
     try:
         process.wait(timeout=2)
@@ -588,7 +676,7 @@ def run_command_wait(
         exit_code = None
         state = "ERROR"
         summary = f"command executable was not found: {redact_text(str(exc))}"
-    except Exception as exc:
+    except Exception as exc:  # external process boundary
         if process is not None and process.poll() is None:
             termination_attempted = True
             _terminate_process_group(process)
@@ -624,9 +712,298 @@ def run_command_wait(
     )
 
 
+def parse_argv_json(value: str, *, option: str) -> list[str]:
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{option} must be valid JSON: {exc.msg}") from exc
+    if (
+        not isinstance(parsed, list)
+        or not parsed
+        or any(not isinstance(item, str) or not item for item in parsed)
+    ):
+        raise ValueError(f"{option} must be a non-empty JSON array of non-empty strings")
+    return list(parsed)
+
+
+def _readiness_command_succeeds(command: Sequence[str], *, timeout_seconds: float) -> bool:
+    process = subprocess.Popen(
+        list(command),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        return_code = process.wait(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        return False
+    finally:
+        _terminate_process_group(process, include_exited_leader=True)
+    return return_code == 0
+
+
+def run_service_wait(
+    service_command: Sequence[str],
+    readiness_command: Sequence[str],
+    *,
+    readiness_timeout_seconds: float,
+    poll_seconds: float,
+    max_log_bytes: int,
+    output_path: Path,
+    ready_output_path: Path,
+) -> dict[str, Any]:
+    service_argv = list(service_command)
+    readiness_argv = list(readiness_command)
+    if not service_argv:
+        raise ValueError("service mode requires arguments after --")
+    if not readiness_argv:
+        raise ValueError("service mode requires a readiness command")
+    if (
+        not math.isfinite(readiness_timeout_seconds)
+        or not math.isfinite(poll_seconds)
+        or readiness_timeout_seconds <= 0
+        or poll_seconds <= 0
+        or max_log_bytes <= 0
+    ):
+        raise ValueError("timeouts, poll interval, and max-log-bytes must be positive")
+    log_path = Path(f"{output_path}.log")
+    if not _service_artifact_paths_are_distinct(output_path, ready_output_path):
+        raise ValueError(
+            "--output, --ready-output, and the derived log must be different paths"
+        )
+
+    started_at = utc_now()
+    started_monotonic = time.monotonic()
+    readiness_deadline = started_monotonic + readiness_timeout_seconds
+    rolling = RollingBytes(max_log_bytes)
+    wait_id = str(uuid.uuid4())
+    starting_payload = {
+        "schema_version": SCHEMA_VERSION,
+        "wait_id": wait_id,
+        "kind": "service",
+        "state": "STARTING",
+        "started_at": started_at,
+        "target": {
+            "executable": service_argv[0],
+            "arg_count": len(service_argv),
+            "readiness_executable": readiness_argv[0],
+            "readiness_arg_count": len(readiness_argv),
+        },
+        "observed": {},
+        "summary": "service startup is in progress; readiness is not yet proven",
+        "evidence": {
+            "result_path": str(ready_output_path),
+            "terminal_result_path": str(output_path),
+        },
+        "functionality_proven": False,
+    }
+    _atomic_write_text(
+        ready_output_path,
+        json.dumps(starting_payload, sort_keys=True, separators=(",", ":")) + "\n",
+    )
+    process: subprocess.Popen[bytes] | None = None
+    reader: threading.Thread | None = None
+    exit_code: int | None = None
+    probe_count = 0
+    ready_observed = False
+    ready_duration_seconds: float | None = None
+    termination_attempted = False
+    previous_signal_handlers: dict[int, Any] = {}
+
+    def interrupt_service_wait(signum: int, _frame: Any) -> None:
+        raise ServiceWaitInterrupted(signum)
+
+    if threading.current_thread() is threading.main_thread():
+        supervised_signals = [signal.SIGTERM]
+        if hasattr(signal, "SIGHUP"):
+            supervised_signals.append(signal.SIGHUP)
+        for supervised_signal in supervised_signals:
+            previous_signal_handlers[supervised_signal] = signal.getsignal(
+                supervised_signal
+            )
+            signal.signal(supervised_signal, interrupt_service_wait)
+
+    try:
+        process = subprocess.Popen(
+            service_argv,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        assert process.stdout is not None
+
+        def read_output() -> None:
+            while True:
+                chunk = process.stdout.read(8192)
+                if not chunk:
+                    break
+                rolling.append(chunk)
+
+        reader = threading.Thread(
+            target=read_output,
+            name="codex-service-waiter-output",
+            daemon=True,
+        )
+        reader.start()
+
+        while True:
+            exit_code = process.poll()
+            if exit_code is not None:
+                termination_attempted = True
+                _terminate_process_group(process, include_exited_leader=True)
+                state = "FAILURE"
+                summary = f"service exited before readiness with status {exit_code}"
+                break
+
+            probe_count += 1
+            probe_timeout = min(
+                DEFAULT_READINESS_PROBE_TIMEOUT_SECONDS,
+                max(poll_seconds, 0.1),
+                max(readiness_deadline - time.monotonic(), 0.1),
+            )
+            readiness_succeeded = _readiness_command_succeeds(
+                readiness_argv,
+                timeout_seconds=probe_timeout,
+            )
+            if readiness_succeeded and time.monotonic() < readiness_deadline:
+                exit_code = process.poll()
+                if exit_code is not None:
+                    termination_attempted = True
+                    _terminate_process_group(process, include_exited_leader=True)
+                    state = "FAILURE"
+                    summary = (
+                        "readiness command succeeded after the service had already "
+                        f"exited with status {exit_code}"
+                    )
+                    break
+                ready_observed = True
+                ready_duration_seconds = round(
+                    time.monotonic() - started_monotonic,
+                    3,
+                )
+                log_text = bounded_redacted_log(
+                    rolling.value(),
+                    limit=max_log_bytes,
+                    truncated=rolling.truncated(),
+                )
+                _atomic_write_text(log_path, log_text)
+                ready_payload = build_readiness_result(
+                    started_at=started_at,
+                    wait_id=wait_id,
+                    target={
+                        "executable": service_argv[0],
+                        "arg_count": len(service_argv),
+                        "readiness_executable": readiness_argv[0],
+                        "readiness_arg_count": len(readiness_argv),
+                    },
+                    observed={
+                        "service_pid": process.pid,
+                        "probe_count": probe_count,
+                        "ready_duration_seconds": ready_duration_seconds,
+                    },
+                    summary="service readiness command succeeded; supervision remains attached",
+                    evidence={
+                        "log_path": str(log_path),
+                        "terminal_result_path": str(output_path),
+                    },
+                )
+                write_and_emit(ready_payload, ready_output_path)
+
+                exit_code = process.wait()
+                termination_attempted = True
+                _terminate_process_group(process, include_exited_leader=True)
+                state = "FAILURE"
+                summary = f"service exited after readiness with status {exit_code}"
+                break
+
+            if time.monotonic() >= readiness_deadline:
+                termination_attempted = True
+                _terminate_process_group(process)
+                exit_code = process.returncode
+                state = "TIMEOUT"
+                summary = "service did not become ready and was terminated"
+                break
+            time.sleep(min(poll_seconds, max(readiness_deadline - time.monotonic(), 0.0)))
+    except (KeyboardInterrupt, ServiceWaitInterrupted) as exc:
+        if process is not None:
+            termination_attempted = True
+            _terminate_process_group(process, include_exited_leader=True)
+        exit_code = process.returncode if process is not None else None
+        state = "CANCELLED"
+        interruption = (
+            signal.Signals(exc.signum).name
+            if isinstance(exc, ServiceWaitInterrupted)
+            else "keyboard interrupt"
+        )
+        summary = (
+            f"attached service supervision received {interruption} and its "
+            "process group was terminated"
+        )
+    except FileNotFoundError as exc:
+        if process is not None:
+            termination_attempted = True
+            _terminate_process_group(process, include_exited_leader=True)
+        exit_code = process.returncode if process is not None else None
+        state = "ERROR"
+        summary = f"service or readiness executable was not found: {redact_text(str(exc))}"
+    except Exception as exc:  # external process boundary
+        if process is not None:
+            termination_attempted = True
+            _terminate_process_group(process, include_exited_leader=True)
+        exit_code = process.returncode if process is not None else None
+        state = "ERROR"
+        summary = f"service wait failed: {redact_text(str(exc))}"
+    finally:
+        for signum, previous_handler in previous_signal_handlers.items():
+            signal.signal(signum, previous_handler)
+        if reader is not None:
+            reader.join(timeout=2)
+        if process is not None and process.stdout is not None:
+            process.stdout.close()
+
+    log_text = bounded_redacted_log(
+        rolling.value(),
+        limit=max_log_bytes,
+        truncated=rolling.truncated(),
+    )
+    _atomic_write_text(log_path, log_text)
+    duration_seconds = round(time.monotonic() - started_monotonic, 3)
+    return build_terminal_result(
+        kind="service",
+        state=state,
+        started_at=started_at,
+        wait_id=wait_id,
+        target={
+            "executable": service_argv[0],
+            "arg_count": len(service_argv),
+            "readiness_executable": readiness_argv[0],
+            "readiness_arg_count": len(readiness_argv),
+        },
+        observed={
+            "service_pid": process.pid if process is not None else None,
+            "exit_code": exit_code,
+            "duration_seconds": duration_seconds,
+            "probe_count": probe_count,
+            "ready_observed": ready_observed,
+            "ready_duration_seconds": ready_duration_seconds,
+            "termination_attempted": termination_attempted,
+            "captured_log_bytes": len(log_text.encode("utf-8")),
+        },
+        summary=summary,
+        evidence={
+            "log_path": str(log_path),
+            "ready_result_path": str(ready_output_path),
+        },
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Wait on GitHub checks or a command without model polling."
+        description=(
+            "Wait on GitHub checks, a finite command, or an attached foreground "
+            "service without model polling."
+        )
     )
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -643,6 +1020,22 @@ def build_parser() -> argparse.ArgumentParser:
     command.add_argument("--timeout-seconds", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     command.add_argument("--max-log-bytes", type=int, default=DEFAULT_MAX_LOG_BYTES)
     command.add_argument("command", nargs=argparse.REMAINDER)
+
+    service = subparsers.add_parser(
+        "service",
+        help="supervise an attached foreground service and record readiness",
+    )
+    service.add_argument("--output", required=True, type=Path)
+    service.add_argument("--ready-output", required=True, type=Path)
+    service.add_argument("--readiness-command-json", required=True)
+    service.add_argument(
+        "--readiness-timeout-seconds",
+        type=float,
+        default=DEFAULT_TIMEOUT_SECONDS,
+    )
+    service.add_argument("--poll-seconds", type=float, default=DEFAULT_POLL_SECONDS)
+    service.add_argument("--max-log-bytes", type=int, default=DEFAULT_MAX_LOG_BYTES)
+    service.add_argument("command", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -668,7 +1061,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 observed=partial["observed"],
                 summary=str(partial["summary"]),
             )
-        else:
+        elif args.mode == "command":
             command = list(args.command)
             if command and command[0] == "--":
                 command = command[1:]
@@ -678,15 +1071,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_log_bytes=args.max_log_bytes,
                 output_path=output_path,
             )
+        else:
+            command = list(args.command)
+            if command and command[0] == "--":
+                command = command[1:]
+            payload = run_service_wait(
+                command,
+                parse_argv_json(
+                    args.readiness_command_json,
+                    option="--readiness-command-json",
+                ),
+                readiness_timeout_seconds=args.readiness_timeout_seconds,
+                poll_seconds=args.poll_seconds,
+                max_log_bytes=args.max_log_bytes,
+                output_path=output_path,
+                ready_output_path=args.ready_output,
+            )
     except Exception as exc:
         payload = build_terminal_result(
-            kind="github_pr" if args.mode == "github-pr" else "command",
+            kind=(
+                "github_pr"
+                if args.mode == "github-pr"
+                else "service" if args.mode == "service" else "command"
+            ),
             state="ERROR",
             started_at=started_at,
             target={},
             observed={"error": redact_text(str(exc))},
             summary="waiter configuration or execution failed",
         )
+        if args.mode == "service":
+            write_service_configuration_error(
+                payload,
+                output_path=output_path,
+                ready_output_path=args.ready_output,
+            )
     write_and_emit(payload, output_path)
     return 0 if payload["state"] in SUCCESS_STATES else 1
 
