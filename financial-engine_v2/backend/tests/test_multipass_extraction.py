@@ -5185,6 +5185,53 @@ def test_income_source_overlay_does_not_claim_ambiguous_period_source_cells():
     assert "source_cell" not in payload["field_provenance"]["np_attributable"]
 
 
+def test_income_source_overlay_does_not_claim_value_mismatched_source_cell():
+    """A bound cell must agree with the recovered value before it is claimed."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=21,
+        caption="Consolidated Income Statement",
+        headers=[
+            "",
+            "Note",
+            "31 December 2025 US$m",
+            "31 December 2024 US$m",
+        ],
+        raw_header_rows=[
+            ["", "", "31 December 2025", "31 December 2024"],
+            ["", "Note", "US$m", "US$m"],
+        ],
+        rows=[["Operating sales revenue", "2", "75", "70"]],
+    )
+    payload = {
+        "metrics": {"revenue": None},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._recover_income_statement_metrics_from_table",
+        return_value={"revenue": (50_000_000, "Operating sales revenue")},
+    ):
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            [table],
+            scale="millions",
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+        )
+
+    assert payload["metrics"]["revenue"] == 50_000_000
+    assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+
 def test_income_source_overlay_prefers_bhp_shareholder_attributable_row():
     """BHP split numeric cells should still bind NPAT to the shareholder row."""
     from app.services.docling_extract import DoclingTable
