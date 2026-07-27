@@ -764,9 +764,11 @@ def test_real_gold_required_provenance_is_a_fail_closed_trust_gate():
         ("provenance", "row_ref"),
         ("cell", "source_document_id"),
         ("cell", "page_number"),
+        ("cell", "page_tag"),
         ("cell", "row_index"),
         ("cell", "column_index"),
         ("cell", "row_label"),
+        ("cell", "row_ref"),
         ("cell", "header_cell"),
         ("cell", "requested_period_end"),
         ("cell", "raw_value"),
@@ -1101,6 +1103,117 @@ def test_real_gold_rejects_incoherent_direct_source_cells(
     assert result.provenance_trust_failures == [
         f"revenue:provenance_invalid:{expected_reason}"
     ]
+
+
+@pytest.mark.parametrize(
+    ("cell_mutation", "expected_reason"),
+    [
+        ({"row_ref": "Not revenue"}, "cell_row_mismatch"),
+        ({"page_tag": "page_999"}, "cell_page_mismatch"),
+    ],
+)
+def test_real_gold_rejects_conflicting_source_cell_siblings(
+    cell_mutation,
+    expected_reason,
+):
+    fixture = _in_memory_fixture(
+        "conflicting-source-cell-siblings",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cell"].update(cell_mutation)
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        f"revenue:provenance_invalid:{expected_reason}"
+    ]
+
+
+def test_real_gold_rejects_conflicting_single_and_plural_source_cells():
+    fixture = _in_memory_fixture(
+        "conflicting-cell-representations",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    conflicting_cell = deepcopy(field_provenance["revenue"]["source_cell"])
+    conflicting_cell["raw_value"] = "999"
+    field_provenance["revenue"]["source_cells"] = [conflicting_cell]
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.ABSTAIN
+    assert result.provenance_trust_failures == [
+        "revenue:provenance_invalid:cell_representation_mismatch"
+    ]
+
+
+def test_real_gold_accepts_matching_single_and_plural_source_cells():
+    fixture = _in_memory_fixture(
+        "matching-cell-representations",
+        ASXDocumentClass.ANNUAL,
+        {"revenue": 100.0},
+    )
+    field_provenance = _structured_provenance(
+        "revenue",
+        source_document_id=fixture.document_id,
+        source="income_statement",
+    )
+    field_provenance["revenue"]["source_cells"] = [
+        deepcopy(field_provenance["revenue"]["source_cell"])
+    ]
+
+    result = evaluate_real_gold_fixture(
+        fixture,
+        {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "accounting_basis": "statutory",
+            "source_document_id": fixture.document_id,
+            "metrics": {"revenue": 100.0},
+            "field_provenance": field_provenance,
+        },
+    )
+
+    assert result.trust == RealTrustOutcome.TRUSTED
+    assert result.provenance_trust_failures == []
 
 
 @pytest.mark.parametrize(
@@ -1534,6 +1647,20 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
             "field_provenance": wrong_derived_value,
         },
     )
+    conflicting_source_row_siblings = deepcopy(authorized_capex_provenance)
+    conflicting_source_row_siblings["capex"]["source_cells"][0]["row_ref"] = (
+        "conflicting-row"
+    )
+    capex_with_conflicting_source_row_siblings = evaluate_real_gold_fixture(
+        capex_fixture,
+        {
+            **common,
+            "period_type": "Q",
+            "source_document_id": "authorized-capex",
+            "metrics": {"capex": 30_000_000.0},
+            "field_provenance": conflicting_source_row_siblings,
+        },
+    )
     derived_net_debt_provenance = _structured_provenance(
         "net_debt",
         source_document_id="unauthorized-net-debt",
@@ -1572,6 +1699,9 @@ def test_real_gold_provenance_preserves_authorized_derivation_boundary():
     ]
     assert capex_with_wrong_derived_value.provenance_trust_failures == [
         "capex:provenance_invalid:derived_value_mismatch"
+    ]
+    assert capex_with_conflicting_source_row_siblings.provenance_trust_failures == [
+        "capex:provenance_invalid:cell_row_mismatch"
     ]
     assert net_debt.trust == RealTrustOutcome.ABSTAIN
     assert net_debt.trust_triggers == [

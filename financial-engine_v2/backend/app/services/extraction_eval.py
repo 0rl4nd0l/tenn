@@ -1010,6 +1010,7 @@ def _validate_source_cell_types(cell: Mapping[str, Any]) -> None:
         cell,
         (
             "source_document_id",
+            "page_tag",
             "table_label",
             "table_ref",
             "region_ref",
@@ -1307,7 +1308,16 @@ def _structured_source_cells_failure_reason(
         if len(cells) < 2:
             return "cell_binding_missing"
     else:
-        cells = [raw.get("source_cell")]
+        source_cell = raw.get("source_cell")
+        source_cells = raw.get("source_cells")
+        if source_cells is not None and (
+            not isinstance(source_cells, list)
+            or len(source_cells) != 1
+            or not isinstance(source_cell, Mapping)
+            or source_cells[0] != source_cell
+        ):
+            return "cell_representation_mismatch"
+        cells = [source_cell]
         source_row_refs = [str_or_none(raw.get("row_ref"))]
 
     parent_source_document_id = str_or_none(raw.get("source_document_id"))
@@ -1344,7 +1354,16 @@ def _structured_source_cells_failure_reason(
         if cell_source_document_id != parent_source_document_id:
             return "cell_source_document_id_mismatch"
 
-        cell_page = _normalized_page_reference(cell.get("page_number"))
+        cell_page_references = [
+            _normalized_page_reference(cell.get(field_name))
+            for field_name in ("page_number", "page_tag")
+            if cell.get(field_name) is not None
+        ]
+        if any(page_reference is None for page_reference in cell_page_references):
+            return "cell_page_invalid"
+        if len(set(cell_page_references)) != 1:
+            return "cell_page_mismatch"
+        cell_page = cell_page_references[0]
         if parent_page is None or cell_page != parent_page:
             return "cell_page_mismatch"
 
@@ -1355,12 +1374,17 @@ def _structured_source_cells_failure_reason(
             return "cell_table_or_region_mismatch"
 
         expected_row = source_row_refs[index]
-        cell_row = str_or_none(cell.get("row_label") or cell.get("row_ref"))
-        if expected_row is None or cell_row is None:
+        cell_row_bindings = {
+            normalized
+            for field_name in ("row_label", "row_ref")
+            if (value := str_or_none(cell.get(field_name))) is not None
+            and (normalized := _normalized_evidence_text(value))
+        }
+        if expected_row is None or not cell_row_bindings:
             return "cell_binding_missing"
-        if _normalized_evidence_text(cell_row) != _normalized_evidence_text(
-            expected_row
-        ):
+        if len(cell_row_bindings) != 1:
+            return "cell_row_mismatch"
+        if next(iter(cell_row_bindings)) != _normalized_evidence_text(expected_row):
             return "source_row_cell_mismatch" if plural else "cell_row_mismatch"
 
         header_cell = str_or_none(cell.get("header_cell"))
