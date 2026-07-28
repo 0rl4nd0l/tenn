@@ -48,9 +48,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--corpus-classification",
         choices=["non_holdout", "holdout"],
-        default=None,
+        required=True,
     )
-    parser.add_argument("--access-mode", default=None)
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
     parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 

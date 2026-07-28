@@ -52,6 +52,10 @@ class TestDuckDbAnalysis(unittest.TestCase):
                     str(artifact),
                     "--summary-path",
                     str(summary_path),
+                    "--corpus-classification",
+                    "non_holdout",
+                    "--access-mode",
+                    "development",
                 ],
             ):
                 self.assertEqual(mod.main(), 0)
@@ -99,6 +103,8 @@ class TestDuckDbAnalysis(unittest.TestCase):
                     str(summary_path),
                     "--corpus-classification",
                     "holdout",
+                    "--access-mode",
+                    "development",
                     "--development-aggregate-json",
                     str(aggregate_path),
                 ],
@@ -181,6 +187,10 @@ class TestDuckDbAnalysis(unittest.TestCase):
                     str(artifact),
                     "--summary-path",
                     str(summary_path),
+                    "--corpus-classification",
+                    "non_holdout",
+                    "--access-mode",
+                    "development",
                 ],
             ):
                 exit_code = mod.main()
@@ -191,6 +201,15 @@ class TestDuckDbAnalysis(unittest.TestCase):
             self.assertIn("## Failure Clusters By Ticker And Form", contents)
             self.assertIn("## Trust Trigger Summary", contents)
             self.assertIn("QBE", contents)
+
+    def test_cli_requires_explicit_confidentiality_contract(self):
+        with mock.patch.object(
+            sys,
+            "argv",
+            [str(SCRIPT_PATH), "results.json"],
+        ):
+            with self.assertRaises(SystemExit):
+                mod._parse_args()
 
 
 if __name__ == "__main__":

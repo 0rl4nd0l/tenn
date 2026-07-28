@@ -4,6 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +51,11 @@ class _Mlflow:
 
 
 class TestMlflowHoldoutConfidentiality(unittest.TestCase):
+    def test_cli_requires_explicit_confidentiality_contract(self):
+        with mock.patch.object(sys, "argv", [str(SCRIPT_PATH)]):
+            with self.assertRaises(SystemExit):
+                mod._parse_args()
+
     def test_development_run_logs_only_aggregate_fields_and_validated_json(self):
         aggregate = {
             "corpus_version": "opaque-v1",
