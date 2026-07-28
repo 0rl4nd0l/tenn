@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from app.services.asx_holdout_confidentiality import DevelopmentAggregateResult
 from app.services.extraction_eval import (
     ExtractionFixture,
     FixtureContext,
@@ -16,6 +17,39 @@ from app.services.extraction_eval import (
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "extraction_eval"
+
+
+def _development_aggregate() -> dict:
+    return {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+
+def test_synthetic_holdout_scorecard_is_aggregate_only() -> None:
+    scorecard = build_fixture_scorecard(
+        FIXTURES_DIR,
+        {},
+        corpus_classification="holdout",
+        development_aggregate=_development_aggregate(),
+    )
+
+    assert set(scorecard) == DevelopmentAggregateResult.ALLOWED_FIELDS
 
 
 def _load_fixture(fixture_id: str) -> ExtractionFixture:

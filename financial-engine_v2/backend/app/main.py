@@ -79,6 +79,10 @@ from app.services.llamacpp_runtime import (
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
 )
+from app.services.asx_holdout_confidentiality import (
+    DevelopmentAggregateResult,
+    serialize_evaluation_output,
+)
 from app.services.extraction_eval import FixtureContext
 from app.services.extraction_gold_eval import (
     RealGoldFixture,
@@ -182,6 +186,9 @@ class RealGoldEvalRequest(BaseModel):
     # (e.g. "qwen2.5-14b-instruct" vs "qwen3-30b-a3b-instruct"). When None,
     # the configured extraction default is used.
     model_override: str | None = None
+    corpus_classification: str | None = None
+    access_mode: str | None = None
+    development_aggregate: dict[str, Any] | None = None
 
 
 def _normalize_optional_text(value: Any) -> str | None:
@@ -255,8 +262,7 @@ def _fixture_provenance_non_canonical_reasons(
     fixture_dirty = fixture_manifest.get("fixture_git_dirty")
     if fixture_dirty is not False:
         reasons.append(
-            "fixture_provenance:fixture_git_dirty_not_false:"
-            f"{fixture_dirty!r}"
+            f"fixture_provenance:fixture_git_dirty_not_false:{fixture_dirty!r}"
         )
     return reasons
 
@@ -645,13 +651,13 @@ def _evaluate_real_gold_document(
                     "expected_trust": doc.expected_trust,
                 },
             )
-            review_session_id = str(review_session.get("session_id") or "").strip() or None
+            review_session_id = (
+                str(review_session.get("session_id") or "").strip() or None
+            )
             review_item_count = len(review_session.get("items") or [])
             documents = review_session.get("documents")
             if isinstance(documents, list) and documents:
-                review_reason = (
-                    str(documents[0].get("reason") or "").strip() or None
-                )
+                review_reason = str(documents[0].get("reason") or "").strip() or None
         except Exception as exc:  # noqa: BLE001
             review_reason = f"review_session_failed:{exc}"
 
@@ -861,7 +867,7 @@ def _run_real_gold_eval_sync(
                     "context_accuracy": summary.get("context_accuracy"),
                 }
             )
-        return {
+        result = {
             "dataset_dir": str(REAL_GOLD_DATASET_DIR),
             "requested_method": method,
             "strict_method": body.strict_method,
@@ -872,6 +878,12 @@ def _run_real_gold_eval_sync(
             "summary": summary,
             "documents": results,
         }
+        return serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
@@ -881,9 +893,7 @@ def _run_real_gold_eval_sync(
         ) from exc
 
 
-def _run_real_gold_eval_background(
-    task_id: str, body: RealGoldEvalRequest
-) -> None:
+def _run_real_gold_eval_background(task_id: str, body: RealGoldEvalRequest) -> None:
     """Execute a real-gold eval run and funnel its outcome into the task registry.
 
     This is the worker body for the background-thread path. Both HTTPException
@@ -893,39 +903,62 @@ def _run_real_gold_eval_background(
     """
     registry = get_eval_task_registry()
     registry.set_running(task_id)
-    registry.record_progress(
-        task_id,
-        {"stage": "task", "status": "running", "message": "Real-Gold eval task started"},
-    )
 
     def record_progress(event: dict[str, Any]) -> None:
-        registry.record_progress(task_id, event)
+        registry.record_progress(
+            task_id,
+            serialize_evaluation_output(
+                event,
+                corpus_classification=body.corpus_classification,
+                access_mode=body.access_mode,
+                development_aggregate=body.development_aggregate,
+            ),
+        )
+
+    record_progress(
+        {"stage": "task", "status": "running", "message": "Real-Gold eval task started"}
+    )
 
     try:
         result = _run_real_gold_eval_sync(body, progress_callback=record_progress)
     except HTTPException as exc:
-        registry.record_progress(
-            task_id,
+        record_progress(
             {
                 "stage": "task",
                 "status": "failed",
                 "message": f"Real-Gold eval task failed: HTTP {exc.status_code}",
             },
         )
-        registry.set_failed(task_id, f"HTTP {exc.status_code}: {exc.detail}")
+        error = (
+            "holdout evaluation failed"
+            if body.corpus_classification == "holdout"
+            and body.access_mode != "protected"
+            else f"HTTP {exc.status_code}: {exc.detail}"
+        )
+        registry.set_failed(task_id, error)
     except Exception as exc:  # noqa: BLE001 — surface every failure to the poller
-        registry.record_progress(
-            task_id,
+        record_progress(
             {
                 "stage": "task",
                 "status": "failed",
                 "message": f"Real-Gold eval task failed: {type(exc).__name__}",
             },
         )
-        registry.set_failed(task_id, f"{type(exc).__name__}: {exc}")
+        error = (
+            "holdout evaluation failed"
+            if body.corpus_classification == "holdout"
+            and body.access_mode != "protected"
+            else f"{type(exc).__name__}: {exc}"
+        )
+        registry.set_failed(task_id, error)
     else:
-        registry.record_progress(
-            task_id,
+        result = serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
+        record_progress(
             {
                 "stage": "task",
                 "status": "completed",
@@ -949,13 +982,30 @@ def run_real_gold_eval(
         ),
     ),
 ):
+    try:
+        serialize_evaluation_output(
+            {},
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail="invalid evaluation confidentiality contract"
+        ) from exc
     # Sync handler: FastAPI offloads this to the anyio threadpool so the event
     # loop stays responsive (e.g. /api/health) during a full-corpus run.
     # Docling timeouts are enforced by a spawn ProcessPoolExecutor in
     # docling_extract._run_docling_with_timeout, so main-thread signal state
     # is no longer required here.
     if not background:
-        return _run_real_gold_eval_sync(body)
+        result = _run_real_gold_eval_sync(body)
+        return serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
 
     registry = get_eval_task_registry()
     record = registry.register()
@@ -984,7 +1034,16 @@ def get_real_gold_eval_task(task_id: str) -> dict[str, Any]:
     record = get_eval_task_registry().get(task_id)
     if record is None:
         raise HTTPException(status_code=404, detail=f"unknown task_id: {task_id}")
-    return record.to_dict()
+    payload = record.to_dict()
+    payload["progress"] = [
+        (
+            {field: event[field] for field in DevelopmentAggregateResult.ALLOWED_FIELDS}
+            if DevelopmentAggregateResult.ALLOWED_FIELDS.issubset(event)
+            else event
+        )
+        for event in payload["progress"]
+    ]
+    return payload
 
 
 @app.get(
@@ -1024,10 +1083,8 @@ def get_confirmed_metric_coverage_source(
     """Serve an allowlisted confirmed metric coverage source PDF for review."""
 
     try:
-        resolved_path = (
-            confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
-                source_path
-            )
+        resolved_path = confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
+            source_path
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2202,4 +2259,6 @@ def _init_ops_tracker() -> None:
         tracker = init_tracker(store)
         logger.info("Ops tracker initialized: %s", ops_db_path)
     except Exception:
-        logger.warning("Ops tracker initialization failed — job tracking disabled", exc_info=True)
+        logger.warning(
+            "Ops tracker initialization failed — job tracking disabled", exc_info=True
+        )

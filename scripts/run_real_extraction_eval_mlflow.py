@@ -14,6 +14,14 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from app.services.asx_holdout_confidentiality import (  # noqa: E402
+    DevelopmentAggregateResult,
+)
+
 EVAL_SCRIPT = REPO_ROOT / "scripts" / "run_real_extraction_eval.py"
 DEFAULT_RESULTS_JSON = REPO_ROOT / "reports" / "extraction_real_eval_results.json"
 DEFAULT_REPORT_PATH = REPO_ROOT / "reports" / "extraction_real_eval_summary.md"
@@ -64,6 +72,13 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Log existing eval artifacts instead of running the eval command.",
     )
+    parser.add_argument(
+        "--corpus-classification",
+        choices=["non_holdout", "holdout"],
+        default=None,
+    )
+    parser.add_argument("--access-mode", default=None)
+    parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -96,6 +111,14 @@ def _run_eval(args: argparse.Namespace) -> None:
         command.extend(["--config-label", str(args.config_label)])
     if args.parser_backend:
         command.extend(["--parser-backend", str(args.parser_backend)])
+    if args.corpus_classification is not None:
+        command.extend(["--corpus-classification", args.corpus_classification])
+    if args.access_mode is not None:
+        command.extend(["--access-mode", args.access_mode])
+    if args.development_aggregate_json is not None:
+        command.extend(
+            ["--development-aggregate-json", str(args.development_aggregate_json)]
+        )
     subprocess.run(command, check=True, cwd=REPO_ROOT)
 
 
@@ -151,6 +174,38 @@ def _per_metric_accuracy(documents: list[dict[str, Any]]) -> dict[str, float]:
     }
 
 
+def _as_development_aggregate(payload: dict[str, Any]) -> dict[str, Any] | None:
+    try:
+        return DevelopmentAggregateResult.from_mapping(payload).to_dict()
+    except ValueError:
+        return None
+
+
+def _log_development_aggregate(
+    mlflow: Any,
+    aggregate: dict[str, Any],
+    *,
+    run_name: str,
+) -> Any:
+    """Log only allowlisted aggregate values and the validated JSON artifact."""
+
+    with mlflow.start_run(run_name=run_name) as run:
+        mlflow.log_param("corpus_version", aggregate["corpus_version"])
+        mlflow.log_param("corpus_digest", aggregate["corpus_digest"])
+        for field in (
+            "document_count",
+            "company_count",
+            "sector_count",
+            "scan_image_heavy_count",
+            "non_aud_count",
+        ):
+            mlflow.log_metric(field, float(aggregate[field]))
+        for field in ("partition_counts", "bucket_counts", "issuer_size_counts"):
+            mlflow.log_param(field, json.dumps(aggregate[field], sort_keys=True))
+        mlflow.log_dict(aggregate, "eval/development_aggregate.json")
+        return run
+
+
 def main() -> int:
     args = _parse_args()
     mlflow = _require_mlflow()
@@ -168,8 +223,29 @@ def main() -> int:
     run_name = args.run_name or datetime.now(timezone.utc).strftime(
         "real-gold-%Y%m%d-%H%M%S"
     )
+    aggregate = None
+    if args.corpus_classification == "holdout" and args.access_mode != "protected":
+        if args.development_aggregate_json is None:
+            raise SystemExit(
+                "--development-aggregate-json is required for public holdout MLflow"
+            )
+        aggregate = DevelopmentAggregateResult.from_mapping(
+            json.loads(args.development_aggregate_json.read_text(encoding="utf-8"))
+        ).to_dict()
+    else:
+        aggregate = _as_development_aggregate(payload)
+    if aggregate is not None:
+        _log_development_aggregate(
+            mlflow,
+            aggregate,
+            run_name=run_name,
+        )
+        print(json.dumps(aggregate, sort_keys=True))
+        return 0
     payload_run_metadata = (
-        payload.get("run_metadata") if isinstance(payload.get("run_metadata"), dict) else {}
+        payload.get("run_metadata")
+        if isinstance(payload.get("run_metadata"), dict)
+        else {}
     )
     eval_policy = (
         payload.get("eval_policy")
@@ -179,10 +255,16 @@ def main() -> int:
     kpi_eligible = bool(eval_policy.get("kpi_eligible", True))
     results_dataset_dir = payload.get("dataset_dir")
     dataset_dir = args.dataset_dir
-    if dataset_dir is None and isinstance(results_dataset_dir, str) and results_dataset_dir:
+    if (
+        dataset_dir is None
+        and isinstance(results_dataset_dir, str)
+        and results_dataset_dir
+    ):
         dataset_dir = Path(results_dataset_dir)
     artifact_paths = (
-        payload.get("artifact_paths") if isinstance(payload.get("artifact_paths"), dict) else {}
+        payload.get("artifact_paths")
+        if isinstance(payload.get("artifact_paths"), dict)
+        else {}
     )
     params = {
         "dataset_dir": str(dataset_dir) if dataset_dir is not None else "default",
@@ -230,8 +312,12 @@ def main() -> int:
 
     with mlflow.start_run(run_name=run_name) as run:
         mlflow.log_params(params)
-        accuracy_key = "overall_accuracy" if kpi_eligible else "exploratory_overall_accuracy"
-        context_key = "context_accuracy" if kpi_eligible else "exploratory_context_accuracy"
+        accuracy_key = (
+            "overall_accuracy" if kpi_eligible else "exploratory_overall_accuracy"
+        )
+        context_key = (
+            "context_accuracy" if kpi_eligible else "exploratory_context_accuracy"
+        )
         mlflow.log_metric(accuracy_key, float(summary.get("total_accuracy", 0.0)))
         mlflow.log_metric(context_key, float(summary.get("context_accuracy", 0.0)))
         mlflow.log_metric("document_count", float(summary.get("total_documents", 0)))
@@ -266,7 +352,10 @@ def main() -> int:
         for trigger, count in summary.get("trust_trigger_counts", {}).items():
             safe_trigger = trigger.replace(":", "_").replace("-", "_")
             mlflow.log_metric(f"trust_trigger_{safe_trigger}_count", float(count))
-        logged_paths = {Path(args.results_json).resolve(), Path(args.report_path).resolve()}
+        logged_paths = {
+            Path(args.results_json).resolve(),
+            Path(args.report_path).resolve(),
+        }
         mlflow.log_artifact(str(args.results_json), artifact_path="eval")
         mlflow.log_artifact(str(args.report_path), artifact_path="eval")
         for artifact_path in artifact_paths.values():

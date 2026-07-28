@@ -3,9 +3,11 @@ from __future__ import annotations
 import pytest
 from app.services.asx_holdout_confidentiality import (
     ConfidentialityError,
+    CorpusClassification,
     DevelopmentAggregateResult,
     ProtectedAccess,
     ProtectedAccessMode,
+    serialize_evaluation_output,
 )
 
 
@@ -119,3 +121,42 @@ def test_protected_entries_require_explicit_protected_mode() -> None:
     with pytest.raises(ConfidentialityError):
         access.entries(ProtectedAccessMode.DEVELOPMENT)
     assert access.entries(ProtectedAccessMode.PROTECTED) == ("protected-entry",)
+
+
+@pytest.mark.parametrize("mode", [None, "unknown", ProtectedAccessMode.DEVELOPMENT])
+def test_holdout_output_fails_closed_to_exact_aggregate(mode) -> None:
+    payload = serialize_evaluation_output(
+        {"documents": [{"document_id": "secret", "expected": 1, "actual": 2}]},
+        corpus_classification=CorpusClassification.HOLDOUT,
+        access_mode=mode,
+        development_aggregate=valid_aggregate_payload(),
+    )
+
+    assert payload == valid_aggregate_payload()
+    assert set(payload) == DevelopmentAggregateResult.ALLOWED_FIELDS
+
+
+def test_holdout_detail_requires_explicit_protected_mode() -> None:
+    detailed = {"documents": [{"document_id": "secret"}]}
+
+    assert (
+        serialize_evaluation_output(
+            detailed,
+            corpus_classification="holdout",
+            access_mode=ProtectedAccessMode.PROTECTED,
+        )
+        == detailed
+    )
+
+
+def test_non_holdout_output_remains_compatible() -> None:
+    detailed = {"fixture_summaries": [{"document_id": "synthetic"}]}
+
+    assert (
+        serialize_evaluation_output(
+            detailed,
+            corpus_classification=CorpusClassification.NON_HOLDOUT,
+            access_mode=None,
+        )
+        == detailed
+    )

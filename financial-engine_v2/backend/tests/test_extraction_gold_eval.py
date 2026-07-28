@@ -587,6 +587,37 @@ def test_real_gold_scorecard_distinguishes_legacy_none_from_explicit_empty_paylo
         build_real_gold_scorecard(REAL_FIXTURES_DIR, {})
 
 
+def test_real_gold_holdout_scorecard_is_aggregate_only():
+    aggregate = {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+    assert (
+        build_real_gold_scorecard(
+            REAL_FIXTURES_DIR,
+            corpus_classification="holdout",
+            development_aggregate=aggregate,
+        )
+        == aggregate
+    )
+
+
 def test_real_gold_fixture_evaluates_trust_outcomes():
     payloads = _real_payloads()
 
@@ -2875,6 +2906,59 @@ def _stub_sync_payload() -> dict:
     }
 
 
+def _stub_development_aggregate() -> dict:
+    return {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+
+def test_real_gold_eval_route_fails_closed_for_holdout(monkeypatch):
+    monkeypatch.setattr(
+        main_app, "_run_real_gold_eval_sync", lambda _body: _stub_sync_payload()
+    )
+    aggregate = _stub_development_aggregate()
+    client = TestClient(main_app.app)
+
+    response = client.post(
+        "/api/extraction-eval/real-gold",
+        json={
+            "corpus_classification": "holdout",
+            "development_aggregate": aggregate,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == aggregate
+
+
+def test_real_gold_eval_route_rejects_holdout_without_aggregate():
+    client = TestClient(main_app.app)
+
+    response = client.post(
+        "/api/extraction-eval/real-gold",
+        json={"corpus_classification": "holdout"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "invalid evaluation confidentiality contract"
+
+
 def test_real_gold_eval_route_preserves_blocking_response_by_default(monkeypatch):
     """Existing non-background callers must keep getting a 200 + full body."""
     captured: dict[str, object] = {}
@@ -2967,6 +3051,68 @@ def test_real_gold_eval_task_endpoint_reports_completed_result(monkeypatch):
     assert any(
         event.get("message") == "Real-Gold summary ready" for event in last["progress"]
     )
+
+
+def test_real_gold_holdout_background_result_and_progress_are_aggregate(monkeypatch):
+    def fake_sync(_body, progress_callback=None):
+        if progress_callback:
+            progress_callback({"document_id": "secret", "expected": 1, "actual": 2})
+        return _stub_sync_payload()
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", fake_sync)
+    aggregate = _stub_development_aggregate()
+    client = TestClient(main_app.app)
+    schedule = client.post(
+        "/api/extraction-eval/real-gold?background=true",
+        json={
+            "corpus_classification": "holdout",
+            "development_aggregate": aggregate,
+        },
+    )
+    task_id = schedule.json()["task_id"]
+    deadline = time.monotonic() + 3.0
+    last: dict = {}
+    while time.monotonic() < deadline:
+        last = client.get(f"/api/extraction-eval/real-gold/tasks/{task_id}").json()
+        if last.get("status") in {"completed", "failed"}:
+            break
+        time.sleep(0.02)
+
+    assert last["status"] == "completed"
+    assert last["result"] == aggregate
+    assert last["progress"]
+    assert all(event == aggregate for event in last["progress"])
+
+
+def test_real_gold_holdout_background_masks_failure_details(monkeypatch):
+    def fake_sync(_body, progress_callback=None):
+        if progress_callback:
+            progress_callback({"document_id": "secret-before-failure"})
+        raise RuntimeError("secret.pdf expected=1 actual=2")
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", fake_sync)
+    aggregate = _stub_development_aggregate()
+    client = TestClient(main_app.app)
+    schedule = client.post(
+        "/api/extraction-eval/real-gold?background=true",
+        json={
+            "corpus_classification": "holdout",
+            "development_aggregate": aggregate,
+        },
+    )
+    task_id = schedule.json()["task_id"]
+    deadline = time.monotonic() + 3.0
+    last: dict = {}
+    while time.monotonic() < deadline:
+        last = client.get(f"/api/extraction-eval/real-gold/tasks/{task_id}").json()
+        if last.get("status") in {"completed", "failed"}:
+            break
+        time.sleep(0.02)
+
+    assert last["status"] == "failed"
+    assert last["error"] == "holdout evaluation failed"
+    assert last["progress"]
+    assert all(event == aggregate for event in last["progress"])
 
 
 def test_real_gold_eval_task_endpoint_reports_failed_error(monkeypatch):

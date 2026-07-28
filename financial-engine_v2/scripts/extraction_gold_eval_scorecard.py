@@ -59,13 +59,31 @@ def _parse_args() -> argparse.Namespace:
         default=2,
         help="JSON indentation for stdout output (0 = compact)",
     )
+    parser.add_argument(
+        "--corpus-classification",
+        choices=["non_holdout", "holdout"],
+        default=None,
+    )
+    parser.add_argument("--access-mode", default=None)
+    parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
     payloads = _coerce_payload_map(args.actuals_json)
-    scorecard = build_real_gold_scorecard(args.fixtures_dir, payloads)
+    development_aggregate = (
+        json.loads(args.development_aggregate_json.read_text(encoding="utf-8"))
+        if args.development_aggregate_json is not None
+        else None
+    )
+    scorecard = build_real_gold_scorecard(
+        args.fixtures_dir,
+        payloads,
+        corpus_classification=args.corpus_classification,
+        access_mode=args.access_mode,
+        development_aggregate=development_aggregate,
+    )
 
     indent = None if args.indent <= 0 else args.indent
     print(json.dumps(scorecard, indent=indent, sort_keys=True))

@@ -21,6 +21,12 @@ from numbers import Real
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from app.services.asx_holdout_confidentiality import (
+    CorpusClassification,
+    DevelopmentAggregateResult,
+    ProtectedAccessMode,
+    serialize_evaluation_output,
+)
 from app.services.financial_metric_contract import (
     METRIC_CONTRACT_BY_CANONICAL_FIELD,
     MetricContractStatus,
@@ -395,6 +401,10 @@ def summarize_numeric_quality(
 def build_fixture_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
+    *,
+    corpus_classification: CorpusClassification | str | None = None,
+    access_mode: ProtectedAccessMode | str | None = None,
+    development_aggregate: DevelopmentAggregateResult | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a stable JSON-serializable scorecard for all fixtures.
 
@@ -436,7 +446,7 @@ def build_fixture_scorecard(
         fixtures, fixture_payloads, "accounting_basis"
     )
 
-    return {
+    result = {
         "evaluation_lane": "synthetic",
         "total_fixture_count": len(fixtures),
         "total_metric_expectations": total_metric_expectations,
@@ -463,6 +473,12 @@ def build_fixture_scorecard(
             "quarantine": status_counts["quarantine"],
         },
     }
+    return serialize_evaluation_output(
+        result,
+        corpus_classification=corpus_classification,
+        access_mode=access_mode,
+        development_aggregate=development_aggregate,
+    )
 
 
 def summarize_provenance_summaries(
