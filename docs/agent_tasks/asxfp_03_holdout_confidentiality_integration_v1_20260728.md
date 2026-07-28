@@ -47,7 +47,7 @@ docs_checked:
 docs_changed:
   - docs/agent_tasks/asxfp_03_holdout_confidentiality_integration_v1_20260728.md
 docs_followup: NONE
-reason: "The confidentiality integration changes the Real-Gold request schema. This task card now documents the required explicit non-holdout development request from Cockpit and its regression gate."
+reason: "The confidentiality integration changes the Real-Gold request schema and must also prevent protected review-session persistence and identifying synchronous errors for development holdouts."
 task_tier: medium
 recommended_model: "Codex X implementation worker"
 actual_model: "Codex GPT-5.6"
@@ -79,6 +79,13 @@ The audit proved:
 - CLI/stdout, JSON, CSV, Markdown, prompt-matrix, DuckDB analysis, and MLflow
   artifact surfaces serialize identifying per-document details.
 
+Subsequent exact-head review also proved:
+
+- The aggregate response serializer ran only after a failed document could
+  create a detailed, externally retrievable review session.
+- Synchronous holdout failures returned raw exception text containing paths or
+  expected/actual details, while the background path masked the same data.
+
 ## Required contract
 
 - Every evaluator result carries an explicit corpus classification and access
@@ -105,6 +112,10 @@ The audit proved:
   evaluator/API/CLI surfaces.
 - Keep the Cockpit Real-Gold caller compatible by explicitly declaring
   `non_holdout` classification and `development` access.
+- Prevent development holdouts from persisting detailed extraction-review
+  sessions before aggregate serialization.
+- Mask identifying synchronous failure details for development holdouts while
+  preserving existing non-holdout and protected behavior.
 - Serialize aggregate-only development/public holdout outputs at every allowed
   sink.
 - Add synthetic tests proving all public/development formats omit identifying
@@ -138,11 +149,13 @@ The audit proved:
 - Development/public holdout output cannot expose per-document details through
   any allowed evaluator, API, progress, CLI, file-format, matrix, analysis, or
   MLflow path.
+- Development holdouts do not persist detailed review sessions and do not
+  return raw synchronous exception details.
 - Detailed holdout output is reachable only through explicit protected mode.
 - Unknown or omitted holdout access mode fails closed.
 - Non-holdout compatibility tests remain green.
 - Cockpit's Real-Gold request satisfies the explicit confidentiality schema.
 - Diff is confined to `allowed_files`.
 - Independent exact-head Codex X review accepts the integration checkpoint.
-- Protected corpus availability remains separately `DATA_MISSING`; this task
-  does not claim actual 48-document corpus completion.
+- The protected corpus remains local and outside this branch; this task makes
+  no claim about its source-byte, label, manifest, or review correctness.

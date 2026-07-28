@@ -2793,6 +2793,64 @@ def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_met
     assert captured["payload"]["metrics"] == {"revenue": 10875.0}
 
 
+def test_real_gold_holdout_development_does_not_persist_review_session(
+    monkeypatch, tmp_path
+):
+    pdf_path = tmp_path / "protected.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    gold_doc = main_app.RealGoldDocument(
+        document_id="protected-holdout-document",
+        source_file="protected.pdf",
+        period_type="H",
+        period_end="2025-06-30",
+        currency="AUD",
+        scale="millions",
+        metrics={"revenue": 100.0, "net_debt": 25.0},
+        expected_trust="abstain",
+    )
+    review_calls: list[dict] = []
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok_low_confidence",
+            error=None,
+            payload={
+                "period_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        main_app,
+        "create_review_session_from_payload",
+        lambda **kwargs: review_calls.append(kwargs) or {},
+    )
+    aggregate = _stub_development_aggregate()
+
+    result = main_app._run_real_gold_eval_sync(
+        main_app.RealGoldEvalRequest(
+            corpus_classification="holdout",
+            access_mode="development",
+            development_aggregate=aggregate,
+        )
+    )
+
+    assert result == aggregate
+    assert review_calls == []
+
+
 def test_real_gold_eval_endpoint_reports_review_session_failures(monkeypatch, tmp_path):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4\n")
@@ -2987,6 +3045,35 @@ def test_real_gold_eval_route_fails_closed_for_holdout(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == aggregate
+
+
+@pytest.mark.parametrize(
+    ("failure", "status_code"),
+    [
+        (FileNotFoundError("protected/path/secret.pdf"), 400),
+        (RuntimeError("secret expected=1 actual=2"), 500),
+    ],
+)
+def test_real_gold_holdout_sync_masks_failure_details(
+    monkeypatch, failure, status_code
+):
+    monkeypatch.setattr(
+        main_app,
+        "_build_real_gold_fixture_manifest",
+        lambda _path: (_ for _ in ()).throw(failure),
+    )
+
+    with pytest.raises(main_app.HTTPException) as captured:
+        main_app._run_real_gold_eval_sync(
+            main_app.RealGoldEvalRequest(
+                corpus_classification="holdout",
+                access_mode="development",
+                development_aggregate=_stub_development_aggregate(),
+            )
+        )
+
+    assert captured.value.status_code == status_code
+    assert captured.value.detail == "holdout evaluation failed"
 
 
 def test_real_gold_eval_route_rejects_holdout_without_aggregate():

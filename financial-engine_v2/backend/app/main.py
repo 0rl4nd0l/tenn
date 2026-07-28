@@ -193,6 +193,13 @@ class RealGoldEvalRequest(BaseModel):
     development_aggregate: dict[str, Any] | None = None
 
 
+def _is_development_holdout(body: RealGoldEvalRequest) -> bool:
+    return (
+        body.corpus_classification == CorpusClassification.HOLDOUT
+        and body.access_mode == ProtectedAccessMode.DEVELOPMENT
+    )
+
+
 def _normalize_optional_text(value: Any) -> str | None:
     if value is None:
         return None
@@ -535,6 +542,7 @@ def _evaluate_real_gold_document(
     tolerance: float,
     method: str,
     strict_method: bool,
+    allow_review_session: bool,
     prompt_variant_id: str | None = None,
     model_override: str | None = None,
 ) -> dict[str, Any]:
@@ -636,8 +644,10 @@ def _evaluate_real_gold_document(
     review_session_id: str | None = None
     review_item_count = 0
     review_reason: str | None = None
-    if payload and (
-        failed_metric_count > 0 or str(extraction_status or "") == "parser_error"
+    if (
+        allow_review_session
+        and payload
+        and (failed_metric_count > 0 or str(extraction_status or "") == "parser_error")
     ):
         try:
             review_session = create_review_session_from_payload(
@@ -829,6 +839,7 @@ def _run_real_gold_eval_sync(
                 tolerance=tolerance,
                 method=method,
                 strict_method=body.strict_method,
+                allow_review_session=not _is_development_holdout(body),
                 prompt_variant_id=body.prompt_variant_id,
                 model_override=body.model_override,
             )
@@ -887,11 +898,19 @@ def _run_real_gold_eval_sync(
             development_aggregate=body.development_aggregate,
         )
     except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
+        detail = (
+            "holdout evaluation failed" if _is_development_holdout(body) else str(exc)
+        )
+        raise HTTPException(status_code=400, detail=detail) from exc
+    except Exception as exc:
+        detail = (
+            "holdout evaluation failed"
+            if _is_development_holdout(body)
+            else f"real gold eval failed: {exc}"
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"real gold eval failed: {exc}",
+            detail=detail,
         ) from exc
 
 
@@ -933,8 +952,7 @@ def _run_real_gold_eval_background(task_id: str, body: RealGoldEvalRequest) -> N
         )
         error = (
             "holdout evaluation failed"
-            if body.corpus_classification == "holdout"
-            and body.access_mode != "protected"
+            if _is_development_holdout(body)
             else f"HTTP {exc.status_code}: {exc.detail}"
         )
         registry.set_failed(task_id, error)
@@ -948,8 +966,7 @@ def _run_real_gold_eval_background(task_id: str, body: RealGoldEvalRequest) -> N
         )
         error = (
             "holdout evaluation failed"
-            if body.corpus_classification == "holdout"
-            and body.access_mode != "protected"
+            if _is_development_holdout(body)
             else f"{type(exc).__name__}: {exc}"
         )
         registry.set_failed(task_id, error)
