@@ -16,7 +16,9 @@ production_data_access: false
 github_mutation_allowed: true
 allowed_files:
   - docs/agent_tasks/asxfp_03_release_holdout_contract_repair_v1_20260728.md
+  - financial-engine_v2/backend/app/services/asx_holdout_confidentiality.py
   - financial-engine_v2/backend/app/services/asx_release_corpus.py
+  - financial-engine_v2/backend/tests/test_asx_holdout_confidentiality.py
   - financial-engine_v2/backend/tests/test_asx_release_corpus.py
 docs_impact: DOCS_UPDATED
 docs_checked:
@@ -58,6 +60,9 @@ diagnostic documents and six release-holdout documents.
   `validate_release_corpus`.
 - Add one regression that preserves global 12/36 counts while skewing the
   per-class distribution.
+- Retain the two unchanged holdout-confidentiality files inherited from the
+  original PR #526 head; they are allowlisted only because validation compares
+  the cumulative PR diff against canonical.
 - Update existing draft PR #526 and carry its repaired base into draft PR #527.
 
 ## Forbidden work

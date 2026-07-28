@@ -18,6 +18,8 @@ DOCUMENT_COUNT = 48
 DIAGNOSTIC_COUNT = 12
 HOLDOUT_COUNT = 36
 DOCUMENTS_PER_BUCKET = 8
+DIAGNOSTIC_PER_BUCKET = 2
+HOLDOUT_PER_BUCKET = 6
 MIN_COMPANIES = 12
 REQUIRED_SECTORS = 6
 MIN_SCAN_IMAGE_HEAVY = 6
@@ -130,12 +132,23 @@ def validate_release_corpus(
 
     partitions = Counter(row.partition for row in valid_rows)
     buckets = Counter(row.ticket_02_bucket for row in valid_rows)
+    bucket_partitions = Counter(
+        (row.ticket_02_bucket, row.partition) for row in valid_rows
+    )
     sizes = Counter(row.issuer_size for row in valid_rows)
     if partitions != {"diagnostic": DIAGNOSTIC_COUNT, "holdout": HOLDOUT_COUNT}:
         errors.append("partition counts must be diagnostic 12 and holdout 36")
     for bucket in TICKET_02_BUCKETS:
         if buckets[bucket] != DOCUMENTS_PER_BUCKET:
             errors.append(f"bucket {bucket!r} must contain exactly 8 documents")
+        if (
+            bucket_partitions[(bucket, "diagnostic")] != DIAGNOSTIC_PER_BUCKET
+            or bucket_partitions[(bucket, "holdout")] != HOLDOUT_PER_BUCKET
+        ):
+            errors.append(
+                f"bucket {bucket!r} violates per-class partition counts: "
+                "expected diagnostic 2 and holdout 6"
+            )
     companies = {row.issuer_id for row in valid_rows}
     sectors = {row.sector for row in valid_rows}
     if len(companies) < MIN_COMPANIES:

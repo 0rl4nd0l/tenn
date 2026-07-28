@@ -68,6 +68,27 @@ def test_valid_release_corpus_returns_only_aggregate_summary() -> None:
     assert "synthetic-" not in repr(summary)
 
 
+def test_release_corpus_rejects_partition_counts_skewed_across_buckets() -> None:
+    entries = valid_entries()
+    annual_holdout = next(
+        index
+        for index, row in enumerate(entries)
+        if row.ticket_02_bucket == "annual" and row.partition == "holdout"
+    )
+    half_year_diagnostic = next(
+        index
+        for index, row in enumerate(entries)
+        if row.ticket_02_bucket == "half-year" and row.partition == "diagnostic"
+    )
+    entries[annual_holdout] = replace(entries[annual_holdout], partition="diagnostic")
+    entries[half_year_diagnostic] = replace(
+        entries[half_year_diagnostic], partition="holdout"
+    )
+
+    with pytest.raises(CorpusValidationError, match="per-class partition"):
+        validate_release_corpus(entries, corpus_version="ticket-03-v1")
+
+
 def test_release_corpus_allows_more_than_six_sectors() -> None:
     entries = valid_entries()
     entries[0] = replace(entries[0], sector="consumer")
