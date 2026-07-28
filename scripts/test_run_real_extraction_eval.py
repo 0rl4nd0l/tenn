@@ -301,6 +301,8 @@ class TestBackendRequestHelpers(unittest.TestCase):
                 "tolerance": 0.05,
                 "method": "docling",
                 "strict_method": True,
+                "corpus_classification": "non_holdout",
+                "access_mode": "development",
             },
         )
         self.assertEqual(captured[0]["timeout"], 60.0)

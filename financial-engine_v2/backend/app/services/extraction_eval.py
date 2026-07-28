@@ -402,8 +402,9 @@ def build_fixture_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
     *,
-    corpus_classification: CorpusClassification | str | None = None,
-    access_mode: ProtectedAccessMode | str | None = None,
+    corpus_classification: CorpusClassification
+    | str = CorpusClassification.NON_HOLDOUT,
+    access_mode: ProtectedAccessMode | str = ProtectedAccessMode.DEVELOPMENT,
     development_aggregate: DevelopmentAggregateResult | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a stable JSON-serializable scorecard for all fixtures.

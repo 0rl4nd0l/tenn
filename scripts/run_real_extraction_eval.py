@@ -122,9 +122,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--corpus-classification",
         choices=["non_holdout", "holdout"],
-        default=None,
+        required=True,
     )
-    parser.add_argument("--access-mode", default=None)
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
     parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
@@ -284,8 +288,8 @@ def _request_real_gold_eval(
     strict_method: bool,
     timeout_seconds: float,
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
-    corpus_classification: str | None = None,
-    access_mode: str | None = None,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
     development_aggregate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Schedule a background real-gold job and poll until it terminates."""

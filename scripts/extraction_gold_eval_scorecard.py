@@ -56,9 +56,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--corpus-classification",
         choices=["non_holdout", "holdout"],
-        default=None,
+        required=True,
     )
-    parser.add_argument("--access-mode", default=None)
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
     parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
@@ -67,8 +71,8 @@ def _build_profile(
     profile: str,
     fixtures_dir: Path | None,
     *,
-    corpus_classification: str | None = None,
-    access_mode: str | None = None,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
     development_aggregate: dict | None = None,
 ) -> dict:
     profiles = get_scorecard_profiles()
@@ -112,8 +116,8 @@ def _build_profile(
 def _build_canonical_core_scorecard(
     dataset_dir: Path,
     *,
-    corpus_classification: str | None = None,
-    access_mode: str | None = None,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
     development_aggregate: dict | None = None,
 ) -> dict:
     files_by_document_id: dict[str, Path] = {}

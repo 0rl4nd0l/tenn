@@ -80,7 +80,9 @@ from app.services.llamacpp_runtime import (
     resolve_llm_runtime_config,
 )
 from app.services.asx_holdout_confidentiality import (
+    CorpusClassification,
     DevelopmentAggregateResult,
+    ProtectedAccessMode,
     serialize_evaluation_output,
 )
 from app.services.extraction_eval import FixtureContext
@@ -186,8 +188,8 @@ class RealGoldEvalRequest(BaseModel):
     # (e.g. "qwen2.5-14b-instruct" vs "qwen3-30b-a3b-instruct"). When None,
     # the configured extraction default is used.
     model_override: str | None = None
-    corpus_classification: str | None = None
-    access_mode: str | None = None
+    corpus_classification: CorpusClassification
+    access_mode: ProtectedAccessMode
     development_aggregate: dict[str, Any] | None = None
 
 

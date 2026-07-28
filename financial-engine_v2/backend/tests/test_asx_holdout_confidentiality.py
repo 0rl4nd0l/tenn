@@ -156,7 +156,25 @@ def test_non_holdout_output_remains_compatible() -> None:
         serialize_evaluation_output(
             detailed,
             corpus_classification=CorpusClassification.NON_HOLDOUT,
-            access_mode=None,
+            access_mode=ProtectedAccessMode.DEVELOPMENT,
         )
         == detailed
     )
+
+
+@pytest.mark.parametrize(
+    ("classification", "mode"),
+    [
+        (None, ProtectedAccessMode.PROTECTED),
+        (CorpusClassification.NON_HOLDOUT, None),
+    ],
+)
+def test_output_requires_explicit_classification_and_non_holdout_mode(
+    classification, mode
+) -> None:
+    with pytest.raises(ConfidentialityError):
+        serialize_evaluation_output(
+            {"documents": [{"document_id": "must-not-escape"}]},
+            corpus_classification=classification,
+            access_mode=mode,
+        )

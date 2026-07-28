@@ -186,17 +186,18 @@ def serialize_evaluation_output(
     try:
         classification = CorpusClassification(corpus_classification)
     except (TypeError, ValueError):
-        if corpus_classification is None:
-            return dict(payload)
         raise ConfidentialityError("unknown corpus classification") from None
-
-    if classification is CorpusClassification.NON_HOLDOUT:
-        return dict(payload)
 
     try:
         mode = ProtectedAccessMode(access_mode)
     except (TypeError, ValueError):
+        if classification is CorpusClassification.NON_HOLDOUT:
+            raise ConfidentialityError("unknown access mode") from None
         mode = ProtectedAccessMode.DEVELOPMENT
+
+    if classification is CorpusClassification.NON_HOLDOUT:
+        return dict(payload)
+
     if mode is ProtectedAccessMode.PROTECTED:
         return dict(payload)
 

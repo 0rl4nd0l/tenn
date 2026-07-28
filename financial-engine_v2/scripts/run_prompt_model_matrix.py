@@ -130,9 +130,13 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--corpus-classification",
         choices=["non_holdout", "holdout"],
-        default=None,
+        required=True,
     )
-    parser.add_argument("--access-mode", default=None)
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
     parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser
 
@@ -148,8 +152,8 @@ def _run_cell(
     tolerance: float,
     method: str,
     strict_method: bool,
-    corpus_classification: str | None = None,
-    access_mode: str | None = None,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
     development_aggregate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = {
