@@ -13,9 +13,11 @@ timeout_seconds: 7200
 output_dir: reports/agent_jobs/asxfp_03_holdout_confidentiality_integration_v1_20260728
 mutation_mode: safe_extension
 production_data_access: false
-github_mutation_allowed: false
+github_mutation_allowed: true
 allowed_files:
   - docs/agent_tasks/asxfp_03_holdout_confidentiality_integration_v1_20260728.md
+  - cockpit-ui/components/cockpit/verification/verification-screen.tsx
+  - cockpit-ui/tests/verification.spec.ts
   - financial-engine_v2/backend/app/services/asx_holdout_confidentiality.py
   - financial-engine_v2/backend/app/services/extraction_eval.py
   - financial-engine_v2/backend/app/services/extraction_gold_eval.py
@@ -37,19 +39,21 @@ allowed_files:
   - scripts/test_run_real_extraction_eval_mlflow.py
   - reports/agent_jobs/asxfp_03_holdout_confidentiality_integration_v1_20260728/README.md
   - reports/agent_jobs/asxfp_03_holdout_confidentiality_integration_v1_20260728/VALIDATION.md
-docs_impact: DOCS_NOT_REQUIRED
+docs_impact: DOCS_UPDATED
 docs_checked:
   - AGENTS.md
   - docs/README.md
-docs_changed: []
+  - docs/agent_tasks/asxfp_03_holdout_confidentiality_integration_v1_20260728.md
+docs_changed:
+  - docs/agent_tasks/asxfp_03_holdout_confidentiality_integration_v1_20260728.md
 docs_followup: NONE
-reason: "Codex X exact-head audit proved the Ticket 03 aggregate-only contract is an unused seam while development evaluators, API/progress responses, CLIs, JSON, CSV, Markdown, matrix, analysis, and MLflow outputs still expose per-document holdout details."
+reason: "The confidentiality integration changes the Real-Gold request schema. This task card now documents the required explicit non-holdout development request from Cockpit and its regression gate."
 task_tier: medium
 recommended_model: "Codex X implementation worker"
 actual_model: "Codex GPT-5.6"
-why_this_model: "The repair is cross-surface but bounded by a mechanically exact 19-file product/test allowlist derived from two independent static reviewers."
+why_this_model: "The repair is cross-surface but bounded by the reviewed product/test allowlist expanded by exactly two Cockpit caller-regression paths."
 worker_model_allowed: true
-worker_decision_limit: "Worker may implement only the explicit confidentiality contract and exact allowed files; no corpus, runtime, or GitHub actions."
+worker_decision_limit: "Implementation is limited to the explicit confidentiality contract and exact allowed files. The existing draft PR #527 may be updated; no corpus, runtime, merge, or other GitHub action."
 escalation_needed: false
 ---
 
@@ -99,6 +103,8 @@ The audit proved:
   `asx_holdout_confidentiality.py`.
 - Thread explicit corpus classification and access mode through the allowed
   evaluator/API/CLI surfaces.
+- Keep the Cockpit Real-Gold caller compatible by explicitly declaring
+  `non_holdout` classification and `development` access.
 - Serialize aggregate-only development/public holdout outputs at every allowed
   sink.
 - Add synthetic tests proving all public/development formats omit identifying
@@ -110,7 +116,8 @@ The audit proved:
   production-data access or mutation.
 - No extraction, OCR/model, prompt/model configuration, service, runtime,
   database, queue, Qdrant, GPU, backfill, or deployment action.
-- No GitHub issue or PR mutation, push, merge, activation, or branch deletion.
+- No GitHub issue mutation, merge, activation, or branch deletion. Owner
+  approval permits a normal push updating only existing draft PR #527.
 - No ontology expansion, metric-definition change, score-threshold change, or
   broad evaluator redesign.
 - No file outside `allowed_files`.
@@ -119,6 +126,8 @@ The audit proved:
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/asxfp_03_holdout_confidentiality_integration_v1_20260728.md`
 - Focused synthetic/unit tests for every changed evaluator/API/CLI output path.
+- Cockpit Playwright regression proving the Real-Gold POST body declares
+  `corpus_classification=non_holdout` and `access_mode=development`.
 - Existing Ticket 02 and Ticket 03 corpus contract tests.
 - Changed-file Ruff check and format check.
 - `git diff --check`
@@ -132,6 +141,7 @@ The audit proved:
 - Detailed holdout output is reachable only through explicit protected mode.
 - Unknown or omitted holdout access mode fails closed.
 - Non-holdout compatibility tests remain green.
+- Cockpit's Real-Gold request satisfies the explicit confidentiality schema.
 - Diff is confined to `allowed_files`.
 - Independent exact-head Codex X review accepts the integration checkpoint.
 - Protected corpus availability remains separately `DATA_MISSING`; this task

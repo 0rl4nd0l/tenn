@@ -142,6 +142,7 @@ function buildMockState() {
   }
 
   let decisionCalls = 0
+  const goldEvalRequests: Array<Record<string, unknown>> = []
 
   const runStatus = {
     summary: {
@@ -412,6 +413,7 @@ function buildMockState() {
     },
     runStatus,
     goldEval,
+    goldEvalRequests,
     metricCoverage,
     verificationResults,
     verificationHistory,
@@ -711,6 +713,9 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
       return
     }
 
+    state.goldEvalRequests.push(
+      JSON.parse(route.request().postData() || '{}') as Record<string, unknown>,
+    )
     await route.fulfill({
       status: 202,
       contentType: 'application/json',
@@ -803,6 +808,17 @@ test.describe('Verification screen', () => {
 
     await expect(page.getByText('Review 1 of 2')).toBeVisible()
     await expect(page.getByText('Latest extraction failed or produced no reviewable metrics')).toHaveCount(0)
+  })
+
+  test('declares the non-holdout development contract for Real-Gold requests', async ({ page }) => {
+    const state = await mockVerificationApi(page)
+    await page.goto('/verification?tab=gold-eval')
+
+    await page.getByRole('button', { name: 'Run Gold Set' }).click()
+    await expect.poll(() => state.goldEvalRequests[0]).toMatchObject({
+      corpus_classification: 'non_holdout',
+      access_mode: 'development',
+    })
   })
 
   test('keeps keyboard shortcuts guarded and exposes runs, verify, and real-gold state', async ({ page }) => {
