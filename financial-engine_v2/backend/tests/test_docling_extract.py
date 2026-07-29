@@ -354,6 +354,15 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
             "candidate_value_text": "2,529,823",
             "value_text_candidates": ["2,529,823"],
             "candidate_value_quality": "financial_amount",
+            "source_region": {
+                "left": 30,
+                "top": 120,
+                "right": 148,
+                "bottom": 132,
+            },
+            "source_row": 4,
+            "source_cell": [1, 2, 3, 4, 5, 6],
+            "recognition_confidence": 92.0,
         }
     ]
 
