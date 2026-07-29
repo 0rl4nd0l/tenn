@@ -183,6 +183,29 @@ def test_appendix_4c_on_page_2_takes_precedence_over_generic_quarterly_cover() -
     )
 
 
+def test_appendix_4c_on_page_2_accepts_high_confidence_quarterly_cover() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Quarterly activities report for the quarter "
+                        "ended 31 March 2025."
+                    ),
+                },
+                {
+                    "page": 2,
+                    "text": "Appendix 4C. Quarterly cash flow report. Rule 4.7B.",
+                },
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "appendix_4c"
+    assert result["abstain"] is False
+
+
 def test_authoritative_appendix_title_survives_bare_later_repeat() -> None:
     result = classify_asx_document_type(
         {

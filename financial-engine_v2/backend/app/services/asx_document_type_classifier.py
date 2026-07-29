@@ -314,10 +314,18 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         high_non_appendix_evidence = _high_non_appendix_evidence(
             evidence_by_type
         )
+        high_non_appendix_types = {
+            item.document_type for item in high_non_appendix_evidence
+        }
+        compatible_quarterly_cashflow_bundle = (
+            later_form_label.document_type in CASHFLOW_DOCUMENT_TYPES
+            and high_non_appendix_types == {"quarterly_report"}
+        )
         if (
             later_form_label.page is not None
             and later_form_label.page > 1
             and high_non_appendix_evidence
+            and not compatible_quarterly_cashflow_bundle
         ):
             return _abstain(
                 reasons=[
