@@ -8968,6 +8968,13 @@ def run_multipass_extraction(
             {
                 "first_page_title_text": first_page_text,
                 "asx_announcement_title": title,
+                "document_pages": [
+                    {
+                        "page": section.get("page"),
+                        "text": section.get("text"),
+                    }
+                    for section in structured_doc.sections
+                ],
             }
         )
     )
