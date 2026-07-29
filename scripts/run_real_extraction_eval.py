@@ -24,6 +24,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.config import settings
+from app.services.asx_holdout_confidentiality import DevelopmentAggregateResult
 from app.services.method_isolated_extraction import normalize_extraction_method
 
 
@@ -118,6 +119,17 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_TIMEOUT_SECONDS,
         help="HTTP timeout for the backend eval request.",
     )
+    parser.add_argument(
+        "--corpus-classification",
+        choices=["non_holdout", "holdout"],
+        required=True,
+    )
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
+    parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -240,9 +252,7 @@ def _http_json(
         except Exception:
             detail = str(exc.reason or "").strip()
         suffix = f": {detail}" if detail else ""
-        raise RuntimeError(
-            f"{error_label} failed (HTTP {exc.code}){suffix}"
-        ) from exc
+        raise RuntimeError(f"{error_label} failed (HTTP {exc.code}){suffix}") from exc
     except (urlerror.URLError, TimeoutError) as exc:
         raise RuntimeError(f"{error_label} request failed: {exc}") from exc
 
@@ -278,6 +288,9 @@ def _request_real_gold_eval(
     strict_method: bool,
     timeout_seconds: float,
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
+    development_aggregate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Schedule a background real-gold job and poll until it terminates."""
 
@@ -287,6 +300,12 @@ def _request_real_gold_eval(
         "method": normalize_extraction_method(method),
         "strict_method": bool(strict_method),
     }
+    if corpus_classification is not None:
+        body["corpus_classification"] = corpus_classification
+    if access_mode is not None:
+        body["access_mode"] = access_mode
+    if development_aggregate is not None:
+        body["development_aggregate"] = development_aggregate
     per_call_timeout = max(min(float(timeout_seconds), 60.0), 1.0)
     poll_interval = max(float(poll_interval_seconds), 0.1)
 
@@ -303,18 +322,12 @@ def _request_real_gold_eval(
     )
     task_id = scheduled.get("task_id")
     if not isinstance(task_id, str) or not task_id:
-        raise RuntimeError(
-            "backend real-gold job schedule response missing task_id"
-        )
+        raise RuntimeError("backend real-gold job schedule response missing task_id")
 
     deadline = time.monotonic() + max(float(timeout_seconds), 1.0)
-    status_url = (
-        f"{backend_url}/api/extraction-eval/real-gold/tasks/{task_id}"
-    )
+    status_url = f"{backend_url}/api/extraction-eval/real-gold/tasks/{task_id}"
     while True:
-        status_request = _build_json_request(
-            status_url, method="GET", api_key=api_key
-        )
+        status_request = _build_json_request(status_url, method="GET", api_key=api_key)
         status = _http_json(
             status_request,
             per_call_timeout=per_call_timeout,
@@ -327,20 +340,17 @@ def _request_real_gold_eval(
                 raise RuntimeError(
                     "backend real-gold job completed without result payload"
                 )
+            aggregate = _development_aggregate(result)
+            if aggregate is not None:
+                return aggregate
             if not isinstance(result.get("summary"), dict):
-                raise RuntimeError(
-                    "backend real-gold job payload is missing summary"
-                )
+                raise RuntimeError("backend real-gold job payload is missing summary")
             if not isinstance(result.get("documents"), list):
-                raise RuntimeError(
-                    "backend real-gold job payload is missing documents"
-                )
+                raise RuntimeError("backend real-gold job payload is missing documents")
             return result
         if state == "failed":
             error_text = str(status.get("error") or "").strip() or "unknown error"
-            raise RuntimeError(
-                f"backend real-gold job failed: {error_text}"
-            )
+            raise RuntimeError(f"backend real-gold job failed: {error_text}")
         if time.monotonic() >= deadline:
             raise RuntimeError(
                 f"backend real-gold job timed out after {timeout_seconds:.0f}s "
@@ -412,8 +422,7 @@ def _fixture_provenance_non_canonical_reasons(
     fixture_dirty = fixture_manifest.get("fixture_git_dirty")
     if fixture_dirty is not False:
         reasons.append(
-            "fixture_provenance:fixture_git_dirty_not_false:"
-            f"{fixture_dirty!r}"
+            f"fixture_provenance:fixture_git_dirty_not_false:{fixture_dirty!r}"
         )
     return reasons
 
@@ -489,9 +498,7 @@ def _build_report_markdown(
     lines.append(
         f"- Dataset content hash: `{fixture_manifest.get('fixture_content_sha256')}`"
     )
-    lines.append(
-        f"- Dataset dirty: `{fixture_manifest.get('fixture_git_dirty')}`"
-    )
+    lines.append(f"- Dataset dirty: `{fixture_manifest.get('fixture_git_dirty')}`")
     non_canonical_reasons = eval_policy.get("non_canonical_reasons") or []
     if non_canonical_reasons:
         lines.append("- Non-canonical reasons:")
@@ -556,7 +563,9 @@ def _build_report_markdown(
     lines.append("")
     lines.append("## Most Failed Documents")
     lines.append("")
-    lines.append("| Document | Ticker | Period | Trust | Failed metrics | Context mismatches |")
+    lines.append(
+        "| Document | Ticker | Period | Trust | Failed metrics | Context mismatches |"
+    )
     lines.append("| --- | --- | --- | --- | ---: | ---: |")
     ranked_results = sorted(
         results,
@@ -708,16 +717,70 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def _development_aggregate(payload: dict[str, Any]) -> dict[str, Any] | None:
+    try:
+        aggregate = DevelopmentAggregateResult.from_mapping(payload)
+    except (TypeError, ValueError):
+        return None
+    return aggregate.to_dict()
+
+
+def _write_development_artifacts(
+    aggregate: dict[str, Any],
+    *,
+    results_json: Path,
+    report_path: Path,
+) -> None:
+    """Write each output format using aggregate allowlisted fields only."""
+
+    artifacts = _artifact_paths(results_json, report_path)
+    encoded = json.dumps(aggregate, indent=2, sort_keys=True)
+    for key in ("results_json", "summary_json", "canonical_scorecard_json"):
+        path = artifacts[key]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(encoded, encoding="utf-8")
+    fields = sorted(DevelopmentAggregateResult.ALLOWED_FIELDS)
+    row = {
+        field: (
+            json.dumps(aggregate[field], sort_keys=True)
+            if isinstance(aggregate[field], dict)
+            else aggregate[field]
+        )
+        for field in fields
+    }
+    for key in ("documents_csv", "metrics_csv", "trust_triggers_csv"):
+        _write_csv(artifacts[key], [row])
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        "# Development Aggregate Result\n\n"
+        + "\n".join(
+            f"- {field}: {json.dumps(aggregate[field], sort_keys=True)}"
+            for field in fields
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     args = _parse_args()
     canonical_dataset_dir = _validate_dataset_dir(args.dataset_dir)
     backend_url = _normalize_backend_url(args.backend_url)
     api_key = _resolve_backend_api_key(args.api_key)
     requested_method = normalize_extraction_method(args.parser_backend or "auto")
+    development_aggregate = None
+    aggregate_path = getattr(args, "development_aggregate_json", None)
+    if aggregate_path is not None:
+        development_aggregate = json.loads(aggregate_path.read_text(encoding="utf-8"))
 
-    print(
-        f"Requesting backend real-gold eval from {backend_url}/api/extraction-eval/real-gold"
-    )
+    if not (
+        getattr(args, "corpus_classification", None) == "holdout"
+        and getattr(args, "access_mode", None) != "protected"
+    ):
+        print(
+            "Requesting backend real-gold eval from "
+            f"{backend_url}/api/extraction-eval/real-gold"
+        )
     response_payload = _request_real_gold_eval(
         backend_url=backend_url,
         api_key=api_key,
@@ -726,14 +789,28 @@ def main() -> int:
         method=requested_method,
         strict_method=args.strict_method,
         timeout_seconds=args.timeout_seconds,
+        corpus_classification=getattr(args, "corpus_classification", None),
+        access_mode=getattr(args, "access_mode", None),
+        development_aggregate=development_aggregate,
     )
+    aggregate = _development_aggregate(response_payload)
+    if aggregate is not None:
+        _write_development_artifacts(
+            aggregate,
+            results_json=args.results_json,
+            report_path=args.report_path,
+        )
+        print(json.dumps(aggregate, sort_keys=True))
+        return 0
 
     summary = response_payload["summary"]
     results = response_payload["documents"]
     eval_policy = _resolve_eval_policy(
         response_payload,
         dataset_dir=canonical_dataset_dir,
-        requested_method=str(response_payload.get("requested_method", requested_method)),
+        requested_method=str(
+            response_payload.get("requested_method", requested_method)
+        ),
         strict_method=bool(response_payload.get("strict_method", args.strict_method)),
         limit=args.limit,
         tolerance=max(float(args.tolerance), 0.0),

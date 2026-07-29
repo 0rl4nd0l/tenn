@@ -34,6 +34,12 @@ from numbers import Real
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from app.services.asx_holdout_confidentiality import (
+    CorpusClassification,
+    DevelopmentAggregateResult,
+    ProtectedAccessMode,
+    serialize_evaluation_output,
+)
 from app.services.extraction_eval import (
     ExtractionFixture,
     FixtureContext,
@@ -234,6 +240,11 @@ def classify_real_gold_fixtures(
 def build_real_gold_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
+    *,
+    corpus_classification: CorpusClassification
+    | str = CorpusClassification.NON_HOLDOUT,
+    access_mode: ProtectedAccessMode | str = ProtectedAccessMode.DEVELOPMENT,
+    development_aggregate: DevelopmentAggregateResult | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     fixtures = load_real_gold_fixtures(fixtures_dir)
     payloads = (
@@ -242,10 +253,16 @@ def build_real_gold_scorecard(
         else extracted_payloads
     )
     evaluations = classify_real_gold_fixtures(fixtures, payloads)
-    return summarize_real_gold_evaluations(
+    result = summarize_real_gold_evaluations(
         fixtures,
         evaluations,
         payloads,
+    )
+    return serialize_evaluation_output(
+        result,
+        corpus_classification=corpus_classification,
+        access_mode=access_mode,
+        development_aggregate=development_aggregate,
     )
 
 
