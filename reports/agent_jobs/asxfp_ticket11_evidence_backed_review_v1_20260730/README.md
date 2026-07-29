@@ -75,9 +75,9 @@ deployment, network, or protected-data action was performed.
 ## Controller finalization
 
 - Candidate implementation commit:
-  `9ba9e4df0125ab91dd22db6fd97cd512b93fb971`
+  `b07c716b7eabe929ac23573ba21dd943621249ef`
 - Candidate implementation tree:
-  `617fc0a24928c7dce32916995b973ab0629950e2`
+  `6e96a7aa4a5533a901bce4924362d0d27d341b08`
 - Branch: `safe/asxfp-11-evidence-review-v1-20260730`
 - Worktree: `/home/l4nd0/tenn-asxfp-11-evidence-review-v1-20260730`
 - Git status after the candidate commit: clean.
