@@ -124,6 +124,23 @@ def test_ambiguous_4d_4e_fixture_abstains() -> None:
     assert "Appendix 4E" in negative_text
 
 
+def test_conflicting_annual_and_quarterly_report_anchors_abstain() -> None:
+    result = classify_asx_document_type(
+        {
+            "first_page_title_text": "Annual Report and Quarterly Report",
+            "headings": ["Directors' report", "Financial statements"],
+            "relevant_line_anchors": [
+                "For the year ended 30 June 2025",
+                "For the quarter ended 31 March 2025",
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "unknown_or_abstain"
+    assert result["abstain"] is True
+    assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
 def test_unknown_low_signal_fixture_abstains() -> None:
     fixture = _load_json(FIXTURE_DIR / "unknown_low_signal.json")
     result = _classify_fixture(fixture)
