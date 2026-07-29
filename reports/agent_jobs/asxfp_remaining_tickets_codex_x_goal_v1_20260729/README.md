@@ -15,17 +15,19 @@ at a time.
   `migration/clean-runtime-baseline-reconstruct-v1`
 - starting canonical commit:
   `b01885d6cd55242339662e91d18141aeb725f089`
-- current bounded ticket: Ticket 06 ten-metric statutory observation projection
+- current bounded ticket: Ticket 07 quarter-only and year-to-date observations
 
 ## Ordered backlog
 
 1. Ticket 04 residual classifier failure class: draft PR 530.
 2. Ticket 05 immutable financial-observation seam: repaired candidate accepted,
    published as draft PR 531, and exact-head CI passed.
-3. Ticket 06 ten-metric statutory observation projection: task card prepared
-   on the green Ticket 05 stacked head.
-4. Tickets 07–15 in declared dependency order.
-5. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
+3. Ticket 06 ten-metric statutory observation projection: independently
+   accepted, published as draft PR 532, and exact-head CI passed.
+4. Ticket 07 quarter-only and year-to-date observations: task card prepared on
+   the green Ticket 06 stacked head.
+5. Tickets 08–15 in declared dependency order.
+6. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
    backfill only after prerequisites and explicit Tier 2 approvals.
 
 ## Approval boundaries
@@ -38,12 +40,12 @@ deployment, activation, merge, issue closure, canary execution, or backfill.
 
 ## Current milestone
 
-Ticket 05 is independently accepted and exact-head green at
-`84295111c6ae400de4e6f1c6cd941a45a0f549a3`. Ticket 06 now expands that seam to
-exactly the ten existing canonical statutory metrics while preserving sparse
-legacy profile values; database-backed proof remains unauthorized.
+Ticket 06 is independently accepted and exact-head green at
+`f063c2a4cb4b9c677f35498de4b80f31dba55ba6`. Ticket 07 now makes
+`period_only` and `year_to_date` first-class, source-bound, collision-free
+observation contexts while preserving every legacy profile row.
 
 ## Next action
 
-Validate and seed Ticket 06, launch one fresh Codex X implementer, freeze the
+Validate and seed Ticket 07, launch one fresh Codex X implementer, freeze the
 candidate, and send the exact delta to a different fresh Codex X reviewer.
