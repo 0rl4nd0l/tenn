@@ -220,15 +220,22 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         for source in sources
         if not source.document_page or source.page == 1
     ]
-    evidence_by_type = {
-        rule.document_type: _match_rule(
-            rule,
-            sources
-            if rule.document_type in APPENDIX_DOCUMENT_TYPES
-            else report_context_sources,
-        )
-        for rule in _RULES
-    }
+    evidence_by_type: dict[str, list[EvidenceItem]] = {}
+    for rule in _RULES:
+        if rule.document_type in APPENDIX_DOCUMENT_TYPES:
+            evidence_by_type[rule.document_type] = _scope_appendix_evidence(
+                rule,
+                _match_rule(
+                    rule,
+                    sources,
+                    retain_all_page_matches=True,
+                ),
+            )
+        else:
+            evidence_by_type[rule.document_type] = _match_rule(
+                rule,
+                report_context_sources,
+            )
     form_label_evidence = _appendix_form_label_evidence(evidence_by_type)
     if len(form_label_evidence) > 1:
         return _abstain(
@@ -459,6 +466,38 @@ def _match_rule(
                 )
             )
     return evidence
+
+
+def _scope_appendix_evidence(
+    rule: _DocumentTypeRule,
+    evidence: list[EvidenceItem],
+) -> list[EvidenceItem]:
+    label = APPENDIX_DOCUMENT_TYPES[rule.document_type]
+    scoped = [
+        item
+        for item in evidence
+        if item.page is None or item.page == 1
+    ]
+    later_pages = sorted(
+        {
+            item.page
+            for item in evidence
+            if item.page is not None and item.page > 1
+        }
+    )
+    for page in later_pages:
+        page_evidence = [
+            item for item in evidence if item.page == page
+        ]
+        has_form_label = any(
+            item.anchor == label for item in page_evidence
+        )
+        if (
+            has_form_label
+            and _confidence_for(rule, page_evidence) == "high"
+        ):
+            scoped.extend(page_evidence)
+    return scoped
 
 
 def _appendix_form_label_evidence(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:

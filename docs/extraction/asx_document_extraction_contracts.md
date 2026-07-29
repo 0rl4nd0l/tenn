@@ -63,7 +63,9 @@ or insufficient-evidence classifications return
 `validation_gate:extraction_contract_abstain` before Pass 1.
 
 Explicit Appendix 4C and Appendix 5B form anchors may take precedence over a
-generic quarterly-activities cover when those anchors occur on later pages.
+generic quarterly-activities cover when a later page contains a corroborated,
+high-confidence form signature. A bare later-page Appendix reference is not
+document-type evidence.
 For a bundled half-year document, high-confidence half-year-report evidence on
 a later page takes whole-document precedence over an earlier Appendix 4D
 wrapper. Other annual, half-year, quarterly, and announcement anchors remain

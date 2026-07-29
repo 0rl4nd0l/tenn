@@ -366,6 +366,29 @@ def test_deep_quarterly_reference_does_not_conflict_with_annual_report() -> None
     assert result["abstain"] is False
 
 
+def test_deep_bare_appendix_reference_does_not_override_annual_report() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "2025 Annual Report",
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Annual Report. Directors' report. Financial statements."
+                    ),
+                },
+                {
+                    "page": 52,
+                    "text": "For prior quarterly disclosures, see Appendix 4C.",
+                },
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "annual_report"
+    assert result["abstain"] is False
+
+
 def test_unknown_low_signal_fixture_abstains() -> None:
     fixture = _load_json(FIXTURE_DIR / "unknown_low_signal.json")
     result = _classify_fixture(fixture)
