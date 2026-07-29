@@ -25,6 +25,13 @@ class ProtectedAccessMode(str, Enum):
     PROTECTED = "protected"
 
 
+class CorpusClassification(str, Enum):
+    """Classification used by evaluation output boundaries."""
+
+    NON_HOLDOUT = "non_holdout"
+    HOLDOUT = "holdout"
+
+
 class ProtectedAccess(Generic[_T]):
     """Container whose contents require an explicit protected access mode."""
 
@@ -159,6 +166,54 @@ class DevelopmentAggregateResult:
             "non_aud_count": self.non_aud_count,
             "issuer_size_counts": dict(self.issuer_size_counts),
         }
+
+
+def serialize_evaluation_output(
+    payload: Mapping[str, Any],
+    *,
+    corpus_classification: CorpusClassification | str | None,
+    access_mode: ProtectedAccessMode | str | None,
+    development_aggregate: DevelopmentAggregateResult | Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Apply the single fail-closed boundary for evaluator and report outputs.
+
+    Non-holdout callers retain their legacy payload.  A holdout payload is
+    detailed only when protected mode is explicitly supplied; every other
+    mode, including omitted or unknown values, is reduced to the authoritative
+    development aggregate.
+    """
+
+    try:
+        classification = CorpusClassification(corpus_classification)
+    except (TypeError, ValueError):
+        raise ConfidentialityError("unknown corpus classification") from None
+
+    try:
+        mode = ProtectedAccessMode(access_mode)
+    except (TypeError, ValueError):
+        if classification is CorpusClassification.NON_HOLDOUT:
+            raise ConfidentialityError("unknown access mode") from None
+        mode = ProtectedAccessMode.DEVELOPMENT
+
+    if classification is CorpusClassification.NON_HOLDOUT:
+        return dict(payload)
+
+    if mode is ProtectedAccessMode.PROTECTED:
+        return dict(payload)
+
+    if development_aggregate is None:
+        raise ConfidentialityError(
+            "holdout development aggregate required for non-protected output"
+        )
+    aggregate = (
+        development_aggregate
+        if isinstance(development_aggregate, DevelopmentAggregateResult)
+        else DevelopmentAggregateResult.from_mapping(development_aggregate)
+    )
+    result = aggregate.to_dict()
+    if set(result) != DevelopmentAggregateResult.ALLOWED_FIELDS:
+        raise ConfidentialityError("development result violates aggregate allowlist")
+    return result
 
 
 def _require_count(value: Any, field: str) -> None:

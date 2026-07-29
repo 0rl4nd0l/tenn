@@ -1320,6 +1320,8 @@ export function VerificationScreen() {
           limit: resolvedLimit,
           method: extractionMethod,
           strict_method: strictMethod,
+          corpus_classification: 'non_holdout',
+          access_mode: 'development',
         }),
       })
 

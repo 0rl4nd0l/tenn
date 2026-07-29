@@ -31,13 +31,19 @@ from typing import Any
 import httpx
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_ROOT = REPO_ROOT / "backend"
 ROOT_SCRIPTS = REPO_ROOT.parent / "scripts"
 if str(ROOT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(ROOT_SCRIPTS))
 if str(REPO_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 from _run_metadata import build_run_metadata  # noqa: E402
+from app.services.asx_holdout_confidentiality import (  # noqa: E402
+    DevelopmentAggregateResult,
+)
 
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
@@ -121,6 +127,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Plan the matrix and print the cells without calling the endpoint.",
     )
+    parser.add_argument(
+        "--corpus-classification",
+        choices=["non_holdout", "holdout"],
+        required=True,
+    )
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
+    parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser
 
 
@@ -135,6 +152,9 @@ def _run_cell(
     tolerance: float,
     method: str,
     strict_method: bool,
+    corpus_classification: str = "non_holdout",
+    access_mode: str = "development",
+    development_aggregate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = {
         "limit": limit,
@@ -144,6 +164,12 @@ def _run_cell(
         "prompt_variant_id": prompt_variant_id,
         "model_override": model_override,
     }
+    if corpus_classification is not None:
+        payload["corpus_classification"] = corpus_classification
+    if access_mode is not None:
+        payload["access_mode"] = access_mode
+    if development_aggregate is not None:
+        payload["development_aggregate"] = development_aggregate
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["x-api-key"] = api_key
@@ -167,6 +193,15 @@ def _run_cell(
         body = {"detail": response.text[:2000]}
         error = f"non-JSON response: {exc}"
 
+    if corpus_classification == "holdout" and access_mode != "protected":
+        return DevelopmentAggregateResult.from_mapping(
+            development_aggregate or {}
+        ).to_dict()
+    if isinstance(body, dict):
+        try:
+            return DevelopmentAggregateResult.from_mapping(body).to_dict()
+        except ValueError:
+            pass
     return {
         "prompt_variant_id": prompt_variant_id,
         "model_override": model_override,
@@ -185,6 +220,14 @@ def main() -> int:
 
     variants = _parse_csv(args.prompt_variants)
     models = _parse_csv(args.models)
+    development_aggregate = (
+        json.loads(args.development_aggregate_json.read_text(encoding="utf-8"))
+        if args.development_aggregate_json is not None
+        else None
+    )
+    holdout_public = (
+        args.corpus_classification == "holdout" and args.access_mode != "protected"
+    )
     if not variants:
         raise SystemExit("--prompt-variants produced an empty list")
     if not models:
@@ -211,6 +254,12 @@ def main() -> int:
     }
 
     if args.dry_run:
+        if holdout_public:
+            aggregate = DevelopmentAggregateResult.from_mapping(
+                development_aggregate or {}
+            ).to_dict()
+            print(json.dumps(aggregate, indent=2, sort_keys=True))
+            return 0
         print(json.dumps({**plan, "cells_planned": cells}, indent=2))
         return 0
 
@@ -220,10 +269,11 @@ def main() -> int:
     results: list[dict[str, Any]] = []
     with httpx.Client(timeout=args.timeout) as client:
         for idx, (model, variant) in enumerate(cells, start=1):
-            print(
-                f"[{idx}/{len(cells)}] model={model} variant={variant} ...",
-                flush=True,
-            )
+            if not holdout_public:
+                print(
+                    f"[{idx}/{len(cells)}] model={model} variant={variant} ...",
+                    flush=True,
+                )
             cell_result = _run_cell(
                 client,
                 base_url=args.base_url,
@@ -234,7 +284,21 @@ def main() -> int:
                 tolerance=args.tolerance,
                 method=args.method,
                 strict_method=bool(args.strict_method),
+                corpus_classification=args.corpus_classification,
+                access_mode=args.access_mode,
+                development_aggregate=development_aggregate,
             )
+            try:
+                aggregate = DevelopmentAggregateResult.from_mapping(cell_result)
+            except ValueError:
+                aggregate = None
+            if aggregate is not None:
+                report_path.write_text(
+                    json.dumps(aggregate.to_dict(), indent=2, sort_keys=True),
+                    encoding="utf-8",
+                )
+                print(json.dumps(aggregate.to_dict(), sort_keys=True))
+                return 0
             results.append(cell_result)
 
             # Incremental save — each cell is expensive; never lose a completed one.

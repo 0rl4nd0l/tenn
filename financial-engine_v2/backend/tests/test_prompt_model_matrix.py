@@ -19,7 +19,10 @@ All tests are pure unit tests — no network, no DB, no real LLM.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import re
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -37,6 +40,67 @@ from app.services.prompt_registry import (
     register_bundle,
     resolve,
 )
+
+
+def test_matrix_cell_returns_only_development_aggregate() -> None:
+    script = (
+        Path(__file__).resolve().parents[2] / "scripts" / "run_prompt_model_matrix.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "run_prompt_model_matrix_test", script
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    aggregate = {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+    class Response:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return aggregate
+
+    class Client:
+        def post(self, *args, **kwargs):
+            return Response()
+
+    result = module._run_cell(
+        Client(),
+        base_url="http://example.invalid",
+        api_key="",
+        prompt_variant_id="secret-prompt",
+        model_override="secret-model",
+        limit=1,
+        tolerance=0.01,
+        method="docling",
+        strict_method=True,
+        corpus_classification="holdout",
+        development_aggregate=aggregate,
+    )
+
+    assert result == aggregate
 
 
 # ---------------------------------------------------------------------------
@@ -167,9 +231,7 @@ class _RecordedCall:
 @pytest.mark.unit
 def test_pass1_uses_custom_bundle_and_model_override(monkeypatch) -> None:
     recorded = _RecordedCall()
-    monkeypatch.setattr(
-        "app.services.multipass_extraction._llm_json_call", recorded
-    )
+    monkeypatch.setattr("app.services.multipass_extraction._llm_json_call", recorded)
     variant = PromptBundle(
         id="_variant_test_pass1",
         pass1="VARIANT-CLASSIFIER title={title} first_page={first_page_text}",
@@ -195,9 +257,7 @@ def test_pass1_uses_custom_bundle_and_model_override(monkeypatch) -> None:
 @pytest.mark.unit
 def test_pass3b_uses_custom_bundle_and_model_override(monkeypatch) -> None:
     recorded = _RecordedCall()
-    monkeypatch.setattr(
-        "app.services.multipass_extraction._llm_json_call", recorded
-    )
+    monkeypatch.setattr("app.services.multipass_extraction._llm_json_call", recorded)
     variant = PromptBundle(
         id="_variant_test_pass3b",
         pass1=_PASS1_PROMPT,
@@ -231,9 +291,7 @@ def test_model_override_becomes_requested_model_metadata(monkeypatch) -> None:
         captured["metadata"] = dict(metadata or {})
         return {"ok": True}
 
-    monkeypatch.setattr(
-        "app.services.llm.generate_json", fake_generate_json
-    )
+    monkeypatch.setattr("app.services.llm.generate_json", fake_generate_json)
 
     mpx._llm_json_call(
         "dummy prompt",
@@ -259,9 +317,7 @@ def test_no_model_override_omits_requested_model(monkeypatch) -> None:
         captured["metadata"] = dict(metadata or {})
         return {"ok": True}
 
-    monkeypatch.setattr(
-        "app.services.llm.generate_json", fake_generate_json
-    )
+    monkeypatch.setattr("app.services.llm.generate_json", fake_generate_json)
 
     mpx._llm_json_call("dummy", llm_client=None, max_tokens=64)
 
