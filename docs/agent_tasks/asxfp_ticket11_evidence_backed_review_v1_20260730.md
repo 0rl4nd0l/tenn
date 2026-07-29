@@ -48,6 +48,10 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
+- Fresh exact-head rejection-repair base:
+  `c958a7e77da1b782d58edb5c3531ab93a45e0fcd`.
+- Fresh exact-head rejection-repair tree:
+  `90e078fe3cc94351ae9e7a84f7656c655193eb1c`.
 - Exact-head lifecycle repair base:
   `33327e0a44833d270b6a02324abc1815d27f3adb`.
 - Second repair base commit: `08420f349077158b8a537912d59e0f07d3b347bf`.
@@ -69,6 +73,14 @@ decision reason codes. An optional note remains supplemental. Approval
 provenance keeps this decision audit separate from candidate review identity;
 rejection remains non-promoting. The two review endpoints are added to the
 repository's canonical API inventories.
+
+The fresh rejection repair routes valid explicit, scoped abstain/quarantine
+outcomes even when `field_provenance` is absent and evaluates every mapping in
+`period_observations` at the single production staging seam. Unscoped or
+malformed triggers remain ignored fail-closed. PostgreSQL enforces the decision
+lifecycle plus a non-empty JSONB array of non-blank string reason codes; the
+service separately validates normalized uniqueness before persistence because
+the migration does not claim database-enforced array-element uniqueness.
 
 This bounded repair expands the original allowlist only to
 `app/services/extraction_eval.py` and `app/services/pipeline.py`. The former

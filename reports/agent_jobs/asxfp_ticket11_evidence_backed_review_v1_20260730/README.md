@@ -25,14 +25,27 @@ provenance evaluation summary immediately before observation staging and
 converts canonical provenance failures into the evaluation contract's
 metric-specific abstain triggers.
 
+The fresh rejection repair applies that enrichment to each mapping in the
+actual `period_observations` collection at the same staging seam. Explicit
+abstain/quarantine outcomes with valid metric or context scopes now enter
+review even without `field_provenance`; their absent location fields are
+retained as `missing_evidence_*` reasons. Unknown metrics, malformed members,
+and unscoped trigger shapes remain ignored fail-closed.
+
 This exact-head repair completes the decision lifecycle. Every approval and
 rejection now requires and persists a non-empty decision actor plus non-empty
-machine-readable decision reason codes, with an automatic UTC decision
+unique machine-readable decision reason codes, with an automatic UTC decision
 timestamp. The optional note is supplemental only. Approval-created
 observation provenance records the decision audit as a distinct nested object
 without replacing the candidate review ID or candidate reason codes.
 Rejection remains non-promoting. The review read and decision endpoints are
 now listed in both canonical API inventory entry points.
+
+The still-unapplied migration stores decision reason codes as PostgreSQL JSONB.
+Its constraint enforces lifecycle consistency and a non-empty array containing
+only non-blank strings. Normalization and uniqueness are service invariants,
+validated before persistence; database-enforced element uniqueness is not
+claimed.
 
 ## Changed paths
 
@@ -97,6 +110,36 @@ Exact-head lifecycle repair validation:
 - Controller Ruff, `py_compile`, task-card validation, allowlist diff check,
   and `git diff --check` all passed.
 
+Fresh exact-head rejection-repair validation:
+
+- Exact base commit `c958a7e77da1b782d58edb5c3531ab93a45e0fcd`,
+  tree `90e078fe3cc94351ae9e7a84f7656c655193eb1c`, parent Ticket 10
+  `c57698a2e852d74d84dbb30402a0d654515d6a44`, and authority SHA-256
+  `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`
+  matched.
+- Focused fake-only pytest was attempted with
+  `python3 -m pytest -q
+  financial-engine_v2/backend/tests/test_financial_observation_reviews.py -k
+  'without_provenance or nested_period_observations'`; the offline interpreter
+  reported `No module named pytest`. No installation was attempted.
+- `python3 -m py_compile` for the migration, model, service, and focused test:
+  passed.
+- Changed-Python AST compilation, exact task-card allowlist comparison, and
+  `git diff --check`: passed.
+- Ruff was attempted but unavailable in the offline interpreter:
+  `/usr/bin/python3: No module named ruff`.
+- The Git index remained empty; the seven repair paths are unstaged.
+- Controller verification in the disposable dependency environment passed:
+  `112 passed, 1 deselected, 1 warning`. The warning is the repository's
+  existing unknown `asyncio_default_fixture_loop_scope` pytest option.
+- Controller Ruff check passed after four allowlisted import-only
+  modernizations, with the file's two pre-existing `FURB157` Decimal-style
+  findings excluded. `ruff format --check` reports broader pre-existing
+  formatting drift across these legacy files, so no broad mechanical rewrite
+  was applied.
+- Controller `py_compile`, task-card validation, exact allowlist diff check,
+  and `git diff --check` passed.
+
 No runtime, database, migration, extraction, OCR, model, service, queue, GPU,
 deployment, network, or protected-data action was performed.
 
@@ -122,6 +165,8 @@ commit changes no product, migration, API, or test behavior.
 - The migration was inspected and compiled but deliberately not applied.
 - The migration's PostgreSQL decision-audit constraint was not exercised
   against a live database, as prohibited by this repair boundary.
+- PostgreSQL does not enforce uniqueness between JSONB array elements;
+  decision-reason normalization and uniqueness remain service-validated.
 - Only existing structured provenance-issue and trust-outcome payloads are
   adapted; malformed outcomes without metric context still fail closed.
 - Production provenance enrichment can identify canonical provenance

@@ -3,18 +3,18 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
     Index,
-    JSON,
     Numeric,
     String,
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -151,7 +151,12 @@ class FinancialObservationReview(Base):
             "AND decision_actor IS NOT NULL "
             "AND btrim(decision_actor) <> '' AND decided_at IS NOT NULL "
             "AND decision_reason_codes IS NOT NULL "
-            "AND json_array_length(decision_reason_codes) > 0))",
+            "AND jsonb_typeof(decision_reason_codes) = 'array' "
+            "AND jsonb_array_length(decision_reason_codes) > 0 "
+            "AND NOT jsonb_path_exists("
+            "decision_reason_codes, "
+            "'$[*] ? (@.type() != \"string\" || "
+            "@ like_regex \"^\\\\s*$\")')))",
             name="ck_financial_observation_review_decision_audit",
         ),
         UniqueConstraint(
@@ -194,7 +199,7 @@ class FinancialObservationReview(Base):
         DateTime(timezone=True), nullable=True
     )
     decision_reason_codes: Mapped[list | None] = mapped_column(
-        JSON, nullable=True
+        JSONB, nullable=True
     )
     decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
