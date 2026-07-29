@@ -9,7 +9,10 @@ from typing import Any, Mapping
 
 from sqlalchemy.dialects.postgresql import insert
 
-from app.models.financial_observations import FinancialObservation
+from app.models.financial_observations import (
+    FinancialObservation,
+    FinancialResultDisclosure,
+)
 from app.services.financial_metric_contract import (
     CANONICAL_METRIC_FIELDS,
     METRIC_CONTRACT_BY_CANONICAL_FIELD,
@@ -25,6 +28,8 @@ _PROVENANCE_FIELDS = (
     "period_end",
     "currency",
     "scale",
+    "accounting_basis",
+    "consolidation_scope",
 )
 _LEGACY_PERIOD_BASES = frozenset({"Q", "H", "A"})
 _QUARTER_PERIOD_ROLES = {
@@ -41,10 +46,19 @@ _NATIVE_CURRENCIES = frozenset(
 _NON_STATUTORY_MARKERS = (
     "adjusted",
     "underlying",
+    "normalized",
+    "normalised",
     "non-statutory",
     "non statutory",
     "pro forma",
+    "pro-forma",
 )
+_DISCLOSURE_BASES = {
+    "adjusted": ("adjusted",),
+    "underlying": ("underlying",),
+    "normalized": ("normalized", "normalised"),
+    "pro_forma": ("pro forma", "pro-forma"),
+}
 _EXPLICIT_PERIOD_REASONS = frozenset(
     {
         "year_ended_source_phrase",
@@ -126,6 +140,15 @@ def _required_text(value: Any) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _contains_label_term(label: str, term: str) -> bool:
+    """Match a management-measure term as complete label words."""
+    return re.search(
+        rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])",
+        label,
+        flags=re.IGNORECASE,
+    ) is not None
 
 
 def _numeric(value: Any) -> Decimal | None:
@@ -347,6 +370,7 @@ def _accepted_metric_context(
         structured.get("_observation_extraction_status")
     )
     claimed_accounting_basis = structured.get("accounting_basis")
+    claimed_consolidation_scope = structured.get("consolidation_scope")
     claimed_trust_state = structured.get("trust_state")
     provenance_period_field = (
         "period_type" if allow_legacy_period_type else "period_basis"
@@ -357,6 +381,7 @@ def _accepted_metric_context(
         or period_basis not in _PERIOD_BASES
         or extraction_status != "ok"
         or claimed_accounting_basis not in (None, "statutory")
+        or claimed_consolidation_scope not in (None, "consolidated")
         or claimed_trust_state not in (None, "accepted")
         or source_period_type != period_basis
         or not isinstance(source_period_evidence, Mapping)
@@ -443,9 +468,12 @@ def _accepted_metric_context(
             and str(provenance["source_document_id"]) != str(document_id)
         )
         or provenance["metric"] != metric
+        or provenance["accounting_basis"] != "statutory"
+        or provenance["consolidation_scope"] != "consolidated"
         or source not in {context.value for context in contract.statement_contexts}
         or row_ref is None
         or "statutory" not in source_evidence_text
+        or "consolidated" not in source_evidence_text
         or any(marker in source_evidence_text for marker in _NON_STATUTORY_MARKERS)
         or str(provenance[provenance_period_field]) != period_basis
         or str(provenance["period_end"]) != period_end.isoformat()
@@ -509,6 +537,155 @@ def _accepted_metric_context(
         "trust_state": "accepted",
         "provenance": bound_provenance,
     }
+
+
+def _accepted_disclosure_context(
+    document: Any,
+    disclosure: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    metric = _required_text(disclosure.get("metric"))
+    value = _numeric(disclosure.get("value"))
+    period_end = _period_end(disclosure.get("period_end"))
+    period_basis = _required_text(disclosure.get("period_basis"))
+    accounting_basis = _required_text(disclosure.get("accounting_basis"))
+    consolidation_scope = _required_text(disclosure.get("consolidation_scope"))
+    source_label = _required_text(disclosure.get("source_label"))
+    currency = _required_text(disclosure.get("currency"))
+    scale = _required_text(disclosure.get("scale"))
+    provenance = disclosure.get("provenance")
+    reconciliation = disclosure.get("reconciliation_evidence")
+    markers = _DISCLOSURE_BASES.get(accounting_basis or "")
+    items = (
+        reconciliation.get("items")
+        if isinstance(reconciliation, Mapping)
+        else None
+    )
+    document_id = getattr(document, "document_id", None)
+    contract = (
+        METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric)
+        if metric is not None
+        else None
+    )
+    valid_unit = (
+        currency == "shares"
+        if contract is not None
+        and contract.unit_kind == MetricUnitKind.SHARE_COUNT_ABSOLUTE
+        else currency in _NATIVE_CURRENCIES
+    )
+    if (
+        metric not in CANONICAL_METRIC_FIELDS
+        or value is None
+        or period_end is None
+        or period_basis not in _PERIOD_BASES
+        or markers is None
+        or consolidation_scope != "consolidated"
+        or source_label is None
+        or len(source_label) > 256
+        or not any(_contains_label_term(source_label, marker) for marker in markers)
+        or not valid_unit
+        or scale != "units"
+        or document_id is None
+        or not isinstance(provenance, Mapping)
+        or str(provenance.get("source_document_id")) != str(document_id)
+        or provenance.get("metric") != metric
+        or provenance.get("source_label") != source_label
+        or provenance.get("accounting_basis") != accounting_basis
+        or provenance.get("consolidation_scope") != consolidation_scope
+        or not isinstance(reconciliation, Mapping)
+        or reconciliation.get("source_label") != source_label
+        or not isinstance(items, list)
+        or not items
+        or any(
+            not isinstance(item, Mapping)
+            or _required_text(item.get("label")) is None
+            or _numeric(item.get("value")) is None
+            or _required_text(item.get("source_ref")) is None
+            for item in items
+        )
+    ):
+        return None
+    return {
+        "metric": metric,
+        "value": value,
+        "period_end": period_end,
+        "period_basis": period_basis,
+        "accounting_basis": accounting_basis,
+        "consolidation_scope": consolidation_scope,
+        "source_label": source_label,
+        "currency": currency,
+        "scale": scale,
+        "provenance": dict(provenance),
+        "reconciliation_evidence": dict(reconciliation),
+        "trust_state": "disclosed",
+    }
+
+
+def stage_financial_result_disclosures(
+    db,
+    *,
+    document: Any,
+    extraction_run: Any,
+    structured: Mapping[str, Any],
+) -> tuple[FinancialResultDisclosure, ...]:
+    """Stage source-labelled non-statutory results outside canonical truth."""
+    document_id = getattr(document, "document_id", None)
+    run_id = getattr(extraction_run, "run_id", None)
+    extractor_version = _required_text(
+        getattr(extraction_run, "extractor_version", None)
+    )
+    ticker = _required_text(getattr(document, "ticker", None))
+    candidates = structured.get("result_disclosures")
+    if (
+        document_id is None
+        or run_id is None
+        or extractor_version is None
+        or ticker is None
+        or not isinstance(candidates, list)
+    ):
+        return ()
+
+    staged = []
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        context = _accepted_disclosure_context(document, candidate)
+        if context is None:
+            continue
+        identity = _observation_id(
+            source_document_id=document_id,
+            extractor_version=extractor_version,
+            ticker=ticker,
+            metric=context["metric"],
+            period_end=context["period_end"],
+            period_basis=context["period_basis"],
+            accounting_basis=(
+                f'{context["accounting_basis"]}:{context["source_label"]}'
+            ),
+            currency=context["currency"],
+            scale=context["scale"],
+        )
+        disclosure = FinancialResultDisclosure(
+            disclosure_id=identity,
+            source_document_id=document_id,
+            extraction_run_id=run_id,
+            extractor_version=extractor_version,
+            ticker=ticker,
+            **context,
+        )
+        values = {
+            column.name: getattr(disclosure, column.name)
+            for column in FinancialResultDisclosure.__table__.columns
+        }
+        statement = (
+            insert(FinancialResultDisclosure)
+            .values(**values)
+            .on_conflict_do_nothing(
+                constraint="uq_financial_result_disclosure_source_context"
+            )
+        )
+        if db.execute(statement).rowcount:
+            staged.append(disclosure)
+    return tuple(staged)
 
 
 def stage_financial_observations(
@@ -586,6 +763,12 @@ def stage_financial_observations(
             )
             if db.execute(statement).rowcount:
                 staged.append(observation)
+    stage_financial_result_disclosures(
+        db,
+        document=document,
+        extraction_run=extraction_run,
+        structured=structured,
+    )
     return tuple(staged)
 
 
@@ -598,9 +781,11 @@ def stage_revenue_observation(
 ) -> FinancialObservation | None:
     """Compatibility wrapper for Ticket 05 revenue-only callers."""
     revenue_payload = dict(structured)
+    revenue_payload.pop("result_disclosures", None)
 
     def revenue_only(payload: Mapping[str, Any]) -> dict[str, Any]:
         narrowed = dict(payload)
+        narrowed.pop("result_disclosures", None)
         metrics = payload.get("metrics")
         provenance = payload.get("field_provenance")
         narrowed["metrics"] = (
