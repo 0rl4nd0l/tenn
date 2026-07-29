@@ -25,7 +25,8 @@ from app.providers.universe import ASX20
 from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
 from app.services.extraction_run_observability import initialize_run_status
-from app.services.financial_observations import accepted_revenue_overrides
+from app.services.financial_metric_contract import CANONICAL_METRIC_FIELDS
+from app.services.financial_observations import accepted_statutory_overrides
 from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
     persist_fundamental_snapshot,
@@ -214,11 +215,17 @@ def financials(ticker: str, db: Session = Depends(get_db)):
         .order_by(ASXPeriodicFinancial.period_end.desc())
         .all()
     )
-    revenue_overrides = accepted_revenue_overrides(
+    observation_overrides = accepted_statutory_overrides(
         db,
         ticker=ticker,
         legacy_contexts={
-            (row.period_end, row.period_type): (row.currency, "units")
+            (row.period_end, row.period_type): {
+                metric: (
+                    "shares" if metric == "shares_outstanding" else row.currency,
+                    "units",
+                )
+                for metric in CANONICAL_METRIC_FIELDS
+            }
             for row in rows
         },
     )
@@ -226,23 +233,26 @@ def financials(ticker: str, db: Session = Depends(get_db)):
     def n(x):
         return str(x) if x is not None else None
 
+    def projected(row, metric):
+        return observation_overrides.get(
+            (row.period_end, row.period_type), {}
+        ).get(metric, getattr(row, metric))
+
     return [
         {
             "ticker": r.ticker,
             "period_end": r.period_end,
             "period_type": r.period_type,
-            "revenue": n(
-                revenue_overrides.get((r.period_end, r.period_type), r.revenue)
-            ),
-            "ebit": n(r.ebit),
-            "np_attributable": n(r.np_attributable),
-            "operating_cf": n(r.operating_cf),
-            "investing_cf": n(r.investing_cf),
-            "financing_cf": n(r.financing_cf),
-            "capex": n(r.capex),
-            "cash_end": n(r.cash_end),
-            "net_debt": n(r.net_debt),
-            "shares_outstanding": n(r.shares_outstanding),
+            "revenue": n(projected(r, "revenue")),
+            "ebit": n(projected(r, "ebit")),
+            "np_attributable": n(projected(r, "np_attributable")),
+            "operating_cf": n(projected(r, "operating_cf")),
+            "investing_cf": n(projected(r, "investing_cf")),
+            "financing_cf": n(projected(r, "financing_cf")),
+            "capex": n(projected(r, "capex")),
+            "cash_end": n(projected(r, "cash_end")),
+            "net_debt": n(projected(r, "net_debt")),
+            "shares_outstanding": n(projected(r, "shares_outstanding")),
             "confidence_metrics": r.confidence_metrics,
             "source_document_id": str(r.source_document_id),
         }

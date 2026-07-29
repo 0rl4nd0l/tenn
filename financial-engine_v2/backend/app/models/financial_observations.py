@@ -12,7 +12,12 @@ from .base import Base
 class FinancialObservation(Base):
     __tablename__ = "financial_observations"
     __table_args__ = (
-        CheckConstraint("metric = 'revenue'", name="ck_financial_observation_metric"),
+        CheckConstraint(
+            "metric IN ('revenue', 'ebit', 'np_attributable', 'operating_cf', "
+            "'investing_cf', 'financing_cf', 'capex', 'cash_end', 'net_debt', "
+            "'shares_outstanding')",
+            name="ck_financial_observation_metric",
+        ),
         CheckConstraint(
             "period_basis IN ('Q', 'H', 'A')",
             name="ck_financial_observation_period_basis",
@@ -22,8 +27,9 @@ class FinancialObservation(Base):
             name="ck_financial_observation_accounting_basis",
         ),
         CheckConstraint(
-            "currency IN ('AUD', 'CAD', 'CNY', 'EUR', 'GBP', 'HKD', 'IDR', "
-            "'JPY', 'NZD', 'SGD', 'USD')",
+            "(metric = 'shares_outstanding' AND currency = 'shares') OR "
+            "(metric <> 'shares_outstanding' AND currency IN ('AUD', 'CAD', "
+            "'CNY', 'EUR', 'GBP', 'HKD', 'IDR', 'JPY', 'NZD', 'SGD', 'USD'))",
             name="ck_financial_observation_currency",
         ),
         CheckConstraint("scale = 'units'", name="ck_financial_observation_scale"),
@@ -61,7 +67,7 @@ class FinancialObservation(Base):
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
     period_basis: Mapped[str] = mapped_column(String(16), nullable=False)
     accounting_basis: Mapped[str] = mapped_column(String(32), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    currency: Mapped[str] = mapped_column(String(16), nullable=False)
     scale: Mapped[str] = mapped_column(String(16), nullable=False)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False)
     trust_state: Mapped[str] = mapped_column(String(16), nullable=False)

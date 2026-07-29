@@ -34,3 +34,10 @@
 - Product commit `c30e5ccf0ffefd5a33856d9b736301bd2dbab612`
   was pushed and published as draft PR 531. Merge and all Tier 2 actions remain
   unauthorized.
+- Ticket 05 exact-head CI passed at
+  `84295111c6ae400de4e6f1c6cd941a45a0f549a3`; PR 531 remains draft, open, and
+  unmerged.
+- Ticket 06 is stacked on that proven head and is restricted to exactly the ten
+  existing `CANONICAL_METRIC_FIELDS`. Sparse projection must preserve legacy
+  values, and `shares_outstanding` must remain a share-count unit rather than a
+  currency metric.
