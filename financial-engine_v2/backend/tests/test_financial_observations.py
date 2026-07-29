@@ -1870,6 +1870,8 @@ def test_financial_history_route_requires_api_key_and_preserves_ordering(
     assert [route.path for route in financial_routes] == [
         "/financials",
         "/financials/history",
+        "/financials/reviews",
+        "/financials/reviews/{review_id}/decision",
     ]
     history_route = financial_routes[1]
     assert any(
