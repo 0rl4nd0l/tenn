@@ -1,7 +1,7 @@
+import uuid
 from datetime import date, timezone
 from decimal import Decimal
 from types import SimpleNamespace
-import uuid
 
 import pytest
 
@@ -203,6 +203,95 @@ def test_malformed_trust_trigger_fails_closed():
     assert staged == ()
 
 
+@pytest.mark.parametrize(
+    ("kind", "outcome", "trigger"),
+    (
+        ("abstained", "abstain", "revenue:missing"),
+        ("quarantined", "quarantine", "revenue:provenance_missing"),
+    ),
+)
+def test_scoped_explicit_outcome_without_provenance_enters_review(
+    kind, outcome, trigger
+):
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    payload = real_outcome(kind)
+    payload.pop("field_provenance")
+    payload["trust_outcome"] = outcome
+    payload["trust_triggers"] = [trigger]
+    payload["scale"] = "millions"
+
+    staged = stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=payload,
+    )
+
+    assert [(item.metric, item.review_kind) for item in staged] == [
+        ("revenue", kind)
+    ]
+    assert set(staged[0].reason_codes) >= {
+        trigger,
+        "missing_evidence_page_number",
+        "missing_evidence_table_or_region",
+        "missing_evidence_row_ref",
+        "missing_evidence_cell_ref",
+    }
+
+
+def test_context_mismatch_without_provenance_uses_actual_metrics_only():
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    payload = real_outcome("quarantined")
+    payload.pop("field_provenance")
+    payload["metrics"] = {"revenue": 125, "not_a_metric": 9}
+    payload["scale"] = "millions"
+
+    staged = stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=payload,
+    )
+
+    assert [item.metric for item in staged] == ["revenue"]
+    assert "context_mismatch:currency" in staged[0].reason_codes
+
+
+def test_unscoped_outcome_without_provenance_fails_closed():
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    payload = real_outcome("abstained")
+    payload.pop("field_provenance")
+    payload["scale"] = "millions"
+    payload["trust_triggers"] = [
+        "abstained_metric_outcome",
+        {"metric": "revenue"},
+    ]
+
+    staged = stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=payload,
+    )
+
+    assert staged == ()
+
+
 def test_raw_production_payload_is_enriched_before_review_staging(monkeypatch):
     from app.services import financial_observations
 
@@ -250,6 +339,66 @@ def test_raw_production_payload_is_enriched_before_review_staging(monkeypatch):
     ]
     assert [(item.metric, item.review_kind) for item in staged] == [
         ("revenue", "abstained")
+    ]
+
+
+def test_nested_period_observations_are_each_enriched(monkeypatch):
+    from app.services import financial_observations
+
+    first = real_outcome("abstained")
+    second = real_outcome("abstained")
+    second["period_end"] = "2024-06-30"
+    for member in (first, second):
+        member.pop("trust_outcome")
+        member.pop("trust_triggers")
+
+    calls = []
+
+    def summary(payload):
+        calls.append(payload["period_end"])
+        return {
+            "issues": [],
+            "metric_summaries": [
+                {
+                    "metric": "revenue",
+                    "canonical_provenance_required": True,
+                    "canonical_provenance_valid": False,
+                    "canonical_provenance_reason": "structured_provenance_missing",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        financial_observations, "build_payload_provenance_summary", summary
+    )
+
+    enriched = financial_observations.build_review_staging_payload(
+        {"period_observations": [first, "malformed", second]}
+    )
+
+    assert calls == ["2025-06-30", "2024-06-30"]
+    assert enriched["period_observations"][1] == "malformed"
+    assert [
+        member["trust_triggers"]
+        for member in (
+            enriched["period_observations"][0],
+            enriched["period_observations"][2],
+        )
+    ] == [
+        ["revenue:provenance_invalid:structured_provenance_missing"],
+        ["revenue:provenance_invalid:structured_provenance_missing"],
+    ]
+    staged = financial_observations.stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=enriched,
+    )
+    assert [item.period_end for item in staged] == [
+        date(2025, 6, 30),
+        date(2024, 6, 30),
     ]
 
 

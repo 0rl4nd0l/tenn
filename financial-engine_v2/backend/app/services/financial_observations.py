@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from collections.abc import Mapping
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Mapping
+from typing import Any
 
 from sqlalchemy.dialects.postgresql import insert
 
@@ -21,7 +22,6 @@ from app.services.financial_metric_contract import (
     METRIC_CONTRACT_BY_CANONICAL_FIELD,
     MetricUnitKind,
 )
-
 
 _PROVENANCE_FIELDS = (
     "metric",
@@ -958,10 +958,10 @@ def _trust_trigger_scope(value: Any) -> tuple[str, str] | None:
     return None
 
 
-def build_review_staging_payload(
+def _enrich_review_staging_member(
     structured: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Attach real provenance evaluation detail at the staging boundary."""
+    """Attach provenance evaluation detail to one observation payload."""
     payload = dict(structured)
     if isinstance(payload.get("provenance_summary"), Mapping):
         return payload
@@ -995,14 +995,33 @@ def build_review_staging_payload(
     return payload
 
 
+def build_review_staging_payload(
+    structured: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Evaluate each actual observation at the production staging seam."""
+    payload = dict(structured)
+    members = payload.get("period_observations")
+    if isinstance(members, list):
+        payload["period_observations"] = [
+            _enrich_review_staging_member(member)
+            if isinstance(member, Mapping)
+            else member
+            for member in members
+        ]
+        return payload
+    return _enrich_review_staging_member(payload)
+
+
 def _real_outcome_review_candidates(
     structured: Mapping[str, Any],
 ) -> tuple[dict[str, Any], ...]:
     """Adapt existing extraction/evaluation outcomes into review candidates."""
     metrics = structured.get("metrics")
     provenance = structured.get("field_provenance")
-    if not isinstance(metrics, Mapping) or not isinstance(provenance, Mapping):
+    if not isinstance(metrics, Mapping):
         return ()
+    if not isinstance(provenance, Mapping):
+        provenance = {}
 
     outcome = _required_text(structured.get("trust_outcome"))
     outcome_kind = _REVIEW_KIND_BY_TRUST_OUTCOME.get(
@@ -1036,9 +1055,11 @@ def _real_outcome_review_candidates(
 
     candidates = []
     for metric in CANONICAL_METRIC_FIELDS:
+        if metric not in metrics:
+            continue
         metric_provenance = provenance.get(metric)
         if not isinstance(metric_provenance, Mapping):
-            continue
+            metric_provenance = {}
         metric_issues = issues_by_metric.get(metric, [])
         outcome_metric_reasons = [
             *reasons_by_metric.get(metric, []),

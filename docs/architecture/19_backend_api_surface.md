@@ -70,9 +70,12 @@ The FastAPI app mounts routes in these groups:
   - authenticated pending observation-review queue with source evidence
 - `POST /api/financials/reviews/{review_id}/decision`
   - authenticated approve/reject decision requiring a non-empty actor and
-    machine-readable reason codes; an optional note is supplemental
+    unique, non-empty machine-readable reason codes; an optional note is
+    supplemental
   - both decisions persist an automatic UTC timestamp; approval alone can
     promote a fully evidenced value, while rejection never promotes
+  - PostgreSQL constrains lifecycle consistency and a non-empty JSONB array of
+    non-blank strings; normalized uniqueness is service-validated
 - `GET /api/risk?document_id=...`
   - stored risk/guidance note for one document
 - `GET /api/context/verification?ticker=...`

@@ -1,9 +1,8 @@
 """Add the evidence-backed financial observation review queue."""
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "0015_observation_reviews"
 down_revision = "0014_observation_supersessions"
@@ -32,7 +31,9 @@ def upgrade():
         sa.Column("decision", sa.String(16), nullable=True),
         sa.Column("decision_actor", sa.String(128), nullable=True),
         sa.Column("decided_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("decision_reason_codes", sa.JSON(), nullable=True),
+        sa.Column(
+            "decision_reason_codes", postgresql.JSONB(), nullable=True
+        ),
         sa.Column("decision_note", sa.Text(), nullable=True),
         sa.CheckConstraint(
             "review_kind IN ('conflicting', 'ambiguous', 'abstained', 'quarantined')",
@@ -55,7 +56,12 @@ def upgrade():
             "AND decision_actor IS NOT NULL "
             "AND btrim(decision_actor) <> '' AND decided_at IS NOT NULL "
             "AND decision_reason_codes IS NOT NULL "
-            "AND json_array_length(decision_reason_codes) > 0))",
+            "AND jsonb_typeof(decision_reason_codes) = 'array' "
+            "AND jsonb_array_length(decision_reason_codes) > 0 "
+            "AND NOT jsonb_path_exists("
+            "decision_reason_codes, "
+            "'$[*] ? (@.type() != \"string\" || "
+            "@ like_regex \"^\\\\s*$\")')))",
             name="ck_financial_observation_review_decision_audit",
         ),
         sa.UniqueConstraint(
