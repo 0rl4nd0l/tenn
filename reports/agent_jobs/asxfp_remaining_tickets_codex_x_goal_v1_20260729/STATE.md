@@ -14,15 +14,16 @@
   draft, and unmerged
 - ticket_07: preserved `period_only` and `year_to_date` observations are in the
   exact Ticket 08 base and remain collision-free
-- implementer: Ticket 08 rejection findings repaired; real local focused and
-  adjacent validation passed with `44 passed, 1 warning`, Ruff, py_compile,
-  task-card validation, and diff-check green
-- reviewer: independent re-review pending
-- repair: fallback evidence now authenticates against caller tables; duplicate
-  conflicts abstain and block fallback
-- local_commit: repaired delta transferred byte-identically from the Codex X
-  child into the clean delivery worktree; commit pending
+- implementer: fresh final review rejected exact input
+  `eca8dd4c6520390a4678de2160b300828adab322`; bounded reachability repair delta
+  is locally validated
+- reviewer: new exact-commit re-review pending after repair
+- repair: make authenticated fallback reachable through the public builder
+  without weakening source authentication or deterministic conflict blocking
+- local_commit: rejected review input is `eca8dd4c6520390a4678de2160b300828adab322`;
+  a repair delta and new exact local commit are pending
 - draft_pr: not created
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: independent re-review of the repaired Ticket 08 candidate
+- next_transition: create a new exact local commit if permitted, then request
+  independent exact-commit re-review

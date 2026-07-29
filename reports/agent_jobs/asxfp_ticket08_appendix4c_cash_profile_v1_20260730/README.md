@@ -1,15 +1,15 @@
 # ASXFP Ticket 08 Appendix 4C cash profile
 
-Status: REJECTION REPAIRED — INDEPENDENT RE-REVIEW PENDING
+Status: BOUNDED REPAIR DELTA VALIDATED — NEW EXACT COMMIT/RE-REVIEW PENDING
 
 ## Authority
 
 - base commit: `dc4e99e305218dfea072e9c78cb13476dc6899fe`
 - base tree: `cb80b0320c3b3293c1182ae926f57baa5d21bdb6`
-- rejection-repair start commit:
-  `0879ff320cedc3a36ab962cea248d1fc2a04c253`
-- rejection-repair start tree:
-  `13b362907caaa55cbd00cbe77faa2d7b43108098`
+- rejected review input commit:
+  `eca8dd4c6520390a4678de2160b300828adab322`
+- rejected review input tree:
+  `f2a323ef293281601049c1fb2dcb1c6040849d98`
 - authoritative ticket SHA-256:
   `75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca`
 - task card:
@@ -36,6 +36,13 @@ claim and authenticates the raw cell, labels, line item, canonical source span,
 period role/evidence, currency, scale, and resolved header context. Fabricated,
 ambiguous, inherited-unprovable, or out-of-range claims fail closed.
 
+Fresh final review found that this authentication still reconstructed the same
+deterministic candidate, making fallback unreachable through the public
+builder. The bounded repair now authenticates directly against the addressed
+caller source cell. A strictly parsed numeric carrying one conventional
+footnote marker can therefore fill a truly missing field-period through the
+public builder while its exact raw cell and marker remain in evidence.
+
 Deterministic duplicates are grouped before selection. Semantically equivalent
 duplicates use documented stable precedence; any value, unit, currency, scale,
 or period disagreement abstains with an explicit warning and blocks fallback
@@ -45,7 +52,7 @@ for that field-period. This includes a 4.6 versus 5.5 `cash_end` disagreement.
 
 - Authority SHA-256 matched:
   `75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca`.
-- Exact rejection-repair start commit/tree matched the supplied authority.
+- Exact rejected review input commit/tree matched the supplied authority.
 - Task-card `validate`: passed (`ok: true`, no issues).
 - Rejection-repair focused and adjacent validation: `44 passed, 1 warning`
   under pytest. The warning is the pre-existing unknown
@@ -53,11 +60,20 @@ for that field-period. This includes a 4.6 versus 5.5 `cash_end` disagreement.
 - Ruff `0.15.6` for the changed parser and focused tests: passed.
 - `python3 -m py_compile` for parser and focused tests: passed.
 - `git diff --check`: passed.
-- The six repaired files transferred from the Codex X child were verified
-  byte-for-byte by SHA-256 before local validation.
-- The Codex X launcher could not stage because its launcher-owned audit file
-  was read-only. The exact repair delta was therefore frozen into this clean
-  delivery worktree for ordinary local commit and exact-commit re-review.
+- Those results describe the rejected input and are not evidence that the new
+  bounded repair has passed validation.
+- New repair: the real project test environment passed `46` focused and
+  adjacent pytest cases with the same pre-existing config warning, including
+  public-builder positive, fabricated/ambiguous negative, and
+  deterministic-conflict blocking coverage.
+- New repair: Ruff, task-card validation, `python3 -m py_compile`, and
+  `git diff --check` passed in the delivery worktree.
+- The Codex X offline shell did not expose pytest or Ruff; its direct Python
+  harness passed all 24 zero-argument focused parser tests before the exact
+  six-file delta was transferred and revalidated.
+- Task-card `check-diff` was blocked by launcher-owned untracked control
+  artifacts reported outside `allowed_files`; the tracked repair delta itself
+  contains exactly the six user-authorized paths.
 
 ## Boundary compliance
 
@@ -72,4 +88,5 @@ PR, or merge action occurred.
 - Item 2.1(c) is intentionally the only Appendix 4C capex mapping. Other
   acquisition or intangible rows are not combined or inferred.
 - Publication and exact-head CI remain separate delivery steps.
-- Independent re-review of this repaired candidate is pending.
+- A repair delta, new exact local commit, and independent exact-commit re-review
+  are pending. No future commit SHA is predicted.

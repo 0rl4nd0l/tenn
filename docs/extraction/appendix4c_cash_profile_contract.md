@@ -65,6 +65,15 @@ fallback value is accepted only when:
   table-header inheritance); and
 - its unit/currency/scale combination is valid for the field.
 
+The fallback authenticates directly against the addressed caller-supplied
+source cell; it does not reconstruct and re-accept the deterministic candidate.
+This makes the seam reachable for an otherwise missing field-period when the
+raw numeric cell has exactly one conventional footnote marker (`*`, `†`, `‡`,
+or superscript digits). The marker is retained in `raw_value` and row evidence,
+while the claimed decimal must equal the strictly parsed numeric portion.
+Deterministically parseable values remain occupied before fallback is
+considered.
+
 Forbidden or unsupported fields, mismatched line items, ambiguous periods, and
 incomplete, ambiguous, fabricated, out-of-range, or unprovable evidence
 abstains.

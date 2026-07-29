@@ -102,9 +102,12 @@ if committed, docs impact, prohibited-action compliance, and remaining risks.
 
 ## Rejection repair
 
-The rejected candidate repair starts from exact commit
-`0879ff320cedc3a36ab962cea248d1fc2a04c253` / tree
-`13b362907caaa55cbd00cbe77faa2d7b43108098`. Fallback evidence must be
-authenticated against the referenced caller table, and deterministic
-duplicates must be grouped into stable-equivalent selection or explicit
-conflict abstention. Independent re-review remains pending.
+Fresh final review rejected exact input commit
+`eca8dd4c6520390a4678de2160b300828adab322` / tree
+`f2a323ef293281601049c1fb2dcb1c6040849d98`: constrained fallback was not
+reachable through the public builder because authentication reconstructed the
+same deterministic candidate. This bounded repair must preserve direct source
+authentication and deterministic conflict blocking while making fallback
+reachable for a truly missing field-period. A repair delta, new exact local
+commit, and independent exact-commit re-review are pending; no future commit
+SHA is predicted here.

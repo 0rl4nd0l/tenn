@@ -257,6 +257,10 @@ class _TableContext:
 
 _LINE_ITEM_RE = re.compile(r"\b([1-8])\.(\d+)(?:\(([a-z])\))?(?=\W|$)", re.IGNORECASE)
 _NUMERIC_RE = re.compile(r"^\(?-?\$?\s*[0-9][0-9,\s]*(?:\.[0-9]+)?\)?$")
+_FOOTNOTED_NUMERIC_RE = re.compile(
+    r"^(?P<number>\(?-?\$?\s*[0-9][0-9,\s]*(?:\.[0-9]+)?\)?)"
+    r"(?:[*†‡]|[⁰¹²³⁴⁵⁶⁷⁸⁹]+)$"
+)
 _MISSING_VALUE_TOKENS = {"", "-", "--", "n/a", "na", "nil"}
 
 _LINE_TO_METRIC: dict[str, tuple[str, str, str]] = {
@@ -607,12 +611,12 @@ def _observation_from_fallback(
     resolved = _resolve_fallback_source(fallback, tables)
     if resolved is None:
         return None
-    source_candidate, expected_observation = resolved
-    if not fallback.value.is_finite() or source_candidate.value != fallback.value:
+    source_value, expected_observation = resolved
+    if not fallback.value.is_finite() or source_value != fallback.value:
         return None
 
     if (
-        fallback.raw_value != source_candidate.raw_value
+        fallback.raw_value != expected_observation.raw_value
         or fallback.unit != expected_observation.unit
         or fallback.currency != expected_observation.currency
         or fallback.scale != expected_observation.scale
@@ -620,11 +624,11 @@ def _observation_from_fallback(
         or fallback.period_evidence != expected_observation.period_evidence
         or fallback.currency_evidence != expected_observation.currency_evidence
         or fallback.scale_evidence != expected_observation.scale_evidence
-        or fallback.page != source_candidate.evidence.page
-        or fallback.row_label != source_candidate.evidence.row_label
-        or fallback.column_label != source_candidate.evidence.column_label
-        or fallback.line_item != source_candidate.evidence.line_item
-        or fallback.source_span != source_candidate.evidence.source_span
+        or fallback.page != expected_observation.evidence.page
+        or fallback.row_label != expected_observation.evidence.row_label
+        or fallback.column_label != expected_observation.evidence.column_label
+        or fallback.line_item != expected_observation.evidence.line_item
+        or fallback.source_span != expected_observation.evidence.source_span
     ):
         return None
 
@@ -640,15 +644,20 @@ def _observation_from_fallback(
         currency_evidence=fallback.currency_evidence,
         scale_evidence=fallback.scale_evidence,
         source_method=FALLBACK_METHOD,
-        evidence=source_candidate.evidence,
+        evidence=expected_observation.evidence,
     )
 
 
 def _resolve_fallback_source(
     fallback: Appendix4CFallbackValue,
     tables: list[Appendix4CTableLike],
-) -> tuple[Appendix4CCandidate, Appendix4CCashObservation] | None:
-    """Authenticate fallback identity and semantics against caller tables."""
+) -> tuple[Decimal, Appendix4CCashObservation] | None:
+    """Authenticate fallback claims directly against one supplied source cell.
+
+    This deliberately does not reconstruct a deterministic candidate: the
+    fallback must remain capable of handling a narrowly footnoted numeric cell
+    that deterministic parsing abstains from.
+    """
 
     if fallback.table_index >= len(tables):
         return None
@@ -657,6 +666,10 @@ def _resolve_fallback_source(
         return None
     row = table.rows[fallback.row_index]
     if fallback.column_index >= len(row):
+        return None
+    raw_value = str(row[fallback.column_index] or "").strip()
+    source_value = _parse_fallback_decimal(raw_value)
+    if source_value is None or raw_value != fallback.raw_value:
         return None
 
     raw_headers = _headers_for(table)
@@ -671,57 +684,76 @@ def _resolve_fallback_source(
     context = _context_at_table(tables, fallback.table_index)
     if context is None:
         return None
-    row_match = _match_row(
-        table=table,
-        table_index=fallback.table_index,
-        row_index=fallback.row_index,
-        row=row,
-        headers=context.headers,
-        roles=context.roles,
-        currency=context.currency,
-        scale=context.scale,
-    )
-    if row_match is None or row_match.line_item != fallback.line_item:
+    line_item = _line_item(" ".join(str(cell or "") for cell in row))
+    if line_item is None or line_item != fallback.line_item:
         return None
-    cell = next(
-        (
-            cell
-            for cell in row_match.cells
-            if cell.column_index == fallback.column_index
-        ),
-        None,
-    )
-    if cell is None or cell.column_role != fallback.column_role:
+    column_role = context.roles.get(fallback.column_index)
+    if column_role != fallback.column_role:
         return None
 
-    metric_config = _LINE_TO_METRIC.get(row_match.line_item)
+    metric_config = _LINE_TO_METRIC.get(line_item)
     if metric_config is None:
         return None
-    metric_name, status, warning = metric_config
+    metric_name, _status, _warning = metric_config
     if _PROFILE_FIELD_BY_METRIC.get(metric_name) != fallback.profile_field:
         return None
-    candidate = Appendix4CCandidate(
-        metric_name=metric_name,
-        value=cell.value,
-        raw_value=cell.raw_value,
-        unit="currency",
-        currency=row_match.currency,
-        scale=row_match.scale,
-        period_label=cell.column_label,
-        column_role=cell.column_role,
-        document_type="appendix_4c",
-        parser_method=PARSER_METHOD,
-        confidence=0.94 if status == "candidate" else 0.82,
-        trust_status=status,
-        status=status,
-        canonical_write=False,
-        evidence=row_match.evidence_by_column[cell.column_index],
-        warnings=[warning] if warning else [],
+    column_label = _column_label(
+        context.headers,
+        fallback.column_index,
+        column_role,
     )
-    expected = _observation_from_candidate(candidate)
-    if expected is None:
+    page = int(getattr(table, "page_number", 0) or 0)
+    evidence = Appendix4CEvidence(
+        page=page,
+        table_index=fallback.table_index,
+        row_index=fallback.row_index,
+        column_index=fallback.column_index,
+        row_label=_row_label(row),
+        column_label=column_label,
+        line_item=line_item,
+        source_span=(
+            f"page_{page}:table_{fallback.table_index}:"
+            f"row_{fallback.row_index}:col_{fallback.column_index}"
+        ),
+    )
+    period_basis = _ROLE_TO_BASIS.get(column_role)
+    if period_basis is None:
         return None
-    return candidate, expected
+    if fallback.profile_field == "estimated_funding_quarters":
+        unit = "quarters"
+        currency = None
+        scale = "units"
+        currency_evidence = "not_applicable: unit is quarters"
+        scale_evidence = "units: explicit Appendix 4C item 8.8 value"
+    else:
+        unit = "currency"
+        currency = context.currency
+        scale = context.scale
+        if currency is None or scale is None:
+            return None
+        currency_evidence = (
+            f"resolved table/header context: {currency}; "
+            f"source column: {column_label}"
+        )
+        scale_evidence = (
+            f"resolved table/header context: {scale}; "
+            f"source column: {column_label}"
+        )
+    expected = Appendix4CCashObservation(
+        profile_field=fallback.profile_field,
+        value=source_value,
+        raw_value=raw_value,
+        unit=unit,
+        currency=currency,
+        scale=scale,
+        period_basis=period_basis,
+        period_evidence=column_label,
+        currency_evidence=currency_evidence,
+        scale_evidence=scale_evidence,
+        source_method=FALLBACK_METHOD,
+        evidence=evidence,
+    )
+    return source_value, expected
 
 
 def _provable_fallback_inheritance(
@@ -1036,6 +1068,16 @@ def _parse_decimal(raw_value: str) -> Decimal | None:
     if negative and value > 0:
         value = -value
     return value
+
+
+def _parse_fallback_decimal(raw_value: str) -> Decimal | None:
+    deterministic = _parse_decimal(raw_value)
+    if deterministic is not None:
+        return deterministic
+    footnoted = _FOOTNOTED_NUMERIC_RE.fullmatch(raw_value.strip())
+    if footnoted is None:
+        return None
+    return _parse_decimal(footnoted.group("number"))
 
 
 def _row_label(row: list[str]) -> str:

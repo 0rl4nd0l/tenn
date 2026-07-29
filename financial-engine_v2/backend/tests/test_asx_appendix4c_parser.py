@@ -395,6 +395,56 @@ def _authenticated_capex_fallback() -> tuple[Table, Appendix4CFallbackValue]:
     )
 
 
+def _reachable_capex_fallback() -> tuple[Table, Appendix4CFallbackValue]:
+    table, fallback = _authenticated_capex_fallback()
+    table.rows[1][2] = "25¹"
+    return table, replace(
+        fallback,
+        raw_value="25¹",
+        row_label=(
+            "2.1(c) | Payments for property, plant and equipment | 25¹"
+        ),
+    )
+
+
+def test_public_builder_fills_truly_missing_field_period_with_authenticated_fallback() -> None:
+    table, fallback = _reachable_capex_fallback()
+
+    assert "capex" not in parse_appendix4c_tables([table]).metric_map()
+
+    profile = build_appendix4c_cash_profile([table], fallback_values=[fallback])
+
+    capex = profile.observation_map("period_only")["capex"]
+    assert capex.value == Decimal("25")
+    assert capex.raw_value == "25¹"
+    assert capex.source_method == "appendix4c_explicit_fallback_v1"
+    assert capex.evidence.source_span == "page_5:table_0:row_1:col_2"
+    assert "capex" not in profile.missing_map("period_only")
+
+
+def test_public_builder_rejects_fabricated_or_ambiguous_fallback_claims() -> None:
+    table, fallback = _reachable_capex_fallback()
+    fabricated = replace(fallback, raw_value="26¹", value=Decimal("26"))
+    fabricated_profile = build_appendix4c_cash_profile(
+        [table],
+        fallback_values=[fabricated],
+    )
+
+    ambiguous = _appendix4c_table(
+        [["2.1(c)", "Payments for property, plant and equipment", "25¹"]],
+        headers=["Item", "Description", "Amount"],
+    )
+    ambiguous_profile = build_appendix4c_cash_profile(
+        [ambiguous],
+        fallback_values=[fallback],
+    )
+
+    assert "capex" not in fabricated_profile.observation_map("period_only")
+    assert "invalid fallback value rejected: capex" in fabricated_profile.warnings
+    assert "capex" not in ambiguous_profile.observation_map("period_only")
+    assert "invalid fallback value rejected: capex" in ambiguous_profile.warnings
+
+
 def test_constrained_fallback_rejects_unresolved_caller_coordinates() -> None:
     deterministic_table = _appendix4c_table(
         [["1.9", "Net cash from operating activities", "100", "400"]]
