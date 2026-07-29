@@ -588,30 +588,24 @@ def _half_year_bundle_precedence(
         return []
 
     half_year_rule = _rule_for("half_year_report")
-    later_pages = sorted(
-        {
-            item.page
-            for item in half_year_evidence
-            if item.page is not None and item.page > appendix_label.page
+    later_page_evidence = [
+        item
+        for item in half_year_evidence
+        if item.page is not None and item.page > appendix_label.page
+    ]
+    has_substantive_report_evidence = any(
+        item.anchor
+        in {
+            "Interim financial report",
+            "Condensed consolidated financial statements",
         }
+        for item in later_page_evidence
     )
-    for page in later_pages:
-        page_evidence = [
-            item for item in half_year_evidence if item.page == page
-        ]
-        has_substantive_report_evidence = any(
-            item.anchor
-            in {
-                "Interim financial report",
-                "Condensed consolidated financial statements",
-            }
-            for item in page_evidence
-        )
-        if (
-            has_substantive_report_evidence
-            and _confidence_for(half_year_rule, page_evidence) == "high"
-        ):
-            return page_evidence
+    if (
+        has_substantive_report_evidence
+        and _confidence_for(half_year_rule, later_page_evidence) == "high"
+    ):
+        return later_page_evidence
     return []
 
 

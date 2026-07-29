@@ -66,9 +66,9 @@ Explicit Appendix 4C and Appendix 5B form anchors may take precedence over a
 generic quarterly-activities cover when a later page contains a corroborated,
 high-confidence form signature. A bare later-page Appendix reference is not
 document-type evidence.
-For a bundled half-year document, high-confidence half-year-report evidence on
-a later page takes whole-document precedence over an earlier Appendix 4D
-wrapper. Other annual, half-year, quarterly, and announcement anchors remain
+For a bundled half-year document, high-confidence half-year-report evidence
+across pages later than an Appendix 4D wrapper takes whole-document precedence.
+Other annual, half-year, quarterly, and announcement anchors remain
 limited to title metadata and first-page text so references deep in a document
 cannot create a competing document type. Weak, same-page, unsupported, or
 conflicting anchors do not receive bundle precedence and remain subject to
