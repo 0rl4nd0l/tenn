@@ -41,3 +41,11 @@
   existing `CANONICAL_METRIC_FIELDS`. Sparse projection must preserve legacy
   values, and `shares_outstanding` must remain a share-count unit rather than a
   currency metric.
+- Ticket 06 was independently accepted at Codex X commit
+  `dc23904ceba12d5dd323c421aa15b4970092a58c`; the byte-identical delivery tree
+  `fb4017c006650a27de517461be9b3e1221a4f52c` was committed as
+  `f063c2a4cb4b9c677f35498de4b80f31dba55ba6`, published as draft PR 532, and
+  passed exact-head `lint-and-test` and `scan`.
+- Ticket 07 is stacked on that green head. It is restricted to the generic
+  observation/profile seam for explicit `period_only` and `year_to_date`
+  contexts; Appendix 4C extraction remains Ticket 08.
