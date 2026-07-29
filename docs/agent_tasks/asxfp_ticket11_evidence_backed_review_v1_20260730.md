@@ -48,6 +48,10 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
+- Current fresh exact-head rejection-repair base:
+  `136c889ec7cce81d6c02d31717f0449693eefd9b`.
+- Current fresh exact-head rejection-repair tree:
+  `3f898a3867fdb2185521e3306d34f45a41f40d03`.
 - Fresh exact-head rejection-repair base:
   `c958a7e77da1b782d58edb5c3531ab93a45e0fcd`.
 - Fresh exact-head rejection-repair tree:
@@ -82,6 +86,15 @@ lifecycle plus a non-empty JSONB array of non-blank string reason codes; the
 service separately validates normalized uniqueness before persistence because
 the migration does not claim database-enforced array-element uniqueness.
 
+The current rejection repair applies one fail-closed trust predicate to both
+legacy profile upsert and accepted-observation promotion. Scoped explicit
+abstain/quarantine values remain review candidates but cannot project;
+malformed, unknown, or unscoped explicit trust metadata cannot project and
+does not cause an outcome to be invented. Approval now proves persistence with
+the exact inserted observation identity before changing review state. An
+identity conflict fails deterministically, leaves the review pending, and is
+rolled back by the decision endpoint.
+
 This bounded repair expands the original allowlist only to
 `app/services/extraction_eval.py` and `app/services/pipeline.py`. The former
 exposes the existing raw-payload provenance validator at the production
@@ -108,3 +121,8 @@ it does not authorize this worker or any push, PR, or merge.
 
 Compile-only checks, focused fake-only tests when local dependencies are
 available, changed-file static checks, and `git diff --check`.
+
+Current repair validation attempted: focused fake-only pytest, Python compile,
+changed-file/allowlist inspection, and `git diff --check`. Runtime, database,
+migration, extraction, OCR, model, queue, GPU, service, network, and protected
+data validation remain prohibited.

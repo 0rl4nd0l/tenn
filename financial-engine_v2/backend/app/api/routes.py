@@ -317,6 +317,7 @@ def financial_review_decision(
         review = db.get(FinancialObservationReview, review_id)
         db.commit()
     except ValueError as exc:
+        db.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "review_id": str(review_id),

@@ -958,6 +958,33 @@ def _trust_trigger_scope(value: Any) -> tuple[str, str] | None:
     return None
 
 
+def automatic_financial_projection_allowed(
+    structured: Mapping[str, Any],
+) -> bool:
+    """Fail closed when explicit trust metadata is not a trusted outcome."""
+    members = structured.get("period_observations")
+    if isinstance(members, list) and members:
+        return all(
+            isinstance(member, Mapping)
+            and automatic_financial_projection_allowed(member)
+            for member in members
+        )
+
+    has_outcome = "trust_outcome" in structured
+    has_triggers = "trust_triggers" in structured
+    if not has_outcome and not has_triggers:
+        return True
+
+    outcome = _required_text(structured.get("trust_outcome"))
+    triggers = structured.get("trust_triggers")
+    return (
+        outcome is not None
+        and outcome.lower() == "trusted"
+        and isinstance(triggers, list)
+        and not triggers
+    )
+
+
 def _enrich_review_staging_member(
     structured: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -1385,13 +1412,18 @@ def decide_financial_observation_review(
         column.name: getattr(observation, column.name)
         for column in FinancialObservation.__table__.columns
     }
-    db.execute(
+    persisted_observation_id = db.execute(
         insert(FinancialObservation)
         .values(**values)
         .on_conflict_do_nothing(
             constraint="uq_financial_observation_source_context"
         )
-    )
+        .returning(FinancialObservation.observation_id)
+    ).scalar_one_or_none()
+    if persisted_observation_id != observation.observation_id:
+        raise ValueError(
+            "reviewed observation identity conflicts with an existing value"
+        )
     review.status = "approved"
     review.decision = decision
     review.decision_actor = decision_actor
@@ -1436,6 +1468,8 @@ def stage_financial_observations(
     staged = []
     superseding_candidates = []
     for member in members:
+        if not automatic_financial_projection_allowed(member):
+            continue
         for metric in CANONICAL_METRIC_FIELDS:
             context = _accepted_metric_context(
                 document,
