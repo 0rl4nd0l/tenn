@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 
 from app.services.asx_appendix4c_parser import (
     DATA_MISSING,
     Appendix4CFallbackValue,
+    _observation_from_fallback,
     build_appendix4c_cash_profile,
     parse_appendix4c_tables,
 )
@@ -362,7 +363,39 @@ def test_profile_abstains_when_currency_or_scale_evidence_is_missing() -> None:
     assert profile.missing_map("period_only")["operating_cf"].status == DATA_MISSING
 
 
-def test_constrained_fallback_only_fills_missing_allowlisted_line_item() -> None:
+def _authenticated_capex_fallback() -> tuple[Table, Appendix4CFallbackValue]:
+    table = _appendix4c_table(
+        [["2.1(c)", "Payments for property, plant and equipment", "25", "40"]]
+    )
+    column_label = "Current quarter $A'000"
+    semantic_context = (
+        "resolved table/header context: {semantic}; "
+        f"source column: {column_label}"
+    )
+    return table, Appendix4CFallbackValue(
+        profile_field="capex",
+        value=Decimal("25"),
+        raw_value="25",
+        unit="currency",
+        currency="AUD",
+        scale="thousands",
+        period_basis="period_only",
+        column_role="current_quarter",
+        period_evidence=column_label,
+        currency_evidence=semantic_context.format(semantic="AUD"),
+        scale_evidence=semantic_context.format(semantic="thousands"),
+        page=5,
+        table_index=0,
+        row_index=1,
+        column_index=2,
+        row_label="2.1(c) | Payments for property, plant and equipment",
+        column_label=column_label,
+        line_item="2.1(c)",
+        source_span="page_5:table_0:row_1:col_2",
+    )
+
+
+def test_constrained_fallback_rejects_unresolved_caller_coordinates() -> None:
     deterministic_table = _appendix4c_table(
         [["1.9", "Net cash from operating activities", "100", "400"]]
     )
@@ -394,9 +427,8 @@ def test_constrained_fallback_only_fills_missing_allowlisted_line_item() -> None
     )
 
     assert profile.fallback_considered is True
-    assert profile.observation_map("period_only")["capex"].source_method == (
-        "appendix4c_explicit_fallback_v1"
-    )
+    assert "capex" not in profile.observation_map("period_only")
+    assert "invalid fallback value rejected: capex" in profile.warnings
 
 
 def test_deterministic_mapping_precedes_fallback_and_forbidden_fields_never_emit() -> None:
@@ -473,3 +505,118 @@ def test_fallback_abstains_when_value_does_not_match_raw_source_cell() -> None:
 
     assert "capex" not in profile.observation_map("period_only")
     assert "invalid fallback value rejected: capex" in profile.warnings
+
+
+def test_fallback_authenticates_every_claim_against_resolved_source() -> None:
+    table, fallback = _authenticated_capex_fallback()
+    authenticated = _observation_from_fallback(fallback, [table])
+    assert authenticated is not None
+    assert authenticated.source_method == "appendix4c_explicit_fallback_v1"
+
+    fabrications = [
+        replace(fallback, page=6),
+        replace(fallback, table_index=1),
+        replace(fallback, row_index=0),
+        replace(fallback, column_index=3),
+        replace(fallback, raw_value="26", value=Decimal("26")),
+        replace(fallback, row_label="2.1(c) | fabricated"),
+        replace(fallback, column_label="fabricated quarter"),
+        replace(fallback, source_span="page_5:table_0:row_99:col_2"),
+        replace(fallback, period_evidence="fabricated period"),
+        replace(fallback, currency="USD"),
+        replace(fallback, currency_evidence="fabricated currency"),
+        replace(fallback, scale="millions"),
+        replace(fallback, scale_evidence="fabricated scale"),
+    ]
+    assert all(
+        _observation_from_fallback(fabricated, [table]) is None
+        for fabricated in fabrications
+    )
+
+
+def test_fallback_abstains_for_ambiguous_or_unprovable_header_context() -> None:
+    _table, fallback = _authenticated_capex_fallback()
+    ambiguous = Table(
+        page_number=5,
+        caption="Appendix 4C Quarterly cash flow report Rule 4.7B",
+        rows=[["2.1(c)", "Payments for property, plant and equipment", "25"]],
+        headers=["Item", "Description", "Amount"],
+    )
+    unprovable_inheritance = Table(
+        page_number=5,
+        caption="",
+        rows=[["2.1(c)", "Payments for property, plant and equipment", "25", "40"]],
+        headers=["0", "1", "2", "3"],
+    )
+
+    assert _observation_from_fallback(
+        replace(fallback, row_index=0),
+        [ambiguous],
+    ) is None
+    assert _observation_from_fallback(
+        replace(fallback, row_index=0),
+        [unprovable_inheritance],
+    ) is None
+
+
+def test_conflicting_duplicate_rows_abstain_and_cannot_be_backfilled() -> None:
+    table = _appendix4c_table(
+        [
+            ["1.9", "Net cash from operating activities", "100", "400"],
+            ["1.9", "Net cash from operating activities", "101", "400"],
+        ]
+    )
+    _capex_table, fallback = _authenticated_capex_fallback()
+    fallback = replace(
+        fallback,
+        profile_field="operating_cf",
+        line_item="1.9",
+        value=Decimal("100"),
+        raw_value="100",
+        row_index=1,
+        row_label="1.9 | Net cash from operating activities",
+        source_span="page_5:table_0:row_1:col_2",
+    )
+
+    profile = build_appendix4c_cash_profile([table], fallback_values=[fallback])
+
+    assert "operating_cf" not in profile.observation_map("period_only")
+    assert profile.missing_map("period_only")["operating_cf"].status == DATA_MISSING
+    assert (
+        "conflicting deterministic duplicates abstained: operating_cf/period_only"
+        in profile.warnings
+    )
+
+
+def test_equivalent_duplicates_use_stable_source_precedence() -> None:
+    first = _appendix4c_table(
+        [["5.5", "Cash and cash equivalents at end of quarter", "702", "702"]]
+    )
+    second = _appendix4c_table(
+        [["4.6", "Cash and cash equivalents at end of period", "702", "702"]]
+    )
+
+    forward = build_appendix4c_cash_profile([first, second])
+    reverse = build_appendix4c_cash_profile([second, first])
+
+    assert forward.observation_map()["cash_end"].evidence.line_item == "4.6"
+    assert reverse.observation_map()["cash_end"].evidence.line_item == "4.6"
+
+
+def test_cash_end_4_6_and_5_5_disagreement_abstains() -> None:
+    profile = build_appendix4c_cash_profile(
+        [
+            _appendix4c_table(
+                [
+                    ["4.6", "Cash and cash equivalents at end of period", "702", "702"],
+                    ["5.5", "Cash and cash equivalents at end of quarter", "703", "703"],
+                ]
+            )
+        ]
+    )
+
+    assert "cash_end" not in profile.observation_map("period_only")
+    assert (
+        "conflicting deterministic duplicates abstained: cash_end/period_only"
+        in profile.warnings
+    )

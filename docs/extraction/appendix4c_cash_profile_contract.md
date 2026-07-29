@@ -56,11 +56,23 @@ fallback value is accepted only when:
 - its supported field/period pair remains missing after deterministic parsing;
 - its line item is in the exact mapping table above;
 - its column role matches its closed period basis;
-- all row/cell coordinates are non-negative;
-- raw cell, row, column, period, currency, scale, and source-span evidence are
-  non-empty; and
+- its table, page, row, and column coordinates resolve into the exact
+  caller-supplied table;
+- its raw cell, row label, column label, line item, and canonical source span
+  exactly match the resolved source row/cell;
+- its period role/evidence, currency, scale, and their evidence exactly match
+  the parser's resolved header context (including only provable fragmented
+  table-header inheritance); and
 - its unit/currency/scale combination is valid for the field.
 
 Forbidden or unsupported fields, mismatched line items, ambiguous periods, and
-incomplete evidence abstain. Missing fields are explicit `DATA_MISSING`, never
-zero-filled or inferred.
+incomplete, ambiguous, fabricated, out-of-range, or unprovable evidence
+abstains.
+
+Deterministic duplicate rows are grouped by field and period before selection.
+Equivalent value/unit/currency/scale/period semantics select a stable preferred
+source: the documented line-item order (4.6 before 5.5 for `cash_end`), followed
+by page/table/row/column coordinates. Any semantic disagreement abstains for
+the entire field-period, emits an explicit conflict warning, remains
+`DATA_MISSING`, and blocks fallback from concealing the conflict. Missing
+fields are never zero-filled or inferred.

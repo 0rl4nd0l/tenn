@@ -99,3 +99,12 @@ funding quarters.
 
 Record exact changed files, validation commands and results, local commit/tree
 if committed, docs impact, prohibited-action compliance, and remaining risks.
+
+## Rejection repair
+
+The rejected candidate repair starts from exact commit
+`0879ff320cedc3a36ab962cea248d1fc2a04c253` / tree
+`13b362907caaa55cbd00cbe77faa2d7b43108098`. Fallback evidence must be
+authenticated against the referenced caller table, and deterministic
+duplicates must be grouped into stable-equivalent selection or explicit
+conflict abstention. Independent re-review remains pending.

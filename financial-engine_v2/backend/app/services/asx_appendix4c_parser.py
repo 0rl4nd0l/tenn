@@ -422,19 +422,15 @@ def build_appendix4c_cash_profile(
             fallback_considered=False,
         )
 
-    observations: list[Appendix4CCashObservation] = []
-    occupied: set[tuple[str, str]] = set()
     warnings: list[str] = []
-
-    for candidate in parsed.candidates:
-        observation = _observation_from_candidate(candidate)
-        if observation is None:
-            continue
-        key = (observation.profile_field, observation.period_basis)
-        if key in occupied:
-            continue
-        occupied.add(key)
-        observations.append(observation)
+    observations, blocked = _resolve_deterministic_observations(
+        parsed.candidates,
+        warnings,
+    )
+    occupied = {
+        (observation.profile_field, observation.period_basis)
+        for observation in observations
+    }
 
     supplied_fallback = fallback_values or []
     for fallback in supplied_fallback:
@@ -442,9 +438,9 @@ def build_appendix4c_cash_profile(
             warnings.append(f"forbidden fallback field rejected: {fallback.profile_field}")
             continue
         key = (fallback.profile_field, fallback.period_basis)
-        if key in occupied:
+        if key in occupied or key in blocked:
             continue
-        observation = _observation_from_fallback(fallback)
+        observation = _observation_from_fallback(fallback, tables)
         if observation is None:
             warnings.append(f"invalid fallback value rejected: {fallback.profile_field}")
             continue
@@ -481,6 +477,68 @@ def build_appendix4c_cash_profile(
         missing=missing,
         fallback_considered=bool(supplied_fallback),
         warnings=warnings,
+    )
+
+
+def _resolve_deterministic_observations(
+    candidates: list[Appendix4CCandidate],
+    warnings: list[str],
+) -> tuple[list[Appendix4CCashObservation], set[tuple[str, str]]]:
+    """Resolve duplicates without making input order part of financial truth.
+
+    Semantically equivalent observations select the stable preferred source:
+    the documented line-item order first, then source coordinates. Any
+    value/unit/currency/scale/period disagreement blocks the field-period
+    entirely and prevents fallback from concealing the conflict.
+    """
+
+    grouped: dict[tuple[str, str], list[Appendix4CCashObservation]] = {}
+    for candidate in candidates:
+        observation = _observation_from_candidate(candidate)
+        if observation is None:
+            continue
+        key = (observation.profile_field, observation.period_basis)
+        grouped.setdefault(key, []).append(observation)
+
+    selected: list[Appendix4CCashObservation] = []
+    blocked: set[tuple[str, str]] = set()
+    for key in sorted(grouped):
+        choices = grouped[key]
+        semantics = {
+            (
+                choice.value,
+                choice.unit,
+                choice.currency,
+                choice.scale,
+                choice.period_basis,
+            )
+            for choice in choices
+        }
+        if len(semantics) != 1:
+            blocked.add(key)
+            field, basis = key
+            warnings.append(
+                f"conflicting deterministic duplicates abstained: {field}/{basis}"
+            )
+            continue
+        selected.append(min(choices, key=_observation_source_precedence))
+    return selected, blocked
+
+
+def _observation_source_precedence(
+    observation: Appendix4CCashObservation,
+) -> tuple[int, int, int, int, int]:
+    preferred_lines = sorted(_FALLBACK_LINE_ITEMS[observation.profile_field])
+    try:
+        line_rank = preferred_lines.index(observation.evidence.line_item)
+    except ValueError:
+        line_rank = len(preferred_lines)
+    return (
+        line_rank,
+        observation.evidence.page,
+        observation.evidence.table_index,
+        observation.evidence.row_index,
+        observation.evidence.column_index,
     )
 
 
@@ -534,6 +592,7 @@ def _observation_from_candidate(
 
 def _observation_from_fallback(
     fallback: Appendix4CFallbackValue,
+    tables: list[Appendix4CTableLike],
 ) -> Appendix4CCashObservation | None:
     if fallback.profile_field not in _PROFILE_FIELDS:
         return None
@@ -543,55 +602,32 @@ def _observation_from_fallback(
         return None
     if fallback.period_basis not in _BASIS_TO_ROLE:
         return None
-    if min(
-        fallback.page,
-        fallback.table_index,
-        fallback.row_index,
-        fallback.column_index,
-    ) < 0:
+    if min(fallback.page, fallback.table_index, fallback.row_index, fallback.column_index) < 0:
         return None
-    required_text = (
-        fallback.raw_value,
-        fallback.period_evidence,
-        fallback.currency_evidence,
-        fallback.scale_evidence,
-        fallback.row_label,
-        fallback.column_label,
-        fallback.source_span,
-    )
-    if any(not str(value).strip() for value in required_text):
+    resolved = _resolve_fallback_source(fallback, tables)
+    if resolved is None:
         return None
+    source_candidate, expected_observation = resolved
+    if not fallback.value.is_finite() or source_candidate.value != fallback.value:
+        return None
+
     if (
-        not fallback.value.is_finite()
-        or _parse_decimal(fallback.raw_value) != fallback.value
-        or _line_item(fallback.row_label) != fallback.line_item
+        fallback.raw_value != source_candidate.raw_value
+        or fallback.unit != expected_observation.unit
+        or fallback.currency != expected_observation.currency
+        or fallback.scale != expected_observation.scale
+        or fallback.period_basis != expected_observation.period_basis
+        or fallback.period_evidence != expected_observation.period_evidence
+        or fallback.currency_evidence != expected_observation.currency_evidence
+        or fallback.scale_evidence != expected_observation.scale_evidence
+        or fallback.page != source_candidate.evidence.page
+        or fallback.row_label != source_candidate.evidence.row_label
+        or fallback.column_label != source_candidate.evidence.column_label
+        or fallback.line_item != source_candidate.evidence.line_item
+        or fallback.source_span != source_candidate.evidence.source_span
     ):
         return None
 
-    if fallback.profile_field == "estimated_funding_quarters":
-        if (
-            fallback.unit != "quarters"
-            or fallback.currency is not None
-            or fallback.scale != "units"
-        ):
-            return None
-    elif (
-        fallback.unit != "currency"
-        or not fallback.currency
-        or fallback.scale not in {"units", "thousands", "millions", "billions"}
-    ):
-        return None
-
-    evidence = Appendix4CEvidence(
-        page=fallback.page,
-        table_index=fallback.table_index,
-        row_index=fallback.row_index,
-        column_index=fallback.column_index,
-        row_label=fallback.row_label,
-        column_label=fallback.column_label,
-        line_item=fallback.line_item,
-        source_span=fallback.source_span,
-    )
     return Appendix4CCashObservation(
         profile_field=fallback.profile_field,
         value=fallback.value,
@@ -604,8 +640,139 @@ def _observation_from_fallback(
         currency_evidence=fallback.currency_evidence,
         scale_evidence=fallback.scale_evidence,
         source_method=FALLBACK_METHOD,
-        evidence=evidence,
+        evidence=source_candidate.evidence,
     )
+
+
+def _resolve_fallback_source(
+    fallback: Appendix4CFallbackValue,
+    tables: list[Appendix4CTableLike],
+) -> tuple[Appendix4CCandidate, Appendix4CCashObservation] | None:
+    """Authenticate fallback identity and semantics against caller tables."""
+
+    if fallback.table_index >= len(tables):
+        return None
+    table = tables[fallback.table_index]
+    if fallback.row_index >= len(table.rows):
+        return None
+    row = table.rows[fallback.row_index]
+    if fallback.column_index >= len(row):
+        return None
+
+    raw_headers = _headers_for(table)
+    raw_roles = _column_roles(raw_headers)
+    if not (raw_roles and _headers_are_informative(raw_headers)):
+        if fallback.table_index == 0 or not _provable_fallback_inheritance(
+            tables[fallback.table_index - 1],
+            table,
+            raw_headers,
+        ):
+            return None
+    context = _context_at_table(tables, fallback.table_index)
+    if context is None:
+        return None
+    row_match = _match_row(
+        table=table,
+        table_index=fallback.table_index,
+        row_index=fallback.row_index,
+        row=row,
+        headers=context.headers,
+        roles=context.roles,
+        currency=context.currency,
+        scale=context.scale,
+    )
+    if row_match is None or row_match.line_item != fallback.line_item:
+        return None
+    cell = next(
+        (
+            cell
+            for cell in row_match.cells
+            if cell.column_index == fallback.column_index
+        ),
+        None,
+    )
+    if cell is None or cell.column_role != fallback.column_role:
+        return None
+
+    metric_config = _LINE_TO_METRIC.get(row_match.line_item)
+    if metric_config is None:
+        return None
+    metric_name, status, warning = metric_config
+    if _PROFILE_FIELD_BY_METRIC.get(metric_name) != fallback.profile_field:
+        return None
+    candidate = Appendix4CCandidate(
+        metric_name=metric_name,
+        value=cell.value,
+        raw_value=cell.raw_value,
+        unit="currency",
+        currency=row_match.currency,
+        scale=row_match.scale,
+        period_label=cell.column_label,
+        column_role=cell.column_role,
+        document_type="appendix_4c",
+        parser_method=PARSER_METHOD,
+        confidence=0.94 if status == "candidate" else 0.82,
+        trust_status=status,
+        status=status,
+        canonical_write=False,
+        evidence=row_match.evidence_by_column[cell.column_index],
+        warnings=[warning] if warning else [],
+    )
+    expected = _observation_from_candidate(candidate)
+    if expected is None:
+        return None
+    return candidate, expected
+
+
+def _provable_fallback_inheritance(
+    previous_table: Appendix4CTableLike,
+    table: Appendix4CTableLike,
+    raw_headers: list[str],
+) -> bool:
+    """Allow only adjacent Appendix fragments with continuous page identity."""
+
+    previous_headers = _headers_for(previous_table)
+    previous_roles = _column_roles(previous_headers)
+    if not _can_inherit_context(
+        raw_headers,
+        _TableContext(previous_headers, previous_roles, None, None),
+    ):
+        return False
+    previous_page = int(getattr(previous_table, "page_number", 0) or 0)
+    page = int(getattr(table, "page_number", 0) or 0)
+    if previous_page <= 0 or page not in {previous_page, previous_page + 1}:
+        return False
+    previous_identity = " ".join(
+        [str(getattr(previous_table, "caption", "")), *previous_headers]
+    ).lower()
+    current_caption = str(getattr(table, "caption", "")).lower()
+    return "appendix 4c" in previous_identity and (
+        not current_caption.strip() or "appendix 4c" in current_caption
+    )
+
+
+def _context_at_table(
+    tables: list[Appendix4CTableLike],
+    target_table_index: int,
+) -> _TableContext | None:
+    previous_context: _TableContext | None = None
+    resolved: _TableContext | None = None
+    for table_index, table in enumerate(tables[: target_table_index + 1]):
+        raw_headers = _headers_for(table)
+        raw_roles = _column_roles(raw_headers)
+        resolved = _resolve_table_context(
+            table=table,
+            raw_headers=raw_headers,
+            raw_roles=raw_roles,
+            previous_context=previous_context,
+        )
+        if raw_roles and _headers_are_informative(raw_headers):
+            previous_context = resolved
+        if table_index == target_table_index:
+            break
+    if resolved is None or not resolved.roles:
+        return None
+    return resolved
 
 
 def _profile_missing(

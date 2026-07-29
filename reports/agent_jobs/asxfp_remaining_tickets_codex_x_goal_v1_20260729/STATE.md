@@ -14,14 +14,15 @@
   draft, and unmerged
 - ticket_07: preserved `period_only` and `year_to_date` observations are in the
   exact Ticket 08 base and remain collision-free
-- implementer: Ticket 08 product/docs changes and bounded local validation complete
-- reviewer: not requested for this single bounded worker attempt
-- repair: none
-- local_commit: blocked because the required launcher Git wrapper cannot write
-  its run-owned `git-metadata/codex-x-wrapper-audit.jsonl`; no wrapper bypass
-  attempted
+- implementer: Ticket 08 rejection findings repaired; real local focused and
+  adjacent validation passed with `44 passed, 1 warning`, Ruff, py_compile,
+  task-card validation, and diff-check green
+- reviewer: independent re-review pending
+- repair: fallback evidence now authenticates against caller tables; duplicate
+  conflicts abstain and block fallback
+- local_commit: repaired delta transferred byte-identically from the Codex X
+  child into the clean delivery worktree; commit pending
 - draft_pr: not created
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: restore launcher Git-wrapper audit writability, then stage
-  only the seven allowlisted Ticket 08 files and create the local commit
+- next_transition: independent re-review of the repaired Ticket 08 candidate
