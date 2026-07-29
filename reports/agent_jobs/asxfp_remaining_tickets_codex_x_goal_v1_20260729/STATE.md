@@ -8,11 +8,11 @@
   `docs/agent_tasks/asxfp_ticket05_observation_seam_v1_20260729.md`
 - ticket_sha256:
   `27f03834bba372c3c3f470cf1a1fa7f90b7a586b7015e6b453a77599920aac78`
-- implementer: candidate complete; validation constrained by missing local
-  Python dependencies
-- reviewer: rejected candidate `15eabc815a918fbc882d6e839a05f81d63545152`;
-  repaired candidate review pending
+- implementer: repaired candidate complete; parent validation passed in a
+  disposable dependency environment
+- reviewer: session `019fae1d-a559-7db3-aba7-955ba15cfb5e` accepted product
+  tree `214630a1db822bb0014c0c0478f7b27c354a7c59`
+- draft_pr: `https://github.com/0rl4nd0l/tenn/pull/531`
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: freeze repaired exact delta, then fresh independent read-only
-  reviewer
+- next_transition: exact-head CI for draft PR 531, then Ticket 06 preparation
