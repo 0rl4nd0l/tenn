@@ -136,6 +136,69 @@ def test_accepted_revenue_is_staged_without_committing():
     assert session.commits == 0
 
 
+def test_observation_id_is_deterministic_for_complete_source_context_identity():
+    from app.services.financial_observations import stage_revenue_observation
+
+    document_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
+    run_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
+
+    def stage(*, context=None, **document_or_run):
+        session = FakeSession()
+        observation = stage_revenue_observation(
+            session,
+            document=SimpleNamespace(
+                document_id=document_or_run.get("document_id", document_id),
+                ticker=document_or_run.get("ticker", "BHP"),
+            ),
+            extraction_run=SimpleNamespace(
+                run_id=document_or_run.get("run_id", run_id),
+                extractor_version=document_or_run.get(
+                    "extractor_version", "multipass-v5"
+                ),
+            ),
+            structured=context or accepted_context(document_id),
+        )
+        assert observation is not None
+        return observation.observation_id
+
+    first = stage()
+    retry = stage(run_id=uuid.UUID("33333333-3333-3333-3333-333333333333"))
+
+    assert first == retry
+    assert first.version == 5
+
+    materially_different_ids = {
+        stage(document_id=uuid.UUID("44444444-4444-4444-4444-444444444444")),
+        stage(extractor_version="multipass-v6"),
+        stage(ticker="RIO"),
+    }
+    for field, replacement in (
+        ("period_end", "2024-06-30"),
+        ("period_type", "H"),
+        ("currency", "USD"),
+    ):
+        context = accepted_context(document_id)
+        context[field] = replacement
+        context["field_provenance"]["revenue"][field] = replacement
+        if field == "period_type":
+            context["source_period_type"] = replacement
+            context["source_period_evidence"]["period_type"] = replacement
+            context["source_period_evidence"]["hits"][0]["period_type"] = replacement
+            context["source_period_end_evidence"]["period_type"] = replacement
+            context["source_period_end_evidence"]["hits"][0]["period_type"] = replacement
+        elif field == "period_end":
+            context["source_period_end_evidence"]["period_end"] = replacement
+            context["source_period_end_evidence"]["hits"][0]["period_end"] = replacement
+        elif field == "currency":
+            context["field_provenance"]["revenue"]["source_cell"][
+                "header_cell"
+            ] = "2025 USD millions"
+        materially_different_ids.add(stage(context=context))
+
+    assert len(materially_different_ids) == 6
+    assert first not in materially_different_ids
+
+
 def test_insert_is_conflict_safe_without_querying_or_owning_the_transaction():
     from app.services.financial_observations import stage_revenue_observation
 

@@ -161,3 +161,18 @@ Return exact base, branch, candidate tree, changed files, RED and GREEN
 commands, validation status, reviewer verdict, remaining risks, and docs
 impact. Publication may create a draft PR only; merge and any database-backed
 proof remain separate approvals.
+
+## CI repair evidence
+
+- Repair base: `ef74875be105bd2dbe6feb101044d3dd1069e363`, tree
+  `0997bbbe88ce8a49dd3c55f72eb3060d3a5d0374`.
+- GitHub Actions run `30458351620` exposed one failure:
+  `test_no_random_uuid_generation_in_pipeline` rejected random canonical
+  observation identity generation.
+- The repair maps the complete
+  `uq_financial_observation_source_context` identity to a deterministic,
+  versioned UUIDv5. Retry run identity is excluded, matching the database
+  uniqueness contract.
+- Focused fake-only coverage proves retry stability and differentiation when
+  each currently variable identity dimension changes. No invariant relaxation,
+  database, migration, runtime, protected-data, or remote action is used.

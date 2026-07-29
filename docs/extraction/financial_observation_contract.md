@@ -35,6 +35,12 @@ period end, period basis, accounting basis, currency, and scale. It deliberately
 allows different documents, extractor versions, period bases, and accounting
 bases for the same company period and metric.
 
+A versioned, canonically serialized representation of that complete identity is
+mapped to `observation_id` with UUIDv5. The extraction-run ID is intentionally
+not part of either identity: a retry may have a new operational run while
+retaining the same immutable source context and therefore the same observation
+ID. Changing any source-context identity field changes the deterministic ID.
+
 A PostgreSQL `INSERT ... ON CONFLICT DO NOTHING` makes a retry at the same
 source-context identity a no-op without a query-before-add race. The seam does
 not flush, commit, or roll back; the workflow remains sole transaction owner.

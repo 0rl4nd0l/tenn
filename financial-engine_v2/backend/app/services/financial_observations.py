@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -48,6 +49,38 @@ _EXPLICIT_PERIOD_END_REASONS = frozenset(
         "current_period_explicit_range",
     }
 )
+
+
+def _observation_id(
+    *,
+    source_document_id: Any,
+    extractor_version: str,
+    ticker: str,
+    metric: str,
+    period_end: date,
+    period_basis: str,
+    accounting_basis: str,
+    currency: str,
+    scale: str,
+) -> uuid.UUID:
+    """Map the database source-context identity to a stable UUID."""
+    identity = json.dumps(
+        [
+            "financial-observation-source-context-v1",
+            str(source_document_id),
+            extractor_version,
+            ticker,
+            metric,
+            period_end.isoformat(),
+            period_basis,
+            accounting_basis,
+            currency,
+            scale,
+        ],
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return uuid.uuid5(uuid.NAMESPACE_URL, identity)
 
 
 def _required_text(value: Any) -> str | None:
@@ -231,7 +264,17 @@ def stage_revenue_observation(
         return None
 
     observation = FinancialObservation(
-        observation_id=uuid.uuid4(),
+        observation_id=_observation_id(
+            source_document_id=document_id,
+            extractor_version=extractor_version,
+            ticker=ticker,
+            metric="revenue",
+            period_end=context["period_end"],
+            period_basis=context["period_basis"],
+            accounting_basis=context["accounting_basis"],
+            currency=context["currency"],
+            scale=context["scale"],
+        ),
         source_document_id=document_id,
         extraction_run_id=run_id,
         extractor_version=extractor_version,

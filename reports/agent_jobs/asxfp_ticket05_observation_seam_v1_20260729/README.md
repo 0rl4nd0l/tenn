@@ -84,3 +84,15 @@ from the preserved raw source cell.
 No PDF, protected corpus artifact, extraction, OCR, model, evaluation,
 database, migration execution, runtime, service, queue, Qdrant, GPU,
 deployment, activation, canary, backfill, production write, or merge occurred.
+
+## CI repair
+
+GitHub Actions run `30458351620` found that the accepted seam still generated
+the canonical `observation_id` with UUIDv4. From exact repair base
+`ef74875be105bd2dbe6feb101044d3dd1069e363` (tree
+`0997bbbe88ce8a49dd3c55f72eb3060d3a5d0374`), the ID is now a UUIDv5 of the
+complete database source-context uniqueness identity. The operational
+extraction-run ID remains outside that identity, so a retry produces the same
+ID and PostgreSQL `ON CONFLICT DO NOTHING` retains its original behavior.
+Focused fake-only coverage exercises retry stability and all variable identity
+dimensions; the repository UUID invariant remains unchanged.
