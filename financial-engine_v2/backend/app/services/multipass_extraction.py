@@ -1464,7 +1464,16 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 continue
             source_text = str(candidate.get("source_text") or "").strip()
             candidate_value = str(candidate.get("candidate_value_text") or "").strip()
-            if not source_text or not candidate_value:
+            source_region = candidate.get("source_region")
+            source_row = candidate.get("source_row")
+            source_cell = candidate.get("source_cell")
+            if (
+                not source_text
+                or not candidate_value
+                or not isinstance(source_region, dict)
+                or source_row is None
+                or not isinstance(source_cell, list)
+            ):
                 continue
             value_candidates = candidate.get("value_text_candidates")
             if isinstance(value_candidates, list):
@@ -1475,7 +1484,13 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 )
             else:
                 value_candidates_text = candidate_value
-            rows.append([source_text, candidate_value, value_candidates_text])
+            provenance = (
+                f"page={record.get('page')}; region={source_region}; "
+                f"row={source_row}; cells={source_cell}"
+            )
+            rows.append(
+                [f"{source_text} [{provenance}]", candidate_value, value_candidates_text]
+            )
 
         if len(rows) <= 1:
             continue
