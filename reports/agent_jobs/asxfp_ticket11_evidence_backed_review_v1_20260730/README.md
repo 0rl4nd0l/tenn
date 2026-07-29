@@ -15,6 +15,16 @@ without review. Approval creates an accepted observation only when both a
 proposed numeric value and complete source-location evidence remain attached;
 the resulting provenance records the review identity and reason codes.
 
+The second bounded repair corrected the adapter to use the canonical
+`issue["metric"]` association while preserving `issue["field"]` as the
+provenance attribute. It also scopes real evaluation triggers: canonical
+`metric:status` triggers affect only that metric, `context_mismatch:field`
+triggers remain document-wide, and unknown shapes fail closed. Production
+pipeline staging now enriches raw extraction output with the existing
+provenance evaluation summary immediately before observation staging and
+converts canonical provenance failures into the evaluation contract's
+metric-specific abstain triggers.
+
 ## Changed paths
 
 - `docs/agent_tasks/asxfp_ticket11_evidence_backed_review_v1_20260730.md`
@@ -22,7 +32,9 @@ the resulting provenance records the review identity and reason codes.
 - `financial-engine_v2/backend/app/api/routes.py`
 - `financial-engine_v2/backend/app/models/__init__.py`
 - `financial-engine_v2/backend/app/models/financial_observations.py`
+- `financial-engine_v2/backend/app/services/extraction_eval.py`
 - `financial-engine_v2/backend/app/services/financial_observations.py`
+- `financial-engine_v2/backend/app/services/pipeline.py`
 - `financial-engine_v2/backend/tests/test_financial_observation_reviews.py`
 - `financial-engine_v2/backend/tests/test_financial_observations.py`
 - `reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730/README.md`
@@ -38,6 +50,24 @@ the resulting provenance records the review identity and reason codes.
 - `git diff --check`: passed (exit 0).
 - Focused pytest in a disposable dependency environment: passed,
   `83 passed, 1 warning`.
+
+Second bounded repair validation:
+
+- Exact base commit `08420f349077158b8a537912d59e0f07d3b347bf`,
+  tree `57b10a1addf6883faef5d14af4385ac95d8d62eb`, and authority
+  SHA-256 matched.
+- `python3 -m py_compile` for the three changed services and focused test:
+  passed.
+- Focused pytest was attempted but unavailable in the offline worktree:
+  `/usr/bin/python3: No module named pytest`; no dependency installation was
+  attempted.
+- Focused AST, changed-line 100-column, and `git diff --check`: passed.
+- Controller verification in a disposable dependency environment passed:
+  `101 passed, 1 deselected, 1 warning`. The warning is the repository's
+  existing unknown `asyncio_default_fixture_loop_scope` pytest option.
+- Controller verification also normalized source-location evidence against
+  the production payload shape: `source` supplies the table/region and the
+  non-empty structured `source_cell` mapping is retained as `cell_ref`.
 
 No runtime, database, migration, extraction, OCR, model, service, queue, GPU,
 deployment, network, or protected-data action was performed.
@@ -64,3 +94,8 @@ commit changes no product, migration, API, or test behavior.
 - The migration was inspected and compiled but deliberately not applied.
 - Only existing structured provenance-issue and trust-outcome payloads are
   adapted; malformed outcomes without metric context still fail closed.
+- Production provenance enrichment can identify canonical provenance
+  abstentions without gold expectations. Numeric wrong/missing and context
+  quarantine outcomes still require an upstream evaluation result carrying
+  the existing trust fields; the adapter does not guess those outcomes from
+  raw values.

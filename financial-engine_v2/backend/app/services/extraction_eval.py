@@ -721,6 +721,13 @@ def _build_provenance_summary(
     }
 
 
+def build_payload_provenance_summary(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate raw extraction provenance for production consumers."""
+    return _build_provenance_summary(payload, require_structured=True)
+
+
 def _build_context_summary(
     fixtures: Iterable[ExtractionFixture],
     extracted_payloads: dict[str, dict[str, Any]],

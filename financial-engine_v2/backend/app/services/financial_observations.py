@@ -15,6 +15,7 @@ from app.models.financial_observations import (
     FinancialObservationSupersession,
     FinancialResultDisclosure,
 )
+from app.services.extraction_eval import build_payload_provenance_summary
 from app.services.financial_metric_contract import (
     CANONICAL_METRIC_FIELDS,
     METRIC_CONTRACT_BY_CANONICAL_FIELD,
@@ -124,6 +125,15 @@ _REVIEW_KIND_BY_TRUST_OUTCOME = {
     "abstain": "abstained",
     "quarantine": "quarantined",
 }
+_METRIC_TRUST_TRIGGER_STATUSES = frozenset(
+    {
+        "abstain",
+        "missing",
+        "provenance_missing",
+        "provenance_invalid",
+        "wrong",
+    }
+)
 _SUPERSESSION_EVIDENCE_FIELDS = (
     "source",
     "page_number",
@@ -913,14 +923,76 @@ def _review_source_evidence(value: Mapping[str, Any]) -> dict[str, Any]:
     source_cell = value.get("source_cell")
     return {
         "page_number": value.get("page_number"),
-        "table_or_region": value.get("table_or_region"),
+        "table_or_region": (
+            value.get("table_or_region") or value.get("source")
+        ),
         "row_ref": value.get("row_ref"),
         "cell_ref": (
-            source_cell.get("cell_ref")
-            if isinstance(source_cell, Mapping)
-            else None
+            dict(source_cell)
+            if isinstance(source_cell, Mapping) and source_cell
+            else value.get("cell_ref")
         ),
     }
+
+
+def _trust_trigger_scope(value: Any) -> tuple[str, str] | None:
+    """Parse the evaluation trigger contract without guessing its scope."""
+    trigger = _required_text(value)
+    if trigger is None:
+        return None
+    scope, separator, status = trigger.partition(":")
+    if not separator:
+        return None
+    provenance_reason = (
+        status.removeprefix("provenance_invalid:")
+        if status.startswith("provenance_invalid:")
+        else None
+    )
+    if scope in CANONICAL_METRIC_FIELDS and (
+        status in _METRIC_TRUST_TRIGGER_STATUSES
+        or _required_text(provenance_reason) is not None
+    ):
+        return scope, trigger
+    if scope == "context_mismatch" and _required_text(status) is not None:
+        return "*", trigger
+    return None
+
+
+def build_review_staging_payload(
+    structured: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Attach real provenance evaluation detail at the staging boundary."""
+    payload = dict(structured)
+    if isinstance(payload.get("provenance_summary"), Mapping):
+        return payload
+    summary = build_payload_provenance_summary(payload)
+    payload["provenance_summary"] = summary
+    triggers = []
+    metrics = payload.get("metrics")
+    if isinstance(metrics, Mapping):
+        for metric_summary in summary.get("metric_summaries", []):
+            if not isinstance(metric_summary, Mapping):
+                continue
+            metric = _required_text(metric_summary.get("metric"))
+            if (
+                metric not in CANONICAL_METRIC_FIELDS
+                or metrics.get(metric) is None
+                or not metric_summary.get("canonical_provenance_required")
+                or metric_summary.get("canonical_provenance_valid")
+            ):
+                continue
+            reason = _required_text(
+                metric_summary.get("canonical_provenance_reason")
+            ) or "invalid"
+            triggers.append(f"{metric}:provenance_invalid:{reason}")
+    if (
+        triggers
+        and _required_text(payload.get("trust_outcome")) is None
+        and not isinstance(payload.get("trust_triggers"), list)
+    ):
+        payload["trust_outcome"] = "abstain"
+        payload["trust_triggers"] = triggers
+    return payload
 
 
 def _real_outcome_review_candidates(
@@ -937,11 +1009,18 @@ def _real_outcome_review_candidates(
         (outcome or "").lower()
     )
     triggers = structured.get("trust_triggers")
-    outcome_reasons = (
-        [code for code in triggers if _required_text(code) is not None]
-        if isinstance(triggers, list)
-        else []
-    )
+    reasons_by_metric: dict[str, list[str]] = {}
+    document_reasons: list[str] = []
+    if isinstance(triggers, list):
+        for trigger in triggers:
+            scoped = _trust_trigger_scope(trigger)
+            if scoped is None:
+                continue
+            metric, reason = scoped
+            if metric == "*":
+                document_reasons.append(reason)
+            else:
+                reasons_by_metric.setdefault(metric, []).append(reason)
     issues_by_metric: dict[str, list[tuple[str, str]]] = {}
     summary = structured.get("provenance_summary")
     issues = summary.get("issues") if isinstance(summary, Mapping) else None
@@ -951,7 +1030,7 @@ def _real_outcome_review_candidates(
                 continue
             code = _required_text(issue.get("code"))
             kind = _review_issue_kind(code)
-            metric = _required_text(issue.get("field"))
+            metric = _required_text(issue.get("metric"))
             if code is not None and kind is not None and metric is not None:
                 issues_by_metric.setdefault(metric, []).append((kind, code))
 
@@ -961,11 +1040,19 @@ def _real_outcome_review_candidates(
         if not isinstance(metric_provenance, Mapping):
             continue
         metric_issues = issues_by_metric.get(metric, [])
-        kind = metric_issues[0][0] if metric_issues else outcome_kind
+        outcome_metric_reasons = [
+            *reasons_by_metric.get(metric, []),
+            *document_reasons,
+        ]
+        kind = (
+            metric_issues[0][0]
+            if metric_issues
+            else outcome_kind if outcome_metric_reasons else None
+        )
         reason_codes = (
             [code for _, code in metric_issues]
             if metric_issues
-            else list(outcome_reasons)
+            else outcome_metric_reasons
         )
         if kind is None or not reason_codes:
             continue
