@@ -15,7 +15,7 @@ at a time.
   `migration/clean-runtime-baseline-reconstruct-v1`
 - starting canonical commit:
   `b01885d6cd55242339662e91d18141aeb725f089`
-- current bounded ticket: Ticket 07 quarter-only and year-to-date observations
+- current bounded ticket: Ticket 08 Appendix 4C quarterly cash profile
 
 ## Ordered backlog
 
@@ -24,10 +24,12 @@ at a time.
    published as draft PR 531, and exact-head CI passed.
 3. Ticket 06 ten-metric statutory observation projection: independently
    accepted, published as draft PR 532, and exact-head CI passed.
-4. Ticket 07 quarter-only and year-to-date observations: task card prepared on
-   the green Ticket 06 stacked head.
-5. Tickets 08–15 in declared dependency order.
-6. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
+4. Ticket 07 quarter-only and year-to-date observations: present in the exact
+   Ticket 08 base.
+5. Ticket 08 Appendix 4C quarterly cash profile: bounded local implementation
+   and validation complete, pending any separately requested review/transition.
+6. Tickets 09–15 in declared dependency order.
+7. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
    backfill only after prerequisites and explicit Tier 2 approvals.
 
 ## Approval boundaries
@@ -40,12 +42,12 @@ deployment, activation, merge, issue closure, canary execution, or backfill.
 
 ## Current milestone
 
-Ticket 06 is independently accepted and exact-head green at
-`f063c2a4cb4b9c677f35498de4b80f31dba55ba6`. Ticket 07 now makes
-`period_only` and `year_to_date` first-class, source-bound, collision-free
-observation contexts while preserving every legacy profile row.
+Ticket 08 builds a focused evidence-gated Appendix 4C cash profile on exact
+commit `dc4e99e305218dfea072e9c78cb13476dc6899fe`, preserving Ticket 07's
+source-bound, collision-free `period_only` and `year_to_date` observations.
 
 ## Next action
 
-Validate and seed Ticket 07, launch one fresh Codex X implementer, freeze the
-candidate, and send the exact delta to a different fresh Codex X reviewer.
+Restore launcher Git-wrapper audit writability, commit only the seven
+allowlisted Ticket 08 files, then use that frozen commit/tree for any
+separately requested review or next owner-directed transition.
