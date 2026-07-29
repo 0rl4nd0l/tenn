@@ -124,6 +124,9 @@ class DoclingTable:
     # outside the table body and a unit/note row inside it; retaining both is
     # required for source-local period-to-column provenance.
     raw_header_rows: list[list[str]] = field(default_factory=list)
+    # Deterministic OCR source mapping used only by the opt-in openability
+    # bridge. Native parser tables leave this empty.
+    ocr_source_candidates: list[dict[str, Any]] = field(default_factory=list)
 
 
 _PYMUPDF_SUBHEADER_MARKER_RE = re.compile(
@@ -1599,6 +1602,7 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
                 "rows": t.rows,
                 "headers": t.headers,
                 "raw_header_rows": t.raw_header_rows,
+                "ocr_source_candidates": t.ocr_source_candidates,
             }
             for t in doc.tables
         ],
@@ -1628,6 +1632,7 @@ def _load_cache(
             rows=t["rows"],
             headers=t["headers"],
             raw_header_rows=t.get("raw_header_rows", [t["headers"]]),
+            ocr_source_candidates=t.get("ocr_source_candidates", []),
         )
         for t in table_data
     ]

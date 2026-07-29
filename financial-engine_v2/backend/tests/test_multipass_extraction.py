@@ -9189,7 +9189,7 @@ def _whc_openability_diagnostic():
                 "page": 60,
                 "statement_label": "cashflow_statement",
                 "period_phrases": ["For the year ended 30 June 2022"],
-                "scale_phrases": [],
+                "scale_phrases": ["$000"],
                 "row_candidates": [
                     {
                         "source_text": "Net cash from operating activities 3.4 2,529,823 138,765",
@@ -9300,6 +9300,101 @@ def test_openability_selected_tables_fail_closed_without_period_or_scale_evidenc
     for record in _MissingScaleDoc.parser_diagnostics["openability"]["ocr_records"]:
         record["scale_phrases"] = []
     assert _build_openability_selected_tables(_MissingScaleDoc()) == []
+
+
+def test_openability_selected_tables_quarantine_conflicting_cross_page_scales():
+    import copy
+
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    diagnostic = copy.deepcopy(_whc_openability_diagnostic())
+    diagnostic["ocr_records"][0]["scale_phrases"] = ["$000"]
+    diagnostic["ocr_records"][1]["scale_phrases"] = ["millions"]
+    diagnostic["ocr_records"][2]["scale_phrases"] = ["$000", "millions"]
+
+    class _ConflictingScaleDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": diagnostic}
+
+    tables = _build_openability_selected_tables(_ConflictingScaleDoc())
+
+    assert [(table.page_number, table.headers[1]) for table in tables] == [
+        (57, "For the year ended 30 June 2022 $000"),
+        (58, "As at 30 June 2022 millions"),
+    ]
+
+
+@pytest.mark.parametrize("confidence", [None, "not-a-number", True, 79.99])
+def test_openability_final_selection_requires_numeric_confidence_at_least_80(
+    confidence,
+):
+    import copy
+
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    diagnostic = copy.deepcopy(_whc_openability_diagnostic())
+    diagnostic["ocr_records"][0]["row_candidates"][0][
+        "recognition_confidence"
+    ] = confidence
+
+    class _InvalidConfidenceDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": diagnostic}
+
+    tables = _build_openability_selected_tables(_InvalidConfidenceDoc())
+
+    income_table = next(
+        table for table in tables if table.page_number == 57
+    )
+    assert all("Revenue 21" not in row[0] for row in income_table.rows)
+    assert all(
+        candidate["source_text"] != "Revenue 21 4,920,102 1,556,976"
+        for candidate in income_table.ocr_source_candidates
+    )
+
+
+def test_openability_final_metric_retains_structured_provenance_without_row_refs():
+    from app.services.multipass_extraction import (
+        _build_openability_selected_tables,
+        _run_pass3a_metric_extractor,
+        _run_pass4_reconciler,
+    )
+
+    table = _build_openability_selected_tables(_OpenabilityDoc())[0]
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2022-06-30",
+        "currency": "AUD",
+        "scale": "unknown",
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value={
+            "revenue": 4_920_102,
+            "ebit": None,
+            "np_attributable": None,
+            "row_refs": {},
+            "pass3_confidence": 0.9,
+        },
+    ):
+        extracted = _run_pass3a_metric_extractor(
+            {"income_statement": table},
+            pass1,
+            llm_client=None,
+        )
+
+    payload = _run_pass4_reconciler(extracted, {}, pass1)
+
+    assert payload["metrics"]["revenue"] == 4_920_102_000
+    assert payload["row_refs"]["revenue"] == "Revenue 21 4,920,102 1,556,976"
+    assert payload["field_provenance"]["revenue"]["ocr_source"] == {
+        "page_number": 57,
+        "source_region": {"left": 10, "top": 20, "right": 500, "bottom": 32},
+        "source_row": 1,
+        "source_cell": [1, 2],
+        "source_text": "Revenue 21 4,920,102 1,556,976",
+        "candidate_value_text": "4,920,102",
+        "recognition_confidence": 95.0,
+    }
 
 
 def test_openability_period_source_text_reuses_existing_ambiguous_period_guard():
