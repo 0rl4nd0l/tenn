@@ -50,6 +50,9 @@ cross-page half-year bundle regression. The Codex X implementer produced a
 three-file frozen delta, a separate fresh reviewer returned `ACCEPT`, and the
 parent validation gate passed. The accepted commit is
 `3fb10c95ce01ecf6e8e7d730ec15f4ed16cb92f1`.
+Draft PR `https://github.com/0rl4nd0l/tenn/pull/530` is open against the verified
+canonical branch. Its initial exact publication head
+`aaf2dd39ad6d243932e873a9124e5e14edcc6020` passed `lint-and-test` and `scan`.
 
 ## Validation
 
@@ -61,5 +64,5 @@ Docling-backed multipass cases remain an environment-only validation gap.
 
 ## Next action
 
-Push the accepted Ticket 04 commit and report update, open a draft PR against
-the verified canonical branch, and bind CI evidence to the exact remote head.
+Frame Ticket 05 from fresh canonical and dependency truth, then launch one
+bounded Codex X implementation and one separate read-only review.

@@ -1,6 +1,6 @@
 # ASXFP Ticket 04 half-year bundle follow-up
 
-Status: READY_FOR_DRAFT_PR
+Status: DONE_WITH_RISK
 
 - canonical_base: `b01885d6cd55242339662e91d18141aeb725f089`
 - classification: `NEW_FAILURE_CLASS`
@@ -17,5 +17,24 @@ Status: READY_FOR_DRAFT_PR
 - validation_gap: two optional Docling-backed run-multipass cases could not
   load in the disposable environment; Ruff format is also non-green on the
   unchanged baseline versions of both Python files
-- publication: pending
+- publication: draft PR `https://github.com/0rl4nd0l/tenn/pull/530`
+- publication_ci: `lint-and-test` and `scan` succeeded at exact head
+  `aaf2dd39ad6d243932e873a9124e5e14edcc6020`
 - tier_2_actions: prohibited
+
+## Remaining risk
+
+- The separate anchor-absent 172-page half-year document remains
+  `DATA_MISSING` and was not widened into this repair.
+- Two optional Docling-backed multipass tests could not load in the disposable
+  parent environment. The classifier, contract, sidecar, schema, and related
+  source-classifier gates passed.
+- The reviewer identified dedicated weak-bundle and quarterly-conflict tests as
+  useful future hardening, but confirmed those paths fail closed with read-only
+  assertions and returned `ACCEPT`.
+
+## Unsafe actions avoided
+
+No source PDF or protected-corpus access, extraction, OCR/model execution,
+runtime/service/database/queue/GPU action, deployment, activation, production
+write, merge, issue closure, or ready-for-review transition occurred.
