@@ -310,6 +310,25 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         )
 
     if form_label_evidence:
+        later_form_label = form_label_evidence[0]
+        high_non_appendix_evidence = _high_non_appendix_evidence(
+            evidence_by_type
+        )
+        if (
+            later_form_label.page is not None
+            and later_form_label.page > 1
+            and high_non_appendix_evidence
+        ):
+            return _abstain(
+                reasons=[
+                    "conflicting high-confidence report and later Appendix form anchors",
+                    "abstained instead of granting late-form precedence",
+                ],
+                negative_evidence=(
+                    high_non_appendix_evidence + form_label_evidence
+                ),
+                warnings=warnings,
+            )
         appendix_type = form_label_evidence[0].document_type
         positive = evidence_by_type[appendix_type]
         rule = _rule_for(appendix_type)
@@ -660,22 +679,23 @@ def _rule_for(document_type: str) -> _DocumentTypeRule:
     raise ValueError(f"unsupported document type rule: {document_type}")
 
 
-def _high_non_appendix_conflicts(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
-    high_type_evidence: list[list[EvidenceItem]] = []
-    high_types = 0
+def _high_non_appendix_evidence(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    high_evidence: list[EvidenceItem] = []
     for document_type in ("annual_report", "half_year_report", "quarterly_report"):
         rule = _rule_for(document_type)
         evidence = evidence_by_type.get(document_type, [])
         if _confidence_for(rule, evidence) == "high":
-            high_types += 1
-            high_type_evidence.append(evidence)
-    if high_types <= 1:
-        return []
+            high_evidence.extend(evidence)
+    return high_evidence
 
-    conflicts: list[EvidenceItem] = []
-    for evidence in high_type_evidence:
-        conflicts.extend(evidence)
-    return conflicts
+
+def _high_non_appendix_conflicts(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
+    high_evidence = _high_non_appendix_evidence(evidence_by_type)
+    if len({item.document_type for item in high_evidence}) <= 1:
+        return []
+    return high_evidence
 
 
 def _supported_report_or_appendix_anchor_exists(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> bool:

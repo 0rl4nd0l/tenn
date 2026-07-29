@@ -436,6 +436,32 @@ def test_deep_bare_appendix_reference_does_not_override_annual_report() -> None:
     assert result["abstain"] is False
 
 
+def test_complete_late_appendix_form_abstains_on_high_annual_report() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "2025 Annual Report",
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Annual Report. Directors' report. Financial statements."
+                    ),
+                },
+                {
+                    "page": 52,
+                    "text": (
+                        "Appendix 4C. Quarterly cash flow report. Rule 4.7B."
+                    ),
+                },
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "unknown_or_abstain"
+    assert result["abstain"] is True
+    assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
 def test_unknown_low_signal_fixture_abstains() -> None:
     fixture = _load_json(FIXTURE_DIR / "unknown_low_signal.json")
     result = _classify_fixture(fixture)
