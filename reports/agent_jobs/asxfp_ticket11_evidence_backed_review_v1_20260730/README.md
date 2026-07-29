@@ -42,21 +42,22 @@ the resulting provenance records the review identity and reason codes.
 No runtime, database, migration, extraction, OCR, model, service, queue, GPU,
 deployment, network, or protected-data action was performed.
 
-## Controller finalization (required; not yet known)
+## Controller finalization
 
-- Delivery commit: `CONTROLLER_MUST_FILL_AFTER_LOCAL_COMMIT`
-- Delivery tree: `CONTROLLER_MUST_FILL_AFTER_LOCAL_COMMIT`
-- Branch: `codex-x/20260729T202843Z-6bed5f6fa9-b21b74`
-- Worktree:
-  `/home/l4nd0/codex-x-launcher-successor-v1-20260725/.state/runs/20260729T202843Z-6bed5f6fa9-b21b74/workspace/source`
-- Final Git status: `CONTROLLER_MUST_FILL_AFTER_LOCAL_COMMIT`
-- Push outcome: `NOT_ATTEMPTED_AND_PROHIBITED`
-- PR outcome: `NOT_ATTEMPTED_AND_PROHIBITED`
-- Merge outcome: `NOT_ATTEMPTED_AND_PROHIBITED`
+- Candidate implementation commit:
+  `9ba9e4df0125ab91dd22db6fd97cd512b93fb971`
+- Candidate implementation tree:
+  `617fc0a24928c7dce32916995b973ab0629950e2`
+- Branch: `safe/asxfp-11-evidence-review-v1-20260730`
+- Worktree: `/home/l4nd0/tenn-asxfp-11-evidence-review-v1-20260730`
+- Git status after the candidate commit: clean.
+- Exact-head review: pending this report-only identity follow-up.
+- Push outcome: not attempted; pending exact-head acceptance.
+- PR outcome: not attempted; pending exact-head acceptance.
+- Merge outcome: not attempted and not authorized.
 
-The controller must replace every `CONTROLLER_MUST_FILL_AFTER_LOCAL_COMMIT`
-placeholder from the post-commit repository state before accepting closeout.
-The repair worker must not fabricate these future values.
+This report-only follow-up records the immutable candidate identity. Its own
+commit changes no product, migration, API, or test behavior.
 
 ## Residual risks
 
