@@ -6,6 +6,8 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
+
 
 class FakeQuery:
     def __init__(self, existing=None, rows=None):
@@ -83,7 +85,9 @@ def accepted_context(document_id: uuid.UUID) -> dict:
                 "metric": "revenue",
                 "source": "income_statement",
                 "page_number": 42,
-                "row_ref": "Statutory revenue",
+                "row_ref": "Consolidated statutory revenue",
+                "accounting_basis": "statutory",
+                "consolidation_scope": "consolidated",
                 "period_type": "A",
                 "period_end": "2025-06-30",
                 "currency": "AUD",
@@ -91,7 +95,7 @@ def accepted_context(document_id: uuid.UUID) -> dict:
                 "scale_source": "table_header",
                 "source_cell": {
                     "raw_value": "55,658",
-                    "row_label": "Statutory revenue",
+                    "row_label": "Consolidated statutory revenue",
                     "header_cell": "2025 AUD millions",
                 },
             }
@@ -188,9 +192,11 @@ def accepted_metric_context(document_id: uuid.UUID, metric: str) -> dict:
     provenance.update(
         metric=metric,
         source=source_by_metric[metric],
-        row_ref=f"Statutory {metric}",
+        row_ref=f"Consolidated statutory {metric}",
     )
-    provenance["source_cell"]["row_label"] = f"Statutory {metric}"
+    provenance["source_cell"]["row_label"] = (
+        f"Consolidated statutory {metric}"
+    )
     if metric == "shares_outstanding":
         provenance["currency"] = "shares"
         provenance["source_cell"]["header_cell"] = "2025 shares millions"
@@ -1260,6 +1266,28 @@ def test_revenue_compatibility_alias_does_not_stage_sibling_metrics():
     assert len(session.executed) == 1
 
 
+def test_revenue_compatibility_alias_does_not_stage_result_disclosures():
+    from app.services.financial_observations import stage_revenue_observation
+
+    document_id = uuid.uuid4()
+    context = accepted_metric_context(document_id, "revenue")
+    context["result_disclosures"] = [adjusted_disclosure(document_id)]
+    session = FakeSession()
+
+    observation = stage_revenue_observation(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v5"
+        ),
+        structured=context,
+    )
+
+    assert observation is not None
+    assert observation.metric == "revenue"
+    assert len(session.executed) == 1
+
+
 def test_metric_statement_context_is_derived_from_authoritative_contract():
     from app.services.financial_observations import stage_financial_observations
 
@@ -1313,7 +1341,7 @@ def test_accepted_revenue_is_staged_without_committing():
     assert observation.currency == "AUD"
     assert observation.scale == "units"
     assert observation.trust_state == "accepted"
-    assert observation.provenance["row_ref"] == "Statutory revenue"
+    assert observation.provenance["row_ref"] == "Consolidated statutory revenue"
     assert observation.provenance["source_scale"] == "millions"
     assert observation.provenance["source_cell"]["raw_value"] == "55,658"
     assert session.added == []
@@ -1633,3 +1661,240 @@ def test_additive_read_returns_sparse_deterministic_bases_without_conflicts():
             "metric_units": {"revenue": "AUD"},
         },
     )
+
+
+def adjusted_disclosure(document_id: uuid.UUID) -> dict:
+    source_label = "Underlying EBITDA (management measure)"
+    return {
+        "metric": "ebit",
+        "value": 125_000_000,
+        "period_end": "2025-06-30",
+        "period_basis": "A",
+        "accounting_basis": "underlying",
+        "consolidation_scope": "consolidated",
+        "source_label": source_label,
+        "currency": "AUD",
+        "scale": "units",
+        "provenance": {
+            "source_document_id": str(document_id),
+            "metric": "ebit",
+            "source_label": source_label,
+            "accounting_basis": "underlying",
+            "consolidation_scope": "consolidated",
+            "page_number": 7,
+            "row_ref": source_label,
+        },
+        "reconciliation_evidence": {
+            "source_label": source_label,
+            "items": [
+                {
+                    "label": "Restructuring costs",
+                    "value": 5_000_000,
+                    "source_ref": "page 7 reconciliation row 3",
+                }
+            ],
+        },
+    }
+
+
+def test_end_to_end_staging_keeps_adjusted_result_out_of_canonical_lane():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    payload = accepted_metric_context(document_id, "ebit")
+    payload["metrics"]["ebit"] = 120_000_000
+    payload["result_disclosures"] = [adjusted_disclosure(document_id)]
+    session = FakeSession()
+
+    observations = stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured=payload,
+    )
+
+    assert [item.value for item in observations] == [Decimal("120000000")]
+    assert len(session.executed) == 2
+    canonical_values = session.executed[0].compile().params
+    disclosure_values = session.executed[1].compile().params
+    assert canonical_values["value"] == Decimal("120000000")
+    assert canonical_values["accounting_basis"] == "statutory"
+    assert disclosure_values["value"] == Decimal("125000000")
+    assert disclosure_values["source_label"] == (
+        "Underlying EBITDA (management measure)"
+    )
+    assert disclosure_values["reconciliation_evidence"]["items"][0][
+        "source_ref"
+    ] == "page 7 reconciliation row 3"
+
+
+def test_adjusted_canonical_candidate_abstains_but_disclosure_is_retained():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    payload = accepted_metric_context(document_id, "ebit")
+    provenance = payload["field_provenance"]["ebit"]
+    provenance["row_ref"] = "Consolidated underlying EBIT"
+    provenance["source_cell"]["row_label"] = "Consolidated underlying EBIT"
+    payload["accounting_basis"] = "underlying"
+    payload["result_disclosures"] = [adjusted_disclosure(document_id)]
+    session = FakeSession()
+
+    assert stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured=payload,
+    ) == ()
+    assert len(session.executed) == 1
+    assert (
+        session.executed[0].compile().params["source_label"]
+        == "Underlying EBITDA (management measure)"
+    )
+
+
+@pytest.mark.parametrize(
+    "marker",
+    (
+        "adjusted",
+        "underlying",
+        "normalized",
+        "normalised",
+        "pro forma",
+        "pro-forma",
+    ),
+)
+def test_every_non_statutory_spelling_abstains_from_canonical_lane(marker):
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    payload = accepted_metric_context(document_id, "ebit")
+    provenance = payload["field_provenance"]["ebit"]
+    source_label = f"Consolidated statutory {marker} EBIT"
+    provenance["row_ref"] = source_label
+    provenance["source_cell"]["row_label"] = source_label
+    session = FakeSession()
+
+    assert stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured=payload,
+    ) == ()
+    assert session.executed == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("accounting_basis", None),
+        ("accounting_basis", "underlying"),
+        ("consolidation_scope", None),
+        ("consolidation_scope", "parent"),
+    ),
+)
+def test_canonical_provenance_requires_explicit_statutory_consolidated(
+    field, value
+):
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    payload = accepted_metric_context(document_id, "ebit")
+    provenance = payload["field_provenance"]["ebit"]
+    if value is None:
+        provenance.pop(field)
+    else:
+        provenance[field] = value
+    session = FakeSession()
+
+    assert stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured=payload,
+    ) == ()
+    assert session.executed == []
+
+
+def test_ambiguous_disclosure_basis_or_scope_abstains_from_both_lanes():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    for field, value in (
+        ("accounting_basis", None),
+        ("accounting_basis", "statutory"),
+        ("consolidation_scope", None),
+        ("consolidation_scope", "parent"),
+    ):
+        payload = {
+            "result_disclosures": [adjusted_disclosure(document_id)]
+        }
+        payload["result_disclosures"][0][field] = value
+        session = FakeSession()
+        assert stage_financial_observations(
+            session,
+            document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+            extraction_run=SimpleNamespace(
+                run_id=uuid.uuid4(), extractor_version="multipass-v9"
+            ),
+            structured=payload,
+        ) == ()
+        assert session.executed == []
+
+
+def test_disclosure_requires_exact_label_and_reconciliation_evidence():
+    from app.services.financial_observations import (
+        stage_financial_result_disclosures,
+    )
+
+    document_id = uuid.uuid4()
+    for mutation in ("label_mismatch", "missing_reconciliation"):
+        candidate = adjusted_disclosure(document_id)
+        if mutation == "label_mismatch":
+            candidate["provenance"]["source_label"] = "Adjusted EBIT"
+        else:
+            candidate["reconciliation_evidence"]["items"] = []
+        session = FakeSession()
+        assert stage_financial_result_disclosures(
+            session,
+            document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+            extraction_run=SimpleNamespace(
+                run_id=uuid.uuid4(), extractor_version="multipass-v9"
+            ),
+            structured={"result_disclosures": [candidate]},
+        ) == ()
+        assert session.executed == []
+
+
+@pytest.mark.parametrize("source_label", ("Unadjusted EBIT", "Underlyingness EBIT"))
+def test_disclosure_basis_requires_boundary_aware_label_term(source_label):
+    from app.services.financial_observations import (
+        stage_financial_result_disclosures,
+    )
+
+    document_id = uuid.uuid4()
+    candidate = adjusted_disclosure(document_id)
+    candidate["accounting_basis"] = "adjusted"
+    candidate["source_label"] = source_label
+    candidate["provenance"]["accounting_basis"] = "adjusted"
+    candidate["provenance"]["source_label"] = source_label
+    candidate["reconciliation_evidence"]["source_label"] = source_label
+    session = FakeSession()
+
+    assert stage_financial_result_disclosures(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured={"result_disclosures": [candidate]},
+    ) == ()
+    assert session.executed == []

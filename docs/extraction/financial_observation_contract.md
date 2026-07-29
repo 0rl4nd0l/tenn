@@ -1,6 +1,6 @@
-# Financial observation contract
+# Financial observation and result-disclosure contract
 
-Ticket 07 retains exactly the ten existing `CANONICAL_METRIC_FIELDS`. The legacy
+Tickets 07-09 retain exactly the ten existing `CANONICAL_METRIC_FIELDS`. The legacy
 `asx_periodic_financials` row remains the compatibility projection and the
 workflow remains the sole transaction owner.
 
@@ -29,7 +29,7 @@ unambiguous:
 - ticker, a present numeric canonical metric value, period end, and period basis;
 - an `ok` (not low-confidence) production extraction;
 - a source row in one of the metric contract's allowed statement contexts,
-  explicitly marked `statutory`, with no
+  explicitly marked both `consolidated` and `statutory`, with no
   adjusted, underlying, non-statutory, or pro-forma marker;
 - matching basis-specific source-text period-scope and reporting-period-end
   evidence;
@@ -38,11 +38,12 @@ unambiguous:
 - a closed source-scale vocabulary with non-unknown scale origin and raw source
   cell evidence; and
 - structured metric provenance bound by the workflow to the same source
-  document, metric, period, currency, and original source scale.
+  document, metric, period, currency, and original source scale, with explicit
+  `accounting_basis=statutory` and `consolidation_scope=consolidated`.
 
 These gates establish the accounting/trust state:
 `accounting_basis=statutory` and `trust_state=accepted`. Missing, unknown,
-arbitrary, low-confidence, adjusted, or conflicting context abstains for that
+parent-only, arbitrary, low-confidence, adjusted, or conflicting context abstains for that
 metric without suppressing valid siblings. Document type never supplies a period basis. Values are already
 normalized absolute values; observations store `scale=units`, retain native
 currency or the `shares` unit, and preserve the contract unit kind, original
@@ -69,6 +70,22 @@ source-context identity a no-op without a query-before-add race. The seam does
 not flush, commit, or roll back; the workflow remains sole transaction owner.
 The accepted row is never updated.
 
+## Non-statutory disclosure lane
+
+Explicit `adjusted`, `underlying`, `normalized`, and `pro_forma` values are
+never financial observations and never participate in canonical projection.
+They may be staged in `financial_result_disclosures` only when the candidate
+has an explicit consolidated scope, closed accounting basis, exact source
+label containing the corresponding source term, document-bound provenance
+that repeats that exact label and basis, and a non-empty reconciliation whose
+items each retain their source label, numeric value, and source reference.
+
+Disclosure identity adds the exact source label to the source-context identity,
+so differently labelled management measures do not collide. Inserts are
+immutable and idempotent. Missing or contradictory basis, scope, label,
+provenance, or reconciliation evidence causes disclosure abstention. The
+disclosure table has no canonical-profile read path.
+
 ## Compatibility read
 
 `/financials` retains its existing rows and response fields. For each legacy
@@ -85,5 +102,4 @@ deterministically ordered, basis-labelled, sparse `observation_only` rows.
 Conflicting metrics abstain independently. These rows never replace or
 overwrite legacy `Q`, `H`, or `A` rows.
 
-Accounting-basis separation and restatement precedence remain outside Ticket
-07.
+Restatement precedence remains outside Ticket 09.
