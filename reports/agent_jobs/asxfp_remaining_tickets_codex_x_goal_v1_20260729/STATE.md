@@ -12,10 +12,17 @@
 - ticket_06: independently accepted and exact-head CI passed at
   `f063c2a4cb4b9c677f35498de4b80f31dba55ba6`; draft PR 532 remains open,
   draft, and unmerged
-- implementer: not started
-- reviewer: not started
+- implementer: complete
+- reviewer: final review of `653c6950` rejected only this STATE file's stale
+  sentence and explicitly passed all product, authority, behavioral,
+  migration/model/route/docs, compatibility, scope, validation-evidence,
+  docs_changed, Ticket08/Tier2/protected-corpus checks
+- repair: product behavioral anchor remains exact commit
+  `38f7f2bcb23fa8d385570dd3875bc3f3596b6d47`, tree
+  `377adce419f60e83ed9306139b3cd5eb589e5996`; evidence is synchronized and
+  Ticket 07 is delivery-ready subject only to read-only confirmation of this
+  state-only descendant, which is permitted and is not pending work
 - draft_pr: not created
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: validate and seed Ticket 07, then launch one fresh Codex X
-  implementer
+- next_transition: exact-tree delivery and draft stacked PR

@@ -37,7 +37,6 @@ docs_checked:
 docs_changed:
   - docs/agent_tasks/asxfp_ticket07_quarter_ytd_v1_20260729.md
   - docs/extraction/financial_observation_contract.md
-  - reports/agent_jobs/asxfp_remaining_tickets_codex_x_goal_v1_20260729/FRAME.md
   - reports/agent_jobs/asxfp_remaining_tickets_codex_x_goal_v1_20260729/OPERATOR_NOTES.md
   - reports/agent_jobs/asxfp_remaining_tickets_codex_x_goal_v1_20260729/README.md
   - reports/agent_jobs/asxfp_remaining_tickets_codex_x_goal_v1_20260729/STATE.md

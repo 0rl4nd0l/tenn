@@ -19,7 +19,7 @@ class FinancialObservation(Base):
             name="ck_financial_observation_metric",
         ),
         CheckConstraint(
-            "period_basis IN ('Q', 'H', 'A')",
+            "period_basis IN ('Q', 'H', 'A', 'period_only', 'year_to_date')",
             name="ck_financial_observation_period_basis",
         ),
         CheckConstraint(

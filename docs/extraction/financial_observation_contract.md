@@ -1,8 +1,24 @@
 # Financial observation contract
 
-Ticket 06 promotes exactly the ten existing `CANONICAL_METRIC_FIELDS`. The legacy
+Ticket 07 retains exactly the ten existing `CANONICAL_METRIC_FIELDS`. The legacy
 `asx_periodic_financials` row remains the compatibility projection and the
 workflow remains the sole transaction owner.
+
+## Structured period input
+
+`period_observations` is the explicit multi-period collection. Each member is a
+complete observation context with its own `metrics`, `field_provenance`,
+`period_end`, `period_basis`, `source_period_type`, `source_period_evidence`,
+and `source_period_end_evidence`. Members are evaluated independently. The
+single-period top-level shape and the public revenue-only alias remain
+compatibility paths.
+
+New quarterly members use the closed bases `period_only` and `year_to_date`.
+Their metric source cell must bind a non-negative `column_index`, non-empty
+`header_cell` and `raw_value`, and respectively the exact `column_role`
+`current_quarter` or `year_to_date`. Comparative, prior-period, generic date,
+announcement-date, inferred, metadata-only, unknown, or mismatched columns
+abstain; they are never relabelled from a numeric value or date.
 
 ## Acceptance
 
@@ -15,7 +31,8 @@ unambiguous:
 - a source row in one of the metric contract's allowed statement contexts,
   explicitly marked `statutory`, with no
   adjusted, underlying, non-statutory, or pro-forma marker;
-- matching explicit source-text period-basis and period-end evidence;
+- matching basis-specific source-text period-scope and reporting-period-end
+  evidence;
 - for currency metrics, a supported native currency explicitly present in the
   source cell evidence; for `shares_outstanding`, the closed `shares` unit;
 - a closed source-scale vocabulary with non-unknown scale origin and raw source
@@ -37,7 +54,9 @@ or FX-converted.
 The source-context identity is document, extractor version, ticker, metric,
 period end, period basis, accounting basis, currency, and scale. It deliberately
 allows different documents, extractor versions, period bases, and accounting
-bases for the same company period and metric.
+bases for the same company period and metric. Thus `period_only` and
+`year_to_date` always have distinct immutable identities even when every other
+identity member matches.
 
 A versioned, canonically serialized representation of that complete identity is
 mapped to `observation_id` with UUIDv5. The extraction-run ID is intentionally
@@ -61,5 +80,10 @@ legacy values intact. Missing or mismatched legacy context, or candidate
 disagreement, abstains only for that metric. No insertion-time or write-order
 precedence is used.
 
-Period-basis expansion, accounting-basis separation, and restatement precedence
-remain outside Ticket 06.
+Accepted `period_only` and `year_to_date` observations are appended as
+deterministically ordered, basis-labelled, sparse `observation_only` rows.
+Conflicting metrics abstain independently. These rows never replace or
+overwrite legacy `Q`, `H`, or `A` rows.
+
+Accounting-basis separation and restatement precedence remain outside Ticket
+07.
