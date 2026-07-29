@@ -23,6 +23,7 @@ allowed_files:
   - docs/extraction/financial_observation_contract.md
   - financial-engine_v2/backend/app/alembic/versions/0011_expand_statutory_observation_metrics.py
   - financial-engine_v2/backend/app/api/routes.py
+  - financial-engine_v2/backend/app/models/financial_observations.py
   - financial-engine_v2/backend/app/services/financial_metric_contract.py
   - financial-engine_v2/backend/app/services/financial_observations.py
   - financial-engine_v2/backend/app/services/pipeline.py
@@ -115,6 +116,10 @@ The ten metrics are:
 - Add a forward-only stacked Alembic migration that expands the closed metric
   vocabulary. Do not edit the already-published `0010` migration and do not
   execute either migration.
+- Keep the `FinancialObservation` ORM metadata exactly aligned with the
+  expanded migration vocabulary and unit storage. Metadata-created schemas and
+  schema comparison must not retain Ticket 05's revenue-only or
+  three-character currency constraints.
 - Project uncontested accepted statutory observations for all ten metrics into
   the existing `/financials` response shape. Preserve the legacy row as the
   compatibility substrate and fallback.
@@ -173,3 +178,23 @@ Return exact stacked base, branch, candidate tree, changed files, RED and GREEN
 commands, validation status, reviewer verdict, remaining risks, and docs
 impact. Publication may create a stacked draft PR against the Ticket 05 branch
 only; merge and any database-backed proof remain separate approvals.
+
+Closeout evidence must be truthful and non-self-referential. A tracked report
+records the latest frozen predecessor candidate commit and tree, together with
+the pending report patch state that follows that freeze. It must never be
+required to embed the hash of the commit that contains the report itself. The
+parent freeze, followed by a fresh independent reviewer record or PR record,
+records the final commit and tree that contain the report.
+
+## Candidate 1 review rejection
+
+- Rejected candidate:
+  `73a4fadedc031c490b2748d260ed13cd40b40363`, tree
+  `8c13c0e30c47119b4dd7710411c8fcc55fdc1025`.
+- Fresh reviewer session:
+  `019fae5d-a471-7132-8172-1634de79db3b`.
+- Blocker: migration `0011` expands the metric vocabulary and `shares` unit,
+  while `app/models/financial_observations.py` retained Ticket 05's
+  revenue-only checks and `String(3)` currency column.
+- Repair scope is limited to aligning ORM metadata, adding focused static/fake
+  coverage, and correcting closeout evidence. All original hard stops remain.

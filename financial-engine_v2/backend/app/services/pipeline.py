@@ -35,7 +35,7 @@ from app.services.extraction_run_observability import (
     initialize_run_status,
 )
 from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
-from app.services.financial_observations import stage_revenue_observation
+from app.services.financial_observations import stage_financial_observations
 from app.services.announcement_importance import (
     classify_documents_and_materialize,
     classify_title_extraction_skip,
@@ -1707,7 +1707,7 @@ def process_document(
                 observation_payload["_observation_extraction_status"] = (
                     extraction_stage.status.value
                 )
-                stage_revenue_observation(
+                stage_financial_observations(
                     db,
                     document=doc,
                     extraction_run=run,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
@@ -94,6 +95,176 @@ def accepted_context(document_id: uuid.UUID) -> dict:
             }
         },
     }
+
+
+CANONICAL_METRICS = (
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+    "shares_outstanding",
+)
+
+
+def test_orm_metadata_matches_ten_metric_and_share_unit_migration_contract():
+    from sqlalchemy import CheckConstraint
+
+    from app.models.financial_observations import FinancialObservation
+
+    table = FinancialObservation.__table__
+    checks = {
+        constraint.name: str(constraint.sqltext)
+        for constraint in table.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+
+    assert table.c.currency.type.length == 16
+    assert checks["ck_financial_observation_metric"] == (
+        "metric IN ('revenue', 'ebit', 'np_attributable', 'operating_cf', "
+        "'investing_cf', 'financing_cf', 'capex', 'cash_end', 'net_debt', "
+        "'shares_outstanding')"
+    )
+    assert checks["ck_financial_observation_currency"] == (
+        "(metric = 'shares_outstanding' AND currency = 'shares') OR "
+        "(metric <> 'shares_outstanding' AND currency IN ('AUD', 'CAD', "
+        "'CNY', 'EUR', 'GBP', 'HKD', 'IDR', 'JPY', 'NZD', 'SGD', 'USD'))"
+    )
+
+
+def accepted_metric_context(document_id: uuid.UUID, metric: str) -> dict:
+    context = accepted_context(document_id)
+    provenance = deepcopy(context["field_provenance"]["revenue"])
+    source_by_metric = {
+        "revenue": "income_statement",
+        "ebit": "income_statement",
+        "np_attributable": "income_statement",
+        "operating_cf": "cashflow_statement",
+        "investing_cf": "cashflow_statement",
+        "financing_cf": "cashflow_statement",
+        "capex": "cashflow_statement",
+        "cash_end": "cashflow_statement",
+        "net_debt": "net_debt_note",
+        "shares_outstanding": "share_capital",
+    }
+    provenance.update(
+        metric=metric,
+        source=source_by_metric[metric],
+        row_ref=f"Statutory {metric}",
+    )
+    provenance["source_cell"]["row_label"] = f"Statutory {metric}"
+    if metric == "shares_outstanding":
+        provenance["currency"] = "shares"
+        provenance["source_cell"]["header_cell"] = "2025 shares millions"
+    context["metrics"] = {metric: 123_000_000}
+    context["field_provenance"] = {metric: provenance}
+    return context
+
+
+def test_all_ten_canonical_metrics_stage_independently_with_native_unit_kind():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    context = accepted_context(document_id)
+    context["metrics"] = {}
+    context["field_provenance"] = {}
+    for metric in CANONICAL_METRICS:
+        metric_context = accepted_metric_context(document_id, metric)
+        context["metrics"].update(metric_context["metrics"])
+        context["field_provenance"].update(metric_context["field_provenance"])
+
+    session = FakeSession()
+    observations = stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v5"
+        ),
+        structured=context,
+    )
+
+    assert tuple(observation.metric for observation in observations) == CANONICAL_METRICS
+    assert len(session.executed) == 10
+    assert all(
+        observation.currency == "AUD"
+        for observation in observations
+        if observation.metric != "shares_outstanding"
+    )
+    shares = observations[-1]
+    assert shares.currency == "shares"
+    assert shares.scale == "units"
+    assert shares.provenance["unit_kind"] == "share_count_absolute"
+    assert session.added == []
+    assert session.commits == 0
+
+
+def test_invalid_metric_abstains_without_suppressing_valid_sibling():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    context = accepted_metric_context(document_id, "revenue")
+    shares = accepted_metric_context(document_id, "shares_outstanding")
+    shares["field_provenance"]["shares_outstanding"]["currency"] = "AUD"
+    context["metrics"].update(shares["metrics"])
+    context["field_provenance"].update(shares["field_provenance"])
+
+    observations = stage_financial_observations(
+        FakeSession(),
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v5"
+        ),
+        structured=context,
+    )
+
+    assert [observation.metric for observation in observations] == ["revenue"]
+
+
+def test_revenue_compatibility_alias_does_not_stage_sibling_metrics():
+    from app.services.financial_observations import stage_revenue_observation
+
+    document_id = uuid.uuid4()
+    context = accepted_metric_context(document_id, "revenue")
+    sibling = accepted_metric_context(document_id, "ebit")
+    context["metrics"].update(sibling["metrics"])
+    context["field_provenance"].update(sibling["field_provenance"])
+    session = FakeSession()
+
+    observation = stage_revenue_observation(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v5"
+        ),
+        structured=context,
+    )
+
+    assert observation.metric == "revenue"
+    assert len(session.executed) == 1
+
+
+def test_metric_statement_context_is_derived_from_authoritative_contract():
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    context = accepted_metric_context(document_id, "ebit")
+    context["field_provenance"]["ebit"]["source"] = "cashflow_statement"
+
+    assert (
+        stage_financial_observations(
+            FakeSession(),
+            document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+            extraction_run=SimpleNamespace(
+                run_id=uuid.uuid4(), extractor_version="multipass-v5"
+            ),
+            structured=context,
+        )
+        == ()
+    )
 
 
 def test_accepted_revenue_is_staged_without_committing():
@@ -258,9 +429,6 @@ def test_missing_or_conflicting_financial_context_abstains():
     low_confidence = accepted_context(document_id)
     low_confidence["_observation_extraction_status"] = "ok_low_confidence"
     cases.append(low_confidence)
-    highlights = accepted_context(document_id)
-    highlights["field_provenance"]["revenue"]["source"] = "highlights"
-    cases.append(highlights)
     adjusted = accepted_context(document_id)
     adjusted["field_provenance"]["revenue"]["row_ref"] = "Adjusted revenue"
     cases.append(adjusted)
@@ -322,8 +490,11 @@ def test_closed_context_vocabularies_reject_arbitrary_nonempty_strings():
         assert session.executed == []
 
 
-def _observation(value, *, currency="AUD", scale="units"):
+def _observation(
+    value, *, metric="revenue", currency="AUD", scale="units"
+):
     return SimpleNamespace(
+        metric=metric,
         period_end=date(2025, 6, 30),
         period_basis="A",
         accounting_basis="statutory",
@@ -331,6 +502,39 @@ def _observation(value, *, currency="AUD", scale="units"):
         scale=scale,
         value=value,
     )
+
+
+def test_read_projects_each_metric_independently_and_preserves_sparse_legacy():
+    from app.services.financial_observations import accepted_statutory_overrides
+
+    rows = [
+        _observation(100, metric="revenue"),
+        _observation(100, metric="revenue"),
+        _observation(20, metric="ebit"),
+        _observation(30, metric="ebit"),
+        _observation(
+            500,
+            metric="shares_outstanding",
+            currency="shares",
+        ),
+    ]
+    key = (date(2025, 6, 30), "A")
+
+    assert accepted_statutory_overrides(
+        FakeSession(rows=rows),
+        ticker="BHP",
+        legacy_contexts={
+            key: {
+                **{metric: ("AUD", "units") for metric in CANONICAL_METRICS},
+                "shares_outstanding": ("shares", "units"),
+            }
+        },
+    ) == {
+        key: {
+            "revenue": Decimal("100"),
+            "shares_outstanding": Decimal("500"),
+        }
+    }
 
 
 def test_read_returns_only_uncontested_matching_legacy_context():
