@@ -30,6 +30,8 @@ from app.services.financial_observations import (
     accepted_observation_history,
     accepted_observation_periods,
     accepted_statutory_overrides,
+    decide_financial_observation_review,
+    pending_financial_observation_reviews,
 )
 from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
@@ -69,6 +71,11 @@ class BookIngestRequest(BaseModel):
 class ProcessDocumentRequest(BaseModel):
     method: str = "auto"
     strict_method: bool = False
+
+
+class FinancialObservationReviewDecision(BaseModel):
+    decision: str
+    note: str | None = None
 
 
 def _market_data_mode() -> str:
@@ -274,6 +281,46 @@ def financials(ticker: str, db: Session = Depends(get_db)):
 )
 def financial_history(ticker: str, db: Session = Depends(get_db)):
     return accepted_observation_history(db, ticker=ticker)
+
+
+@router.get(
+    "/financials/reviews",
+    dependencies=[Depends(require_api_key)],
+)
+def financial_reviews(
+    ticker: str | None = None, db: Session = Depends(get_db)
+):
+    return pending_financial_observation_reviews(db, ticker=ticker)
+
+
+@router.post(
+    "/financials/reviews/{review_id}/decision",
+    dependencies=[Depends(require_api_key)],
+)
+def financial_review_decision(
+    review_id: uuid.UUID,
+    body: FinancialObservationReviewDecision,
+    db: Session = Depends(get_db),
+):
+    try:
+        observation = decide_financial_observation_review(
+            db,
+            review_id=review_id,
+            decision=body.decision,
+            note=body.note,
+        )
+        db.commit()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "review_id": str(review_id),
+        "status": "approved" if observation is not None else "rejected",
+        "observation_id": (
+            str(observation.observation_id)
+            if observation is not None
+            else None
+        ),
+    }
 
 
 @router.get("/risk")
