@@ -183,6 +183,25 @@ def test_appendix_4c_on_page_2_takes_precedence_over_generic_quarterly_cover() -
     )
 
 
+def test_authoritative_appendix_title_survives_bare_later_repeat() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "Appendix 4C",
+            "document_pages": [
+                {"page": 1, "text": "Company logo"},
+                {"page": 2, "text": "Appendix 4C"},
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "appendix_4c"
+    assert result["abstain"] is False
+    assert any(
+        item["anchor"] == "Appendix 4C" and item["page"] is None
+        for item in result["positive_evidence"]
+    )
+
+
 def test_page_evidence_aggregates_sections_before_matching() -> None:
     result = classify_asx_document_type(
         {
@@ -332,6 +351,34 @@ def test_same_page_4d_and_half_year_report_bundle_abstains() -> None:
                     ),
                 }
             ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "unknown_or_abstain"
+    assert result["abstain"] is True
+    assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
+def test_half_year_bundle_abstains_on_high_annual_report_conflict() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "2025 Annual Report",
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Annual Report. Directors' report. Financial statements. "
+                        "Appendix 4D. Results for announcement to the market."
+                    ),
+                },
+                {
+                    "page": 4,
+                    "text": (
+                        "Half-Year Report. Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                },
+            ],
         }
     ).to_dict()
 

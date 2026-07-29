@@ -263,6 +263,22 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         bundle_evidence_by_type
     )
     if half_year_bundle_evidence:
+        bundle_conflict_evidence_by_type = dict(evidence_by_type)
+        bundle_conflict_evidence_by_type["half_year_report"] = (
+            half_year_bundle_evidence
+        )
+        bundle_non_appendix_conflicts = _high_non_appendix_conflicts(
+            bundle_conflict_evidence_by_type
+        )
+        if bundle_non_appendix_conflicts:
+            return _abstain(
+                reasons=[
+                    "conflicting non-Appendix report anchors",
+                    "abstained instead of granting bundle precedence",
+                ],
+                negative_evidence=bundle_non_appendix_conflicts,
+                warnings=warnings,
+            )
         return _result(
             document_type="half_year_report",
             confidence_band=_confidence_for(
@@ -444,13 +460,20 @@ def _match_rule(
             for source in matching_sources
             if source.document_page and source.page is not None
         ]
-        if retain_all_page_matches and page_matches:
-            selected_sources = list(
+        metadata_matches = [
+            source
+            for source in matching_sources
+            if not source.document_page
+        ]
+        if retain_all_page_matches:
+            selected_sources = metadata_matches[:1] + list(
                 {
                     source.page: source
                     for source in page_matches
                 }.values()
             )
+            if not selected_sources:
+                selected_sources = [matching_sources[0]]
         else:
             selected_sources = [
                 page_matches[0] if page_matches else matching_sources[0]
@@ -503,10 +526,22 @@ def _scope_appendix_evidence(
 def _appendix_form_label_evidence(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     for document_type, label in APPENDIX_DOCUMENT_TYPES.items():
-        for item in evidence_by_type.get(document_type, []):
-            if item.anchor == label:
-                evidence.append(item)
-                break
+        label_evidence = [
+            item
+            for item in evidence_by_type.get(document_type, [])
+            if item.anchor == label
+        ]
+        if label_evidence:
+            evidence.append(
+                next(
+                    (
+                        item
+                        for item in label_evidence
+                        if item.page is not None
+                    ),
+                    label_evidence[0],
+                )
+            )
     return evidence
 
 
