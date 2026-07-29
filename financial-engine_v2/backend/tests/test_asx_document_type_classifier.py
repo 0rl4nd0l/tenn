@@ -293,6 +293,33 @@ def test_page_match_takes_precedence_over_duplicate_title_anchor() -> None:
     assert any(item["page"] == 4 for item in result["positive_evidence"])
 
 
+def test_later_complete_half_year_report_outweighs_repeated_wrapper_anchor() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Appendix 4D. Results for announcement to the market. "
+                        "Interim financial report."
+                    ),
+                },
+                {
+                    "page": 4,
+                    "text": (
+                        "Half-Year Report. Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                },
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "half_year_report"
+    assert result["abstain"] is False
+    assert any(item["page"] == 4 for item in result["positive_evidence"])
+
+
 def test_same_page_4d_and_half_year_report_bundle_abstains() -> None:
     result = classify_asx_document_type(
         {
@@ -311,6 +338,32 @@ def test_same_page_4d_and_half_year_report_bundle_abstains() -> None:
     assert result["document_type"] == "unknown_or_abstain"
     assert result["abstain"] is True
     assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
+def test_deep_quarterly_reference_does_not_conflict_with_annual_report() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "2025 Annual Report",
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Annual Report. Directors' report. Financial statements."
+                    ),
+                },
+                {
+                    "page": 37,
+                    "text": (
+                        "See the Quarterly activities report for the quarter "
+                        "ended 31 March 2025."
+                    ),
+                },
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "annual_report"
+    assert result["abstain"] is False
 
 
 def test_unknown_low_signal_fixture_abstains() -> None:

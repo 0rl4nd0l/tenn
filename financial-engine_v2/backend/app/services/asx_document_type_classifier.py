@@ -68,6 +68,7 @@ class EvidenceItem:
 class _TextSource:
     text: str
     page: int | None
+    document_page: bool = False
 
 
 @dataclass(frozen=True)
@@ -214,8 +215,18 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
             warnings=warnings,
         )
 
+    report_context_sources = [
+        source
+        for source in sources
+        if not source.document_page or source.page == 1
+    ]
     evidence_by_type = {
-        rule.document_type: _match_rule(rule, sources)
+        rule.document_type: _match_rule(
+            rule,
+            sources
+            if rule.document_type in APPENDIX_DOCUMENT_TYPES
+            else report_context_sources,
+        )
         for rule in _RULES
     }
     form_label_evidence = _appendix_form_label_evidence(evidence_by_type)
@@ -229,7 +240,21 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
             warnings=warnings,
         )
 
-    half_year_bundle_evidence = _half_year_bundle_precedence(evidence_by_type)
+    bundle_evidence_by_type = evidence_by_type
+    if any(
+        item.document_type == "appendix_4d" and item.page is not None
+        for item in form_label_evidence
+    ):
+        bundle_evidence_by_type = dict(evidence_by_type)
+        bundle_evidence_by_type["half_year_report"] = _match_rule(
+            _rule_for("half_year_report"),
+            sources,
+            retain_all_page_matches=True,
+        )
+
+    half_year_bundle_evidence = _half_year_bundle_precedence(
+        bundle_evidence_by_type
+    )
     if half_year_bundle_evidence:
         return _result(
             document_type="half_year_report",
@@ -241,7 +266,9 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
             warnings=warnings,
         )
 
-    half_year_bundle_conflict = _half_year_bundle_conflict(evidence_by_type)
+    half_year_bundle_conflict = _half_year_bundle_conflict(
+        bundle_evidence_by_type
+    )
     if half_year_bundle_conflict:
         return _abstain(
             reasons=[
@@ -340,14 +367,26 @@ def _collect_text_sources(
             if not isinstance(item, Mapping):
                 continue
             page = item.get("page")
-            page_number = page if isinstance(page, int) and page > 0 else None
+            page_number = (
+                page
+                if isinstance(page, int)
+                and not isinstance(page, bool)
+                and page > 0
+                else None
+            )
             page_values.setdefault(page_number, []).extend(
                 _walk_strings(item.get("text"))
             )
         for page_number, values in page_values.items():
             page_text = _joined_text(values)
             if page_text:
-                sources.append(_TextSource(text=page_text, page=page_number))
+                sources.append(
+                    _TextSource(
+                        text=page_text,
+                        page=page_number,
+                        document_page=True,
+                    )
+                )
     return sources
 
 
@@ -380,16 +419,37 @@ def _normalize(value: str) -> str:
 def _match_rule(
     rule: _DocumentTypeRule,
     sources: Sequence[_TextSource],
+    *,
+    retain_all_page_matches: bool = False,
 ) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     for anchor in rule.anchors:
-        matching_source: _TextSource | None = None
-        for source in sources:
-            if re.search(anchor.pattern, _normalize(source.text)):
-                matching_source = source
-                if source.page is not None:
-                    break
-        if matching_source is not None:
+        matching_sources = [
+            source
+            for source in sources
+            if re.search(anchor.pattern, _normalize(source.text))
+        ]
+        if not matching_sources:
+            continue
+
+        page_matches = [
+            source
+            for source in matching_sources
+            if source.document_page and source.page is not None
+        ]
+        if retain_all_page_matches and page_matches:
+            selected_sources = list(
+                {
+                    source.page: source
+                    for source in page_matches
+                }.values()
+            )
+        else:
+            selected_sources = [
+                page_matches[0] if page_matches else matching_sources[0]
+            ]
+
+        for matching_source in selected_sources:
             evidence.append(
                 EvidenceItem(
                     document_type=rule.document_type,
@@ -423,24 +483,35 @@ def _half_year_bundle_precedence(
         None,
     )
     half_year_evidence = evidence_by_type.get("half_year_report", [])
-    substantive_pages = [
-        item.page
-        for item in half_year_evidence
-        if item.anchor
-        in {
-            "Interim financial report",
-            "Condensed consolidated financial statements",
-        }
-        and item.page is not None
-    ]
-    if (
-        appendix_label is None
-        or not substantive_pages
-        or min(substantive_pages) <= appendix_label.page
-        or _confidence_for(_rule_for("half_year_report"), half_year_evidence) != "high"
-    ):
+    if appendix_label is None:
         return []
-    return half_year_evidence
+
+    half_year_rule = _rule_for("half_year_report")
+    later_pages = sorted(
+        {
+            item.page
+            for item in half_year_evidence
+            if item.page is not None and item.page > appendix_label.page
+        }
+    )
+    for page in later_pages:
+        page_evidence = [
+            item for item in half_year_evidence if item.page == page
+        ]
+        has_substantive_report_evidence = any(
+            item.anchor
+            in {
+                "Interim financial report",
+                "Condensed consolidated financial statements",
+            }
+            for item in page_evidence
+        )
+        if (
+            has_substantive_report_evidence
+            and _confidence_for(half_year_rule, page_evidence) == "high"
+        ):
+            return page_evidence
+    return []
 
 
 def _half_year_bundle_conflict(
@@ -487,7 +558,10 @@ def _best_scoring_type(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> tu
 
 def _score(rule: _DocumentTypeRule, evidence: list[EvidenceItem]) -> int:
     weights = {anchor.anchor: anchor.weight for anchor in rule.anchors}
-    return sum(weights.get(item.anchor, 0) for item in evidence)
+    return sum(
+        weights.get(anchor, 0)
+        for anchor in {item.anchor for item in evidence}
+    )
 
 
 def _confidence_for(rule: _DocumentTypeRule, evidence: list[EvidenceItem]) -> str:

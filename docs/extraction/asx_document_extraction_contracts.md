@@ -66,10 +66,12 @@ Explicit Appendix 4C and Appendix 5B form anchors may take precedence over a
 generic quarterly-activities cover when those anchors occur on later pages.
 For a bundled half-year document, high-confidence half-year-report evidence on
 a later page takes whole-document precedence over an earlier Appendix 4D
-wrapper. Weak, same-page, unsupported, or conflicting anchors do not receive
-this precedence and remain subject to abstention. Announcement/PDF title
-metadata remains eligible deterministic evidence, including when an
-image-heavy first page has little extracted text.
+wrapper. Other annual, half-year, quarterly, and announcement anchors remain
+limited to title metadata and first-page text so references deep in a document
+cannot create a competing document type. Weak, same-page, unsupported, or
+conflicting anchors do not receive bundle precedence and remain subject to
+abstention. Announcement/PDF title metadata remains eligible deterministic
+evidence, including when an image-heavy first page has little extracted text.
 
 After Pass 1 and deterministic Appendix-wrapper corrections, routing validates
 the period basis and required context. A mismatch returns a validation-gate
