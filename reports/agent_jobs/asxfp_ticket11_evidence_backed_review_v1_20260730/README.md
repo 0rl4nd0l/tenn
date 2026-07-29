@@ -25,9 +25,20 @@ provenance evaluation summary immediately before observation staging and
 converts canonical provenance failures into the evaluation contract's
 metric-specific abstain triggers.
 
+This exact-head repair completes the decision lifecycle. Every approval and
+rejection now requires and persists a non-empty decision actor plus non-empty
+machine-readable decision reason codes, with an automatic UTC decision
+timestamp. The optional note is supplemental only. Approval-created
+observation provenance records the decision audit as a distinct nested object
+without replacing the candidate review ID or candidate reason codes.
+Rejection remains non-promoting. The review read and decision endpoints are
+now listed in both canonical API inventory entry points.
+
 ## Changed paths
 
 - `docs/agent_tasks/asxfp_ticket11_evidence_backed_review_v1_20260730.md`
+- `docs/architecture/19_backend_api_surface.md`
+- `financial-engine_v2/README.md`
 - `financial-engine_v2/backend/app/alembic/versions/0015_financial_observation_reviews.py`
 - `financial-engine_v2/backend/app/api/routes.py`
 - `financial-engine_v2/backend/app/models/__init__.py`
@@ -69,6 +80,23 @@ Second bounded repair validation:
   the production payload shape: `source` supplies the table/region and the
   non-empty structured `source_cell` mapping is retained as `cell_ref`.
 
+Exact-head lifecycle repair validation:
+
+- Exact base commit `33327e0a44833d270b6a02324abc1815d27f3adb`
+  and authority SHA-256
+  `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`
+  matched.
+- `python3 -m py_compile` for the migration, model, API route, service, and
+  focused review test passed.
+- Focused pytest was attempted but unavailable in the offline worktree:
+  `/usr/bin/python3: No module named pytest`; no dependency installation was
+  attempted.
+- Controller verification in a disposable dependency environment passed:
+  `107 passed, 1 deselected, 1 warning`. The warning is the repository's
+  existing unknown `asyncio_default_fixture_loop_scope` pytest option.
+- Controller Ruff, `py_compile`, task-card validation, allowlist diff check,
+  and `git diff --check` all passed.
+
 No runtime, database, migration, extraction, OCR, model, service, queue, GPU,
 deployment, network, or protected-data action was performed.
 
@@ -92,6 +120,8 @@ commit changes no product, migration, API, or test behavior.
 ## Residual risks
 
 - The migration was inspected and compiled but deliberately not applied.
+- The migration's PostgreSQL decision-audit constraint was not exercised
+  against a live database, as prohibited by this repair boundary.
 - Only existing structured provenance-issue and trust-outcome payloads are
   adapted; malformed outcomes without metric context still fail closed.
 - Production provenance enrichment can identify canonical provenance

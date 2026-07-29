@@ -1,10 +1,11 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     JSON,
@@ -141,6 +142,18 @@ class FinancialObservationReview(Base):
             "decision IS NULL OR decision IN ('approve', 'reject')",
             name="ck_financial_observation_review_decision",
         ),
+        CheckConstraint(
+            "(status = 'pending' AND decision IS NULL "
+            "AND decision_actor IS NULL AND decided_at IS NULL "
+            "AND decision_reason_codes IS NULL) OR "
+            "(((status = 'approved' AND decision = 'approve') OR "
+            "(status = 'rejected' AND decision = 'reject')) "
+            "AND decision_actor IS NOT NULL "
+            "AND btrim(decision_actor) <> '' AND decided_at IS NOT NULL "
+            "AND decision_reason_codes IS NOT NULL "
+            "AND json_array_length(decision_reason_codes) > 0))",
+            name="ck_financial_observation_review_decision_audit",
+        ),
         UniqueConstraint(
             "source_document_id",
             "extraction_run_id",
@@ -174,6 +187,15 @@ class FinancialObservationReview(Base):
     source_evidence: Mapped[dict] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     decision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    decision_actor: Mapped[str | None] = mapped_column(
+        String(128), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    decision_reason_codes: Mapped[list | None] = mapped_column(
+        JSON, nullable=True
+    )
     decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
