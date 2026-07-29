@@ -48,6 +48,10 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
+- Ticket 11 bounded CI-repair base:
+  `7740cac802a3bab071a1815a6090d5672369883c`.
+- Ticket 11 bounded CI-repair tree:
+  `ff005d3f9433bb960352b2df29b894c25327fe35`.
 - Current fresh exact-head rejection-repair base:
   `136c889ec7cce81d6c02d31717f0449693eefd9b`.
 - Current fresh exact-head rejection-repair tree:
@@ -95,6 +99,17 @@ the exact inserted observation identity before changing review state. An
 identity conflict fails deterministically, leaves the review pending, and is
 rolled back by the decision endpoint.
 
+The bounded CI repair keeps the migration's PostgreSQL JSONB column and
+lifecycle constraint unchanged while declaring the ORM column as generic JSON
+with a PostgreSQL JSONB variant, allowing SQLite test-schema compilation
+without claiming SQLite enforcement of PostgreSQL-only JSONB predicates. The
+ORM emits the lifecycle constraint only for PostgreSQL, matching its JSONB
+functions; the migration keeps the production constraint unchanged. At the
+production staging boundary, mutable extraction dictionaries are enriched in
+place so both projection sinks receive the pre-existing caller payload
+identity. Generic mappings are copied before enrichment. Enrichment still
+occurs once and the same enriched staging payload reaches both sinks.
+
 This bounded repair expands the original allowlist only to
 `app/services/extraction_eval.py` and `app/services/pipeline.py`. The former
 exposes the existing raw-payload provenance validator at the production
@@ -126,3 +141,8 @@ Current repair validation attempted: focused fake-only pytest, Python compile,
 changed-file/allowlist inspection, and `git diff --check`. Runtime, database,
 migration, extraction, OCR, model, queue, GPU, service, network, and protected
 data validation remain prohibited.
+
+Bounded CI-repair validation is recorded in the closeout report. The offline
+interpreter has no pytest, SQLAlchemy, or Ruff installation, so executable
+focused tests and ORM dialect compilation could not be run locally; no
+dependency installation was attempted.

@@ -1,9 +1,11 @@
 import uuid
 from datetime import date, timezone
 from decimal import Decimal
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
+from sqlalchemy.dialects import postgresql, sqlite
+from sqlalchemy.schema import CreateTable
 
 
 class FakeQuery:
@@ -362,6 +364,36 @@ def test_raw_production_payload_is_enriched_before_review_staging(monkeypatch):
     ]
 
 
+def test_review_staging_enriches_dict_in_place_but_copies_generic_mapping(
+    monkeypatch,
+):
+    from app.services import financial_observations
+
+    monkeypatch.setattr(
+        financial_observations,
+        "build_payload_provenance_summary",
+        lambda _payload: {"issues": [], "metric_summaries": []},
+    )
+    payload = {"metrics": {"revenue": 125}}
+    generic_payload = MappingProxyType({"metrics": {"revenue": 125}})
+
+    enriched = financial_observations.build_review_staging_payload(payload)
+    copied = financial_observations.build_review_staging_payload(
+        generic_payload
+    )
+
+    assert enriched is payload
+    assert copied is not generic_payload
+    assert enriched["provenance_summary"] == {
+        "issues": [],
+        "metric_summaries": [],
+    }
+    assert copied["provenance_summary"] == {
+        "issues": [],
+        "metric_summaries": [],
+    }
+
+
 def test_nested_period_observations_are_each_enriched(monkeypatch):
     from app.services import financial_observations
 
@@ -504,6 +536,21 @@ def test_review_item_exposes_location_period_currency_and_scale():
         "A",
     )
     assert (item["currency"], item["scale"]) == ("AUD", "millions")
+
+
+def test_review_reason_codes_compile_as_json_for_sqlite_and_jsonb_for_postgres():
+    from app.models.financial_observations import FinancialObservationReview
+
+    table = FinancialObservationReview.__table__
+    sqlite_ddl = str(CreateTable(table).compile(dialect=sqlite.dialect()))
+    postgres_ddl = str(
+        CreateTable(table).compile(dialect=postgresql.dialect())
+    )
+
+    assert "decision_reason_codes JSON" in sqlite_ddl
+    assert "ck_financial_observation_review_decision_audit" not in sqlite_ddl
+    assert "decision_reason_codes JSONB" in postgres_ddl
+    assert "ck_financial_observation_review_decision_audit" in postgres_ddl
 
 
 def _review(*, evidence=True, value=125):

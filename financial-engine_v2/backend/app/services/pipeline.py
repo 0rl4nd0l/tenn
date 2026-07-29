@@ -1711,7 +1711,11 @@ def process_document(
                 ExtractionStageStatus.OK,
                 ExtractionStageStatus.OK_LOW_CONFIDENCE,
             }:
-                observation_payload = dict(structured)
+                observation_payload = (
+                    structured
+                    if isinstance(structured, dict)
+                    else dict(structured)
+                )
                 observation_payload["_observation_extraction_status"] = (
                     extraction_stage.status.value
                 )

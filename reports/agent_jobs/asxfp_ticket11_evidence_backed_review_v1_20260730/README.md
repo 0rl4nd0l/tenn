@@ -2,6 +2,17 @@
 
 ## Outcome
 
+The bounded Ticket 11 CI repair makes the decision-reason ORM column portable
+to SQLite schema compilation by using generic JSON with a PostgreSQL JSONB
+variant. The migration and its PostgreSQL-only lifecycle constraint remain
+unchanged, and ORM DDL emits that JSONB-dependent constraint only for
+PostgreSQL. SQLite tests do not receive or claim the production lifecycle
+constraint. The repair also restores the established `process_document`
+caller contract: mutable extraction dictionaries are enriched in place and
+the exact payload object reaches `_upsert_financial_rows`; generic mappings
+are safely copied. The staging payload is enriched once, shared by both
+financial sinks, and continues through the same fail-closed trust predicate.
+
 The current fresh-head rejection repair closes both reported P1 paths.
 Production staging passes the single enriched payload to both projection
 sinks, and one trust gate prevents explicit abstain/quarantine plus malformed,
@@ -188,6 +199,35 @@ Current fresh exact-head rejection-repair validation:
   their pre-existing FastAPI, import, optional-type, and exception-style debt.
 - Controller `py_compile`, task-card validation, exact allowlist diff check,
   and `git diff --check` passed.
+
+Bounded Ticket 11 CI-repair validation:
+
+- Exact base commit `7740cac802a3bab071a1815a6090d5672369883c`,
+  tree `ff005d3f9433bb960352b2df29b894c25327fe35`, and authority
+  SHA-256 `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`
+  matched before edits.
+- CI run `30493177763`, job `90715762859`, reported 11 failures after
+  3732 passing tests on that exact head.
+- Focused regressions cover SQLite/PostgreSQL ORM type and lifecycle-constraint
+  DDL selection plus in-place mutable-dict enrichment with safe
+  generic-mapping copying.
+- The existing out-of-allowlist payload guardrail test was inspected but not
+  edited.
+- Focused pytest was attempted, but the offline interpreter reported
+  `/usr/bin/python3: No module named pytest`; no installation was attempted.
+- `python3 -m py_compile` passed for the three changed production modules and
+  focused Ticket 11 test.
+- Direct AST compilation passed for the same four Python files.
+- Ruff was attempted, but the offline interpreter reported
+  `/usr/bin/python3: No module named ruff`.
+- Controller focused validation passed: `119 passed, 1 warning` across
+  `test_financial_observation_reviews.py`, `test_financial_observations.py`,
+  and `test_rag_payload_guardrails.py`.
+- Controller `python3 -m py_compile` passed for the three changed production
+  modules and focused Ticket 11 test.
+- Controller changed-file Ruff `0.15.6` passed.
+- Exact task-card allowlist inspection passed for all six changed files.
+- `git diff --check` passed.
 
 No runtime, database, migration, extraction, OCR, model, service, queue, GPU,
 deployment, network, or protected-data action was performed.
