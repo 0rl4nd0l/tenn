@@ -5,6 +5,7 @@ import pytest
 from app.services.asx_document_type_classifier import classify_asx_document_type
 from app.services.asx_extraction_contracts import (
     DOCUMENT_EXTRACTION_CONTRACTS,
+    classify_and_select_extraction_contract,
     evaluate_contract_routing,
     select_extraction_contract,
 )
@@ -49,6 +50,7 @@ def test_registry_is_complete_immutable_and_bound_to_canonical_metric_authority(
         assert set(contract.allowed_canonical_metrics) <= canonical_fields
         assert contract.required_context
         assert contract.permitted_period_bases
+        assert contract.required_document_type_anchors
         assert contract.minimum_source_evidence
         assert contract.forbidden_inferences
         assert contract.abstention_conditions
@@ -100,6 +102,29 @@ def test_unknown_or_ambiguous_classification_abstains_without_contract() -> None
         assert selection.abstain is True
         assert selection.contract is None
         assert selection.abstain_reasons
+
+
+@pytest.mark.parametrize(
+    ("source_text", "document_type"),
+    (
+        ("For the year ended 30 June 2025", "appendix_4e"),
+        ("For the half-year ended 31 December 2025", "appendix_4d"),
+        ("For the quarter ended 31 March 2026", "quarterly_report"),
+    ),
+)
+def test_period_evidence_alone_cannot_select_an_extraction_contract(
+    source_text: str,
+    document_type: str,
+) -> None:
+    classification, selection = classify_and_select_extraction_contract(
+        {"first_page_title_text": source_text}
+    )
+
+    assert classification.document_type == document_type
+    assert classification.confidence_band == "medium"
+    assert selection.abstain is True
+    assert selection.contract is None
+    assert selection.abstain_reasons == ("missing_document_type_anchor",)
 
 
 def test_routing_fails_closed_on_period_context_or_source_evidence_mismatch() -> None:

@@ -51,6 +51,7 @@ class AsxDocumentExtractionContract:
     allowed_canonical_metrics: tuple[str, ...]
     required_context: tuple[str, ...]
     permitted_period_bases: tuple[str, ...]
+    required_document_type_anchors: tuple[str, ...]
     minimum_source_evidence: int
     forbidden_inferences: tuple[str, ...]
     abstention_conditions: tuple[str, ...]
@@ -102,6 +103,7 @@ def _contract(
     *,
     metrics: tuple[str, ...],
     periods: tuple[str, ...],
+    document_type_anchors: tuple[str, ...],
     forbidden: tuple[str, ...] = (),
 ) -> AsxDocumentExtractionContract:
     canonical = set(CANONICAL_METRIC_FIELDS)
@@ -113,6 +115,7 @@ def _contract(
         allowed_canonical_metrics=metrics,
         required_context=_BASE_REQUIRED_CONTEXT,
         permitted_period_bases=periods,
+        required_document_type_anchors=document_type_anchors,
         minimum_source_evidence=1,
         forbidden_inferences=_BASE_FORBIDDEN_INFERENCES + forbidden,
         abstention_conditions=_BASE_ABSTENTION_CONDITIONS,
@@ -123,30 +126,70 @@ DOCUMENT_EXTRACTION_CONTRACTS: Mapping[str, AsxDocumentExtractionContract] = (
     MappingProxyType(
         {
             "annual_report": _contract(
-                "annual_report", metrics=_ALL_CANONICAL_METRICS, periods=("A",)
+                "annual_report",
+                metrics=_ALL_CANONICAL_METRICS,
+                periods=("A",),
+                document_type_anchors=(
+                    "Annual Report",
+                    "Directors' report",
+                    "financial statements",
+                ),
             ),
             "appendix_4e": _contract(
-                "appendix_4e", metrics=_ALL_CANONICAL_METRICS, periods=("A",)
+                "appendix_4e",
+                metrics=_ALL_CANONICAL_METRICS,
+                periods=("A",),
+                document_type_anchors=("Appendix 4E", "Preliminary final report"),
             ),
             "half_year_report": _contract(
-                "half_year_report", metrics=_ALL_CANONICAL_METRICS, periods=("H",)
+                "half_year_report",
+                metrics=_ALL_CANONICAL_METRICS,
+                periods=("H",),
+                document_type_anchors=(
+                    "Half-Year Report",
+                    "Interim financial report",
+                    "Condensed consolidated financial statements",
+                ),
             ),
             "appendix_4d": _contract(
-                "appendix_4d", metrics=_ALL_CANONICAL_METRICS, periods=("H",)
+                "appendix_4d",
+                metrics=_ALL_CANONICAL_METRICS,
+                periods=("H",),
+                document_type_anchors=("Appendix 4D", "Half year report"),
             ),
             "quarterly_report": _contract(
-                "quarterly_report", metrics=_ALL_CANONICAL_METRICS, periods=("Q",)
+                "quarterly_report",
+                metrics=_ALL_CANONICAL_METRICS,
+                periods=("Q",),
+                document_type_anchors=(
+                    "Quarterly Report",
+                    "Quarterly highlights",
+                    "Quarterly financial summary",
+                ),
             ),
             "appendix_4c": _contract(
                 "appendix_4c",
                 metrics=_CASHFLOW_METRICS,
                 periods=("Q",),
+                document_type_anchors=(
+                    "Appendix 4C",
+                    "Quarterly cash flow report",
+                    "Rule 4.7B",
+                    "operating cash flow lines",
+                ),
                 forbidden=("revenue", "ebit", "np_attributable", "net_debt"),
             ),
             "appendix_5b": _contract(
                 "appendix_5b",
                 metrics=_CASHFLOW_METRICS,
                 periods=("Q",),
+                document_type_anchors=(
+                    "Appendix 5B",
+                    "Mining exploration entity quarterly cash flow report",
+                    "Rule 5.5",
+                    "exploration expenditure",
+                    "related-party payments",
+                ),
                 forbidden=("revenue", "ebit", "np_attributable", "net_debt"),
             ),
         }
@@ -204,6 +247,16 @@ def select_extraction_contract(
         return _abstain_selection(
             document_type,
             ("unsupported_document_type",),
+        )
+    evidence_anchors = {
+        str(item.get("anchor"))
+        for item in positive_evidence
+        if isinstance(item, Mapping) and item.get("anchor")
+    }
+    if not evidence_anchors.intersection(contract.required_document_type_anchors):
+        return _abstain_selection(
+            document_type,
+            ("missing_document_type_anchor",),
         )
     if len(positive_evidence) < contract.minimum_source_evidence:
         return _abstain_selection(

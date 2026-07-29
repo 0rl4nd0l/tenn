@@ -47,6 +47,8 @@ Every contract declares:
 
 - required document-type-anchor and period-basis context;
 - permitted period bases;
+- permitted document-type-specific anchors, excluding period wording alone and
+  shared generic announcement wording;
 - minimum deterministic classification-source evidence;
 - forbidden classification, provenance, and persistence inferences; and
 - abstention conditions.
