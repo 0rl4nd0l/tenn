@@ -28,6 +28,7 @@ allowed_files:
   - financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/manifest.json
   - financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/quarterly_report_basic.json
   - financial-engine_v2/backend/tests/test_asx_document_type_classifier.py
+  - financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py
   - financial-engine_v2/backend/tests/test_asx_document_type_sidecar.py
   - financial-engine_v2/backend/tests/test_asx_extraction_contracts.py
   - financial-engine_v2/backend/tests/test_multipass_extraction.py
