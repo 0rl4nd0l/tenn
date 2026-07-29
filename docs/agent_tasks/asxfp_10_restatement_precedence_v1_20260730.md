@@ -49,8 +49,29 @@ and retain provenance-bearing history.
 
 - Base commit: `ba0688af97cdcaaf9cf21a0dddc2c1ba5aca2a33`
 - Base tree: `4ec31edc8a2b43dd6d700fc4626acbc42d9cbc6b`
+- Rejected repair head:
+  `d98a4d9543c8979d98c66f550d2da745bd3e521b`
+- Rejected repair tree:
+  `69aef37e7582c842a97efef7dc1aebe55b823043`
 - Ticket 10 SHA-256:
   `c025e1d2e05a89e8e8c99577e6479283c8377fc632fc308b3b7634938873e9a0`
+
+## Bounded rejected-review repair
+
+- Derive active precedence from validated supersession topology, retaining
+  terminal restatements when unrelated ordinary observations arrive later.
+- Reuse deterministic observations after conflict-free retry inserts so the
+  existing candidate can still stage its supersession edge without changing
+  the public staging return contract.
+- Align migration and ORM index names and prove the full focused schema
+  contract.
+- Enforce supersession relationship and evidence immutability in PostgreSQL
+  with a mutation-rejecting trigger.
+- Protect `/financials/history` with the established API-key dependency and
+  prove unauthorized rejection, authorized availability, and static route
+  order.
+
+The repair remains within the original seven-path allowlist.
 
 ## Forbidden actions
 
@@ -64,5 +85,6 @@ and retain provenance-bearing history.
 ## Validation
 
 - Static compilation and migration/model contract inspection.
-- Focused fake-only observation service tests.
+- Focused fake-only observation service and route tests in a disposable
+  dependency environment.
 - `git diff --check` and exact allowlist audit.

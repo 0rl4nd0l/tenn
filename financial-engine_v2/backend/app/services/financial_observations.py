@@ -886,6 +886,7 @@ def stage_financial_observations(
         allow_legacy_period_type = True
 
     staged = []
+    superseding_candidates = []
     for member in members:
         for metric in CANONICAL_METRIC_FIELDS:
             context = _accepted_metric_context(
@@ -928,6 +929,13 @@ def stage_financial_observations(
             )
             if db.execute(statement).rowcount:
                 staged.append(observation)
+                superseding_candidates.append(observation)
+            else:
+                existing = db.get(
+                    FinancialObservation, observation.observation_id
+                )
+                if existing is not None:
+                    superseding_candidates.append(existing)
     stage_financial_result_disclosures(
         db,
         document=document,
@@ -936,7 +944,7 @@ def stage_financial_observations(
     )
     stage_observation_supersessions(
         db,
-        superseding_observations=tuple(staged),
+        superseding_observations=tuple(superseding_candidates),
         structured=structured,
     )
     return tuple(staged)
@@ -1038,9 +1046,47 @@ def _valid_supersessions(
     return valid
 
 
-def _superseded_observation_ids(db, observations: list[Any]) -> set[uuid.UUID]:
+def _active_observation_ids(db, observations: list[Any]) -> set[uuid.UUID]:
+    """Select terminal nodes when validated supersession topology exists."""
     relationships = db.query(FinancialObservationSupersession).all()
-    return set(_valid_supersessions(observations, relationships))
+    valid = _valid_supersessions(observations, relationships)
+    superseded_ids = set(valid)
+    identity_fields = (
+        "ticker",
+        "metric",
+        "period_end",
+        "period_basis",
+        "accounting_basis",
+        "currency",
+        "scale",
+    )
+    by_id = {
+        observation.observation_id: observation
+        for observation in observations
+        if isinstance(getattr(observation, "observation_id", None), uuid.UUID)
+    }
+    topology_terminals: dict[tuple[Any, ...], set[uuid.UUID]] = {}
+    for relationship in valid.values():
+        superseding_id = relationship.superseding_observation_id
+        if superseding_id in superseded_ids:
+            continue
+        superseding = by_id[superseding_id]
+        identity = tuple(
+            getattr(superseding, field) for field in identity_fields
+        )
+        topology_terminals.setdefault(identity, set()).add(superseding_id)
+
+    active = set()
+    for observation_id, observation in by_id.items():
+        identity = tuple(
+            getattr(observation, field) for field in identity_fields
+        )
+        terminals = topology_terminals.get(identity)
+        if terminals is not None:
+            active.update(terminals)
+        elif observation_id not in superseded_ids:
+            active.add(observation_id)
+    return active
 
 
 def accepted_statutory_overrides(
@@ -1062,12 +1108,12 @@ def accepted_statutory_overrides(
         )
         .all()
     )
-    superseded_ids = _superseded_observation_ids(db, rows)
+    active_ids = _active_observation_ids(db, rows)
     candidates: dict[
         tuple[date, str, str], set[tuple[Decimal, str, str]]
     ] = {}
     for row in rows:
-        if getattr(row, "observation_id", None) in superseded_ids:
+        if getattr(row, "observation_id", None) not in active_ids:
             continue
         key = (row.period_end, row.period_basis, row.metric)
         candidates.setdefault(key, set()).add(
@@ -1122,12 +1168,12 @@ def accepted_observation_periods(db, *, ticker: str) -> tuple[dict[str, Any], ..
         )
         .all()
     )
-    superseded_ids = _superseded_observation_ids(db, rows)
+    active_ids = _active_observation_ids(db, rows)
     candidates: dict[
         tuple[date, str, str], set[tuple[Decimal, str, str]]
     ] = {}
     for row in rows:
-        if getattr(row, "observation_id", None) in superseded_ids:
+        if getattr(row, "observation_id", None) not in active_ids:
             continue
         key = (row.period_end, row.period_basis, row.metric)
         candidates.setdefault(key, set()).add(
