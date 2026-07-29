@@ -2,7 +2,15 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Date, JSON, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    JSON,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -71,6 +79,43 @@ class FinancialObservation(Base):
     scale: Mapped[str] = mapped_column(String(16), nullable=False)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False)
     trust_state: Mapped[str] = mapped_column(String(16), nullable=False)
+
+
+class FinancialObservationSupersession(Base):
+    """Immutable explicit evidence that one observation replaces another."""
+
+    __tablename__ = "financial_observation_supersessions"
+    __table_args__ = (
+        CheckConstraint(
+            "relationship_type IN ('amendment', 'restatement')",
+            name="ck_financial_observation_supersession_type",
+        ),
+        CheckConstraint(
+            "superseding_observation_id <> superseded_observation_id",
+            name="ck_financial_observation_supersession_distinct",
+        ),
+        UniqueConstraint(
+            "superseded_observation_id",
+            name="uq_financial_observation_superseded_once",
+        ),
+    )
+
+    supersession_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True
+    )
+    superseding_observation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("financial_observations.observation_id"),
+        nullable=False,
+        index=True,
+    )
+    superseded_observation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("financial_observations.observation_id"),
+        nullable=False,
+    )
+    relationship_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSON, nullable=False)
 
 
 class FinancialResultDisclosure(Base):
