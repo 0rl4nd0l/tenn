@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 import uuid
@@ -315,6 +315,9 @@ def test_review_item_exposes_location_period_currency_and_scale():
         source_evidence=review_candidate()["source_evidence"],
         status="pending",
         decision=None,
+        decision_actor=None,
+        decided_at=None,
+        decision_reason_codes=None,
         decision_note=None,
     )
 
@@ -359,6 +362,9 @@ def _review(*, evidence=True, value=125):
         source_evidence=candidate["source_evidence"],
         status="pending",
         decision=None,
+        decision_actor=None,
+        decided_at=None,
+        decision_reason_codes=None,
         decision_note=None,
     )
 
@@ -383,7 +389,11 @@ def test_review_approval_cannot_promote_without_value_and_source_evidence(
         match="approval requires a proposed value with source evidence",
     ):
         decide_financial_observation_review(
-            session, review_id=review.review_id, decision="approve"
+            session,
+            review_id=review.review_id,
+            decision="approve",
+            actor="reviewer@example.com",
+            reason_codes=["SOURCE_EVIDENCE_CONFIRMED"],
         )
     assert session.executed == []
     assert review.status == "pending"
@@ -403,6 +413,8 @@ def test_evidence_backed_approval_promotes_an_accepted_profile_observation():
         session,
         review_id=review.review_id,
         decision="approve",
+        actor="reviewer@example.com",
+        reason_codes=["SOURCE_EVIDENCE_CONFIRMED"],
         note="Source cells checked",
     )
 
@@ -411,8 +423,127 @@ def test_evidence_backed_approval_promotes_an_accepted_profile_observation():
     assert observation.value == Decimal("125000000")
     assert observation.provenance["review_id"] == str(review.review_id)
     assert observation.provenance["page_number"] == 42
+    assert observation.provenance["review_reason_codes"] == [
+        "conflicting_source_values"
+    ]
+    assert observation.provenance["review_decision"] == {
+        "actor": "reviewer@example.com",
+        "reason_codes": ["SOURCE_EVIDENCE_CONFIRMED"],
+        "decided_at": review.decided_at.isoformat(),
+    }
     assert review.status == "approved"
+    assert review.decision_actor == "reviewer@example.com"
+    assert review.decision_reason_codes == ["SOURCE_EVIDENCE_CONFIRMED"]
+    assert review.decided_at.tzinfo is timezone.utc
+    assert review.decision_note == "Source cells checked"
     assert len(session.executed) == 1
+
+
+def test_rejection_persists_audit_fields_without_promoting():
+    from app.models.financial_observations import FinancialObservationReview
+    from app.services.financial_observations import (
+        decide_financial_observation_review,
+    )
+
+    review = _review()
+    session = FakeSession(
+        get_rows={(FinancialObservationReview, review.review_id): review}
+    )
+    observation = decide_financial_observation_review(
+        session,
+        review_id=review.review_id,
+        decision="reject",
+        actor="reviewer@example.com",
+        reason_codes=["CONFLICT_UNRESOLVED"],
+    )
+
+    assert observation is None
+    assert review.status == "rejected"
+    assert review.decision == "reject"
+    assert review.decision_actor == "reviewer@example.com"
+    assert review.decision_reason_codes == ["CONFLICT_UNRESOLVED"]
+    assert review.decided_at.tzinfo is timezone.utc
+    assert review.decision_note is None
+    assert session.executed == []
+
+
+@pytest.mark.parametrize(
+    ("actor", "reason_codes", "message"),
+    [
+        (" ", ["SOURCE_EVIDENCE_CONFIRMED"], "actor must be non-empty"),
+        ("reviewer@example.com", [], "reason_codes must be a non-empty list"),
+        (
+            "reviewer@example.com",
+            ["DUPLICATE", "DUPLICATE"],
+            "reason_codes must be a non-empty list",
+        ),
+        (
+            "reviewer@example.com",
+            [" "],
+            "reason_codes must be a non-empty list",
+        ),
+    ],
+)
+def test_decision_audit_validation_fails_closed(
+    actor, reason_codes, message
+):
+    from app.models.financial_observations import FinancialObservationReview
+    from app.services.financial_observations import (
+        decide_financial_observation_review,
+    )
+
+    review = _review()
+    session = FakeSession(
+        get_rows={(FinancialObservationReview, review.review_id): review}
+    )
+    with pytest.raises(ValueError, match=message):
+        decide_financial_observation_review(
+            session,
+            review_id=review.review_id,
+            decision="approve",
+            actor=actor,
+            reason_codes=reason_codes,
+        )
+
+    assert review.status == "pending"
+    assert review.decision is None
+    assert review.decided_at is None
+    assert session.executed == []
+
+
+def test_decision_route_returns_persisted_rejection_audit():
+    from app.api.routes import (
+        FinancialObservationReviewDecision,
+        financial_review_decision,
+    )
+    from app.models.financial_observations import FinancialObservationReview
+
+    review = _review()
+    session = FakeSession(
+        get_rows={(FinancialObservationReview, review.review_id): review}
+    )
+    response = financial_review_decision(
+        review.review_id,
+        FinancialObservationReviewDecision(
+            decision="reject",
+            actor="reviewer@example.com",
+            reason_codes=["CONFLICT_UNRESOLVED"],
+        ),
+        session,
+    )
+
+    assert response == {
+        "review_id": str(review.review_id),
+        "status": "rejected",
+        "observation_id": None,
+        "decision": "reject",
+        "decision_actor": "reviewer@example.com",
+        "decided_at": review.decided_at,
+        "decision_reason_codes": ["CONFLICT_UNRESOLVED"],
+        "decision_note": None,
+    }
+    assert session.commits == 1
+    assert session.executed == []
 
 
 def test_trusted_observation_path_does_not_require_a_review():

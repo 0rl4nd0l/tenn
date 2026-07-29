@@ -20,6 +20,8 @@ output_dir: reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730
 closeout_scope: controller_local_commit
 allowed_files:
   - docs/agent_tasks/asxfp_ticket11_evidence_backed_review_v1_20260730.md
+  - docs/architecture/19_backend_api_surface.md
+  - financial-engine_v2/README.md
   - financial-engine_v2/backend/app/alembic/versions/0015_financial_observation_reviews.py
   - financial-engine_v2/backend/app/api/routes.py
   - financial-engine_v2/backend/app/models/__init__.py
@@ -30,11 +32,13 @@ allowed_files:
   - financial-engine_v2/backend/tests/test_financial_observation_reviews.py
   - financial-engine_v2/backend/tests/test_financial_observations.py
   - reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730/README.md
-docs_impact: TASK_CARD_AND_REPORT_ONLY
+docs_impact: TASK_CARD_REPORT_AND_CANONICAL_API_INVENTORY
 docs_checked:
   - docs/extraction/financial_observation_contract.md
 docs_changed:
   - docs/agent_tasks/asxfp_ticket11_evidence_backed_review_v1_20260730.md
+  - docs/architecture/19_backend_api_surface.md
+  - financial-engine_v2/README.md
   - reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730/README.md
 docs_followup: NONE
 reason: "Ticket 11 adds an additive review queue without changing extraction guidance or the trusted-observation projection contract."
@@ -44,6 +48,8 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
+- Exact-head lifecycle repair base:
+  `33327e0a44833d270b6a02324abc1815d27f3adb`.
 - Second repair base commit: `08420f349077158b8a537912d59e0f07d3b347bf`.
 - Second repair base tree: `57b10a1addf6883faef5d14af4385ac95d8d62eb`.
 - Parent before Ticket 11: `c57698a2e852d74d84dbb30402a0d654515d6a44`.
@@ -56,6 +62,13 @@ Add an observation-specific review queue with closed unresolved states,
 machine-readable reason codes, complete location and financial-context evidence,
 authenticated review reads and decisions, and a fail-closed approval path.
 Preserve the existing automatic profile projection for trusted observations.
+
+This exact-head repair also requires every decision to persist a non-empty
+decision actor, automatic UTC timestamp, and non-empty machine-readable
+decision reason codes. An optional note remains supplemental. Approval
+provenance keeps this decision audit separate from candidate review identity;
+rejection remains non-promoting. The two review endpoints are added to the
+repository's canonical API inventories.
 
 This bounded repair expands the original allowlist only to
 `app/services/extraction_eval.py` and `app/services/pipeline.py`. The former

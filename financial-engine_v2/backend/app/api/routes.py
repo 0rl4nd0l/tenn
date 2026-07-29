@@ -13,6 +13,7 @@ from app.core.db import SessionLocal, get_db
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
+from app.models.financial_observations import FinancialObservationReview
 from app.providers.market_price_provider import (
     MarketPriceProvider,
     MarketPriceProviderError,
@@ -75,6 +76,8 @@ class ProcessDocumentRequest(BaseModel):
 
 class FinancialObservationReviewDecision(BaseModel):
     decision: str
+    actor: str
+    reason_codes: list[str]
     note: str | None = None
 
 
@@ -307,8 +310,11 @@ def financial_review_decision(
             db,
             review_id=review_id,
             decision=body.decision,
+            actor=body.actor,
+            reason_codes=body.reason_codes,
             note=body.note,
         )
+        review = db.get(FinancialObservationReview, review_id)
         db.commit()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -320,6 +326,11 @@ def financial_review_decision(
             if observation is not None
             else None
         ),
+        "decision": review.decision,
+        "decision_actor": review.decision_actor,
+        "decided_at": review.decided_at,
+        "decision_reason_codes": review.decision_reason_codes,
+        "decision_note": review.decision_note,
     }
 
 

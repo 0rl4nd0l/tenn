@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 
@@ -1146,6 +1146,9 @@ def _review_candidate_context(value: Any) -> dict[str, Any] | None:
         "source_evidence": dict(evidence),
         "status": "pending",
         "decision": None,
+        "decision_actor": None,
+        "decided_at": None,
+        "decision_reason_codes": None,
         "decision_note": None,
     }
 
@@ -1255,6 +1258,8 @@ def decide_financial_observation_review(
     *,
     review_id: uuid.UUID,
     decision: str,
+    actor: str,
+    reason_codes: list[str],
     note: str | None = None,
 ) -> FinancialObservation | None:
     """Record a decision; approval fails closed unless source evidence exists."""
@@ -1263,9 +1268,31 @@ def decide_financial_observation_review(
         raise ValueError("pending financial observation review not found")
     if decision not in {"approve", "reject"}:
         raise ValueError("decision must be approve or reject")
+    decision_actor = _required_text(actor)
+    if decision_actor is None:
+        raise ValueError("decision actor must be non-empty")
+    normalized_reason_codes = (
+        [_required_text(code) for code in reason_codes]
+        if isinstance(reason_codes, list)
+        else []
+    )
+    if (
+        not isinstance(reason_codes, list)
+        or not reason_codes
+        or any(code is None for code in normalized_reason_codes)
+        or len(set(normalized_reason_codes)) != len(normalized_reason_codes)
+    ):
+        raise ValueError(
+            "decision reason_codes must be a non-empty list of unique "
+            "non-empty strings"
+        )
+    decided_at = datetime.now(timezone.utc)
     if decision == "reject":
         review.status = "rejected"
         review.decision = decision
+        review.decision_actor = decision_actor
+        review.decided_at = decided_at
+        review.decision_reason_codes = normalized_reason_codes
         review.decision_note = _required_text(note)
         return None
 
@@ -1323,6 +1350,11 @@ def decide_financial_observation_review(
             **review.source_evidence,
             "review_id": str(review.review_id),
             "review_reason_codes": review.reason_codes,
+            "review_decision": {
+                "actor": decision_actor,
+                "reason_codes": normalized_reason_codes,
+                "decided_at": decided_at.isoformat(),
+            },
             "source_scale": review.scale,
             "normalized_scale": "units",
         },
@@ -1341,6 +1373,9 @@ def decide_financial_observation_review(
     )
     review.status = "approved"
     review.decision = decision
+    review.decision_actor = decision_actor
+    review.decided_at = decided_at
+    review.decision_reason_codes = normalized_reason_codes
     review.decision_note = _required_text(note)
     return observation
 
