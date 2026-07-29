@@ -120,6 +120,10 @@ _REVIEW_EVIDENCE_FIELDS = (
     "row_ref",
     "cell_ref",
 )
+_REVIEW_KIND_BY_TRUST_OUTCOME = {
+    "abstain": "abstained",
+    "quarantine": "quarantined",
+}
 _SUPERSESSION_EVIDENCE_FIELDS = (
     "source",
     "page_number",
@@ -893,6 +897,116 @@ def stage_observation_supersessions(
     return tuple(staged)
 
 
+def _review_issue_kind(code: Any) -> str | None:
+    normalized = (_required_text(code) or "").lower()
+    if "conflict" in normalized or "contradict" in normalized:
+        return "conflicting"
+    if "ambigu" in normalized:
+        return "ambiguous"
+    return None
+
+
+def _review_source_evidence(value: Mapping[str, Any]) -> dict[str, Any]:
+    evidence = value.get("source_evidence")
+    if isinstance(evidence, Mapping):
+        return dict(evidence)
+    source_cell = value.get("source_cell")
+    return {
+        "page_number": value.get("page_number"),
+        "table_or_region": value.get("table_or_region"),
+        "row_ref": value.get("row_ref"),
+        "cell_ref": (
+            source_cell.get("cell_ref")
+            if isinstance(source_cell, Mapping)
+            else None
+        ),
+    }
+
+
+def _real_outcome_review_candidates(
+    structured: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    """Adapt existing extraction/evaluation outcomes into review candidates."""
+    metrics = structured.get("metrics")
+    provenance = structured.get("field_provenance")
+    if not isinstance(metrics, Mapping) or not isinstance(provenance, Mapping):
+        return ()
+
+    outcome = _required_text(structured.get("trust_outcome"))
+    outcome_kind = _REVIEW_KIND_BY_TRUST_OUTCOME.get(
+        (outcome or "").lower()
+    )
+    triggers = structured.get("trust_triggers")
+    outcome_reasons = (
+        [code for code in triggers if _required_text(code) is not None]
+        if isinstance(triggers, list)
+        else []
+    )
+    issues_by_metric: dict[str, list[tuple[str, str]]] = {}
+    summary = structured.get("provenance_summary")
+    issues = summary.get("issues") if isinstance(summary, Mapping) else None
+    if isinstance(issues, list):
+        for issue in issues:
+            if not isinstance(issue, Mapping):
+                continue
+            code = _required_text(issue.get("code"))
+            kind = _review_issue_kind(code)
+            metric = _required_text(issue.get("field"))
+            if code is not None and kind is not None and metric is not None:
+                issues_by_metric.setdefault(metric, []).append((kind, code))
+
+    candidates = []
+    for metric in CANONICAL_METRIC_FIELDS:
+        metric_provenance = provenance.get(metric)
+        if not isinstance(metric_provenance, Mapping):
+            continue
+        metric_issues = issues_by_metric.get(metric, [])
+        kind = metric_issues[0][0] if metric_issues else outcome_kind
+        reason_codes = (
+            [code for _, code in metric_issues]
+            if metric_issues
+            else list(outcome_reasons)
+        )
+        if kind is None or not reason_codes:
+            continue
+        candidates.append(
+            {
+                "metric": metric,
+                "proposed_value": metrics.get(metric),
+                "period_end": structured.get("period_end"),
+                "period_basis": structured.get(
+                    "period_basis", structured.get("period_type")
+                ),
+                "currency": structured.get("currency"),
+                "scale": metric_provenance.get(
+                    "scale", structured.get("scale")
+                ),
+                "review_kind": kind,
+                "reason_codes": reason_codes,
+                "source_evidence": _review_source_evidence(
+                    metric_provenance
+                ),
+            }
+        )
+    return tuple(candidates)
+
+
+def _review_candidates(
+    structured: Mapping[str, Any],
+) -> tuple[Any, ...]:
+    explicit = structured.get("observation_reviews")
+    candidates = list(explicit) if isinstance(explicit, list) else []
+    members = structured.get("period_observations")
+    outcome_members = (
+        [member for member in members if isinstance(member, Mapping)]
+        if isinstance(members, list)
+        else [structured]
+    )
+    for member in outcome_members:
+        candidates.extend(_real_outcome_review_candidates(member))
+    return tuple(candidates)
+
+
 def _review_candidate_context(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None
@@ -924,12 +1038,13 @@ def _review_candidate_context(value: Any) -> dict[str, Any] | None:
         or any(_required_text(code) is None for code in reason_codes)
         or len(set(reason_codes)) != len(reason_codes)
         or not isinstance(evidence, Mapping)
-        or any(
-            evidence.get(field) in (None, "", "unknown")
-            for field in _REVIEW_EVIDENCE_FIELDS
-        )
     ):
         return None
+    missing_evidence_codes = [
+        f"missing_evidence_{field}"
+        for field in _REVIEW_EVIDENCE_FIELDS
+        if evidence.get(field) in (None, "", "unknown")
+    ]
     return {
         "metric": metric,
         "proposed_value": proposed_value,
@@ -938,7 +1053,9 @@ def _review_candidate_context(value: Any) -> dict[str, Any] | None:
         "currency": currency,
         "scale": scale,
         "review_kind": review_kind,
-        "reason_codes": list(reason_codes),
+        "reason_codes": list(
+            dict.fromkeys([*reason_codes, *missing_evidence_codes])
+        ),
         "source_evidence": dict(evidence),
         "status": "pending",
         "decision": None,
@@ -960,13 +1077,12 @@ def stage_financial_observation_reviews(
         getattr(extraction_run, "extractor_version", None)
     )
     ticker = _required_text(getattr(document, "ticker", None))
-    candidates = structured.get("observation_reviews")
+    candidates = _review_candidates(structured)
     if (
         document_id is None
         or run_id is None
         or extractor_version is None
         or ticker is None
-        or not isinstance(candidates, list)
     ):
         return ()
 
@@ -1079,7 +1195,15 @@ def decide_financial_observation_review(
             "source_evidence": review.source_evidence,
         }
     )
-    if candidate is None or candidate["proposed_value"] is None:
+    if (
+        candidate is None
+        or candidate["proposed_value"] is None
+        or any(
+            candidate["source_evidence"].get(field)
+            in (None, "", "unknown")
+            for field in _REVIEW_EVIDENCE_FIELDS
+        )
+    ):
         raise ValueError("approval requires a proposed value with source evidence")
 
     observation = FinancialObservation(
