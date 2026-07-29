@@ -24,3 +24,31 @@
   consumed no RED/GREEN product attempt. The corrected identity contract
   distinguishes the canonical product base from the authorized orchestration
   seed and permits one equivalent retry.
+- The equivalent implementer run
+  `20260729T122958Z-f3bbcab50c-229d1c` used `gpt-5.6-sol`, verified the exact
+  remote-pinned seed `f3bbcab50ce56a9769dfaae1ee0b8b52fc886865`,
+  demonstrated the synthetic failure directly, and produced a three-file
+  delta with frozen binary diff SHA-256
+  `832b9afc19e117aa7dfc198ea42eb586731984cd1969eea4e79326d3eb6de0d5`.
+- The fresh independent reviewer run
+  `20260729T123718Z-599ccdfaf0-bfedbc` reviewed immutable candidate
+  `599ccdfaf083d3d8f5d44949c4809216b4525a9f` and returned `ACCEPT`: zero
+  standards violations, zero specification blockers, and one non-blocking
+  opportunity to add dedicated negative-path tests later. It made no tracked
+  changes.
+- Parent validation of the byte-identical accepted delta:
+  - classifier suite: 26 passed;
+  - fixture/contract/sidecar/schema suites: 42 passed;
+  - related source-document classifier cases: 6 passed;
+  - two run-multipass cases were unavailable because the disposable
+    environment lacked the optional Docling module;
+  - Ruff lint, Python compilation, task-card validation, task-card
+    `check-diff`, and `git diff --check`: passed;
+  - Ruff format check remained non-green on both unchanged baseline files and
+    was not introduced by the candidate.
+- The accepted product commit is
+  `3fb10c95ce01ecf6e8e7d730ec15f4ed16cb92f1`, tree
+  `41532f66e89c7a084e70770cb1b7441083442e6b`.
+- No source PDF, protected corpus path, diagnostic artifact, extraction,
+  runtime, service, database, queue, model, GPU, deployment, activation, or
+  merge action was used.

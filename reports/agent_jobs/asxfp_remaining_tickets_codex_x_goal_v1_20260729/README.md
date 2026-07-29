@@ -46,17 +46,20 @@ activation, merge, issue closure, canary execution, or backfill execution.
 ## Current milestone
 
 Ticket 04 is classified `NEW_FAILURE_CLASS`. The permanent gate is a synthetic
-cross-page half-year bundle regression. The first Codex X implementer may edit
-only the current task-card allowlist; a fresh independent reviewer must accept
-the frozen delta before parent-owned publication.
+cross-page half-year bundle regression. The Codex X implementer produced a
+three-file frozen delta, a separate fresh reviewer returned `ACCEPT`, and the
+parent validation gate passed. The accepted commit is
+`3fb10c95ce01ecf6e8e7d730ec15f4ed16cb92f1`.
 
 ## Validation
 
-Validation evidence will include task-card validation, exact changed paths,
-RED/GREEN focused tests, focused existing tests, changed-file lint/compile,
-`git diff --check`, and independent reviewer verdict.
+Validation evidence includes task-card validation and scope check, exact
+changed paths, RED/GREEN behavioral proof, 68 focused tests plus 6 related
+source-classifier cases, changed-file lint and compilation,
+`git diff --check`, and an independent `ACCEPT` verdict. Two optional
+Docling-backed multipass cases remain an environment-only validation gap.
 
 ## Next action
 
-Publish the orchestration seed, launch the fresh offline Codex X implementer
-from its exact remote SHA, and freeze the resulting Ticket 04 delta.
+Push the accepted Ticket 04 commit and report update, open a draft PR against
+the verified canonical branch, and bind CI evidence to the exact remote head.
