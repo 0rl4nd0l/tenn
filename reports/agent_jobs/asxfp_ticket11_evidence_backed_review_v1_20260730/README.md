@@ -2,6 +2,22 @@
 
 ## Outcome
 
+The current fresh-head rejection repair closes both reported P1 paths.
+Production staging passes the single enriched payload to both projection
+sinks, and one trust gate prevents explicit abstain/quarantine plus malformed,
+unknown, or unscoped trust metadata from reaching either the legacy profile or
+accepted observations. Valid scoped unresolved values still queue for review.
+Explicit trusted outcomes with no triggers retain automatic projection, and
+the repair does not synthesize trust outcomes.
+
+Approval now uses conflict-safe `INSERT ... RETURNING` and compares the
+persisted identity with the exact reviewed observation before marking the
+review approved. A deterministic identity conflict raises, leaves the review
+pending, commits nothing, and returns the API's existing fail-closed 400
+semantics after rollback. Actor, unique non-empty reasons, automatic UTC
+decision time, rejection non-promotion, candidate provenance identity, and
+review-decision provenance remain intact.
+
 Implemented an additive evidence-backed financial observation review queue.
 Existing provenance-issue conflict/ambiguity shapes and trust-outcome
 abstention/quarantine shapes now feed the queue directly; the invented
@@ -128,6 +144,8 @@ Fresh exact-head rejection-repair validation:
   `git diff --check`: passed.
 - Ruff was attempted but unavailable in the offline interpreter:
   `/usr/bin/python3: No module named ruff`.
+- A direct static-import assertion was also attempted, but the offline
+  interpreter reported `No module named 'sqlalchemy'`.
 - The Git index remained empty; the seven repair paths are unstaged.
 - Controller verification in the disposable dependency environment passed:
   `112 passed, 1 deselected, 1 warning`. The warning is the repository's
@@ -137,6 +155,37 @@ Fresh exact-head rejection-repair validation:
   findings excluded. `ruff format --check` reports broader pre-existing
   formatting drift across these legacy files, so no broad mechanical rewrite
   was applied.
+- Controller `py_compile`, task-card validation, exact allowlist diff check,
+  and `git diff --check` passed.
+
+Current fresh exact-head rejection-repair validation:
+
+- Exact base commit `136c889ec7cce81d6c02d31717f0449693eefd9b`,
+  tree `3f898a3867fdb2185521e3306d34f45a41f40d03`, parent Ticket 10
+  `c57698a2e852d74d84dbb30402a0d654515d6a44`, and authority SHA-256
+  `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`
+  matched.
+- Focused fake-only pytest was attempted with
+  `python3 -m pytest -q
+  financial-engine_v2/backend/tests/test_financial_observation_reviews.py -k
+  'scoped_unresolved_payload or malformed_or_unscoped or
+  approval_identity_conflict'`; the offline interpreter reported
+  `No module named pytest`. No installation was attempted.
+- `python3 -m py_compile` for the three changed production modules and focused
+  test passed.
+- Ruff was attempted but unavailable in the offline interpreter:
+  `/usr/bin/python3: No module named ruff`.
+- `git diff --check` passed after the task-card/report closeout update.
+- The changed product/test/task-card/report paths are within the existing
+  Ticket 11 allowlist and remain unstaged.
+- Controller verification in the disposable dependency environment passed:
+  `119 passed, 1 deselected, 1 warning`. The warning is the repository's
+  existing unknown `asyncio_default_fixture_loop_scope` pytest option.
+- Controller Ruff passed for the changed financial-observation service and
+  focused test after three import-only test cleanups, with the file's two
+  pre-existing `FURB157` Decimal-style findings excluded. Undefined-name and
+  syntax rules passed for the legacy API/pipeline files; broader Ruff reports
+  their pre-existing FastAPI, import, optional-type, and exception-style debt.
 - Controller `py_compile`, task-card validation, exact allowlist diff check,
   and `git diff --check` passed.
 
@@ -162,6 +211,9 @@ commit changes no product, migration, API, or test behavior.
 
 ## Residual risks
 
+- Focused pytest could not run in the offline interpreter because pytest is not
+  installed; compile/static validation does not execute SQLAlchemy
+  `INSERT ... RETURNING` against PostgreSQL.
 - The migration was inspected and compiled but deliberately not applied.
 - The migration's PostgreSQL decision-audit constraint was not exercised
   against a live database, as prohibited by this repair boundary.

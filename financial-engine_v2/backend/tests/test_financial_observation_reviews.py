@@ -18,11 +18,13 @@ class FakeQuery:
 
 
 class FakeSession:
-    def __init__(self, *, rows=None, get_rows=None):
+    def __init__(self, *, rows=None, get_rows=None, execute_rowcounts=None):
         self.rows = rows or {}
         self.get_rows = get_rows or {}
+        self.execute_rowcounts = list(execute_rowcounts or [])
         self.executed = []
         self.commits = 0
+        self.rollbacks = 0
 
     def query(self, model):
         return FakeQuery(self.rows.get(model, []))
@@ -32,10 +34,28 @@ class FakeSession:
 
     def execute(self, statement):
         self.executed.append(statement)
-        return SimpleNamespace(rowcount=1)
+        rowcount = (
+            self.execute_rowcounts.pop(0)
+            if self.execute_rowcounts
+            else 1
+        )
+        returned_identity = None
+        for column, value in getattr(statement, "_values", {}).items():
+            if getattr(column, "name", None) == "observation_id":
+                returned_identity = getattr(value, "value", None)
+                break
+        return SimpleNamespace(
+            rowcount=rowcount,
+            scalar_one_or_none=lambda: (
+                returned_identity if rowcount else None
+            ),
+        )
 
     def commit(self):
         self.commits += 1
+
+    def rollback(self):
+        self.rollbacks += 1
 
 
 def review_candidate(kind="conflicting", *, evidence=True, value=125):
@@ -588,6 +608,35 @@ def test_evidence_backed_approval_promotes_an_accepted_profile_observation():
     assert len(session.executed) == 1
 
 
+def test_approval_identity_conflict_fails_without_marking_review_approved():
+    from app.models.financial_observations import FinancialObservationReview
+    from app.services.financial_observations import (
+        decide_financial_observation_review,
+    )
+
+    review = _review()
+    session = FakeSession(
+        get_rows={(FinancialObservationReview, review.review_id): review},
+        execute_rowcounts=[0],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="reviewed observation identity conflicts with an existing value",
+    ):
+        decide_financial_observation_review(
+            session,
+            review_id=review.review_id,
+            decision="approve",
+            actor="reviewer@example.com",
+            reason_codes=["SOURCE_EVIDENCE_CONFIRMED"],
+        )
+
+    assert review.status == "pending"
+    assert review.decision is None
+    assert review.decided_at is None
+
+
 def test_rejection_persists_audit_fields_without_promoting():
     from app.models.financial_observations import FinancialObservationReview
     from app.services.financial_observations import (
@@ -695,21 +744,135 @@ def test_decision_route_returns_persisted_rejection_audit():
     assert session.executed == []
 
 
+def test_decision_route_rolls_back_and_reports_approval_identity_conflict():
+    from app.api.routes import (
+        FinancialObservationReviewDecision,
+        financial_review_decision,
+    )
+    from app.models.financial_observations import FinancialObservationReview
+    from fastapi import HTTPException
+
+    review = _review()
+    session = FakeSession(
+        get_rows={(FinancialObservationReview, review.review_id): review},
+        execute_rowcounts=[0],
+    )
+
+    with pytest.raises(HTTPException) as caught:
+        financial_review_decision(
+            review.review_id,
+            FinancialObservationReviewDecision(
+                decision="approve",
+                actor="reviewer@example.com",
+                reason_codes=["SOURCE_EVIDENCE_CONFIRMED"],
+            ),
+            session,
+        )
+
+    assert caught.value.status_code == 400
+    assert caught.value.detail == (
+        "reviewed observation identity conflicts with an existing value"
+    )
+    assert session.commits == 0
+    assert session.rollbacks == 1
+    assert review.status == "pending"
+
+
 def test_trusted_observation_path_does_not_require_a_review():
     from app.services.financial_observations import stage_financial_observations
     from test_financial_observations import accepted_context
 
     document_id = uuid.uuid4()
     session = FakeSession()
+    payload = accepted_context(document_id)
+    payload["trust_outcome"] = "trusted"
+    payload["trust_triggers"] = []
     observations = stage_financial_observations(
         session,
         document=SimpleNamespace(document_id=document_id, ticker="BHP"),
         extraction_run=SimpleNamespace(
             run_id=uuid.uuid4(), extractor_version="fake-v1"
         ),
-        structured=accepted_context(document_id),
+        structured=payload,
     )
 
     assert len(observations) == 1
     assert observations[0].trust_state == "accepted"
     assert len(session.executed) == 1
+
+
+def test_scoped_unresolved_payload_queues_without_automatic_promotion():
+    from app.services.financial_observations import stage_financial_observations
+    from app.services.pipeline import _upsert_financial_rows
+    from test_financial_observations import accepted_context
+
+    document_id = uuid.uuid4()
+    payload = accepted_context(document_id)
+    payload["trust_outcome"] = "abstain"
+    payload["trust_triggers"] = ["revenue:missing"]
+    production_payload = {
+        **accepted_context(document_id),
+        "period_observations": [payload],
+    }
+    session = FakeSession()
+
+    document = SimpleNamespace(document_id=document_id, ticker="BHP")
+    observations = stage_financial_observations(
+        session,
+        document=document,
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=production_payload,
+    )
+    legacy_rows_written = _upsert_financial_rows(
+        session, document, production_payload
+    )
+
+    assert observations == ()
+    assert legacy_rows_written == 0
+    assert len(session.executed) == 1
+
+
+@pytest.mark.parametrize(
+    ("outcome", "triggers"),
+    (
+        ("abstain", ["unscoped"]),
+        ("unknown", ["revenue:missing"]),
+        ({"malformed": True}, ["revenue:missing"]),
+        ("quarantine", {"metric": "revenue"}),
+    ),
+)
+def test_malformed_or_unscoped_unresolved_payload_cannot_promote(
+    outcome, triggers
+):
+    from app.services.financial_observations import stage_financial_observations
+    from app.services.pipeline import _upsert_financial_rows
+    from test_financial_observations import accepted_context
+
+    document_id = uuid.uuid4()
+    payload = accepted_context(document_id)
+    payload["trust_outcome"] = outcome
+    payload["trust_triggers"] = triggers
+    production_payload = {
+        **accepted_context(document_id),
+        "period_observations": [payload],
+    }
+    session = FakeSession()
+
+    document = SimpleNamespace(document_id=document_id, ticker="BHP")
+    observations = stage_financial_observations(
+        session,
+        document=document,
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=production_payload,
+    )
+    legacy_rows_written = _upsert_financial_rows(
+        session, document, production_payload
+    )
+
+    assert observations == ()
+    assert legacy_rows_written == 0
+    assert session.executed == []
