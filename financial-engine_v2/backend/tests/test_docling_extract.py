@@ -642,6 +642,28 @@ def test_openability_tsv_retains_region_row_cell_and_confidence():
     assert candidate["recognition_confidence"] == 92
 
 
+def test_docling_table_retains_structured_ocr_source_candidates():
+    candidate = {
+        "page_number": 1,
+        "source_region": {"left": 30, "top": 120, "right": 148, "bottom": 132},
+        "source_row": 4,
+        "source_cell": [1, 2, 3, 4, 5, 6],
+        "source_text": "Revenue 4,920,102",
+        "candidate_value_text": "4,920,102",
+        "recognition_confidence": 92.0,
+    }
+
+    table = DoclingTable(
+        page_number=1,
+        caption="OCR statement",
+        rows=[["Revenue", "4,920,102"]],
+        headers=["Source row", "Value"],
+        ocr_source_candidates=[candidate],
+    )
+
+    assert table.ocr_source_candidates == [candidate]
+
+
 def test_openability_low_confidence_and_conflicting_rows_fail_closed():
     low_confidence = docling_extract._parse_openability_text(
         1,
