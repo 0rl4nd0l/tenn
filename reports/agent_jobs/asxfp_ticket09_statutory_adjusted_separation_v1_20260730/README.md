@@ -60,9 +60,15 @@ Residual risks:
   no corpus-quality claim.
 
 Local delivery verdict: `REVIEW_READY`. The working tree is confined to the
-eight allowed paths above. The exact implementation commit SHA will be appended
-in a report-only follow-up after Git creates that commit; the final review head
-and clean status remain externally verifiable Git facts.
+eight allowed paths above.
+
+- Exact implementation commit:
+  `725340e5c838d6b110db30cd44458c744a6da2ef`
+- Exact implementation tree:
+  `926251d12d4d545c282e6ebb6fab7c37293d7e7b`
+- Git status immediately after the implementation commit: clean.
+- This report-only follow-up records the implementation identity. The final
+  review-head identity and clean status remain externally verifiable Git facts.
 
 ## Boundaries
 
