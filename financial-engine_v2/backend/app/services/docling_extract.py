@@ -54,6 +54,7 @@ DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE_ENV = "DOCLING_PAGE_BATCH_PROFILE_BATCH_SI
 DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE = 8
 DOCLING_EXTRACT_CACHE_DIR = "docling_extract"
 OPENABILITY_DIAGNOSTIC_MAX_PAGES = 8
+OPENABILITY_OCR_MIN_CONFIDENCE = 80.0
 
 OPENABILITY_STATEMENT_PATTERNS = {
     "income_statement": re.compile(
@@ -501,10 +502,14 @@ def _openability_statement_label(text: str) -> str | None:
     return None
 
 
-def _openability_row_candidates(text: str) -> list[dict[str, str]]:
-    candidates: list[dict[str, str]] = []
+def _openability_row_candidates(
+    text: str,
+    *,
+    line_provenance: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for raw_line in text.splitlines():
+    for row_index, raw_line in enumerate(text.splitlines()):
         line = re.sub(r"\s+", " ", raw_line).strip()
         if not line:
             continue
@@ -524,22 +529,66 @@ def _openability_row_candidates(text: str) -> list[dict[str, str]]:
         if line in seen:
             continue
         seen.add(line)
-        candidates.append(
-            {
-                "source_text": line,
-                "candidate_value_text": candidate_value,
-                "value_text_candidates": value_tokens,
-                "candidate_value_quality": (
-                    "financial_amount" if financial_amounts else "low_confidence"
-                ),
-            }
+        candidate: dict[str, Any] = {
+            "source_text": line,
+            "candidate_value_text": candidate_value,
+            "value_text_candidates": value_tokens,
+            "candidate_value_quality": (
+                "financial_amount" if financial_amounts else "low_confidence"
+            ),
+        }
+        if line_provenance and row_index < len(line_provenance):
+            provenance = line_provenance[row_index]
+            candidate["source_region"] = provenance.get("source_region")
+            candidate["source_row"] = provenance.get("source_row")
+            candidate["source_cell"] = provenance.get("source_cell")
+            candidate["recognition_confidence"] = provenance.get(
+                "recognition_confidence"
+            )
+            if (
+                float(candidate["recognition_confidence"] or 0)
+                < OPENABILITY_OCR_MIN_CONFIDENCE
+            ):
+                candidate["candidate_value_quality"] = "low_confidence"
+        candidates.append(candidate)
+
+    values_by_label: dict[str, set[str]] = {}
+    for candidate in candidates:
+        label = re.sub(
+            OPENABILITY_VALUE_TOKEN_PATTERN,
+            "",
+            str(candidate["source_text"]),
         )
+        label = re.sub(r"\W+", "", label).lower()
+        values_by_label.setdefault(label, set()).add(
+            str(candidate["candidate_value_text"])
+        )
+    conflicting_labels = {
+        label for label, values in values_by_label.items() if label and len(values) > 1
+    }
+    for candidate in candidates:
+        label = re.sub(
+            OPENABILITY_VALUE_TOKEN_PATTERN,
+            "",
+            str(candidate["source_text"]),
+        )
+        if re.sub(r"\W+", "", label).lower() in conflicting_labels:
+            candidate["candidate_value_quality"] = "conflicting_recognition"
     return candidates
 
 
-def _parse_openability_text(page: int, text: str, *, source: str) -> dict[str, Any]:
+def _parse_openability_text(
+    page: int,
+    text: str,
+    *,
+    source: str,
+    line_provenance: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     statement_label = _openability_statement_label(text)
-    row_candidates = _openability_row_candidates(text)
+    row_candidates = _openability_row_candidates(
+        text,
+        line_provenance=line_provenance,
+    )
     period_phrases = sorted(
         {match.group(0).strip() for match in OPENABILITY_PERIOD_PATTERN.finditer(text)}
     )
@@ -561,6 +610,57 @@ def _parse_openability_text(page: int, text: str, *, source: str) -> dict[str, A
             else "DATA_MISSING"
         ),
     }
+
+
+def _parse_openability_tsv(tsv: str) -> tuple[str, list[dict[str, Any]]]:
+    """Rebuild OCR lines while retaining Tesseract page-region/cell provenance."""
+    lines: dict[tuple[int, int, int, int], list[dict[str, Any]]] = {}
+    for raw_row in tsv.splitlines()[1:]:
+        columns = raw_row.split("\t")
+        if len(columns) < 12 or not columns[11].strip():
+            continue
+        try:
+            level, page, block, paragraph, line, word = map(int, columns[:6])
+            left, top, width, height = map(int, columns[6:10])
+            confidence = float(columns[10])
+        except (TypeError, ValueError):
+            continue
+        if level != 5:
+            continue
+        lines.setdefault((page, block, paragraph, line), []).append(
+            {
+                "word": word,
+                "text": columns[11].strip(),
+                "left": left,
+                "top": top,
+                "right": left + width,
+                "bottom": top + height,
+                "confidence": confidence,
+            }
+        )
+
+    text_lines: list[str] = []
+    provenance: list[dict[str, Any]] = []
+    for row_index, (line_key, words) in enumerate(sorted(lines.items()), start=1):
+        words.sort(key=lambda word: int(word["word"]))
+        text_lines.append(" ".join(str(word["text"]) for word in words))
+        provenance.append(
+            {
+                "source_region": {
+                    "left": min(int(word["left"]) for word in words),
+                    "top": min(int(word["top"]) for word in words),
+                    "right": max(int(word["right"]) for word in words),
+                    "bottom": max(int(word["bottom"]) for word in words),
+                },
+                "source_row": row_index,
+                "source_cell": [int(word["word"]) for word in words],
+                "recognition_confidence": min(
+                    float(word["confidence"]) for word in words
+                ),
+                "ocr_line_key": list(line_key),
+            }
+        )
+    return "\n".join(text_lines), provenance
 
 
 def _summarize_openability_parser_output(
@@ -679,7 +779,10 @@ def _run_openability_ocr_for_pages(
                     }
                 )
                 continue
-            ocr = runner.run(["tesseract", str(images[0]), "stdout"], timeout=120)
+            ocr = runner.run(
+                ["tesseract", str(images[0]), "stdout", "tsv"],
+                timeout=120,
+            )
             if ocr.returncode != 0:
                 records.append(
                     {
@@ -692,8 +795,14 @@ def _run_openability_ocr_for_pages(
                     }
                 )
                 continue
+            ocr_text, line_provenance = _parse_openability_tsv(ocr.stdout)
             records.append(
-                _parse_openability_text(page, ocr.stdout, source="openability_ocr")
+                _parse_openability_text(
+                    page,
+                    ocr_text,
+                    source="openability_ocr",
+                    line_provenance=line_provenance,
+                )
             )
     return records
 

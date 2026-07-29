@@ -9133,7 +9133,7 @@ def test_validation_gate_accepts_null_narrative_fields():
 
 
 def _whc_openability_diagnostic():
-    return {
+    diagnostic = {
         "schema": "docling_openability_diagnostics_v1",
         "provenance_only": True,
         "feeds_canonical_output": False,
@@ -9220,6 +9220,22 @@ def _whc_openability_diagnostic():
             },
         ],
     }
+    for record in diagnostic["ocr_records"]:
+        for row_index, candidate in enumerate(record["row_candidates"], start=1):
+            candidate.update(
+                {
+                    "source_region": {
+                        "left": 10,
+                        "top": row_index * 20,
+                        "right": 500,
+                        "bottom": row_index * 20 + 12,
+                    },
+                    "source_row": row_index,
+                    "source_cell": [1, 2],
+                    "recognition_confidence": 95,
+                }
+            )
+    return diagnostic
 
 
 class _OpenabilityDoc:
@@ -9253,6 +9269,9 @@ def test_openability_selected_tables_builds_statement_tables_from_source_bound_d
     assert [table.page_number for table in tables] == [57, 58, 60]
     assert all(_detect_scale_from_table(table) == "thousands" for table in tables)
     assert "Revenue 21 4,920,102 1,556,976" in tables[0].rows[1][0]
+    assert "region=" in tables[0].rows[1][0]
+    assert "row=1" in tables[0].rows[1][0]
+    assert "cells=[1, 2]" in tables[0].rows[1][0]
     assert "Unusable subtotal" not in " ".join(
         " ".join(row) for table in tables for row in table.rows
     )
