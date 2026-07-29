@@ -24,7 +24,9 @@ allowed_files:
   - financial-engine_v2/backend/app/api/routes.py
   - financial-engine_v2/backend/app/models/__init__.py
   - financial-engine_v2/backend/app/models/financial_observations.py
+  - financial-engine_v2/backend/app/services/extraction_eval.py
   - financial-engine_v2/backend/app/services/financial_observations.py
+  - financial-engine_v2/backend/app/services/pipeline.py
   - financial-engine_v2/backend/tests/test_financial_observation_reviews.py
   - financial-engine_v2/backend/tests/test_financial_observations.py
   - reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730/README.md
@@ -42,8 +44,9 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
-- Repair base commit: `6bed5f6fa9df04e3f94fc73152d66cef54184ed8`.
-- Repair base tree: `f267179ee3a9c68df83d3af8d38301f4705ff30d`.
+- Second repair base commit: `08420f349077158b8a537912d59e0f07d3b347bf`.
+- Second repair base tree: `57b10a1addf6883faef5d14af4385ac95d8d62eb`.
+- Parent before Ticket 11: `c57698a2e852d74d84dbb30402a0d654515d6a44`.
 - Ticket 11 authority SHA-256:
   `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`.
 
@@ -53,6 +56,14 @@ Add an observation-specific review queue with closed unresolved states,
 machine-readable reason codes, complete location and financial-context evidence,
 authenticated review reads and decisions, and a fail-closed approval path.
 Preserve the existing automatic profile projection for trusted observations.
+
+This bounded repair expands the original allowlist only to
+`app/services/extraction_eval.py` and `app/services/pipeline.py`. The former
+exposes the existing raw-payload provenance validator at the production
+boundary; the latter invokes that enrichment immediately before observation
+staging. Both are required because production staging otherwise receives raw
+structured extraction output without the evaluation detail consumed by the
+Ticket 11 adapter.
 
 ## Explicit allowlist
 

@@ -94,10 +94,15 @@ def real_outcome(kind):
         "field_provenance": {
             "revenue": {
                 "page_number": 42,
-                "table_or_region": "Consolidated income statement",
+                "source": "income_statement",
                 "row_ref": "Revenue",
-                "cell_ref": "row 3, column 2025",
                 "scale": "millions",
+                "source_cell": {
+                    "row_index": 3,
+                    "column_index": 2,
+                    "raw_value": "125",
+                    "header_cell": "2025",
+                },
             }
         },
     }
@@ -108,13 +113,23 @@ def real_outcome(kind):
             else "ambiguous_source_cell"
         )
         payload["provenance_summary"] = {
-            "issues": [{"code": code, "field": "revenue"}]
+            "issues": [
+                {
+                    "code": code,
+                    "metric": "revenue",
+                    "field": "location_ref",
+                }
+            ]
         }
     else:
         payload["trust_outcome"] = (
             "abstain" if kind == "abstained" else "quarantine"
         )
-        payload["trust_triggers"] = [f"{kind}_metric_outcome"]
+        payload["trust_triggers"] = (
+            ["revenue:missing"]
+            if kind == "abstained"
+            else ["context_mismatch:currency"]
+        )
     return payload
 
 
@@ -140,6 +155,116 @@ def test_real_outcome_shapes_enter_review_queue(kind):
     assert staged[0].review_kind == kind
     assert staged[0].reason_codes
     assert len(session.executed) == 1
+
+
+def test_metric_trust_trigger_does_not_broadcast_to_other_metrics():
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    payload = real_outcome("abstained")
+    payload["metrics"]["net_debt"] = None
+    payload["field_provenance"]["net_debt"] = dict(
+        payload["field_provenance"]["revenue"]
+    )
+    payload["trust_triggers"] = ["net_debt:missing"]
+
+    staged = stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=payload,
+    )
+
+    assert [(item.metric, item.reason_codes) for item in staged] == [
+        ("net_debt", ["net_debt:missing"])
+    ]
+
+
+def test_malformed_trust_trigger_fails_closed():
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    payload = real_outcome("abstained")
+    payload["trust_triggers"] = ["abstained_metric_outcome"]
+
+    staged = stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=payload,
+    )
+
+    assert staged == ()
+
+
+def test_raw_production_payload_is_enriched_before_review_staging(monkeypatch):
+    from app.services import financial_observations
+
+    payload = real_outcome("abstained")
+    payload.pop("trust_outcome")
+    payload.pop("trust_triggers")
+    monkeypatch.setattr(
+        financial_observations,
+        "build_payload_provenance_summary",
+        lambda _payload: {
+            "issues": [
+                {
+                    "code": "missing_location_ref",
+                    "severity": "error",
+                    "field": "location_ref",
+                    "metric": "revenue",
+                }
+            ],
+            "metric_summaries": [
+                {
+                    "metric": "revenue",
+                    "canonical_provenance_required": True,
+                    "canonical_provenance_valid": False,
+                    "canonical_provenance_reason": (
+                        "structured_provenance_missing"
+                    ),
+                }
+            ],
+        },
+    )
+
+    enriched = financial_observations.build_review_staging_payload(payload)
+    staged = financial_observations.stage_financial_observation_reviews(
+        FakeSession(),
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=enriched,
+    )
+
+    assert enriched["trust_outcome"] == "abstain"
+    assert enriched["trust_triggers"] == [
+        "revenue:provenance_invalid:structured_provenance_missing"
+    ]
+    assert [(item.metric, item.review_kind) for item in staged] == [
+        ("revenue", "abstained")
+    ]
+
+
+def test_pipeline_enriches_raw_output_at_observation_staging_boundary():
+    from pathlib import Path
+
+    source = (
+        Path(__file__).parents[1] / "app" / "services" / "pipeline.py"
+    ).read_text(encoding="utf-8")
+    enrichment = source.index(
+        "observation_payload = build_review_staging_payload("
+    )
+    staging = source.index("stage_financial_observations(", enrichment)
+
+    assert enrichment < staging
 
 
 def test_missing_location_evidence_is_queued_with_reason_codes():
