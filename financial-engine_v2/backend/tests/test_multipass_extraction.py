@@ -545,6 +545,187 @@ def test_run_multipass_blocks_title_only_source_noncandidate_before_parser_impor
     )
 
 
+def test_run_multipass_abstains_unknown_contract_before_pass1_or_metric_extraction():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 1
+        docling_version = None
+        tables = []
+        sections = [{"text": "General corporate announcement", "page": 1}]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+    ) as pass1, patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+    ) as pass3a:
+        result = run_multipass_extraction(
+            "/fake/general-announcement.pdf",
+            {
+                "document_id": "general-announcement",
+                "ticker": "GEN",
+                "title": "General corporate announcement",
+            },
+            llm_client=None,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:extraction_contract_abstain"
+    assert result.payload["asx_document_type_classification"]["abstain"] is True
+    assert result.payload["asx_extraction_contract"]["contract_id"] is None
+    assert result.payload["asx_extraction_contract"]["canonical_write"] is False
+    pass1.assert_not_called()
+    pass3a.assert_not_called()
+
+
+def test_run_multipass_abstains_contract_period_mismatch_before_metric_extraction():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 1
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "text": (
+                    "Half-Year Report. Interim financial report. "
+                    "Condensed consolidated financial statements."
+                ),
+                "page": 1,
+            }
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "thousands",
+            "classifier_confidence": 0.97,
+        },
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+    ) as pass2, patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+    ) as pass3a:
+        result = run_multipass_extraction(
+            "/fake/half-year-report.pdf",
+            {
+                "document_id": "half-year-report",
+                "ticker": "HYR",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:extraction_contract_period_basis_mismatch"
+    assert result.payload["asx_extraction_contract_routing"]["abstain"] is True
+    pass2.assert_not_called()
+    pass3a.assert_not_called()
+
+
+def test_cashflow_contract_blocks_disallowed_metrics_and_prose_share_recovery():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "text": (
+                    "Appendix 4C Quarterly cash flow report. Rule 4.7B. "
+                    "For the quarter ended 31 March 2026."
+                ),
+                "page": 1,
+            },
+            {
+                "text": (
+                    "At 31 March 2026, Example Limited had 25 million ordinary "
+                    "shares on issue and held by the public."
+                ),
+                "page": 2,
+            },
+        ]
+
+    pass3a_result = {
+        "_source": "highlights",
+        "_page_number": 1,
+        "revenue": 1_000_000,
+        "ebit": 250_000,
+        "np_attributable": 125_000,
+        "net_debt": 50_000,
+        "shares_outstanding": 25_000_000,
+        "operating_cf": 500_000,
+        "cash_end": 800_000,
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "revenue": "Revenue",
+            "ebit": "EBIT",
+            "np_attributable": "Net profit",
+            "net_debt": "Net debt",
+            "shares_outstanding": "Ordinary shares on issue",
+            "operating_cf": "Net cash from operating activities",
+            "cash_end": "Cash and cash equivalents at end of period",
+        },
+    }
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "Q",
+            "period_end": "2026-03-31",
+            "currency": "AUD",
+            "scale": "thousands",
+            "classifier_confidence": 0.97,
+        },
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={"unmatched": []},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[pass3a_result],
+    ):
+        result = run_multipass_extraction(
+            "/fake/appendix-4c.pdf",
+            {
+                "document_id": "appendix-4c",
+                "ticker": "EXM",
+                "title": "Appendix 4C Quarterly cash flow report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.payload["operating_cf"] == 500_000
+    assert result.payload["cash_end"] == 800_000
+    for metric_name in (
+        "revenue",
+        "ebit",
+        "np_attributable",
+        "net_debt",
+        "shares_outstanding",
+    ):
+        assert result.payload[metric_name] is None
+        assert result.payload["metrics"][metric_name] is None
+        assert metric_name not in result.payload["row_refs"]
+        assert metric_name not in result.payload["provenance"]
+
+
 def _gpt_appendix_4d_sections(*, include_disclosures: bool = True) -> list[dict]:
     sections = [
         {"text": "ASX Announcement", "page": 1},
@@ -8537,7 +8718,15 @@ def _mock_structured_doc():
         extraction_method = "docling"
         page_count = 1
         docling_version = "test"
-        sections = [{"text": "Some prose about risk.", "page": 1}]
+        sections = [
+            {
+                "text": (
+                    "Half-Year Report for the half-year ended 30 June 2025. "
+                    "Some prose about risk."
+                ),
+                "page": 1,
+            }
+        ]
         tables = [
             DoclingTable(
                 page_number=1,

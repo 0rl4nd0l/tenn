@@ -14,6 +14,7 @@ APPROVED_DOCUMENT_TYPES = {
     "appendix_4d",
     "appendix_4e",
     "appendix_5b",
+    "quarterly_report",
     "other_asx_announcement",
     "unknown_or_abstain",
 }

@@ -9,6 +9,7 @@
     "appendix_4d",
     "appendix_4e",
     "appendix_5b",
+    "quarterly_report",
     "other_asx_announcement",
     "unknown_or_abstain"
   ],
@@ -25,6 +26,7 @@
     "appendix_4d_half_year_results.json",
     "appendix_4e_preliminary_final.json",
     "appendix_5b_mining_cashflow.json",
+    "quarterly_report_basic.json",
     "other_asx_announcement_investor_presentation.json",
     "unknown_low_signal.json",
     "ambiguous_appendix_4d_4e_abstain.json"

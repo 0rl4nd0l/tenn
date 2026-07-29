@@ -1,0 +1,49 @@
+{
+  "fixture_id": "quarterly_report_basic",
+  "document_id": "SYN-ASX-QUARTERLY-001",
+  "ticker": "QRL",
+  "expected_document_type": "quarterly_report",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "QRL Quarterly Report",
+    "asx_announcement_title": "Quarterly activities report",
+    "headings": [
+      "Quarterly highlights",
+      "Financial performance"
+    ],
+    "table_captions": [
+      "Quarterly financial summary"
+    ],
+    "relevant_line_anchors": [
+      "For the quarter ended 31 March 2026",
+      "Released to ASX"
+    ],
+    "footer_form_labels": []
+  },
+  "positive_anchors": [
+    "Quarterly Report",
+    "Quarterly activities report",
+    "quarter-ended period"
+  ],
+  "negative_anchors": [
+    "Appendix 4C",
+    "Appendix 4D",
+    "Appendix 4E",
+    "Appendix 5B",
+    "Annual Report",
+    "Half-Year Report"
+  ],
+  "required_evidence": [
+    "quarterly report title",
+    "quarter-ended period label"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "document type does not infer revenue",
+    "document type does not infer NPAT",
+    "document type does not infer net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic generic quarterly report fixture for metadata classification only."
+}

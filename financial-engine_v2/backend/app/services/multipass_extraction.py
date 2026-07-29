@@ -26,6 +26,10 @@ from typing import Any, Optional, Sequence
 
 from dateutil import parser as dtparser
 
+from app.services.asx_extraction_contracts import (
+    classify_and_select_extraction_contract,
+    evaluate_contract_routing,
+)
 from app.services.extraction_run_observability import ExtractionRunObserver
 from app.services.financial_metric_contract import CANONICAL_METRIC_FIELDS
 from app.services.prompt_registry import PromptBundle, register_bundle, resolve
@@ -3498,6 +3502,17 @@ def _extract_single_table(
     """
     bundle = prompt_bundle or resolve("default")
     metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
+    contract_metrics = pass1_result.get("_contract_allowed_canonical_metrics")
+    if isinstance(contract_metrics, (list, tuple, set, frozenset)):
+        allowed_metrics = set(contract_metrics)
+        metrics = [
+            metric
+            for metric in metrics
+            if metric in allowed_metrics
+            or (metric == "total_debt" and "net_debt" in allowed_metrics)
+        ]
+    if not metrics:
+        return None
     metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
     # Cash flow tables need a higher row cap:
     #   - Merged 5B tables may have 50+ rows (section 4 totals near the end)
@@ -5920,7 +5935,16 @@ def _run_pass4_reconciler(
     # Prose fallback: shares_outstanding from note sections when tables yield null.
     # Banking filings (ANZ, WBC) often report share counts in prose Note 13/14
     # rather than in structured tables.
-    if merged_metrics.get("shares_outstanding") is None and sections:
+    contract_metrics = pass1_result.get("_contract_allowed_canonical_metrics")
+    contract_allows_shares = (
+        not isinstance(contract_metrics, (list, tuple, set, frozenset))
+        or "shares_outstanding" in contract_metrics
+    )
+    if (
+        contract_allows_shares
+        and merged_metrics.get("shares_outstanding") is None
+        and sections
+    ):
         prose_shares, prose_prov = _extract_shares_from_prose(sections)
         if prose_shares is not None:
             merged_metrics["shares_outstanding"] = prose_shares
@@ -5974,6 +5998,37 @@ def _run_pass4_reconciler(
         "provenance": provenance,
         **pass3b_result,  # risk_summary, risk_bullets, guidance_summary, material_changes, confidence_narrative
     }
+
+
+def _enforce_contract_metric_allowance(
+    payload: dict[str, Any],
+    allowed_metrics: Sequence[str],
+) -> None:
+    """Remove canonical metrics and their evidence outside a selected contract."""
+
+    denied_metrics = set(METRIC_FIELDS) - set(allowed_metrics)
+    metrics = payload.get("metrics")
+    if not isinstance(metrics, dict):
+        metrics = {}
+    for metric_name in denied_metrics:
+        metrics[metric_name] = None
+        payload[metric_name] = None
+
+    for evidence_key in (
+        "row_refs",
+        "metric_source_scales",
+        "metric_scale_sources",
+        "field_provenance",
+        "thinking",
+        "markdown_tables",
+        "provenance",
+    ):
+        evidence = payload.get(evidence_key)
+        if isinstance(evidence, dict):
+            for metric_name in denied_metrics:
+                evidence.pop(metric_name, None)
+
+    payload["metrics"] = metrics
 
 
 def _common_metric_source_scale(payload: dict, fallback: Any) -> str:
@@ -8908,6 +8963,35 @@ def run_multipass_extraction(
             error=error,
         )
 
+    document_type_classification, contract_selection = (
+        classify_and_select_extraction_contract(
+            {
+                "first_page_title_text": first_page_text,
+                "asx_announcement_title": title,
+            }
+        )
+    )
+    null_payload["asx_document_type_classification"] = (
+        document_type_classification.to_dict()
+    )
+    null_payload["asx_extraction_contract"] = contract_selection.to_dict()
+    if contract_selection.abstain or contract_selection.contract is None:
+        error = "validation_gate:extraction_contract_abstain"
+        null_payload["source_period_evidence"] = source_period_evidence
+        null_payload["source_period_end_evidence"] = source_period_end_evidence
+        null_payload["source_document_classification"] = (
+            source_document_classification.to_dict()
+        )
+        null_payload["source_document_gate"] = (
+            "extraction_contract_abstain"
+        )
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=structured_doc.sections,
+            error=error,
+        )
+
     if observer is not None:
         observer.emit("pass1_classifier", "running", "Running pass 1 classifier.")
     try:
@@ -9079,6 +9163,50 @@ def run_multipass_extraction(
         if appendix_wrapper_source.get("period_end"):
             pass1["period_end"] = appendix_wrapper_source["period_end"]
 
+    contract_routing = evaluate_contract_routing(
+        contract_selection,
+        period_basis=pass1.get("report_type"),
+        available_context={
+            "document_type_anchor",
+            *({"period_basis"} if pass1.get("report_type") else set()),
+        },
+        source_evidence_count=len(
+            document_type_classification.positive_evidence
+        ),
+    )
+    if not contract_routing.allowed or contract_routing.contract is None:
+        reason = (
+            contract_routing.reasons[0]
+            if contract_routing.reasons
+            else "extraction_contract_abstain"
+        )
+        null_payload["asx_extraction_contract_routing"] = (
+            contract_routing.to_dict()
+        )
+        null_payload["source_period_evidence"] = source_period_evidence
+        null_payload["source_period_end_evidence"] = (
+            source_period_end_evidence_for_payload
+        )
+        null_payload["source_document_classification"] = (
+            source_document_classification.to_dict()
+        )
+        null_payload["source_document_gate"] = reason
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=structured_doc.sections,
+            error=f"validation_gate:{reason}",
+        )
+    allowed_contract_metrics = tuple(
+        contract_routing.contract.allowed_canonical_metrics
+    )
+    pass1["_contract_allowed_canonical_metrics"] = allowed_contract_metrics
+    pass1["_asx_document_type_classification"] = (
+        document_type_classification.to_dict()
+    )
+    pass1["_asx_extraction_contract"] = contract_selection.to_dict()
+    pass1["_asx_extraction_contract_routing"] = contract_routing.to_dict()
+
     # Pass 2: Locate tables
     if observer is not None:
         observer.emit("pass2_locator", "running", "Locating statement tables.")
@@ -9113,14 +9241,34 @@ def run_multipass_extraction(
                 error_code="pass3a_failed",
             )
         raise
-    market_update_revenue = _extract_market_update_net_revenue_candidate(
-        structured_tables,
-        sections=structured_doc.sections,
-        pass1_result=pass1,
-        title=title,
+    allowed_internal_metrics = (
+        {"total_debt"} if "net_debt" in allowed_contract_metrics else set()
     )
-    if market_update_revenue is not None:
-        pass3a_results.append(market_update_revenue)
+    allowed_result_keys = set(allowed_contract_metrics) | allowed_internal_metrics
+    for result in pass3a_results:
+        if not isinstance(result, dict):
+            continue
+        for metric_name in METRIC_FIELDS:
+            if metric_name not in allowed_result_keys:
+                result.pop(metric_name, None)
+        if "total_debt" not in allowed_result_keys:
+            result.pop("total_debt", None)
+        row_refs = result.get("row_refs")
+        if isinstance(row_refs, dict):
+            result["row_refs"] = {
+                metric_name: row_ref
+                for metric_name, row_ref in row_refs.items()
+                if metric_name in allowed_result_keys
+            }
+    if "revenue" in allowed_contract_metrics:
+        market_update_revenue = _extract_market_update_net_revenue_candidate(
+            structured_tables,
+            sections=structured_doc.sections,
+            pass1_result=pass1,
+            title=title,
+        )
+        if market_update_revenue is not None:
+            pass3a_results.append(market_update_revenue)
     if debug_capture is not None:
         debug_capture["pass3a_results"] = json.loads(json.dumps(pass3a_results))
     if observer is not None:
@@ -9223,47 +9371,52 @@ def run_multipass_extraction(
         payload,
         pass1.get("_appendix_wrapper_source"),
     )
-    _apply_preferred_income_statement_source_payload(
-        payload,
-        structured_tables,
-        scale=payload.get("scale") or pass1.get("scale", "unknown"),
-        pass1_result=pass1,
-    )
-    _apply_preferred_statement_text_source_payload(
-        payload,
-        structured_doc.sections,
-        scale=payload.get("scale") or pass1.get("scale", "unknown"),
-        pass1_result=pass1,
-    )
+    if set(allowed_contract_metrics) & {"revenue", "ebit", "np_attributable"}:
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            structured_tables,
+            scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
+        _apply_preferred_statement_text_source_payload(
+            payload,
+            structured_doc.sections,
+            scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
     _apply_bank_cashflow_capex_source_text_payload(
         payload,
         pdf_path,
         scale=payload.get("scale") or pass1.get("scale", "unknown"),
         pass1_result=pass1,
     )
-    _apply_rejected_ebit_from_pdf_statement_text(
-        payload,
-        pdf_path,
-        scale=payload.get("scale") or pass1.get("scale", "unknown"),
-        pass1_result=pass1,
-    )
+    if "ebit" in allowed_contract_metrics:
+        _apply_rejected_ebit_from_pdf_statement_text(
+            payload,
+            pdf_path,
+            scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
     _apply_appendix5b_source_text_payload(
         payload,
         pdf_path,
         scale=payload.get("scale") or pass1.get("scale", "unknown"),
         pass1_result=pass1,
     )
-    _apply_preferred_shares_source_payload(
-        payload,
-        structured_tables,
-        pass1_result=pass1,
-    )
-    _apply_preferred_cash_end_source_payload(
-        payload,
-        structured_tables,
-        scale=payload.get("scale") or pass1.get("scale", "unknown"),
-        pass1_result=pass1,
-    )
+    if "shares_outstanding" in allowed_contract_metrics:
+        _apply_preferred_shares_source_payload(
+            payload,
+            structured_tables,
+            pass1_result=pass1,
+        )
+    if "cash_end" in allowed_contract_metrics:
+        _apply_preferred_cash_end_source_payload(
+            payload,
+            structured_tables,
+            scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
+    _enforce_contract_metric_allowance(payload, allowed_contract_metrics)
     source_bound = payload.get("source_bound")
     if not isinstance(source_bound, dict):
         source_bound = {}
@@ -9277,6 +9430,11 @@ def run_multipass_extraction(
         }
     )
     payload["source_bound"] = source_bound
+    payload["asx_document_type_classification"] = (
+        document_type_classification.to_dict()
+    )
+    payload["asx_extraction_contract"] = contract_selection.to_dict()
+    payload["asx_extraction_contract_routing"] = contract_routing.to_dict()
     _pe = parse_period_end(payload.get("period_end"))
     payload["period_start"] = _derive_period_start(_pe, payload.get("period_type"))
 

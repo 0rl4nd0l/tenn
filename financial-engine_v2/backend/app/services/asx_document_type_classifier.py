@@ -20,6 +20,7 @@ SUPPORTED_DOCUMENT_TYPES = {
     "appendix_4d",
     "appendix_4e",
     "appendix_5b",
+    "quarterly_report",
     "other_asx_announcement",
     "unknown_or_abstain",
 }
@@ -148,6 +149,28 @@ _RULES: tuple[_DocumentTypeRule, ...] = (
             AnchorRule("Interim financial report", r"\binterim\s+financial\s+report\b", weight=2),
             AnchorRule("Condensed consolidated financial statements", r"\bcondensed\s+consolidated\s+financial\s+statements\b", weight=2),
             AnchorRule("half-year period", r"\bhalf[\s-]+year\s+ended\b"),
+        ),
+        high_score=5,
+    ),
+    _DocumentTypeRule(
+        document_type="quarterly_report",
+        anchors=(
+            AnchorRule(
+                "Quarterly Report",
+                r"\bquarterly\s+(?:activities\s+)?report\b",
+                weight=3,
+                required_for_high=True,
+            ),
+            AnchorRule(
+                "quarter-ended period",
+                r"\b(?:quarter|three\s+months)\s+ended\b",
+                weight=2,
+            ),
+            AnchorRule("Quarterly highlights", r"\bquarterly\s+highlights\b"),
+            AnchorRule(
+                "Quarterly financial summary",
+                r"\bquarterly\s+financial\s+summary\b",
+            ),
         ),
         high_score=5,
     ),
@@ -362,7 +385,7 @@ def _rule_for(document_type: str) -> _DocumentTypeRule:
 def _high_non_appendix_conflicts(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
     high_type_evidence: list[list[EvidenceItem]] = []
     high_types = 0
-    for document_type in ("annual_report", "half_year_report"):
+    for document_type in ("annual_report", "half_year_report", "quarterly_report"):
         rule = _rule_for(document_type)
         evidence = evidence_by_type.get(document_type, [])
         if _confidence_for(rule, evidence) == "high":
