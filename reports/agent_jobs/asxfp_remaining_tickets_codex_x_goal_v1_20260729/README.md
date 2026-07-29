@@ -15,15 +15,17 @@ at a time.
   `migration/clean-runtime-baseline-reconstruct-v1`
 - starting canonical commit:
   `b01885d6cd55242339662e91d18141aeb725f089`
-- current bounded ticket: Ticket 05 immutable financial-observation seam
+- current bounded ticket: Ticket 06 ten-metric statutory observation projection
 
 ## Ordered backlog
 
 1. Ticket 04 residual classifier failure class: draft PR 530.
-2. Ticket 05 immutable financial-observation seam: repaired candidate accepted
-   and published as draft PR 531; exact-head CI pending.
-3. Tickets 06–15 in declared dependency order.
-4. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
+2. Ticket 05 immutable financial-observation seam: repaired candidate accepted,
+   published as draft PR 531, and exact-head CI passed.
+3. Ticket 06 ten-metric statutory observation projection: task card prepared
+   on the green Ticket 05 stacked head.
+4. Tickets 07–15 in declared dependency order.
+5. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
    backfill only after prerequisites and explicit Tier 2 approvals.
 
 ## Approval boundaries
@@ -36,13 +38,12 @@ deployment, activation, merge, issue closure, canary execution, or backfill.
 
 ## Current milestone
 
-The hash-pinned Ticket 05 implementation adds the narrow immutable `revenue`
-observation seam while preserving the mutable periodic-financial compatibility
-projection. A fresh Codex X reviewer accepted exact product tree
-`214630a1db822bb0014c0c0478f7b27c354a7c59`; database-backed proof remains
-unauthorized.
+Ticket 05 is independently accepted and exact-head green at
+`84295111c6ae400de4e6f1c6cd941a45a0f549a3`. Ticket 06 now expands that seam to
+exactly the ten existing canonical statutory metrics while preserving sparse
+legacy profile values; database-backed proof remains unauthorized.
 
 ## Next action
 
-Wait for exact-head draft-PR checks, then prepare Ticket 06 from the accepted
-Ticket 05 dependency without merging or executing Tier 2 work.
+Validate and seed Ticket 06, launch one fresh Codex X implementer, freeze the
+candidate, and send the exact delta to a different fresh Codex X reviewer.
