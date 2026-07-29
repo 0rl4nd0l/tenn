@@ -35,7 +35,11 @@ from app.services.extraction_run_observability import (
     initialize_run_status,
 )
 from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
-from app.services.financial_observations import stage_financial_observations
+from app.services.financial_observations import (
+    automatic_financial_projection_allowed,
+    build_review_staging_payload,
+    stage_financial_observations,
+)
 from app.services.announcement_importance import (
     classify_documents_and_materialize,
     classify_title_extraction_skip,
@@ -1142,7 +1146,11 @@ def _upsert_financial_rows(db, doc, structured):
     metrics = structured.get("metrics") or {}
     financial_rows_written = 0
 
-    if period_type in ("Q", "H", "A") and period_end:
+    if (
+        automatic_financial_projection_allowed(structured)
+        and period_type in ("Q", "H", "A")
+        and period_end
+    ):
         row = (
             db.query(ASXPeriodicFinancial)
             .filter(
@@ -1703,9 +1711,16 @@ def process_document(
                 ExtractionStageStatus.OK,
                 ExtractionStageStatus.OK_LOW_CONFIDENCE,
             }:
-                observation_payload = dict(structured)
+                observation_payload = (
+                    structured
+                    if isinstance(structured, dict)
+                    else dict(structured)
+                )
                 observation_payload["_observation_extraction_status"] = (
                     extraction_stage.status.value
+                )
+                observation_payload = build_review_staging_payload(
+                    observation_payload
                 )
                 stage_financial_observations(
                     db,
@@ -1713,7 +1728,9 @@ def process_document(
                     extraction_run=run,
                     structured=observation_payload,
                 )
-                financial_rows_written = _upsert_financial_rows(db, doc, structured)
+                financial_rows_written = _upsert_financial_rows(
+                    db, doc, observation_payload
+                )
                 risk_note_written = int(
                     _has_narrative_content(structured)
                     if isinstance(structured, Mapping)

@@ -3,23 +3,25 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import date
+from collections.abc import Mapping
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Mapping
+from typing import Any
 
 from sqlalchemy.dialects.postgresql import insert
 
 from app.models.financial_observations import (
     FinancialObservation,
+    FinancialObservationReview,
     FinancialObservationSupersession,
     FinancialResultDisclosure,
 )
+from app.services.extraction_eval import build_payload_provenance_summary
 from app.services.financial_metric_contract import (
     CANONICAL_METRIC_FIELDS,
     METRIC_CONTRACT_BY_CANONICAL_FIELD,
     MetricUnitKind,
 )
-
 
 _PROVENANCE_FIELDS = (
     "metric",
@@ -41,6 +43,13 @@ _PERIOD_BASES = _LEGACY_PERIOD_BASES | frozenset(_QUARTER_PERIOD_ROLES)
 _SOURCE_SCALES = frozenset(
     {"units", "thousands", "millions", "billions", "trillions"}
 )
+_SOURCE_SCALE_MULTIPLIERS = {
+    "units": Decimal(1),
+    "thousands": Decimal(1_000),
+    "millions": Decimal(1_000_000),
+    "billions": Decimal(1_000_000_000),
+    "trillions": Decimal(1_000_000_000_000),
+}
 _NATIVE_CURRENCIES = frozenset(
     {"AUD", "CAD", "CNY", "EUR", "GBP", "HKD", "IDR", "JPY", "NZD", "SGD", "USD"}
 )
@@ -103,6 +112,28 @@ _METADATA_DATE_HEADERS = frozenset(
 )
 _EXPLICIT_METADATA_DATE_LABELS = _METADATA_DATE_HEADERS - {"date"}
 _SUPERSESSION_TYPES = frozenset({"amendment", "restatement"})
+_REVIEW_KINDS = frozenset(
+    {"conflicting", "ambiguous", "abstained", "quarantined"}
+)
+_REVIEW_EVIDENCE_FIELDS = (
+    "page_number",
+    "table_or_region",
+    "row_ref",
+    "cell_ref",
+)
+_REVIEW_KIND_BY_TRUST_OUTCOME = {
+    "abstain": "abstained",
+    "quarantine": "quarantined",
+}
+_METRIC_TRUST_TRIGGER_STATUSES = frozenset(
+    {
+        "abstain",
+        "missing",
+        "provenance_missing",
+        "provenance_invalid",
+        "wrong",
+    }
+)
 _SUPERSESSION_EVIDENCE_FIELDS = (
     "source",
     "page_number",
@@ -154,6 +185,31 @@ def _supersession_id(
             str(superseding_observation_id),
             str(superseded_observation_id),
             relationship_type,
+        ],
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return uuid.uuid5(uuid.NAMESPACE_URL, identity)
+
+
+def _review_id(
+    *,
+    source_document_id: Any,
+    extraction_run_id: Any,
+    metric: str,
+    period_end: date,
+    period_basis: str,
+    review_kind: str,
+) -> uuid.UUID:
+    identity = json.dumps(
+        [
+            "financial-observation-review-v1",
+            str(source_document_id),
+            str(extraction_run_id),
+            metric,
+            period_end.isoformat(),
+            period_basis,
+            review_kind,
         ],
         ensure_ascii=True,
         separators=(",", ":"),
@@ -851,6 +907,532 @@ def stage_observation_supersessions(
     return tuple(staged)
 
 
+def _review_issue_kind(code: Any) -> str | None:
+    normalized = (_required_text(code) or "").lower()
+    if "conflict" in normalized or "contradict" in normalized:
+        return "conflicting"
+    if "ambigu" in normalized:
+        return "ambiguous"
+    return None
+
+
+def _review_source_evidence(value: Mapping[str, Any]) -> dict[str, Any]:
+    evidence = value.get("source_evidence")
+    if isinstance(evidence, Mapping):
+        return dict(evidence)
+    source_cell = value.get("source_cell")
+    return {
+        "page_number": value.get("page_number"),
+        "table_or_region": (
+            value.get("table_or_region") or value.get("source")
+        ),
+        "row_ref": value.get("row_ref"),
+        "cell_ref": (
+            dict(source_cell)
+            if isinstance(source_cell, Mapping) and source_cell
+            else value.get("cell_ref")
+        ),
+    }
+
+
+def _trust_trigger_scope(value: Any) -> tuple[str, str] | None:
+    """Parse the evaluation trigger contract without guessing its scope."""
+    trigger = _required_text(value)
+    if trigger is None:
+        return None
+    scope, separator, status = trigger.partition(":")
+    if not separator:
+        return None
+    provenance_reason = (
+        status.removeprefix("provenance_invalid:")
+        if status.startswith("provenance_invalid:")
+        else None
+    )
+    if scope in CANONICAL_METRIC_FIELDS and (
+        status in _METRIC_TRUST_TRIGGER_STATUSES
+        or _required_text(provenance_reason) is not None
+    ):
+        return scope, trigger
+    if scope == "context_mismatch" and _required_text(status) is not None:
+        return "*", trigger
+    return None
+
+
+def automatic_financial_projection_allowed(
+    structured: Mapping[str, Any],
+) -> bool:
+    """Fail closed when explicit trust metadata is not a trusted outcome."""
+    members = structured.get("period_observations")
+    if isinstance(members, list) and members:
+        return all(
+            isinstance(member, Mapping)
+            and automatic_financial_projection_allowed(member)
+            for member in members
+        )
+
+    has_outcome = "trust_outcome" in structured
+    has_triggers = "trust_triggers" in structured
+    if not has_outcome and not has_triggers:
+        return True
+
+    outcome = _required_text(structured.get("trust_outcome"))
+    triggers = structured.get("trust_triggers")
+    return (
+        outcome is not None
+        and outcome.lower() == "trusted"
+        and isinstance(triggers, list)
+        and not triggers
+    )
+
+
+def _enrich_review_staging_member(
+    structured: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Attach provenance evaluation detail to one observation payload."""
+    payload = structured if isinstance(structured, dict) else dict(structured)
+    if isinstance(payload.get("provenance_summary"), Mapping):
+        return payload
+    summary = build_payload_provenance_summary(payload)
+    payload["provenance_summary"] = summary
+    triggers = []
+    metrics = payload.get("metrics")
+    if isinstance(metrics, Mapping):
+        for metric_summary in summary.get("metric_summaries", []):
+            if not isinstance(metric_summary, Mapping):
+                continue
+            metric = _required_text(metric_summary.get("metric"))
+            if (
+                metric not in CANONICAL_METRIC_FIELDS
+                or metrics.get(metric) is None
+                or not metric_summary.get("canonical_provenance_required")
+                or metric_summary.get("canonical_provenance_valid")
+            ):
+                continue
+            reason = _required_text(
+                metric_summary.get("canonical_provenance_reason")
+            ) or "invalid"
+            triggers.append(f"{metric}:provenance_invalid:{reason}")
+    if (
+        triggers
+        and _required_text(payload.get("trust_outcome")) is None
+        and not isinstance(payload.get("trust_triggers"), list)
+    ):
+        payload["trust_outcome"] = "abstain"
+        payload["trust_triggers"] = triggers
+    return payload
+
+
+def build_review_staging_payload(
+    structured: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Evaluate each actual observation at the production staging seam."""
+    payload = structured if isinstance(structured, dict) else dict(structured)
+    members = payload.get("period_observations")
+    if isinstance(members, list):
+        payload["period_observations"] = [
+            _enrich_review_staging_member(member)
+            if isinstance(member, Mapping)
+            else member
+            for member in members
+        ]
+        return payload
+    return _enrich_review_staging_member(payload)
+
+
+def _real_outcome_review_candidates(
+    structured: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    """Adapt existing extraction/evaluation outcomes into review candidates."""
+    metrics = structured.get("metrics")
+    provenance = structured.get("field_provenance")
+    if not isinstance(metrics, Mapping):
+        return ()
+    if not isinstance(provenance, Mapping):
+        provenance = {}
+
+    outcome = _required_text(structured.get("trust_outcome"))
+    outcome_kind = _REVIEW_KIND_BY_TRUST_OUTCOME.get(
+        (outcome or "").lower()
+    )
+    triggers = structured.get("trust_triggers")
+    reasons_by_metric: dict[str, list[str]] = {}
+    document_reasons: list[str] = []
+    if isinstance(triggers, list):
+        for trigger in triggers:
+            scoped = _trust_trigger_scope(trigger)
+            if scoped is None:
+                continue
+            metric, reason = scoped
+            if metric == "*":
+                document_reasons.append(reason)
+            else:
+                reasons_by_metric.setdefault(metric, []).append(reason)
+    issues_by_metric: dict[str, list[tuple[str, str]]] = {}
+    summary = structured.get("provenance_summary")
+    issues = summary.get("issues") if isinstance(summary, Mapping) else None
+    if isinstance(issues, list):
+        for issue in issues:
+            if not isinstance(issue, Mapping):
+                continue
+            code = _required_text(issue.get("code"))
+            kind = _review_issue_kind(code)
+            metric = _required_text(issue.get("metric"))
+            if code is not None and kind is not None and metric is not None:
+                issues_by_metric.setdefault(metric, []).append((kind, code))
+
+    candidates = []
+    for metric in CANONICAL_METRIC_FIELDS:
+        if metric not in metrics:
+            continue
+        metric_provenance = provenance.get(metric)
+        if not isinstance(metric_provenance, Mapping):
+            metric_provenance = {}
+        metric_issues = issues_by_metric.get(metric, [])
+        outcome_metric_reasons = [
+            *reasons_by_metric.get(metric, []),
+            *document_reasons,
+        ]
+        kind = (
+            metric_issues[0][0]
+            if metric_issues
+            else outcome_kind if outcome_metric_reasons else None
+        )
+        reason_codes = (
+            [code for _, code in metric_issues]
+            if metric_issues
+            else outcome_metric_reasons
+        )
+        if kind is None or not reason_codes:
+            continue
+        candidates.append(
+            {
+                "metric": metric,
+                "proposed_value": metrics.get(metric),
+                "period_end": structured.get("period_end"),
+                "period_basis": structured.get(
+                    "period_basis", structured.get("period_type")
+                ),
+                "currency": structured.get("currency"),
+                "scale": metric_provenance.get(
+                    "scale", structured.get("scale")
+                ),
+                "review_kind": kind,
+                "reason_codes": reason_codes,
+                "source_evidence": _review_source_evidence(
+                    metric_provenance
+                ),
+            }
+        )
+    return tuple(candidates)
+
+
+def _review_candidates(
+    structured: Mapping[str, Any],
+) -> tuple[Any, ...]:
+    explicit = structured.get("observation_reviews")
+    candidates = list(explicit) if isinstance(explicit, list) else []
+    members = structured.get("period_observations")
+    outcome_members = (
+        [member for member in members if isinstance(member, Mapping)]
+        if isinstance(members, list)
+        else [structured]
+    )
+    for member in outcome_members:
+        candidates.extend(_real_outcome_review_candidates(member))
+    return tuple(candidates)
+
+
+def _review_candidate_context(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    metric = _required_text(value.get("metric"))
+    proposed_value = _numeric(value.get("proposed_value"))
+    period_end = _period_end(value.get("period_end"))
+    period_basis = _required_text(value.get("period_basis"))
+    currency = _required_text(value.get("currency"))
+    scale = _required_text(value.get("scale"))
+    review_kind = _required_text(value.get("review_kind"))
+    reason_codes = value.get("reason_codes")
+    evidence = value.get("source_evidence")
+    contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric or "")
+    valid_currency = (
+        currency == "shares"
+        if contract is not None
+        and contract.unit_kind == MetricUnitKind.SHARE_COUNT_ABSOLUTE
+        else currency in _NATIVE_CURRENCIES
+    )
+    if (
+        metric not in CANONICAL_METRIC_FIELDS
+        or period_end is None
+        or period_basis not in _PERIOD_BASES
+        or not valid_currency
+        or scale not in _SOURCE_SCALES
+        or review_kind not in _REVIEW_KINDS
+        or not isinstance(reason_codes, list)
+        or not reason_codes
+        or any(_required_text(code) is None for code in reason_codes)
+        or len(set(reason_codes)) != len(reason_codes)
+        or not isinstance(evidence, Mapping)
+    ):
+        return None
+    missing_evidence_codes = [
+        f"missing_evidence_{field}"
+        for field in _REVIEW_EVIDENCE_FIELDS
+        if evidence.get(field) in (None, "", "unknown")
+    ]
+    return {
+        "metric": metric,
+        "proposed_value": proposed_value,
+        "period_end": period_end,
+        "period_basis": period_basis,
+        "currency": currency,
+        "scale": scale,
+        "review_kind": review_kind,
+        "reason_codes": list(
+            dict.fromkeys([*reason_codes, *missing_evidence_codes])
+        ),
+        "source_evidence": dict(evidence),
+        "status": "pending",
+        "decision": None,
+        "decision_actor": None,
+        "decided_at": None,
+        "decision_reason_codes": None,
+        "decision_note": None,
+    }
+
+
+def stage_financial_observation_reviews(
+    db,
+    *,
+    document: Any,
+    extraction_run: Any,
+    structured: Mapping[str, Any],
+) -> tuple[FinancialObservationReview, ...]:
+    """Queue explicitly unresolved candidates without promoting their values."""
+    document_id = getattr(document, "document_id", None)
+    run_id = getattr(extraction_run, "run_id", None)
+    extractor_version = _required_text(
+        getattr(extraction_run, "extractor_version", None)
+    )
+    ticker = _required_text(getattr(document, "ticker", None))
+    candidates = _review_candidates(structured)
+    if (
+        document_id is None
+        or run_id is None
+        or extractor_version is None
+        or ticker is None
+    ):
+        return ()
+
+    staged = []
+    for candidate in candidates:
+        context = _review_candidate_context(candidate)
+        if context is None:
+            continue
+        review = FinancialObservationReview(
+            review_id=_review_id(
+                source_document_id=document_id,
+                extraction_run_id=run_id,
+                metric=context["metric"],
+                period_end=context["period_end"],
+                period_basis=context["period_basis"],
+                review_kind=context["review_kind"],
+            ),
+            source_document_id=document_id,
+            extraction_run_id=run_id,
+            extractor_version=extractor_version,
+            ticker=ticker,
+            **context,
+        )
+        values = {
+            column.name: getattr(review, column.name)
+            for column in FinancialObservationReview.__table__.columns
+        }
+        statement = (
+            insert(FinancialObservationReview)
+            .values(**values)
+            .on_conflict_do_nothing(
+                constraint="uq_financial_observation_review_candidate"
+            )
+        )
+        if db.execute(statement).rowcount:
+            staged.append(review)
+    return tuple(staged)
+
+
+def pending_financial_observation_reviews(
+    db, *, ticker: str | None = None
+) -> tuple[dict[str, Any], ...]:
+    query = db.query(FinancialObservationReview).filter(
+        FinancialObservationReview.status == "pending"
+    )
+    if ticker is not None:
+        query = query.filter(FinancialObservationReview.ticker == ticker)
+    rows = query.all()
+    return tuple(
+        {
+            "review_id": str(row.review_id),
+            "ticker": row.ticker,
+            "metric": row.metric,
+            "proposed_value": (
+                str(row.proposed_value)
+                if row.proposed_value is not None
+                else None
+            ),
+            "review_kind": row.review_kind,
+            "reason_codes": row.reason_codes,
+            "source_document_id": str(row.source_document_id),
+            "period_end": row.period_end,
+            "period_basis": row.period_basis,
+            "currency": row.currency,
+            "scale": row.scale,
+            "source_evidence": row.source_evidence,
+            "status": row.status,
+        }
+        for row in sorted(
+            rows,
+            key=lambda item: (
+                item.ticker,
+                item.period_end,
+                item.metric,
+                str(item.review_id),
+            ),
+        )
+    )
+
+
+def decide_financial_observation_review(
+    db,
+    *,
+    review_id: uuid.UUID,
+    decision: str,
+    actor: str,
+    reason_codes: list[str],
+    note: str | None = None,
+) -> FinancialObservation | None:
+    """Record a decision; approval fails closed unless source evidence exists."""
+    review = db.get(FinancialObservationReview, review_id)
+    if review is None or review.status != "pending":
+        raise ValueError("pending financial observation review not found")
+    if decision not in {"approve", "reject"}:
+        raise ValueError("decision must be approve or reject")
+    decision_actor = _required_text(actor)
+    if decision_actor is None:
+        raise ValueError("decision actor must be non-empty")
+    normalized_reason_codes = (
+        [_required_text(code) for code in reason_codes]
+        if isinstance(reason_codes, list)
+        else []
+    )
+    if (
+        not isinstance(reason_codes, list)
+        or not reason_codes
+        or any(code is None for code in normalized_reason_codes)
+        or len(set(normalized_reason_codes)) != len(normalized_reason_codes)
+    ):
+        raise ValueError(
+            "decision reason_codes must be a non-empty list of unique "
+            "non-empty strings"
+        )
+    decided_at = datetime.now(timezone.utc)
+    if decision == "reject":
+        review.status = "rejected"
+        review.decision = decision
+        review.decision_actor = decision_actor
+        review.decided_at = decided_at
+        review.decision_reason_codes = normalized_reason_codes
+        review.decision_note = _required_text(note)
+        return None
+
+    candidate = _review_candidate_context(
+        {
+            "metric": review.metric,
+            "proposed_value": review.proposed_value,
+            "period_end": review.period_end,
+            "period_basis": review.period_basis,
+            "currency": review.currency,
+            "scale": review.scale,
+            "review_kind": review.review_kind,
+            "reason_codes": review.reason_codes,
+            "source_evidence": review.source_evidence,
+        }
+    )
+    if (
+        candidate is None
+        or candidate["proposed_value"] is None
+        or any(
+            candidate["source_evidence"].get(field)
+            in (None, "", "unknown")
+            for field in _REVIEW_EVIDENCE_FIELDS
+        )
+    ):
+        raise ValueError("approval requires a proposed value with source evidence")
+
+    observation = FinancialObservation(
+        observation_id=_observation_id(
+            source_document_id=review.source_document_id,
+            extractor_version=review.extractor_version,
+            ticker=review.ticker,
+            metric=review.metric,
+            period_end=review.period_end,
+            period_basis=review.period_basis,
+            accounting_basis="statutory",
+            currency=review.currency,
+            scale="units",
+        ),
+        source_document_id=review.source_document_id,
+        extraction_run_id=review.extraction_run_id,
+        extractor_version=review.extractor_version,
+        ticker=review.ticker,
+        metric=review.metric,
+        value=(
+            review.proposed_value
+            * _SOURCE_SCALE_MULTIPLIERS[review.scale]
+        ),
+        period_end=review.period_end,
+        period_basis=review.period_basis,
+        accounting_basis="statutory",
+        currency=review.currency,
+        scale="units",
+        provenance={
+            **review.source_evidence,
+            "review_id": str(review.review_id),
+            "review_reason_codes": review.reason_codes,
+            "review_decision": {
+                "actor": decision_actor,
+                "reason_codes": normalized_reason_codes,
+                "decided_at": decided_at.isoformat(),
+            },
+            "source_scale": review.scale,
+            "normalized_scale": "units",
+        },
+        trust_state="accepted",
+    )
+    values = {
+        column.name: getattr(observation, column.name)
+        for column in FinancialObservation.__table__.columns
+    }
+    persisted_observation_id = db.execute(
+        insert(FinancialObservation)
+        .values(**values)
+        .on_conflict_do_nothing(
+            constraint="uq_financial_observation_source_context"
+        )
+        .returning(FinancialObservation.observation_id)
+    ).scalar_one_or_none()
+    if persisted_observation_id != observation.observation_id:
+        raise ValueError(
+            "reviewed observation identity conflicts with an existing value"
+        )
+    review.status = "approved"
+    review.decision = decision
+    review.decision_actor = decision_actor
+    review.decided_at = decided_at
+    review.decision_reason_codes = normalized_reason_codes
+    review.decision_note = _required_text(note)
+    return observation
+
+
 def stage_financial_observations(
     db,
     *,
@@ -886,6 +1468,8 @@ def stage_financial_observations(
     staged = []
     superseding_candidates = []
     for member in members:
+        if not automatic_financial_projection_allowed(member):
+            continue
         for metric in CANONICAL_METRIC_FIELDS:
             context = _accepted_metric_context(
                 document,
@@ -943,6 +1527,12 @@ def stage_financial_observations(
     stage_observation_supersessions(
         db,
         superseding_observations=tuple(superseding_candidates),
+        structured=structured,
+    )
+    stage_financial_observation_reviews(
+        db,
+        document=document,
+        extraction_run=extraction_run,
         structured=structured,
     )
     return tuple(staged)

@@ -53,6 +53,8 @@ The FastAPI app mounts routes in these groups:
 - Extraction-review read routes under `/api/extraction-review/*` expose
   operator review state, run diagnostics, and snippet images; they require the
   dependency where declared.
+- Financial-observation review reads and decisions under
+  `/api/financials/reviews*` require the dependency where declared.
 
 ## Route inventory
 
@@ -64,6 +66,16 @@ The FastAPI app mounts routes in these groups:
   - document inventory for one ticker
 - `GET /api/financials?ticker=...`
   - structured financial rows for one ticker
+- `GET /api/financials/reviews?ticker=...`
+  - authenticated pending observation-review queue with source evidence
+- `POST /api/financials/reviews/{review_id}/decision`
+  - authenticated approve/reject decision requiring a non-empty actor and
+    unique, non-empty machine-readable reason codes; an optional note is
+    supplemental
+  - both decisions persist an automatic UTC timestamp; approval alone can
+    promote a fully evidenced value, while rejection never promotes
+  - PostgreSQL constrains lifecycle consistency and a non-empty JSONB array of
+    non-blank strings; normalized uniqueness is service-validated
 - `GET /api/risk?document_id=...`
   - stored risk/guidance note for one document
 - `GET /api/context/verification?ticker=...`
