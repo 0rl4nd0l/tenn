@@ -12,6 +12,8 @@ operations.
 - Classification selects a contract but cannot prove metrics or authorize
   persistence.
 - Sparse observations cannot erase earlier accepted values.
+- Observation retries never mutate an accepted source-context identity.
+- Conflicting accepted observations abstain from compatibility-read override.
 - Statutory and adjusted disclosures remain separate.
 - Ambiguity abstains or quarantines.
 - Protected corpus artifacts remain local and outside Git.

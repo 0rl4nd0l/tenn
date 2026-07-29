@@ -20,7 +20,8 @@ at a time.
 ## Ordered backlog
 
 1. Ticket 04 residual classifier failure class: draft PR 530.
-2. Ticket 05 immutable financial-observation seam: active.
+2. Ticket 05 immutable financial-observation seam: rejected candidate repaired,
+   repaired independent review pending.
 3. Tickets 06–15 in declared dependency order.
 4. Ticket 16 locked release gate, Ticket 17 canary, and Ticket 18 bounded
    backfill only after prerequisites and explicit Tier 2 approvals.
@@ -35,12 +36,11 @@ deployment, activation, merge, issue closure, canary execution, or backfill.
 
 ## Current milestone
 
-The original hash-pinned Ticket 05 was recovered and verified. It is explicitly
-ready with no declared blocker. Canonical has extraction-run plus mutable
-periodic-financial persistence but no immutable financial-observation model,
-store, or profile read seam.
+The hash-pinned Ticket 05 implementation candidate adds the narrow immutable
+`revenue` observation seam while preserving the mutable periodic-financial
+compatibility projection. Database-backed proof remains unauthorized.
 
 ## Next action
 
-Run one fresh Codex X implementer against the bounded Ticket 05 card, freeze the
-delta, and send it to a separate fresh read-only Codex X reviewer.
+Freeze the implementer delta and send it to a separate fresh read-only Codex X
+reviewer.

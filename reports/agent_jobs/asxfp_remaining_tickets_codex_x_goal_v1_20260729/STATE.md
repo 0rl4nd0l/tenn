@@ -8,8 +8,11 @@
   `docs/agent_tasks/asxfp_ticket05_observation_seam_v1_20260729.md`
 - ticket_sha256:
   `27f03834bba372c3c3f470cf1a1fa7f90b7a586b7015e6b453a77599920aac78`
-- implementer: pending
-- reviewer: pending
+- implementer: candidate complete; validation constrained by missing local
+  Python dependencies
+- reviewer: rejected candidate `15eabc815a918fbc882d6e839a05f81d63545152`;
+  repaired candidate review pending
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: fresh Codex X implementer
+- next_transition: freeze repaired exact delta, then fresh independent read-only
+  reviewer

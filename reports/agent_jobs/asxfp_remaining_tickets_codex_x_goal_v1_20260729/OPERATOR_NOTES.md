@@ -17,3 +17,10 @@
   owned by Tickets 06–10.
 - No source PDF, protected corpus artifact, extraction, model, runtime, service,
   database, queue, GPU, deployment, activation, or merge action is authorized.
+- The Ticket 05 implementer prepared a one-metric immutable observation model,
+  fail-closed staging service, same-transaction pipeline seam, deterministic
+  compatibility read, pure-fake tests, migration definition, and contract
+  documentation. Session `019fae0c-ffce-7c11-ba66-74f14c6c2fe1` rejected the
+  first candidate on production reachability/evidence, closed vocabularies,
+  and concurrent idempotence. Those three blockers are repaired; a fresh
+  independent review remains pending.

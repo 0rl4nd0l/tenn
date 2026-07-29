@@ -25,6 +25,7 @@ from app.providers.universe import ASX20
 from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
 from app.services.extraction_run_observability import initialize_run_status
+from app.services.financial_observations import accepted_revenue_overrides
 from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
     persist_fundamental_snapshot,
@@ -213,6 +214,14 @@ def financials(ticker: str, db: Session = Depends(get_db)):
         .order_by(ASXPeriodicFinancial.period_end.desc())
         .all()
     )
+    revenue_overrides = accepted_revenue_overrides(
+        db,
+        ticker=ticker,
+        legacy_contexts={
+            (row.period_end, row.period_type): (row.currency, "units")
+            for row in rows
+        },
+    )
 
     def n(x):
         return str(x) if x is not None else None
@@ -222,7 +231,9 @@ def financials(ticker: str, db: Session = Depends(get_db)):
             "ticker": r.ticker,
             "period_end": r.period_end,
             "period_type": r.period_type,
-            "revenue": n(r.revenue),
+            "revenue": n(
+                revenue_overrides.get((r.period_end, r.period_type), r.revenue)
+            ),
             "ebit": n(r.ebit),
             "np_attributable": n(r.np_attributable),
             "operating_cf": n(r.operating_cf),
