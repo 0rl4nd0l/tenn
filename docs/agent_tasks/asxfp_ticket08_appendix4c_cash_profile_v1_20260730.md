@@ -108,6 +108,12 @@ Fresh final review rejected exact input commit
 reachable through the public builder because authentication reconstructed the
 same deterministic candidate. This bounded repair must preserve direct source
 authentication and deterministic conflict blocking while making fallback
-reachable for a truly missing field-period. A repair delta, new exact local
-commit, and independent exact-commit re-review are pending; no future commit
-SHA is predicted here.
+reachable for a truly missing field-period.
+
+Independent review of follow-up commit
+`827451ce2263b0f59add761d673de676ea3acbec` / tree
+`29b3c270f0c677086deedfdb66b88a2e51f713d0` accepted the implementation and
+rejected only its stale lifecycle wording. This task card records that review
+input and defect, but deliberately does not assert the mutable outcome of any
+later exact-head review. Publication must use the live review record bound to
+the then-current exact head.

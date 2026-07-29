@@ -1,6 +1,6 @@
 # ASXFP Ticket 08 Appendix 4C cash profile
 
-Status: BOUNDED REPAIR DELTA VALIDATED — NEW EXACT COMMIT/RE-REVIEW PENDING
+Status: IMPLEMENTATION VALIDATED — PRE-PUBLICATION SNAPSHOT
 
 ## Authority
 
@@ -10,6 +10,10 @@ Status: BOUNDED REPAIR DELTA VALIDATED — NEW EXACT COMMIT/RE-REVIEW PENDING
   `eca8dd4c6520390a4678de2160b300828adab322`
 - rejected review input tree:
   `f2a323ef293281601049c1fb2dcb1c6040849d98`
+- implementation-accepted, provenance-rejected review input commit:
+  `827451ce2263b0f59add761d673de676ea3acbec`
+- implementation-accepted, provenance-rejected review input tree:
+  `29b3c270f0c677086deedfdb66b88a2e51f713d0`
 - authoritative ticket SHA-256:
   `75f62f979076014333a8c958e8a085c0639b76fad8f5df65542cae02355b6dca`
 - task card:
@@ -88,5 +92,6 @@ PR, or merge action occurred.
 - Item 2.1(c) is intentionally the only Appendix 4C capex mapping. Other
   acquisition or intangible rows are not combined or inferred.
 - Publication and exact-head CI remain separate delivery steps.
-- A repair delta, new exact local commit, and independent exact-commit re-review
-  are pending. No future commit SHA is predicted.
+- This immutable snapshot does not assert the mutable outcome of a later
+  exact-head review. Publication must consult the live review record and bind
+  it to the then-current head.

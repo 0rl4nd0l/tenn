@@ -14,16 +14,16 @@
   draft, and unmerged
 - ticket_07: preserved `period_only` and `year_to_date` observations are in the
   exact Ticket 08 base and remain collision-free
-- implementer: fresh final review rejected exact input
-  `eca8dd4c6520390a4678de2160b300828adab322`; bounded reachability repair delta
-  is locally validated
-- reviewer: new exact-commit re-review pending after repair
+- implementer: bounded public-reachability repair is locally validated
+- reviewer: review of `827451ce2263b0f59add761d673de676ea3acbec`
+  accepted the implementation and rejected only stale lifecycle wording
 - repair: make authenticated fallback reachable through the public builder
   without weakening source authentication or deterministic conflict blocking
-- local_commit: rejected review input is `eca8dd4c6520390a4678de2160b300828adab322`;
-  a repair delta and new exact local commit are pending
+- local_commit: the branch contains the validated repair plus the
+  provenance-only follow-up; use live Git identity rather than duplicating a
+  mutable head value in this snapshot
 - draft_pr: not created
 - protected_corpus_access: prohibited
 - tier_2_actions: not authorized
-- next_transition: create a new exact local commit if permitted, then request
-  independent exact-commit re-review
+- next_transition: publication is allowed only when the live independent
+  review record accepts the then-current exact head
