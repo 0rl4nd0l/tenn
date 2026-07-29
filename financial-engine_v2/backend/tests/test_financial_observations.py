@@ -25,15 +25,19 @@ class FakeQuery:
 
 
 class FakeSession:
-    def __init__(self, existing=None, rows=None):
+    def __init__(self, existing=None, rows=None, model_rows=None):
         self.added = []
         self.commits = 0
         self.existing = existing
         self.rows = rows or []
+        self.model_rows = model_rows or {}
         self.executed = []
 
-    def query(self, _model):
-        return FakeQuery(self.existing, self.rows)
+    def query(self, model):
+        return FakeQuery(
+            self.existing,
+            self.model_rows.get(model, self.rows),
+        )
 
     def add(self, value):
         self.added.append(value)
@@ -172,6 +176,44 @@ def test_period_basis_migration_is_stacked_forward_only_and_matches_orm():
         and getattr(node.exc.func, "id", None) == "RuntimeError"
         for node in ast.walk(downgrade)
     )
+
+
+def test_supersession_migration_and_orm_are_forward_only_and_evidence_backed():
+    import ast
+    from pathlib import Path
+
+    from sqlalchemy import CheckConstraint
+
+    from app.models.financial_observations import FinancialObservationSupersession
+
+    table = FinancialObservationSupersession.__table__
+    checks = {
+        constraint.name: str(constraint.sqltext)
+        for constraint in table.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+    assert checks["ck_financial_observation_supersession_type"] == (
+        "relationship_type IN ('amendment', 'restatement')"
+    )
+    assert table.c.evidence.nullable is False
+    assert any(
+        constraint.name == "uq_financial_observation_superseded_once"
+        for constraint in table.constraints
+    )
+
+    path = Path(
+        "financial-engine_v2/backend/app/alembic/versions/"
+        "0014_observation_supersessions.py"
+    )
+    source = path.read_text()
+    tree = ast.parse(source)
+    assert 'down_revision = "0013_result_disclosures"' in source
+    downgrade = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "downgrade"
+    )
+    assert any(isinstance(node, ast.Raise) for node in ast.walk(downgrade))
 
 
 def accepted_metric_context(document_id: uuid.UUID, metric: str) -> dict:
@@ -1535,6 +1577,11 @@ def _observation(
     value, *, metric="revenue", currency="AUD", scale="units"
 ):
     return SimpleNamespace(
+        observation_id=uuid.uuid4(),
+        source_document_id=uuid.uuid4(),
+        extraction_run_id=uuid.uuid4(),
+        extractor_version="multipass-v9",
+        ticker="BHP",
         metric=metric,
         period_end=date(2025, 6, 30),
         period_basis="A",
@@ -1542,7 +1589,132 @@ def _observation(
         currency=currency,
         scale=scale,
         value=value,
+        provenance={"row_ref": "Consolidated statutory revenue"},
+        trust_state="accepted",
     )
+
+
+def _supersession(superseding, superseded, relationship_type="restatement"):
+    return SimpleNamespace(
+        superseding_observation_id=superseding.observation_id,
+        superseded_observation_id=superseded.observation_id,
+        relationship_type=relationship_type,
+        evidence={
+            "source": "income_statement",
+            "page_number": 3,
+            "row_ref": "Restated comparative",
+            "matched_text": "Comparative revenue has been restated",
+            "superseded_source_document_id": str(
+                superseded.source_document_id
+            ),
+        },
+    )
+
+
+def test_explicit_restatement_selects_new_truth_and_later_arrival_cannot_win():
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import accepted_revenue_overrides
+
+    original = _observation(100)
+    restated = _observation(90)
+    relationship = _supersession(restated, original)
+    key = (date(2025, 6, 30), "A")
+    session = FakeSession(
+        model_rows={
+            FinancialObservation: [original, restated],
+            FinancialObservationSupersession: [relationship],
+        }
+    )
+    assert accepted_revenue_overrides(
+        session,
+        ticker="BHP",
+        legacy_contexts={key: ("AUD", "units")},
+    ) == {key: Decimal("90")}
+
+    ordinary_later_arrival = _observation(110)
+    session.model_rows[FinancialObservation].append(ordinary_later_arrival)
+    assert accepted_revenue_overrides(
+        session,
+        ticker="BHP",
+        legacy_contexts={key: ("AUD", "units")},
+    ) == {}
+
+
+def test_stage_supersession_requires_explicit_matching_evidence_and_identity():
+    from app.models.financial_observations import FinancialObservation
+    from app.services.financial_observations import stage_observation_supersessions
+
+    original = _observation(100)
+    restated = _observation(90)
+    candidate = {
+        "relationship_type": "restatement",
+        "superseded_source_document_id": str(original.source_document_id),
+        "metric": "revenue",
+        "period_end": "2025-06-30",
+        "period_basis": "A",
+        "evidence": _supersession(restated, original).evidence,
+    }
+    session = FakeSession(model_rows={FinancialObservation: [original]})
+    relationships = stage_observation_supersessions(
+        session,
+        superseding_observations=(restated,),
+        structured={"observation_supersessions": [candidate]},
+    )
+    assert len(relationships) == 1
+    assert relationships[0].superseded_observation_id == original.observation_id
+    assert session.commits == 0
+
+    for mutation in ("ordinary", "wrong_target", "different_metric"):
+        rejected = deepcopy(candidate)
+        superseding = restated
+        if mutation == "ordinary":
+            rejected["evidence"]["matched_text"] = "Revenue for the year"
+        elif mutation == "wrong_target":
+            rejected["evidence"]["superseded_source_document_id"] = str(
+                uuid.uuid4()
+            )
+        else:
+            superseding = _observation(90, metric="ebit")
+        rejected_session = FakeSession(
+            model_rows={FinancialObservation: [original]}
+        )
+        assert stage_observation_supersessions(
+            rejected_session,
+            superseding_observations=(superseding,),
+            structured={"observation_supersessions": [rejected]},
+        ) == ()
+        assert rejected_session.executed == []
+
+
+def test_history_retains_superseded_observation_and_both_provenance_records():
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import accepted_observation_history
+
+    original = _observation(100)
+    restated = _observation(90)
+    relationship = _supersession(restated, original)
+    history = accepted_observation_history(
+        FakeSession(
+            model_rows={
+                FinancialObservation: [original, restated],
+                FinancialObservationSupersession: [relationship],
+            }
+        ),
+        ticker="BHP",
+    )
+    by_id = {item["observation_id"]: item for item in history}
+    superseded = by_id[str(original.observation_id)]
+    assert superseded["active"] is False
+    assert superseded["provenance"] == original.provenance
+    assert superseded["superseded_by"] == str(restated.observation_id)
+    assert superseded["supersession_evidence"] == relationship.evidence
+    assert by_id[str(restated.observation_id)]["active"] is True
 
 
 def test_read_projects_each_metric_independently_and_preserves_sparse_legacy():

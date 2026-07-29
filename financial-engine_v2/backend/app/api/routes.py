@@ -27,6 +27,7 @@ from app.services.commentary_ingest import ingest_transcript
 from app.services.extraction_run_observability import initialize_run_status
 from app.services.financial_metric_contract import CANONICAL_METRIC_FIELDS
 from app.services.financial_observations import (
+    accepted_observation_history,
     accepted_observation_periods,
     accepted_statutory_overrides,
 )
@@ -265,6 +266,11 @@ def financials(ticker: str, db: Session = Depends(get_db)):
         *legacy_rows,
         *accepted_observation_periods(db, ticker=ticker),
     ]
+
+
+@router.get("/financials/history")
+def financial_history(ticker: str, db: Session = Depends(get_db)):
+    return accepted_observation_history(db, ticker=ticker)
 
 
 @router.get("/risk")

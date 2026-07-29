@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.models.financial_observations import (
     FinancialObservation,
+    FinancialObservationSupersession,
     FinancialResultDisclosure,
 )
 from app.services.financial_metric_contract import (
@@ -101,6 +102,13 @@ _METADATA_DATE_HEADERS = frozenset(
     }
 )
 _EXPLICIT_METADATA_DATE_LABELS = _METADATA_DATE_HEADERS - {"date"}
+_SUPERSESSION_TYPES = frozenset({"amendment", "restatement"})
+_SUPERSESSION_EVIDENCE_FIELDS = (
+    "source",
+    "page_number",
+    "row_ref",
+    "matched_text",
+)
 
 
 def _observation_id(
@@ -128,6 +136,24 @@ def _observation_id(
             accounting_basis,
             currency,
             scale,
+        ],
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return uuid.uuid5(uuid.NAMESPACE_URL, identity)
+
+
+def _supersession_id(
+    superseding_observation_id: uuid.UUID,
+    superseded_observation_id: uuid.UUID,
+    relationship_type: str,
+) -> uuid.UUID:
+    identity = json.dumps(
+        [
+            "financial-observation-supersession-v1",
+            str(superseding_observation_id),
+            str(superseded_observation_id),
+            relationship_type,
         ],
         ensure_ascii=True,
         separators=(",", ":"),
@@ -688,6 +714,143 @@ def stage_financial_result_disclosures(
     return tuple(staged)
 
 
+def _explicit_supersession_evidence(
+    value: Any,
+    *,
+    relationship_type: str,
+    superseded_source_document_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    if any(
+        value.get(field) in (None, "", "unknown")
+        for field in _SUPERSESSION_EVIDENCE_FIELDS
+    ):
+        return None
+    if str(value.get("superseded_source_document_id")) != str(
+        superseded_source_document_id
+    ):
+        return None
+    matched_text = _required_text(value.get("matched_text"))
+    if matched_text is None:
+        return None
+    marker = "restat" if relationship_type == "restatement" else "amend"
+    if re.search(rf"\b{marker}[a-z]*\b", matched_text, re.IGNORECASE) is None:
+        return None
+    return dict(value)
+
+
+def stage_observation_supersessions(
+    db,
+    *,
+    superseding_observations: tuple[FinancialObservation, ...],
+    structured: Mapping[str, Any],
+) -> tuple[FinancialObservationSupersession, ...]:
+    """Stage explicit supersessions; the caller retains transaction ownership."""
+    candidates = structured.get("observation_supersessions")
+    if not isinstance(candidates, list):
+        return ()
+
+    staged = []
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        relationship_type = _required_text(candidate.get("relationship_type"))
+        try:
+            superseded_source_document_id = uuid.UUID(
+                str(candidate.get("superseded_source_document_id"))
+            )
+        except (ValueError, AttributeError):
+            continue
+        metric = _required_text(candidate.get("metric"))
+        period_end = _period_end(candidate.get("period_end"))
+        period_basis = _required_text(candidate.get("period_basis"))
+        matching_superseding = [
+            observation
+            for observation in superseding_observations
+            if observation.metric == metric
+            and observation.period_end == period_end
+            and observation.period_basis == period_basis
+        ]
+        evidence = _explicit_supersession_evidence(
+            candidate.get("evidence"),
+            relationship_type=relationship_type or "",
+            superseded_source_document_id=superseded_source_document_id,
+        )
+        if (
+            relationship_type not in _SUPERSESSION_TYPES
+            or len(matching_superseding) != 1
+            or evidence is None
+        ):
+            continue
+        superseding = matching_superseding[0]
+
+        superseded_rows = (
+            db.query(FinancialObservation)
+            .filter(
+                FinancialObservation.source_document_id
+                == superseded_source_document_id,
+                FinancialObservation.ticker == superseding.ticker,
+                FinancialObservation.metric == superseding.metric,
+                FinancialObservation.period_end == superseding.period_end,
+                FinancialObservation.period_basis == superseding.period_basis,
+                FinancialObservation.accounting_basis
+                == superseding.accounting_basis,
+                FinancialObservation.currency == superseding.currency,
+                FinancialObservation.scale == superseding.scale,
+                FinancialObservation.trust_state == "accepted",
+            )
+            .all()
+        )
+        if len(superseded_rows) != 1:
+            continue
+        superseded = superseded_rows[0]
+        superseding_id = superseding.observation_id
+        superseded_id = superseded.observation_id
+        identity_fields = (
+            "ticker",
+            "metric",
+            "period_end",
+            "period_basis",
+            "accounting_basis",
+            "currency",
+            "scale",
+        )
+        if (
+            any(
+                getattr(superseding, field) != getattr(superseded, field)
+                for field in identity_fields
+            )
+            or superseding_id == superseded_id
+            or getattr(superseded, "trust_state", None) != "accepted"
+        ):
+            continue
+
+        relationship = FinancialObservationSupersession(
+            supersession_id=_supersession_id(
+                superseding_id, superseded_id, relationship_type
+            ),
+            superseding_observation_id=superseding_id,
+            superseded_observation_id=superseded_id,
+            relationship_type=relationship_type,
+            evidence=evidence,
+        )
+        values = {
+            column.name: getattr(relationship, column.name)
+            for column in FinancialObservationSupersession.__table__.columns
+        }
+        statement = (
+            insert(FinancialObservationSupersession)
+            .values(**values)
+            .on_conflict_do_nothing(
+                constraint="uq_financial_observation_superseded_once"
+            )
+        )
+        if db.execute(statement).rowcount:
+            staged.append(relationship)
+    return tuple(staged)
+
+
 def stage_financial_observations(
     db,
     *,
@@ -771,6 +934,11 @@ def stage_financial_observations(
         extraction_run=extraction_run,
         structured=structured,
     )
+    stage_observation_supersessions(
+        db,
+        superseding_observations=tuple(staged),
+        structured=structured,
+    )
     return tuple(staged)
 
 
@@ -823,6 +991,58 @@ def stage_revenue_observation(
     )
 
 
+def _valid_supersessions(
+    observations: list[Any],
+    relationships: list[Any],
+) -> dict[uuid.UUID, Any]:
+    by_id = {
+        observation.observation_id: observation
+        for observation in observations
+        if isinstance(getattr(observation, "observation_id", None), uuid.UUID)
+    }
+    identity_fields = (
+        "ticker",
+        "metric",
+        "period_end",
+        "period_basis",
+        "accounting_basis",
+        "currency",
+        "scale",
+    )
+    valid = {}
+    for relationship in relationships:
+        superseded = by_id.get(
+            getattr(relationship, "superseded_observation_id", None)
+        )
+        superseding = by_id.get(
+            getattr(relationship, "superseding_observation_id", None)
+        )
+        relationship_type = getattr(relationship, "relationship_type", None)
+        if (
+            superseded is None
+            or superseding is None
+            or relationship_type not in _SUPERSESSION_TYPES
+            or any(
+                getattr(superseding, field) != getattr(superseded, field)
+                for field in identity_fields
+            )
+            or _explicit_supersession_evidence(
+                getattr(relationship, "evidence", None),
+                relationship_type=relationship_type or "",
+                superseded_source_document_id=superseded.source_document_id,
+            )
+            is None
+        ):
+            continue
+        valid[superseded.observation_id] = relationship
+    return valid
+
+
+def _superseded_observation_ids(db, observations: list[Any]) -> set[uuid.UUID]:
+    relationships = db.query(FinancialObservationSupersession).all()
+    return set(_valid_supersessions(observations, relationships))
+
+
 def accepted_statutory_overrides(
     db,
     *,
@@ -842,10 +1062,13 @@ def accepted_statutory_overrides(
         )
         .all()
     )
+    superseded_ids = _superseded_observation_ids(db, rows)
     candidates: dict[
         tuple[date, str, str], set[tuple[Decimal, str, str]]
     ] = {}
     for row in rows:
+        if getattr(row, "observation_id", None) in superseded_ids:
+            continue
         key = (row.period_end, row.period_basis, row.metric)
         candidates.setdefault(key, set()).add(
             (Decimal(row.value), row.currency, row.scale)
@@ -899,10 +1122,13 @@ def accepted_observation_periods(db, *, ticker: str) -> tuple[dict[str, Any], ..
         )
         .all()
     )
+    superseded_ids = _superseded_observation_ids(db, rows)
     candidates: dict[
         tuple[date, str, str], set[tuple[Decimal, str, str]]
     ] = {}
     for row in rows:
+        if getattr(row, "observation_id", None) in superseded_ids:
+            continue
         key = (row.period_end, row.period_basis, row.metric)
         candidates.setdefault(key, set()).add(
             (Decimal(row.value), row.currency, row.scale)
@@ -932,5 +1158,70 @@ def accepted_observation_periods(db, *, ticker: str) -> tuple[dict[str, Any], ..
         periods[key]
         for key in sorted(
             periods, key=lambda item: (item[0], item[1]), reverse=True
+        )
+    )
+
+
+def accepted_observation_history(
+    db, *, ticker: str
+) -> tuple[dict[str, Any], ...]:
+    """Return accepted observations plus immutable supersession provenance."""
+    observations = (
+        db.query(FinancialObservation)
+        .filter(
+            FinancialObservation.ticker == ticker,
+            FinancialObservation.metric.in_(CANONICAL_METRIC_FIELDS),
+            FinancialObservation.accounting_basis == "statutory",
+            FinancialObservation.trust_state == "accepted",
+        )
+        .all()
+    )
+    relationships = db.query(FinancialObservationSupersession).all()
+    by_superseded = _valid_supersessions(observations, relationships)
+    history = []
+    for observation in observations:
+        relationship = by_superseded.get(observation.observation_id)
+        history.append(
+            {
+                "observation_id": str(observation.observation_id),
+                "ticker": observation.ticker,
+                "metric": observation.metric,
+                "value": str(observation.value),
+                "period_end": observation.period_end,
+                "period_basis": observation.period_basis,
+                "accounting_basis": observation.accounting_basis,
+                "currency": observation.currency,
+                "scale": observation.scale,
+                "source_document_id": str(observation.source_document_id),
+                "extraction_run_id": str(observation.extraction_run_id),
+                "extractor_version": observation.extractor_version,
+                "provenance": observation.provenance,
+                "trust_state": observation.trust_state,
+                "active": relationship is None,
+                "superseded_by": (
+                    str(relationship.superseding_observation_id)
+                    if relationship is not None
+                    else None
+                ),
+                "supersession_type": (
+                    relationship.relationship_type
+                    if relationship is not None
+                    else None
+                ),
+                "supersession_evidence": (
+                    relationship.evidence if relationship is not None else None
+                ),
+            }
+        )
+    return tuple(
+        sorted(
+            history,
+            key=lambda item: (
+                item["period_end"],
+                item["period_basis"],
+                item["metric"],
+                item["observation_id"],
+            ),
+            reverse=True,
         )
     )
