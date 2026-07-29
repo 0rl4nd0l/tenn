@@ -16,3 +16,11 @@
   cross-page regression as the permanent gate.
 - The 172-page anchor-absent half-year document is outside this narrow repair
   and remains `DATA_MISSING`.
+- The first Codex X child run
+  `20260729T122339Z-a68eb7b70a-de22f3` stopped before task-card validation,
+  tests, or edits because the card called the underlying canonical commit the
+  required worker `HEAD`. The actual launcher-pinned seed HEAD was
+  `a68eb7b70a2a19bb39e15430ed856fb61e82701d`. The run produced no delta and
+  consumed no RED/GREEN product attempt. The corrected identity contract
+  distinguishes the canonical product base from the authorized orchestration
+  seed and permits one equivalent retry.

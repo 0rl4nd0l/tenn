@@ -47,10 +47,28 @@ task_tier: standard
 
 ## Objective
 
-From canonical commit `b01885d6cd55242339662e91d18141aeb725f089`,
-make deterministic whole-document half-year precedence recognize a substantive
-half-year report whose required anchors are distributed across later pages
-after an Appendix 4D wrapper.
+From canonical commit `b01885d6cd55242339662e91d18141aeb725f089`
+plus the authorized orchestration-only seed commits, make deterministic
+whole-document half-year precedence recognize a substantive half-year report
+whose required anchors are distributed across later pages after an Appendix 4D
+wrapper.
+
+## Worker identity
+
+- The canonical product base is
+  `b01885d6cd55242339662e91d18141aeb725f089`.
+- The worker's expected `HEAD` is the exact remote-pinned seed SHA supplied by
+  the launcher as `CODEX_X_SOURCE_SHA`; it is intentionally later than the
+  canonical product base because it contains only this task card and goal
+  reports.
+- Verify `HEAD == CODEX_X_SOURCE_SHA`, verify the canonical product base is an
+  ancestor, and verify the committed
+  `b01885d6cd55242339662e91d18141aeb725f089..HEAD` path set is limited to this
+  task card and the two allowlisted report directories.
+- Use the real Git binary with the launcher-provided `GIT_DIR` and
+  `GIT_WORK_TREE` only for read-only identity commands if the bound Git wrapper
+  cannot append its audit log under the offline permission profile. Do not
+  bypass the bound wrapper for mutation, staging, commits, or remote access.
 
 ## Regression Adjudication
 
