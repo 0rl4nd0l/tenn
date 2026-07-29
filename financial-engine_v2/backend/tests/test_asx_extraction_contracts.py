@@ -86,6 +86,29 @@ def test_classification_selects_metadata_only_contract() -> None:
     assert selection.persistence_authorized is False
 
 
+def test_page_aware_classification_does_not_widen_contract_authority() -> None:
+    classification, selection = classify_and_select_extraction_contract(
+        {
+            "document_pages": [
+                {"page": 1, "text": "Quarterly activities report"},
+                {
+                    "page": 11,
+                    "text": (
+                        "Appendix 5B. Mining exploration entity quarterly "
+                        "cash flow report. Rule 5.5."
+                    ),
+                },
+            ]
+        }
+    )
+
+    assert classification.document_type == "appendix_5b"
+    assert selection.contract is DOCUMENT_EXTRACTION_CONTRACTS["appendix_5b"]
+    assert selection.canonical_write is False
+    assert selection.metric_evidence_proven is False
+    assert selection.persistence_authorized is False
+
+
 def test_unknown_or_ambiguous_classification_abstains_without_contract() -> None:
     for classification in (
         _classification("General ASX announcement"),

@@ -141,6 +141,178 @@ def test_conflicting_annual_and_quarterly_report_anchors_abstain() -> None:
     assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
 
 
+def test_page_aware_collection_preserves_first_page_conflict_abstention() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Annual Report. Directors' report. Financial statements. "
+                        "Quarterly Report. Quarter ended 31 March 2025."
+                    ),
+                }
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "unknown_or_abstain"
+    assert result["abstain"] is True
+    assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
+def test_appendix_4c_on_page_2_takes_precedence_over_generic_quarterly_cover() -> None:
+    result = classify_asx_document_type(
+        {
+            "first_page_title_text": "Quarterly activities report",
+            "document_pages": [
+                {"page": 1, "text": "Quarterly activities report"},
+                {
+                    "page": 2,
+                    "text": "Appendix 4C. Quarterly cash flow report. Rule 4.7B.",
+                },
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "appendix_4c"
+    assert result["abstain"] is False
+    assert any(
+        item["anchor"] == "Appendix 4C" and item["page"] == 2
+        for item in result["positive_evidence"]
+    )
+
+
+def test_page_evidence_aggregates_sections_before_matching() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {"page": 1, "text": "Quarterly activities report"},
+                {"page": 2, "text": "Appendix"},
+                {
+                    "page": 2,
+                    "text": "4C. Quarterly cash flow report. Rule 4.7B.",
+                },
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "appendix_4c"
+    assert any(
+        item["anchor"] == "Appendix 4C" and item["page"] == 2
+        for item in result["positive_evidence"]
+    )
+
+
+def test_appendix_5b_late_in_quarterly_activities_bundle_is_collected_by_page() -> None:
+    for appendix_page in (9, 11):
+        result = classify_asx_document_type(
+            {
+                "document_pages": [
+                    {"page": 1, "text": "Quarterly activities report"},
+                    {
+                        "page": appendix_page,
+                        "text": (
+                            "Appendix 5B. Mining exploration entity quarterly "
+                            "cash flow report. Rule 5.5."
+                        ),
+                    },
+                ]
+            }
+        ).to_dict()
+
+        assert result["document_type"] == "appendix_5b"
+        assert any(
+            item["anchor"] == "Appendix 5B" and item["page"] == appendix_page
+            for item in result["positive_evidence"]
+        )
+
+
+def test_annual_report_can_use_title_metadata_when_cover_text_is_low_signal() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "2025 Annual Report",
+            "document_pages": [{"page": 1, "text": "Company logo"}],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "annual_report"
+    assert result["abstain"] is False
+    assert any(
+        item["anchor"] == "Annual Report" and item["page"] is None
+        for item in result["positive_evidence"]
+    )
+
+
+def test_half_year_report_takes_whole_document_precedence_over_4d_wrapper() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": "Appendix 4D. Results for announcement to the market.",
+                },
+                {
+                    "page": 4,
+                    "text": (
+                        "Half-Year Report. Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                },
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "half_year_report"
+    assert result["abstain"] is False
+    assert any(item["page"] == 4 for item in result["positive_evidence"])
+
+
+def test_page_match_takes_precedence_over_duplicate_title_anchor() -> None:
+    result = classify_asx_document_type(
+        {
+            "asx_announcement_title": "Appendix 4D and Half-Year Results",
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": "Appendix 4D. Results for announcement to the market.",
+                },
+                {
+                    "page": 4,
+                    "text": (
+                        "Half-Year Report. Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                },
+            ],
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "half_year_report"
+    assert result["abstain"] is False
+    assert any(item["page"] == 4 for item in result["positive_evidence"])
+
+
+def test_same_page_4d_and_half_year_report_bundle_abstains() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": (
+                        "Appendix 4D. Half-Year Report. Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                }
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "unknown_or_abstain"
+    assert result["abstain"] is True
+    assert "conflicting" in " ".join(result["abstain_reasons"]).lower()
+
+
 def test_unknown_low_signal_fixture_abstains() -> None:
     fixture = _load_json(FIXTURE_DIR / "unknown_low_signal.json")
     result = _classify_fixture(fixture)

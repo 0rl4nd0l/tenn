@@ -41,6 +41,7 @@ _SUPPORTED_CONTEXT_KEYS = {
     "relevant_line_anchors",
     "footer_form_labels",
 }
+_DOCUMENT_PAGES_KEY = "document_pages"
 
 _NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
 _SPACE_RE = re.compile(r"\s+")
@@ -60,6 +61,13 @@ class EvidenceItem:
     document_type: str
     anchor: str
     matched_text: str
+    page: int | None = None
+
+
+@dataclass(frozen=True)
+class _TextSource:
+    text: str
+    page: int | None
 
 
 @dataclass(frozen=True)
@@ -69,8 +77,8 @@ class AsxDocumentTypeClassification:
     expected_abstain: bool
     abstain: bool
     canonical_write: bool
-    positive_evidence: list[dict[str, str]] = field(default_factory=list)
-    negative_evidence: list[dict[str, str]] = field(default_factory=list)
+    positive_evidence: list[dict[str, Any]] = field(default_factory=list)
+    negative_evidence: list[dict[str, Any]] = field(default_factory=list)
     abstain_reasons: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -196,8 +204,8 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
     The return value is metadata-only. `canonical_write` is always false.
     """
 
-    fields = _flatten_surrogate(source_text_surrogate)
-    text = _joined_text(fields)
+    sources = _collect_text_sources(source_text_surrogate)
+    text = _joined_text([source.text for source in sources])
     warnings = _warnings_for_text(text)
 
     if not text:
@@ -207,7 +215,7 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         )
 
     evidence_by_type = {
-        rule.document_type: _match_rule(rule, text)
+        rule.document_type: _match_rule(rule, sources)
         for rule in _RULES
     }
     form_label_evidence = _appendix_form_label_evidence(evidence_by_type)
@@ -218,6 +226,29 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
                 "abstained instead of choosing between high-confidence anchors",
             ],
             negative_evidence=form_label_evidence,
+            warnings=warnings,
+        )
+
+    half_year_bundle_evidence = _half_year_bundle_precedence(evidence_by_type)
+    if half_year_bundle_evidence:
+        return _result(
+            document_type="half_year_report",
+            confidence_band=_confidence_for(
+                _rule_for("half_year_report"),
+                half_year_bundle_evidence,
+            ),
+            positive_evidence=half_year_bundle_evidence,
+            warnings=warnings,
+        )
+
+    half_year_bundle_conflict = _half_year_bundle_conflict(evidence_by_type)
+    if half_year_bundle_conflict:
+        return _abstain(
+            reasons=[
+                "conflicting Appendix 4D and half-year report bundle anchors",
+                "whole-document precedence requires later-page report evidence",
+            ],
+            negative_evidence=half_year_bundle_conflict,
             warnings=warnings,
         )
 
@@ -284,14 +315,40 @@ def classify(source_text_surrogate: Mapping[str, Any] | None) -> AsxDocumentType
     return classify_asx_document_type(source_text_surrogate)
 
 
-def _flatten_surrogate(source_text_surrogate: Mapping[str, Any] | None) -> list[str]:
+def _collect_text_sources(
+    source_text_surrogate: Mapping[str, Any] | None,
+) -> list[_TextSource]:
     if not isinstance(source_text_surrogate, Mapping):
         return []
 
-    values: list[str] = []
-    for key in sorted(_SUPPORTED_CONTEXT_KEYS):
-        values.extend(_walk_strings(source_text_surrogate.get(key)))
-    return values
+    context_text = _joined_text(
+        [
+            value
+            for key in sorted(_SUPPORTED_CONTEXT_KEYS)
+            for value in _walk_strings(source_text_surrogate.get(key))
+        ]
+    )
+    sources = (
+        [_TextSource(text=context_text, page=None)]
+        if context_text
+        else []
+    )
+    pages = source_text_surrogate.get(_DOCUMENT_PAGES_KEY)
+    if isinstance(pages, Sequence) and not isinstance(pages, (str, bytes, bytearray)):
+        page_values: dict[int | None, list[str]] = {}
+        for item in pages:
+            if not isinstance(item, Mapping):
+                continue
+            page = item.get("page")
+            page_number = page if isinstance(page, int) and page > 0 else None
+            page_values.setdefault(page_number, []).extend(
+                _walk_strings(item.get("text"))
+            )
+        for page_number, values in page_values.items():
+            page_text = _joined_text(values)
+            if page_text:
+                sources.append(_TextSource(text=page_text, page=page_number))
+    return sources
 
 
 def _walk_strings(value: Any) -> list[str]:
@@ -320,15 +377,25 @@ def _normalize(value: str) -> str:
     return _SPACE_RE.sub(" ", _NORMALIZE_RE.sub(" ", lowered)).strip()
 
 
-def _match_rule(rule: _DocumentTypeRule, text: str) -> list[EvidenceItem]:
+def _match_rule(
+    rule: _DocumentTypeRule,
+    sources: Sequence[_TextSource],
+) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     for anchor in rule.anchors:
-        if re.search(anchor.pattern, text):
+        matching_source: _TextSource | None = None
+        for source in sources:
+            if re.search(anchor.pattern, _normalize(source.text)):
+                matching_source = source
+                if source.page is not None:
+                    break
+        if matching_source is not None:
             evidence.append(
                 EvidenceItem(
                     document_type=rule.document_type,
                     anchor=anchor.anchor,
                     matched_text=anchor.anchor,
+                    page=matching_source.page,
                 )
             )
     return evidence
@@ -342,6 +409,69 @@ def _appendix_form_label_evidence(evidence_by_type: Mapping[str, list[EvidenceIt
                 evidence.append(item)
                 break
     return evidence
+
+
+def _half_year_bundle_precedence(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    appendix_label = next(
+        (
+            item
+            for item in evidence_by_type.get("appendix_4d", [])
+            if item.anchor == "Appendix 4D" and item.page is not None
+        ),
+        None,
+    )
+    half_year_evidence = evidence_by_type.get("half_year_report", [])
+    substantive_pages = [
+        item.page
+        for item in half_year_evidence
+        if item.anchor
+        in {
+            "Interim financial report",
+            "Condensed consolidated financial statements",
+        }
+        and item.page is not None
+    ]
+    if (
+        appendix_label is None
+        or not substantive_pages
+        or min(substantive_pages) <= appendix_label.page
+        or _confidence_for(_rule_for("half_year_report"), half_year_evidence) != "high"
+    ):
+        return []
+    return half_year_evidence
+
+
+def _half_year_bundle_conflict(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    appendix_evidence = evidence_by_type.get("appendix_4d", [])
+    appendix_label = next(
+        (
+            item
+            for item in appendix_evidence
+            if item.anchor == "Appendix 4D" and item.page is not None
+        ),
+        None,
+    )
+    half_year_evidence = evidence_by_type.get("half_year_report", [])
+    has_substantive_report_evidence = any(
+        item.anchor
+        in {
+            "Interim financial report",
+            "Condensed consolidated financial statements",
+        }
+        and item.page is not None
+        for item in half_year_evidence
+    )
+    if (
+        appendix_label is None
+        or not has_substantive_report_evidence
+        or _confidence_for(_rule_for("half_year_report"), half_year_evidence) != "high"
+    ):
+        return []
+    return appendix_evidence + half_year_evidence
 
 
 def _best_scoring_type(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> tuple[str | None, int]:

@@ -582,6 +582,54 @@ def test_run_multipass_abstains_unknown_contract_before_pass1_or_metric_extracti
     pass3a.assert_not_called()
 
 
+def test_run_multipass_collects_later_page_document_type_evidence():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [
+            {"text": "Quarterly activities report", "page": 1},
+            {
+                "text": "Appendix 4C. Quarterly cash flow report. Rule 4.7B.",
+                "page": 2,
+            },
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "thousands",
+            "classifier_confidence": 0.97,
+        },
+    ):
+        result = run_multipass_extraction(
+            "/fake/quarterly-bundle.pdf",
+            {
+                "document_id": "quarterly-bundle",
+                "ticker": "QTR",
+                "title": "Quarterly activities report",
+            },
+            llm_client=None,
+        )
+
+    classification = result.payload["asx_document_type_classification"]
+    assert classification["document_type"] == "appendix_4c"
+    assert any(
+        item["anchor"] == "Appendix 4C" and item["page"] == 2
+        for item in classification["positive_evidence"]
+    )
+    assert result.error == "validation_gate:extraction_contract_period_basis_mismatch"
+
+
 def test_run_multipass_abstains_contract_period_mismatch_before_metric_extraction():
     from app.services.multipass_extraction import run_multipass_extraction
 
