@@ -4,7 +4,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 
-from app.services.asx_appendix4c_parser import DATA_MISSING, parse_appendix4c_tables
+from app.services.asx_appendix4c_parser import (
+    DATA_MISSING,
+    Appendix4CFallbackValue,
+    build_appendix4c_cash_profile,
+    parse_appendix4c_tables,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -270,3 +275,201 @@ def test_production_routing_files_do_not_import_appendix4c_parser() -> None:
     for path in PRODUCTION_ROUTING_PATHS:
         source = path.read_text(encoding="utf-8")
         assert "asx_appendix4c_parser" not in source, path
+
+
+def test_builds_complete_current_quarter_cash_profile_with_evidence() -> None:
+    table = _appendix4c_table(
+        [
+            ["1.1", "Receipts from customers", "1,250", "2,750"],
+            ["1.9", "Net cash from / (used in) operating activities", "(450)", "(900)"],
+            ["2.1(c)", "Payments for property, plant and equipment", "624", "700"],
+            ["2.6", "Net cash from / (used in) investing activities", "(624)", "(700)"],
+            ["3.10", "Net cash from / (used in) financing activities", "869", "869"],
+            ["4.6", "Cash and cash equivalents at end of period", "702", "702"],
+            ["7.5", "Unused financing facilities available at quarter end", "3,000", ""],
+            ["8.8", "Estimated quarters of funding available", "2.4", ""],
+        ]
+    )
+
+    profile = build_appendix4c_cash_profile([table])
+
+    assert profile.document_type == "appendix_4c"
+    assert profile.canonical_write is False
+    assert profile.fallback_considered is False
+    quarter = profile.observation_map("period_only")
+    assert set(quarter) == {
+        "customer_receipts",
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "capex",
+        "cash_end",
+        "unused_financing",
+        "estimated_funding_quarters",
+    }
+    assert quarter["customer_receipts"].value == Decimal("1250")
+    assert quarter["capex"].value == Decimal("624")
+    assert quarter["unused_financing"].value == Decimal("3000")
+    assert quarter["estimated_funding_quarters"].value == Decimal("2.4")
+
+    for field, observation in quarter.items():
+        assert observation.period_basis == "period_only", field
+        assert observation.period_evidence, field
+        assert observation.currency_evidence, field
+        assert observation.scale_evidence, field
+        assert observation.evidence.row_index >= 0, field
+        assert observation.evidence.column_index >= 0, field
+
+    assert quarter["operating_cf"].currency == "AUD"
+    assert quarter["operating_cf"].scale == "thousands"
+    assert quarter["estimated_funding_quarters"].currency is None
+    assert quarter["estimated_funding_quarters"].scale == "units"
+    assert quarter["estimated_funding_quarters"].unit == "quarters"
+
+
+def test_preserves_quarter_only_and_ytd_profile_observations_without_collision() -> None:
+    profile = build_appendix4c_cash_profile(
+        [
+            _appendix4c_table(
+                [
+                    ["1.1", "Receipts from customers", "100", "350"],
+                    ["1.9", "Net cash from / (used in) operating activities", "(20)", "(75)"],
+                ]
+            )
+        ]
+    )
+
+    quarter = profile.observation_map("period_only")
+    ytd = profile.observation_map("year_to_date")
+    assert quarter["customer_receipts"].value == Decimal("100")
+    assert ytd["customer_receipts"].value == Decimal("350")
+    assert quarter["operating_cf"].value == Decimal("-20")
+    assert ytd["operating_cf"].value == Decimal("-75")
+    assert quarter["operating_cf"].period_evidence != ytd["operating_cf"].period_evidence
+
+
+def test_profile_abstains_when_currency_or_scale_evidence_is_missing() -> None:
+    profile = build_appendix4c_cash_profile(
+        [
+            _appendix4c_table(
+                [["1.9", "Net cash from operating activities", "100"]],
+                headers=["Item", "Description", "Current quarter"],
+            )
+        ]
+    )
+
+    assert "operating_cf" not in profile.observation_map("period_only")
+    assert profile.missing_map("period_only")["operating_cf"].status == DATA_MISSING
+
+
+def test_constrained_fallback_only_fills_missing_allowlisted_line_item() -> None:
+    deterministic_table = _appendix4c_table(
+        [["1.9", "Net cash from operating activities", "100", "400"]]
+    )
+    fallback = Appendix4CFallbackValue(
+        profile_field="capex",
+        value=Decimal("25"),
+        raw_value="25",
+        unit="currency",
+        currency="AUD",
+        scale="thousands",
+        period_basis="period_only",
+        column_role="current_quarter",
+        period_evidence="Current quarter $A'000",
+        currency_evidence="$A",
+        scale_evidence="'000",
+        page=5,
+        table_index=0,
+        row_index=9,
+        column_index=2,
+        row_label="2.1(c) | Payments for property, plant and equipment",
+        column_label="Current quarter $A'000",
+        line_item="2.1(c)",
+        source_span="page_5:table_0:row_9:col_2",
+    )
+
+    profile = build_appendix4c_cash_profile(
+        [deterministic_table],
+        fallback_values=[fallback],
+    )
+
+    assert profile.fallback_considered is True
+    assert profile.observation_map("period_only")["capex"].source_method == (
+        "appendix4c_explicit_fallback_v1"
+    )
+
+
+def test_deterministic_mapping_precedes_fallback_and_forbidden_fields_never_emit() -> None:
+    table = _appendix4c_table(
+        [["1.9", "Net cash from operating activities", "100", "400"]]
+    )
+
+    def fallback(field: str, line_item: str = "1.9", value: str = "999") -> Appendix4CFallbackValue:
+        return Appendix4CFallbackValue(
+            profile_field=field,
+            value=Decimal(value),
+            raw_value=value,
+            unit="currency",
+            currency="AUD",
+            scale="thousands",
+            period_basis="period_only",
+            column_role="current_quarter",
+            period_evidence="Current quarter $A'000",
+            currency_evidence="$A",
+            scale_evidence="'000",
+            page=5,
+            table_index=0,
+            row_index=1,
+            column_index=2,
+            row_label=f"{line_item} | supplied fallback",
+            column_label="Current quarter $A'000",
+            line_item=line_item,
+            source_span="page_5:table_0:row_1:col_2",
+        )
+
+    profile = build_appendix4c_cash_profile(
+        [table],
+        fallback_values=[
+            fallback("operating_cf"),
+            fallback("revenue"),
+            fallback("np_attributable"),
+            fallback("net_debt"),
+        ],
+    )
+
+    quarter = profile.observation_map("period_only")
+    assert quarter["operating_cf"].value == Decimal("100")
+    assert quarter["operating_cf"].source_method == "appendix4c_deterministic_v1"
+    assert {"revenue", "profit", "np_attributable", "net_debt"}.isdisjoint(quarter)
+
+
+def test_fallback_abstains_when_value_does_not_match_raw_source_cell() -> None:
+    fallback = Appendix4CFallbackValue(
+        profile_field="capex",
+        value=Decimal("25"),
+        raw_value="26",
+        unit="currency",
+        currency="AUD",
+        scale="thousands",
+        period_basis="period_only",
+        column_role="current_quarter",
+        period_evidence="Current quarter $A'000",
+        currency_evidence="$A",
+        scale_evidence="'000",
+        page=5,
+        table_index=0,
+        row_index=9,
+        column_index=2,
+        row_label="2.1(c) | Payments for property, plant and equipment",
+        column_label="Current quarter $A'000",
+        line_item="2.1(c)",
+        source_span="page_5:table_0:row_9:col_2",
+    )
+
+    profile = build_appendix4c_cash_profile(
+        [_appendix4c_table([["1.9", "Net cash from operating activities", "1", "2"]])],
+        fallback_values=[fallback],
+    )
+
+    assert "capex" not in profile.observation_map("period_only")
+    assert "invalid fallback value rejected: capex" in profile.warnings
