@@ -51,6 +51,29 @@ def upgrade():
         "financial_observation_supersessions",
         ["superseding_observation_id"],
     )
+    op.execute(
+        """
+        CREATE FUNCTION reject_financial_observation_supersession_mutation()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            RAISE EXCEPTION
+                'financial observation supersessions are immutable';
+            RETURN NULL;
+        END;
+        $$
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_financial_observation_supersessions_immutable
+        BEFORE UPDATE OR DELETE
+        ON financial_observation_supersessions
+        FOR EACH ROW
+        EXECUTE FUNCTION reject_financial_observation_supersession_mutation()
+        """
+    )
 
 
 def downgrade():

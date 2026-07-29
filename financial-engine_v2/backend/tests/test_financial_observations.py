@@ -25,13 +25,22 @@ class FakeQuery:
 
 
 class FakeSession:
-    def __init__(self, existing=None, rows=None, model_rows=None):
+    def __init__(
+        self,
+        existing=None,
+        rows=None,
+        model_rows=None,
+        execute_rowcounts=None,
+        get_rows=None,
+    ):
         self.added = []
         self.commits = 0
         self.existing = existing
         self.rows = rows or []
         self.model_rows = model_rows or {}
         self.executed = []
+        self.execute_rowcounts = list(execute_rowcounts or [])
+        self.get_rows = get_rows or {}
 
     def query(self, model):
         return FakeQuery(
@@ -42,9 +51,17 @@ class FakeSession:
     def add(self, value):
         self.added.append(value)
 
+    def get(self, model, identity):
+        return self.get_rows.get((model, identity))
+
     def execute(self, statement):
         self.executed.append(statement)
-        return SimpleNamespace(rowcount=1)
+        rowcount = (
+            self.execute_rowcounts.pop(0)
+            if self.execute_rowcounts
+            else 1
+        )
+        return SimpleNamespace(rowcount=rowcount)
 
     def commit(self):
         self.commits += 1
@@ -187,6 +204,17 @@ def test_supersession_migration_and_orm_are_forward_only_and_evidence_backed():
     from app.models.financial_observations import FinancialObservationSupersession
 
     table = FinancialObservationSupersession.__table__
+    assert tuple(table.c.keys()) == (
+        "supersession_id",
+        "superseding_observation_id",
+        "superseded_observation_id",
+        "relationship_type",
+        "evidence",
+    )
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in table.foreign_keys
+    } == {"financial_observations.observation_id"}
     checks = {
         constraint.name: str(constraint.sqltext)
         for constraint in table.constraints
@@ -200,6 +228,9 @@ def test_supersession_migration_and_orm_are_forward_only_and_evidence_backed():
         constraint.name == "uq_financial_observation_superseded_once"
         for constraint in table.constraints
     )
+    assert {index.name for index in table.indexes} == {
+        "ix_financial_observation_supersessions_superseding"
+    }
 
     path = Path(
         "financial-engine_v2/backend/app/alembic/versions/"
@@ -208,6 +239,14 @@ def test_supersession_migration_and_orm_are_forward_only_and_evidence_backed():
     source = path.read_text()
     tree = ast.parse(source)
     assert 'down_revision = "0013_result_disclosures"' in source
+    assert (
+        '"ix_financial_observation_supersessions_superseding"' in source
+    )
+    assert (
+        "CREATE TRIGGER trg_financial_observation_supersessions_immutable"
+        in source
+    )
+    assert "BEFORE UPDATE OR DELETE" in source
     downgrade = next(
         node
         for node in tree.body
@@ -1623,7 +1662,37 @@ def test_explicit_restatement_selects_new_truth_and_later_arrival_cannot_win():
         session,
         ticker="BHP",
         legacy_contexts={key: ("AUD", "units")},
-    ) == {}
+    ) == {key: Decimal("90")}
+
+
+def test_explicit_restatement_terminal_wins_for_quarter_ytd_projection():
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import accepted_observation_periods
+
+    original = _observation(100)
+    original.period_basis = "year_to_date"
+    restated = _observation(90)
+    restated.period_basis = "year_to_date"
+    ordinary_later_arrival = _observation(110)
+    ordinary_later_arrival.period_basis = "year_to_date"
+    relationship = _supersession(restated, original)
+
+    assert accepted_observation_periods(
+        FakeSession(
+            model_rows={
+                FinancialObservation: [
+                    original,
+                    restated,
+                    ordinary_later_arrival,
+                ],
+                FinancialObservationSupersession: [relationship],
+            }
+        ),
+        ticker="BHP",
+    )[0]["revenue"] == "90"
 
 
 def test_stage_supersession_requires_explicit_matching_evidence_and_identity():
@@ -1672,6 +1741,66 @@ def test_stage_supersession_requires_explicit_matching_evidence_and_identity():
         assert rejected_session.executed == []
 
 
+def test_end_to_end_supersession_retry_reuses_existing_observation_candidate():
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import (
+        _observation_id,
+        stage_financial_observations,
+    )
+
+    document_id = uuid.uuid4()
+    original = _observation(100)
+    restated_payload = accepted_context(document_id)
+    restated_payload["metrics"]["revenue"] = 90
+    restated = _observation(90)
+    restated.observation_id = _observation_id(
+        source_document_id=document_id,
+        extractor_version="multipass-v9",
+        ticker="BHP",
+        metric="revenue",
+        period_end=date(2025, 6, 30),
+        period_basis="A",
+        accounting_basis="statutory",
+        currency="AUD",
+        scale="units",
+    )
+    restated.source_document_id = document_id
+    relationship = _supersession(restated, original)
+    restated_payload["observation_supersessions"] = [
+        {
+            "relationship_type": "restatement",
+            "superseded_source_document_id": str(
+                original.source_document_id
+            ),
+            "metric": "revenue",
+            "period_end": "2025-06-30",
+            "period_basis": "A",
+            "evidence": relationship.evidence,
+        }
+    ]
+    session = FakeSession(
+        model_rows={
+            FinancialObservation: [original],
+            FinancialObservationSupersession: [relationship],
+        },
+        execute_rowcounts=[0, 0],
+        get_rows={(FinancialObservation, restated.observation_id): restated},
+    )
+
+    assert stage_financial_observations(
+        session,
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v9"
+        ),
+        structured=restated_payload,
+    ) == ()
+    assert len(session.executed) == 2
+
+
 def test_history_retains_superseded_observation_and_both_provenance_records():
     from app.models.financial_observations import (
         FinancialObservation,
@@ -1698,6 +1827,52 @@ def test_history_retains_superseded_observation_and_both_provenance_records():
     assert superseded["superseded_by"] == str(restated.observation_id)
     assert superseded["supersession_evidence"] == relationship.evidence
     assert by_id[str(restated.observation_id)]["active"] is True
+
+
+def test_financial_history_route_requires_api_key_and_preserves_ordering(
+    monkeypatch,
+):
+    from fastapi import FastAPI
+    from fastapi.routing import APIRoute
+    from fastapi.testclient import TestClient
+
+    from app.api import routes
+    from app.core import config
+
+    financial_routes = [
+        route
+        for route in routes.router.routes
+        if isinstance(route, APIRoute) and route.path.startswith("/financials")
+    ]
+    assert [route.path for route in financial_routes] == [
+        "/financials",
+        "/financials/history",
+    ]
+    history_route = financial_routes[1]
+    assert any(
+        dependency.call is routes.require_api_key
+        for dependency in history_route.dependant.dependencies
+    )
+
+    app = FastAPI()
+    app.include_router(routes.router, prefix="/api")
+    app.dependency_overrides[routes.get_db] = lambda: FakeSession()
+    monkeypatch.setattr(
+        config.settings, "local_api_key", "local-secret", raising=False
+    )
+    client = TestClient(app)
+
+    unauthorized = client.get("/api/financials/history?ticker=BHP")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json() == {
+        "detail": "Invalid or missing API key"
+    }
+    authorized = client.get(
+        "/api/financials/history?ticker=BHP",
+        headers={"X-API-Key": "local-secret"},
+    )
+    assert authorized.status_code == 200
+    assert authorized.json() == []
 
 
 def test_read_projects_each_metric_independently_and_preserves_sparse_legacy():

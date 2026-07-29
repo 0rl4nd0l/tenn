@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     ForeignKey,
+    Index,
     JSON,
     Numeric,
     String,
@@ -98,6 +99,10 @@ class FinancialObservationSupersession(Base):
             "superseded_observation_id",
             name="uq_financial_observation_superseded_once",
         ),
+        Index(
+            "ix_financial_observation_supersessions_superseding",
+            "superseding_observation_id",
+        ),
     )
 
     supersession_id: Mapped[uuid.UUID] = mapped_column(
@@ -107,7 +112,6 @@ class FinancialObservationSupersession(Base):
         UUID(as_uuid=True),
         ForeignKey("financial_observations.observation_id"),
         nullable=False,
-        index=True,
     )
     superseded_observation_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

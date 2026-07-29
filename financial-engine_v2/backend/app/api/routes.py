@@ -268,7 +268,10 @@ def financials(ticker: str, db: Session = Depends(get_db)):
     ]
 
 
-@router.get("/financials/history")
+@router.get(
+    "/financials/history",
+    dependencies=[Depends(require_api_key)],
+)
 def financial_history(ticker: str, db: Session = Depends(get_db)):
     return accepted_observation_history(db, ticker=ticker)
 
