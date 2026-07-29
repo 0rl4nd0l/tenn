@@ -989,7 +989,7 @@ def _enrich_review_staging_member(
     structured: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Attach provenance evaluation detail to one observation payload."""
-    payload = dict(structured)
+    payload = structured if isinstance(structured, dict) else dict(structured)
     if isinstance(payload.get("provenance_summary"), Mapping):
         return payload
     summary = build_payload_provenance_summary(payload)
@@ -1026,7 +1026,7 @@ def build_review_staging_payload(
     structured: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Evaluate each actual observation at the production staging seam."""
-    payload = dict(structured)
+    payload = structured if isinstance(structured, dict) else dict(structured)
     members = payload.get("period_observations")
     if isinstance(members, list):
         payload["period_observations"] = [

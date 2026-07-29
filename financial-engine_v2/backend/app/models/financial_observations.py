@@ -158,7 +158,7 @@ class FinancialObservationReview(Base):
             "'$[*] ? (@.type() != \"string\" || "
             "@ like_regex \"^\\\\s*$\")')))",
             name="ck_financial_observation_review_decision_audit",
-        ),
+        ).ddl_if(dialect="postgresql"),
         UniqueConstraint(
             "source_document_id",
             "extraction_run_id",
@@ -199,7 +199,7 @@ class FinancialObservationReview(Base):
         DateTime(timezone=True), nullable=True
     )
     decision_reason_codes: Mapped[list | None] = mapped_column(
-        JSONB, nullable=True
+        JSON().with_variant(JSONB(), "postgresql"), nullable=True
     )
     decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
