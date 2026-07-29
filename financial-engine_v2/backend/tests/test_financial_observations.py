@@ -1827,11 +1827,16 @@ def test_history_retains_superseded_observation_and_both_provenance_records():
 
     original = _observation(100)
     restated = _observation(90)
+    ordinary_later_arrival = _observation(110)
     relationship = _supersession(restated, original)
     history = accepted_observation_history(
         FakeSession(
             model_rows={
-                FinancialObservation: [original, restated],
+                FinancialObservation: [
+                    original,
+                    restated,
+                    ordinary_later_arrival,
+                ],
                 FinancialObservationSupersession: [relationship],
             }
         ),
@@ -1844,6 +1849,7 @@ def test_history_retains_superseded_observation_and_both_provenance_records():
     assert superseded["superseded_by"] == str(restated.observation_id)
     assert superseded["supersession_evidence"] == relationship.evidence
     assert by_id[str(restated.observation_id)]["active"] is True
+    assert by_id[str(ordinary_later_arrival.observation_id)]["active"] is False
 
 
 def test_financial_history_route_requires_api_key_and_preserves_ordering(

@@ -70,6 +70,9 @@ and retain provenance-bearing history.
 - Protect `/financials/history` with the established API-key dependency and
   prove unauthorized rejection, authorized availability, and static route
   order.
+- Derive history `active` flags from the same validated topology terminals as
+  the projections, so a later unrelated ordinary observation remains
+  queryable but is not mislabeled active.
 
 The repair remains within the original seven-path allowlist.
 

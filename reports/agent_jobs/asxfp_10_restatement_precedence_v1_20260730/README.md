@@ -43,6 +43,11 @@ now determines active precedence.
   `Depends(require_api_key)` guard. Route-level coverage proves configured-key
   rejection and authorized availability, and confirms `/financials` is
   registered before `/financials/history`.
+- Exact-head review of `8d510c9734295bbf1811ee76704c995c91734b2f`
+  found that history still labeled a suppressed later ordinary observation
+  active. History now reuses the same validated topology-terminal selector as
+  projections; focused coverage proves the restatement is active and the later
+  ordinary observation remains queryable but inactive.
 
 ## Changed paths
 
@@ -73,7 +78,8 @@ were excluded from the task allowlist, and were not modified.
   behavior.
 - Authenticated `/financials/history` exposes active and superseded
   observations, immutable observation provenance, successor identity,
-  relationship type, and supersession evidence.
+  relationship type, and supersession evidence, with activity derived from the
+  same topology terminals as the active projections.
 - Focused fake tests cover migration/model consistency, explicit restated
   preference, rejection of ordinary or mismatched evidence, no service commit,
   provenance-bearing history, idempotent retry, API-key enforcement, route

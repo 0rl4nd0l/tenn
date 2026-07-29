@@ -1046,9 +1046,15 @@ def _valid_supersessions(
     return valid
 
 
-def _active_observation_ids(db, observations: list[Any]) -> set[uuid.UUID]:
+def _active_observation_ids(
+    db,
+    observations: list[Any],
+    *,
+    relationships: list[Any] | None = None,
+) -> set[uuid.UUID]:
     """Select terminal nodes when validated supersession topology exists."""
-    relationships = db.query(FinancialObservationSupersession).all()
+    if relationships is None:
+        relationships = db.query(FinancialObservationSupersession).all()
     valid = _valid_supersessions(observations, relationships)
     superseded_ids = set(valid)
     identity_fields = (
@@ -1224,6 +1230,11 @@ def accepted_observation_history(
     )
     relationships = db.query(FinancialObservationSupersession).all()
     by_superseded = _valid_supersessions(observations, relationships)
+    active_ids = _active_observation_ids(
+        db,
+        observations,
+        relationships=relationships,
+    )
     history = []
     for observation in observations:
         relationship = by_superseded.get(observation.observation_id)
@@ -1243,7 +1254,7 @@ def accepted_observation_history(
                 "extractor_version": observation.extractor_version,
                 "provenance": observation.provenance,
                 "trust_state": observation.trust_state,
-                "active": relationship is None,
+                "active": observation.observation_id in active_ids,
                 "superseded_by": (
                     str(relationship.superseding_observation_id)
                     if relationship is not None
