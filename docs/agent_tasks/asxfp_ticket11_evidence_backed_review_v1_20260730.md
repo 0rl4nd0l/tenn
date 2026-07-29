@@ -17,7 +17,7 @@ production_data_access: false
 github_mutation_allowed: false
 merge_allowed: false
 output_dir: reports/agent_jobs/asxfp_ticket11_evidence_backed_review_v1_20260730
-closeout_scope: local_commit
+closeout_scope: controller_local_commit
 allowed_files:
   - docs/agent_tasks/asxfp_ticket11_evidence_backed_review_v1_20260730.md
   - financial-engine_v2/backend/app/alembic/versions/0015_financial_observation_reviews.py
@@ -42,8 +42,8 @@ reason: "Ticket 11 adds an additive review queue without changing extraction gui
 
 ## Authority
 
-- Base commit: `c57698a2e852d74d84dbb30402a0d654515d6a44`.
-- Base tree: `e54385b03e2aa9f3be72c6489770a7f2de55eace`.
+- Repair base commit: `6bed5f6fa9df04e3f94fc73152d66cef54184ed8`.
+- Repair base tree: `f267179ee3a9c68df83d3af8d38301f4705ff30d`.
 - Ticket 11 authority SHA-256:
   `e28516984ca7b020f028385908c383b1e3fcb2b41617e30f7561bff34bdebea8`.
 
@@ -63,7 +63,10 @@ untracked control files are out of scope and must remain untouched.
 
 No PDFs, corpora, diagnostics, holdout data, extraction, OCR, models, services,
 databases, migrations, queues, GPUs, deployments, activation, production
-writes, network actions, commits, pushes, PRs, or merges.
+writes, network actions, pushes, PRs, or merges. This repair worker must not
+commit. `controller_local_commit` explicitly authorizes only the Codex X
+controller to create the final local delivery commit after worker validation;
+it does not authorize this worker or any push, PR, or merge.
 
 ## Validation
 

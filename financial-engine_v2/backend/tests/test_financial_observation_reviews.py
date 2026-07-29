@@ -85,6 +85,88 @@ def test_unresolved_observations_enter_review_queue_with_reason_codes(kind):
     assert len(session.executed) == 1
 
 
+def real_outcome(kind):
+    payload = {
+        "metrics": {"revenue": 125},
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "currency": "AUD",
+        "field_provenance": {
+            "revenue": {
+                "page_number": 42,
+                "table_or_region": "Consolidated income statement",
+                "row_ref": "Revenue",
+                "cell_ref": "row 3, column 2025",
+                "scale": "millions",
+            }
+        },
+    }
+    if kind in {"conflicting", "ambiguous"}:
+        code = (
+            "conflicting_source_coordinates"
+            if kind == "conflicting"
+            else "ambiguous_source_cell"
+        )
+        payload["provenance_summary"] = {
+            "issues": [{"code": code, "field": "revenue"}]
+        }
+    else:
+        payload["trust_outcome"] = (
+            "abstain" if kind == "abstained" else "quarantine"
+        )
+        payload["trust_triggers"] = [f"{kind}_metric_outcome"]
+    return payload
+
+
+@pytest.mark.parametrize(
+    "kind", ("conflicting", "ambiguous", "abstained", "quarantined")
+)
+def test_real_outcome_shapes_enter_review_queue(kind):
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    session = FakeSession()
+    staged = stage_financial_observation_reviews(
+        session,
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured=real_outcome(kind),
+    )
+
+    assert len(staged) == 1
+    assert staged[0].review_kind == kind
+    assert staged[0].reason_codes
+    assert len(session.executed) == 1
+
+
+def test_missing_location_evidence_is_queued_with_reason_codes():
+    from app.services.financial_observations import (
+        stage_financial_observation_reviews,
+    )
+
+    candidate = review_candidate(evidence=False)
+    session = FakeSession()
+    staged = stage_financial_observation_reviews(
+        session,
+        document=SimpleNamespace(document_id=uuid.uuid4(), ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="fake-v1"
+        ),
+        structured={"observation_reviews": [candidate]},
+    )
+
+    assert len(staged) == 1
+    assert set(staged[0].reason_codes) >= {
+        "missing_evidence_page_number",
+        "missing_evidence_table_or_region",
+        "missing_evidence_row_ref",
+        "missing_evidence_cell_ref",
+    }
+
+
 def test_review_item_exposes_location_period_currency_and_scale():
     from app.models.financial_observations import FinancialObservationReview
     from app.services.financial_observations import (
