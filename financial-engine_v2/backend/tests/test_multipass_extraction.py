@@ -10546,7 +10546,173 @@ class TestDerivedNetDebtFragmentsCoverageGate:
         )
 
 
+def test_pass2_locator_abstains_on_equal_top_income_table_evidence():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _run_pass2_locator
+
+    tables = [
+        DoclingTable(
+            page_number=page,
+            caption="Consolidated Income Statement",
+            headers=["", "Current", "Comparative"],
+            rows=[["Revenue", "100", "90"], ["Profit after tax", "20", "18"]],
+        )
+        for page in (4, 9)
+    ]
+
+    labelled = _run_pass2_locator(tables)
+
+    assert labelled["income_statement"] is None
+    assert all(table in labelled["unmatched"] for table in tables)
+
+
 class TestCurrentPeriodColumnBinding:
+    def test_single_table_flow_fails_closed_without_quarter_basis_evidence(
+        self,
+    ) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _extract_single_table
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "31 March 2025"],
+            raw_header_rows=[["", "31 March 2025"]],
+            rows=[["Net cash from operating activities", "25"]],
+        )
+
+        with patch(
+            "app.services.multipass_extraction._llm_json_call",
+            return_value={
+                "operating_cf": 25,
+                "row_refs": {
+                    "operating_cf": "Net cash from operating activities"
+                },
+                "pass3_confidence": 0.9,
+            },
+        ):
+            extracted = _extract_single_table(
+                "cashflow_statement",
+                table,
+                {
+                    "report_type": "Q",
+                    "period_basis": "period_only",
+                    "period_end": "2025-03-31",
+                    "currency": "AUD",
+                },
+                "units",
+                1,
+                llm_client=None,
+            )
+
+        assert extracted is not None
+        assert extracted["operating_cf"] is None
+        assert extracted["_period_binding"]["reason"] == "quarter_basis_missing"
+
+    def test_preferred_income_overlay_fails_closed_on_ambiguous_quarter_basis(
+        self,
+    ) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _apply_preferred_income_statement_source_payload,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly income statement",
+            headers=["", "Current quarter / Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter / Year to date"],
+                ["", "31 March 2025"],
+            ],
+            rows=[["Revenue", "25"]],
+        )
+        payload = {
+            "metrics": {"revenue": None},
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            [table],
+            scale="units",
+            pass1_result={
+                "report_type": "Q",
+                "period_basis": "period_only",
+                "period_end": "2025-03-31",
+                "currency": "AUD",
+            },
+        )
+
+        assert payload["metrics"]["revenue"] == 25
+        assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+    def test_announcement_date_never_binds_as_period_end(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Results announcement",
+            headers=["", "Announcement date 31 March 2025"],
+            raw_header_rows=[["", "Announcement date 31 March 2025"]],
+            rows=[["Revenue", "25"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-03-31")
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "period_headers_missing"
+
+    def test_quarter_binding_records_exact_table_role_and_basis(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "Current quarter 31 March 2025", "Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter", "Year to date"],
+                ["", "31 March 2025", "31 March 2025"],
+            ],
+            rows=[["Receipts from customers", "25", "70"]],
+        )
+        table.index_in_doc = 4
+
+        binding = _bind_current_period_column(
+            table, "2025-03-31", period_basis="period_only"
+        )
+
+        assert binding["status"] == "BOUND"
+        assert binding["table_index"] == 4
+        assert binding["column_index"] == 1
+        assert binding["column_role"] == "current_quarter"
+        assert binding["period_basis"] == "period_only"
+
+    def test_same_date_conflicting_quarter_basis_fails_closed(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "Current quarter / Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter / Year to date"],
+                ["", "31 March 2025"],
+            ],
+            rows=[["Receipts from customers", "25"]],
+        )
+
+        binding = _bind_current_period_column(
+            table, "2025-03-31", period_basis="period_only"
+        )
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "conflicting_quarter_basis"
+
     def test_binds_exact_requested_period_and_ignores_note_column(self) -> None:
         from app.services.docling_extract import DoclingTable
         from app.services.multipass_extraction import _bind_current_period_column

@@ -575,11 +575,15 @@ def _accepted_metric_context(
         or (
             period_basis in _QUARTER_PERIOD_ROLES
             and (
-                not isinstance(column_index, int)
+                not isinstance(source_cell.get("table_index"), int)
+                or isinstance(source_cell.get("table_index"), bool)
+                or source_cell.get("table_index") < 0
+                or not isinstance(column_index, int)
                 or isinstance(column_index, bool)
                 or column_index < 0
                 or source_cell.get("column_role")
                 != _QUARTER_PERIOD_ROLES[period_basis]
+                or source_cell.get("period_basis") != period_basis
                 or _quarter_period_semantics(source_cell.get("header_cell"))
                 != period_basis
             )
