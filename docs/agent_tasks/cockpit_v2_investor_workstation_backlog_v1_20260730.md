@@ -575,7 +575,7 @@ Automatic owner-watchlist, portfolio, or company-memory mutation; unbounded
 crawling; paid search; or scheduler activation.
 
 Dependencies:
-CXV2-002, CXV2-005, and CXV2-011.
+CXV2-002, CXV2-005, CXV2-011, and CXV2-012.
 
 Acceptance:
 - Assistant discovery and owner state use distinct schemas and namespaces.
@@ -652,7 +652,7 @@ Starting/stopping jobs, scheduler activation, synthetic progress, or deleting
 legacy Operations/History pages.
 
 Dependencies:
-CXV2-006 and CXV2-007.
+CXV2-005, CXV2-006, and CXV2-007.
 
 Acceptance:
 - Activity distinguishes queued, running, succeeded, failed, cancelled, and
@@ -770,7 +770,7 @@ Non-goals:
 Live Tier 2 execution, production load tests, runtime deployment, or cutover.
 
 Dependencies:
-CXV2-008 through CXV2-017 as applicable to each scenario.
+All of CXV2-008 through CXV2-017.
 
 Acceptance:
 - Browser tests verify traces, receipts, citations, freshness, failure UX,
@@ -958,18 +958,17 @@ mutation, or destructive cleanup unless that exact action is approved.
 ```text
 CXV2-001
 ├── CXV2-002 ── CXV2-003 ── CXV2-004 ── CXV2-005
-│   ├── CXV2-006
-│   └── CXV2-013
+│   └── CXV2-006
 └── CXV2-007 ── CXV2-008 ── CXV2-014
 
 CXV2-001 + CXV2-004 + CXV2-005 ── CXV2-009
 CXV2-007 + CXV2-009 ── CXV2-010
 CXV2-005 + CXV2-007 ── CXV2-011
 CXV2-005 + CXV2-010 + CXV2-011 ── CXV2-012
-CXV2-002 + CXV2-005 + CXV2-011 ── CXV2-013
+CXV2-002 + CXV2-005 + CXV2-011 + CXV2-012 ── CXV2-013
 CXV2-008 + CXV2-010 ── CXV2-014
 
-CXV2-006 + CXV2-007 ── CXV2-015 ── CXV2-016
+CXV2-005 + CXV2-006 + CXV2-007 ── CXV2-015 ── CXV2-016
 CXV2-004 + CXV2-005 + CXV2-009 + CXV2-011 ── CXV2-017
 CXV2-008..017 ── CXV2-018
 CXV2-006 + CXV2-017 + CXV2-018 ── CXV2-019
