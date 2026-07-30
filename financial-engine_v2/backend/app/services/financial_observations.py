@@ -1732,42 +1732,29 @@ def accepted_statutory_overrides(
     return overrides
 
 
-def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
-    """Project the public compatibility profile from accepted statutory truth.
-
-    Legacy rows supply compatibility metadata and values for metrics for which
-    no accepted observation exists.  Once accepted observations exist for a
-    metric identity, conflicts fail closed instead of exposing the legacy
-    value.
-    """
-    ticker = ticker.strip().upper()
-    legacy_rows = (
-        db.query(ASXPeriodicFinancial)
-        .filter(ASXPeriodicFinancial.ticker == ticker)
-        .all()
+def stable_financial_profiles(
+    db, *, ticker: str | None = None
+) -> tuple[dict[str, Any], ...]:
+    """Project compatibility rows solely from active accepted statutory truth."""
+    normalized_ticker = ticker.strip().upper() if ticker is not None else None
+    query = db.query(FinancialObservation).filter(
+        FinancialObservation.metric.in_(CANONICAL_METRIC_FIELDS),
+        FinancialObservation.accounting_basis == "statutory",
+        FinancialObservation.trust_state == "accepted",
     )
-    legacy_by_key = {
-        (row.period_end, row.period_type): row for row in legacy_rows
-    }
-    observations = (
-        db.query(FinancialObservation)
-        .filter(
-            FinancialObservation.ticker == ticker,
-            FinancialObservation.metric.in_(CANONICAL_METRIC_FIELDS),
-            FinancialObservation.accounting_basis == "statutory",
-            FinancialObservation.trust_state == "accepted",
-        )
-        .all()
-    )
+    if normalized_ticker is not None:
+        query = query.filter(FinancialObservation.ticker == normalized_ticker)
+    observations = query.all()
     active_ids = _active_observation_ids(db, observations)
     candidates: dict[
-        tuple[date, str, str],
+        tuple[str, date, str, str],
         list[tuple[Decimal, str, str, uuid.UUID]],
     ] = {}
     for observation in observations:
         if observation.observation_id not in active_ids:
             continue
         key = (
+            observation.ticker,
             observation.period_end,
             observation.period_basis,
             observation.metric,
@@ -1781,16 +1768,17 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
             )
         )
 
-    keys = set(legacy_by_key)
-    keys.update((period_end, period_basis) for period_end, period_basis, _ in candidates)
+    keys = {
+        (row_ticker, period_end, period_basis)
+        for row_ticker, period_end, period_basis, _ in candidates
+    }
     projected_rows: list[dict[str, Any]] = []
-    for key in keys:
-        period_end, period_basis = key
-        legacy = legacy_by_key.get(key)
+    for row_ticker, period_end, period_basis in keys:
         metric_truth: dict[str, tuple[Decimal, str, uuid.UUID]] = {}
-        conflicted: set[str] = set()
         for metric in CANONICAL_METRIC_FIELDS:
-            truths = candidates.get((period_end, period_basis, metric))
+            truths = candidates.get(
+                (row_ticker, period_end, period_basis, metric)
+            )
             if not truths:
                 continue
             semantic_truths = {
@@ -1800,18 +1788,10 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
             if len(semantic_truths) == 1:
                 value, currency, scale = next(iter(semantic_truths))
                 if scale != "units":
-                    conflicted.add(metric)
                     continue
-                expected_currency = (
-                    "shares"
-                    if metric == "shares_outstanding"
-                    else getattr(legacy, "currency", None)
-                )
-                if (
-                    legacy is not None
-                    and expected_currency != currency
-                ):
-                    conflicted.add(metric)
+                if metric == "shares_outstanding" and currency != "shares":
+                    continue
+                if metric != "shares_outstanding" and currency == "shares":
                     continue
                 source_document_id = min(
                     (truth[3] for truth in truths),
@@ -1822,8 +1802,6 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
                     currency,
                     source_document_id,
                 )
-            else:
-                conflicted.add(metric)
 
         monetary_currencies = {
             currency
@@ -1831,11 +1809,6 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
             if metric != "shares_outstanding"
         }
         if len(monetary_currencies) > 1:
-            conflicted.update(
-                metric
-                for metric in metric_truth
-                if metric != "shares_outstanding"
-            )
             metric_truth = {
                 metric: truth
                 for metric, truth in metric_truth.items()
@@ -1846,32 +1819,17 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
             {truth[2] for truth in metric_truth.values()}, key=str
         )
         row = {
-            "ticker": ticker,
+            "ticker": row_ticker,
             "period_end": period_end,
             "period_type": period_basis,
-            "confidence_metrics": (
-                legacy.confidence_metrics
-                if legacy is not None and not metric_truth
-                else None
-            ),
-            "source_document_id": (
-                str(source_ids[0])
-                if source_ids
-                else (
-                    str(legacy.source_document_id)
-                    if legacy is not None
-                    else None
-                )
-            ),
+            "confidence_metrics": None,
+            "source_document_id": str(source_ids[0]) if source_ids else None,
         }
         for metric in CANONICAL_METRIC_FIELDS:
             if metric in metric_truth:
                 row[metric] = str(metric_truth[metric][0])
-            elif metric in conflicted:
-                row[metric] = None
             else:
-                value = getattr(legacy, metric, None)
-                row[metric] = str(value) if value is not None else None
+                row[metric] = None
         if period_basis not in _LEGACY_PERIOD_BASES:
             row["period_basis"] = period_basis
             row["observation_only"] = True
@@ -1883,10 +1841,19 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
     return tuple(
         sorted(
             projected_rows,
-            key=lambda row: (row["period_end"], row["period_type"]),
+            key=lambda row: (
+                row["period_end"],
+                row["ticker"],
+                row["period_type"],
+            ),
             reverse=True,
         )
     )
+
+
+def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
+    """Project one ticker into the legacy-compatible public row shape."""
+    return stable_financial_profiles(db, ticker=ticker)
 
 
 def accepted_revenue_overrides(

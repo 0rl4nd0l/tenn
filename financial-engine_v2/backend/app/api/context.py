@@ -1544,25 +1544,12 @@ def get_ticker_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials (matches DbReader.get_low_confidence_financials with ticker) ---
-    low_confidence_financials, err = _run_query(
+    low_confidence_financials = _projected_low_confidence_financials(
         db,
-        """
-        SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-          AND ticker = :ticker
-        ORDER BY confidence_metrics ASC
-        LIMIT :limit
-    """,
-        {
-            "ticker": ticker,
-            "threshold": low_confidence_threshold,
-            "limit": low_confidence_limit,
-        },
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
     )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
 
     payload = {
         "ticker": ticker,
@@ -1795,44 +1782,40 @@ def _build_verification_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials ---
-    if ticker:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-              AND ticker = :ticker
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {
-                "ticker": ticker,
-                "threshold": low_confidence_threshold,
-                "limit": low_confidence_limit,
-            },
-        )
-    else:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {"threshold": low_confidence_threshold, "limit": low_confidence_limit},
-        )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
+    low_conf = _projected_low_confidence_financials(
+        db,
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
+    )
 
     return {
         "extraction_failures": failures,
         "low_confidence_financials": low_conf,
         "errors": errors,
     }
+
+
+def _projected_low_confidence_financials(
+    db: Session,
+    *,
+    ticker: str | None,
+    threshold: float,
+    limit: int,
+) -> list[dict[str, Any]]:
+    from app.services.financial_observations import stable_financial_profiles
+
+    rows = stable_financial_profiles(db, ticker=ticker)
+    low_confidence = [
+        row
+        for row in rows
+        if row.get("confidence_metrics") is not None
+        and float(row["confidence_metrics"]) < threshold
+    ]
+    return sorted(
+        low_confidence,
+        key=lambda row: float(row["confidence_metrics"]),
+    )[:limit]
 
 
 def _verification_outcome_summary(

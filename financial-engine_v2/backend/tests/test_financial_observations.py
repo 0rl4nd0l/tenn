@@ -1960,7 +1960,13 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
         confidence_metrics=0.9,
         source_document_id=uuid.uuid4(),
     )
-    session = FakeSession(
+    class AuthorityOnlySession(FakeSession):
+        def query(self, model):
+            if model is ASXPeriodicFinancial:
+                raise AssertionError("legacy financials must not be queried")
+            return super().query(model)
+
+    session = AuthorityOnlySession(
         model_rows={
             ASXPeriodicFinancial: [legacy],
             FinancialObservation: [
@@ -1994,6 +2000,22 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
             "shares_outstanding": None,
         },
     )
+
+
+def test_stable_profile_omits_legacy_only_rows_without_querying_legacy():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.services.financial_observations import stable_financial_profile
+
+    class AuthorityOnlySession(FakeSession):
+        def query(self, model):
+            if model is ASXPeriodicFinancial:
+                raise AssertionError("legacy financials must not be queried")
+            return super().query(model)
+
+    assert stable_financial_profile(
+        AuthorityOnlySession(rows=[]),
+        ticker="BHP",
+    ) == ()
 
 
 def test_loader_includes_accepted_truth_despite_stale_legacy_confidence():

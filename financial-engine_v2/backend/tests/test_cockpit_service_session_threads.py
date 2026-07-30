@@ -965,7 +965,10 @@ def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_fail
     assert result["entities"][0]["metrics"]["REVENUE"] == "failed"
 
 
-def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> None:
+@pytest.mark.parametrize("ticker", ["EOS", None])
+def test_get_intel_pulse_stats_uses_canonical_financial_rows(
+    monkeypatch, ticker
+) -> None:
     service = CockpitService.__new__(CockpitService)
 
     documents_count = 4
@@ -1087,10 +1090,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
 
     class _FakeDb:
         def __init__(self) -> None:
-            # db.query order: document count, (financial rows), (failure query), runs count, periodic count
-            self._scalars = iter(
-                [documents_count, 42, len(financial_rows)]
-            )
+            self._scalars = iter([documents_count, 42])
 
         def query(self, *args, **kwargs):
             if len(args) >= 2:
@@ -1099,7 +1099,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
             if getattr(target, "name", None) == "count":
                 return _ScalarQuery(next(self._scalars))
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _RowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _CountQuery()
 
         def close(self) -> None:
@@ -1109,8 +1109,12 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
         "app.services.cockpit_service.SessionLocal",
         lambda: _FakeDb(),
     )
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profiles",
+        lambda db, *, ticker: tuple(vars(row) for row in financial_rows),
+    )
 
-    result = CockpitService.get_intel_pulse_stats(service, "EOS")
+    result = CockpitService.get_intel_pulse_stats(service, ticker)
 
     assert result["stats"]["document_count"] == documents_count
     assert result["stats"]["extraction_count"] == len(financial_rows)
