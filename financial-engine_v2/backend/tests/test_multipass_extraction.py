@@ -8872,6 +8872,43 @@ def test_run_multipass_abstains_when_currency_has_no_explicit_evidence():
     assert result.payload["_structured_extraction"]["warnings"] == []
 
 
+def test_run_multipass_abstains_when_classifier_omits_currency():
+    """An omitted classifier currency without table evidence must stay unknown."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    pass1 = _pass1_response()
+    del pass1["currency"]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ), patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=pass1,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[_pass3a_response()],
+    ):
+        result = run_multipass_extraction(
+            "/fake/missing-currency.pdf",
+            {
+                "document_id": "missing-currency",
+                "ticker": "TST",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+    assert result.payload["_structured_extraction"]["warnings"] == []
+
+
 def test_skip_narrative_param_skips_pass3b_llm_call():
     """With skip_narrative=True, no LLM call should be made for pass3b."""
     from app.services.multipass_extraction import run_multipass_extraction

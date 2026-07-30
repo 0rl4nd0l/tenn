@@ -646,7 +646,7 @@ def _run_pass1_classifier(
     # Normalise
     result.setdefault("report_type", None)
     result.setdefault("period_end", None)
-    result.setdefault("currency", "AUD")
+    result.setdefault("currency", None)
     result.setdefault("scale", "unknown")
     if not result.get("scale"):
         result["scale"] = "unknown"
