@@ -49,9 +49,11 @@ def assemble(
     warnings: list[str] = []
 
     # --- Financial rows ---
-    raw_rows = list(stable_financial_profile(db, ticker=ticker))[
-        : max_periods * 3
-    ]
+    raw_rows = [
+        row
+        for row in stable_financial_profile(db, ticker=ticker)
+        if str(row.get("period_type") or "").upper() == period_type.upper()
+    ][:max_periods]
     if not raw_rows:
         warnings.append(f"No financial rows found for {ticker}.")
     metrics = build_metrics_summary(raw_rows, period_type=period_type, max_periods=max_periods)
