@@ -1044,7 +1044,9 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     # partially match income_statement keywords to also compete for the highlights slot.
     # Pool tuple: (score, is_not_toc, table) — tiebreak prefers non-TOC tables.
     pools: dict[str, list[tuple[int, bool, Any]]] = {k: [] for k in _TABLE_KEYWORDS}
-    for table in tables:
+    for table_index, table in enumerate(tables):
+        if _normalized_table_index(table) is None:
+            table.index_in_doc = table_index
         any_match = False
         is_not_toc = not _table_is_toc(table)
         # Pre-compute header/caption/body text for CF disqualification check.
@@ -1123,6 +1125,31 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 ),
             )
             labelled[label] = winner_table
+            if label in statement_precedence_labels:
+                winner_key = (
+                    _statement_precedence_rank(winner_table),
+                    winner_score,
+                    _winner_not_toc,
+                )
+                equally_bound = [
+                    table
+                    for score, is_not_toc, table in candidates
+                    if table is not winner_table
+                    and (
+                        _statement_precedence_rank(table),
+                        score,
+                        is_not_toc,
+                    )
+                    == winner_key
+                ]
+                if equally_bound:
+                    labelled[label] = None
+                    labelled["unmatched"].extend([winner_table, *equally_bound])
+                    logger.warning(
+                        "Pass2 %s abstained: equal top table evidence",
+                        label,
+                    )
+                    continue
             logger.info(
                 "Pass2 %s: table=%d page=%d score=%d caption='%s'",
                 label,
@@ -1920,7 +1947,59 @@ def _period_dates_from_header_cell(cell: Any) -> list[date]:
     return dates
 
 
-def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
+def _normalized_table_index(table: Any) -> int | None:
+    value = getattr(table, "index_in_doc", None)
+    if isinstance(value, bool):
+        return None
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError):
+        return None
+    return normalized if normalized >= 0 else None
+
+
+def _quarter_column_basis_evidence(value: Any) -> set[str]:
+    normalized = " ".join(_re.findall(r"[a-z0-9]+", str(value or "").lower()))
+    words = frozenset(normalized.split())
+    if any(
+        marker in normalized
+        for marker in (
+            "comparative",
+            "prior quarter",
+            "previous quarter",
+            "corresponding period",
+            "pcp",
+        )
+    ):
+        return {"comparative"}
+    period_only = bool(
+        _re.search(r"\b(?:current quarter|quarter only|quarter ended)\b", normalized)
+        or _re.search(r"\b(?:3|three) months?(?: period| ended)?\b", normalized)
+    )
+    year_to_date = bool(
+        "year to date" in normalized
+        or "ytd" in words
+        or "cumulative" in words
+        or _re.search(
+            r"\b(?:6|six|9|nine|12|twelve) months?"
+            r"(?: cumulative| period| ended)?\b",
+            normalized,
+        )
+    )
+    evidence: set[str] = set()
+    if period_only:
+        evidence.add("period_only")
+    if year_to_date:
+        evidence.add("year_to_date")
+    return evidence
+
+
+def _bind_current_period_column(
+    table: Any,
+    period_end: Any,
+    *,
+    period_basis: str | None = None,
+) -> dict[str, Any]:
     """Bind an exact source header date to one value column, or fail closed."""
     requested = parse_period_end(str(period_end) if period_end else None)
     raw_rows = [
@@ -1931,6 +2010,7 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
         raw_rows = [[str(cell or "") for cell in table.headers]]
     width = max((len(row) for row in raw_rows), default=0)
     column_dates: dict[int, list[date]] = {}
+    column_texts: dict[int, list[str]] = {}
     source_cells: dict[int, list[dict[str, Any]]] = {}
     for row_index, row in enumerate(raw_rows):
         for column_index in range(width):
@@ -1939,6 +2019,8 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
                 # period phrases may span it, but it is never a value column.
                 continue
             cell = row[column_index] if column_index < len(row) else ""
+            if str(cell).strip():
+                column_texts.setdefault(column_index, []).append(str(cell))
             dates = _period_dates_from_header_cell(cell)
             if not dates:
                 continue
@@ -1955,7 +2037,10 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
             )
 
     base = {
+        "table_index": _normalized_table_index(table),
         "requested_period_end": requested.isoformat() if requested else None,
+        "period_basis": period_basis,
+        "column_role": None,
         "column_index": None,
         "header_cell": None,
         "source_header_cells": source_cells,
@@ -1963,6 +2048,19 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
     }
     if requested is None:
         return {**base, "status": "DATA_MISSING", "reason": "requested_period_invalid"}
+    metadata_date_columns = {
+        index
+        for index, texts in column_texts.items()
+        if _re.search(
+            r"\b(?:announcement|lodgement|publication|release|filing|report)"
+            r"\s+date\b",
+            " ".join(texts),
+            _re.IGNORECASE,
+        )
+    }
+    for index in metadata_date_columns:
+        column_dates.pop(index, None)
+        source_cells.pop(index, None)
     conflicting = [index for index, dates in column_dates.items() if len(dates) > 1]
     if conflicting:
         return {
@@ -1972,6 +2070,42 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
             "conflicting_columns": conflicting,
         }
     matches = [index for index, dates in column_dates.items() if dates == [requested]]
+    basis_by_column = {
+        index: set().union(
+            *(_quarter_column_basis_evidence(text) for text in texts)
+        )
+        for index, texts in column_texts.items()
+    }
+    column_evidence = {
+        index: {
+            "table_index": _normalized_table_index(table),
+            "column_index": index,
+            "period_ends": [
+                parsed.isoformat() for parsed in column_dates.get(index, ())
+            ],
+            "period_bases": sorted(basis_by_column.get(index, set())),
+            "header_text": " ".join(texts),
+        }
+        for index, texts in column_texts.items()
+    }
+    base["column_evidence"] = column_evidence
+    if period_basis in {"period_only", "year_to_date"}:
+        conflicting_basis_columns = [
+            index for index in matches if len(basis_by_column.get(index, set())) > 1
+        ]
+        if conflicting_basis_columns:
+            return {
+                **base,
+                "status": "DATA_MISSING",
+                "reason": "conflicting_quarter_basis",
+                "conflicting_columns": conflicting_basis_columns,
+            }
+        if len(matches) > 1:
+            matches = [
+                index
+                for index in matches
+                if basis_by_column.get(index) == {period_basis}
+            ]
     if len(matches) > 1:
         return {
             **base,
@@ -1986,18 +2120,50 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
         return {**base, "status": "DATA_MISSING", "reason": reason}
 
     column_index = matches[0]
+    if period_basis in {"period_only", "year_to_date"}:
+        basis_evidence = basis_by_column.get(column_index, set())
+        if basis_evidence != {period_basis}:
+            return {
+                **base,
+                "status": "DATA_MISSING",
+                "reason": (
+                    "conflicting_quarter_basis"
+                    if len(basis_evidence) > 1
+                    else "quarter_basis_mismatch"
+                    if basis_evidence
+                    else "quarter_basis_missing"
+                ),
+                "column_index": column_index,
+                "basis_evidence": sorted(basis_evidence),
+            }
     evidence = source_cells[column_index][0]
+    header_cell = (
+        " ".join(column_texts.get(column_index, ()))
+        if period_basis in {"period_only", "year_to_date"}
+        else evidence["text"]
+    )
     return {
         **base,
         "status": "BOUND",
         "reason": "exact_unique_period_header",
         "column_index": column_index,
-        "header_cell": evidence["text"],
+        "column_role": (
+            "current_quarter"
+            if period_basis == "period_only"
+            else "year_to_date"
+            if period_basis == "year_to_date"
+            else None
+        ),
+        "header_cell": header_cell,
         "header_row_index": evidence["header_row_index"],
         "comparative_columns": sorted(
             index
             for index, dates in column_dates.items()
-            if dates and dates != [requested]
+            if dates
+            and (
+                dates != [requested]
+                or "comparative" in basis_by_column.get(index, set())
+            )
         ),
     }
 
@@ -2345,9 +2511,12 @@ def _bind_statement_metrics_to_current_period_cells(
     *,
     period_end: Any,
     scale: str,
+    period_basis: str | None = None,
 ) -> dict[str, Any]:
     """Replace statement metrics with their unique requested-period source cells."""
-    binding = _bind_current_period_column(table, period_end)
+    binding = _bind_current_period_column(
+        table, period_end, period_basis=period_basis
+    )
     extracted["_period_binding"] = binding
     metric_names = [
         metric_name
@@ -2402,6 +2571,12 @@ def _bind_statement_metrics_to_current_period_cells(
                 "header_cell": binding["header_cell"],
                 "requested_period_end": binding["requested_period_end"],
             }
+            if period_basis in {"period_only", "year_to_date"}:
+                source_cells[metric_name].update(
+                    table_index=binding["table_index"],
+                    column_role=binding["column_role"],
+                    period_basis=period_basis,
+                )
         extracted["_period_source_cells"] = source_cells
         headers = list(getattr(table, "headers", []) or [])
         extracted["period_col"] = (
@@ -2428,6 +2603,10 @@ def _bind_statement_metrics_to_current_period_cells(
             continue
         source_cell["header_cell"] = binding["header_cell"]
         source_cell["requested_period_end"] = binding["requested_period_end"]
+        if period_basis in {"period_only", "year_to_date"}:
+            source_cell["table_index"] = binding["table_index"]
+            source_cell["column_role"] = binding["column_role"]
+            source_cell["period_basis"] = period_basis
         extracted[metric_name] = source_cell["scaled_value"]
         source_cells[metric_name] = source_cell
 
@@ -4067,6 +4246,7 @@ def _extract_single_table(
                 table,
                 period_end=pass1_result.get("period_end"),
                 scale=scale_for_table,
+                period_basis=pass1_result.get("period_basis"),
             )
         if ocr_candidates:
             # Revalidate after every deterministic recovery/rebinding gate so
@@ -5906,8 +6086,11 @@ def _build_field_provenance_entry(
             key: source_cell[key]
             for key in (
                 "page_number",
+                "table_index",
                 "row_index",
                 "column_index",
+                "column_role",
+                "period_basis",
                 "row_label",
                 "raw_value",
                 "header_cell",
@@ -7082,6 +7265,7 @@ def _apply_preferred_income_statement_source_payload(
         period_binding = _bind_current_period_column(
             table,
             pass1_result.get("period_end"),
+            period_basis=pass1_result.get("period_basis"),
         )
         for metric_name, (
             recovered_value,
