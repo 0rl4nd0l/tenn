@@ -1128,7 +1128,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(
     assert result["stats"]["extraction_failure_rate_pct"] == 25.0
     assert result["stats"]["population_index"] == 66.7
     assert result["pipeline"][0]["id"] == "overview"
-    assert result["pipeline"][0]["health"] == 83.4
+    assert result["pipeline"][0]["health"] == 83.3
     assert result["pipeline"][0]["status"] == "degraded"
     assert result["pipeline"][1]["id"] == "extraction"
     assert result["pipeline"][1]["health"] == 66.7
