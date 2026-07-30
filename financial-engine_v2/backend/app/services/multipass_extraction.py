@@ -1419,19 +1419,6 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
     if not isinstance(records, list):
         return []
 
-    scale_evidence: list[tuple[str, str]] = []
-    for record in records:
-        if not isinstance(record, dict):
-            continue
-        page = str(record.get("page") or "?")
-        for phrase in record.get("scale_phrases") or []:
-            scale = _detect_scale_from_openability_phrase(phrase)
-            if scale != "unknown":
-                scale_evidence.append((str(phrase).strip(), f"page_{page}"))
-    if not scale_evidence:
-        return []
-    scale_phrase, scale_source = scale_evidence[0]
-
     synthetic_tables = []
     for record in records:
         if not isinstance(record, dict):
@@ -1450,21 +1437,63 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
         ]
         if not period_phrases:
             continue
+        raw_scale_phrases = record.get("scale_phrases")
+        if not isinstance(raw_scale_phrases, list):
+            continue
+        page_scale_evidence = [
+            (str(phrase).strip(), _detect_scale_from_openability_phrase(phrase))
+            for phrase in raw_scale_phrases
+            if str(phrase or "").strip()
+        ]
+        page_scale_evidence = [
+            evidence for evidence in page_scale_evidence if evidence[1] != "unknown"
+        ]
+        page_scales = {scale for _phrase, scale in page_scale_evidence}
+        # Scale is a page-local assertion. Missing or conflicting evidence must
+        # never inherit another OCR page's first scale phrase.
+        if len(page_scales) != 1:
+            continue
+        scale = next(iter(page_scales))
+        scale_phrases = sorted(
+            {phrase for phrase, detected in page_scale_evidence if detected == scale}
+        )
+        scale_phrase = " ".join(scale_phrases)
+        scale_source = f"ocr_page_{record.get('page')}"
         row_candidates = record.get("row_candidates")
         if not isinstance(row_candidates, list):
             continue
 
+        page = int(record.get("page") or 0)
         period_phrase = period_phrases[0]
         header_value = f"{period_phrase} {scale_phrase}".strip()
         rows = [["Source row", header_value, "Diagnostic value candidates"]]
+        accepted_candidates: list[dict[str, Any]] = []
         for candidate in row_candidates:
             if not isinstance(candidate, dict):
                 continue
             if candidate.get("candidate_value_quality") != "financial_amount":
                 continue
+            confidence = candidate.get("recognition_confidence")
+            if isinstance(confidence, bool):
+                continue
+            try:
+                numeric_confidence = float(confidence)
+            except (TypeError, ValueError):
+                continue
+            if not 80 <= numeric_confidence <= 100:
+                continue
             source_text = str(candidate.get("source_text") or "").strip()
             candidate_value = str(candidate.get("candidate_value_text") or "").strip()
-            if not source_text or not candidate_value:
+            source_region = candidate.get("source_region")
+            source_row = candidate.get("source_row")
+            source_cell = candidate.get("source_cell")
+            if (
+                not source_text
+                or not candidate_value
+                or not isinstance(source_region, dict)
+                or source_row is None
+                or not isinstance(source_cell, list)
+            ):
                 continue
             value_candidates = candidate.get("value_text_candidates")
             if isinstance(value_candidates, list):
@@ -1475,11 +1504,27 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 )
             else:
                 value_candidates_text = candidate_value
-            rows.append([source_text, candidate_value, value_candidates_text])
+            provenance = (
+                f"page={record.get('page')}; region={source_region}; "
+                f"row={source_row}; cells={source_cell}"
+            )
+            rows.append(
+                [f"{source_text} [{provenance}]", candidate_value, value_candidates_text]
+            )
+            accepted_candidates.append(
+                {
+                    "page_number": page,
+                    "source_region": dict(source_region),
+                    "source_row": source_row,
+                    "source_cell": list(source_cell),
+                    "source_text": source_text,
+                    "candidate_value_text": candidate_value,
+                    "recognition_confidence": numeric_confidence,
+                }
+            )
 
         if len(rows) <= 1:
             continue
-        page = int(record.get("page") or 0)
         caption = (
             f"{caption_base} (openability diagnostic; page {page}; "
             f"period={period_phrase}; scale={scale_phrase}; scale_source={scale_source})"
@@ -1490,6 +1535,7 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 caption=caption,
                 headers=rows[0],
                 rows=rows,
+                ocr_source_candidates=accepted_candidates,
             )
         )
 
@@ -2320,6 +2366,51 @@ def _bind_statement_metrics_to_current_period_cells(
         return extracted
 
     column_index = int(binding["column_index"])
+    ocr_metric_provenance = extracted.get("_ocr_metric_provenance")
+    if isinstance(ocr_metric_provenance, dict) and getattr(
+        table, "ocr_source_candidates", None
+    ):
+        source_cells: dict[str, dict[str, Any]] = {}
+        for metric_name in metric_names:
+            candidate = ocr_metric_provenance.get(metric_name)
+            if extracted.get(metric_name) is None or not isinstance(candidate, dict):
+                extracted[metric_name] = None
+                row_refs.pop(metric_name, None)
+                continue
+            parsed = _parse_accounting_metric_number(
+                candidate.get("candidate_value_text")
+            )
+            if parsed is None:
+                extracted[metric_name] = None
+                row_refs.pop(metric_name, None)
+                continue
+            raw_value, has_explicit_unit = parsed
+            scaled_value = (
+                raw_value
+                if has_explicit_unit
+                else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+            )
+            row_refs[metric_name] = str(candidate.get("source_text") or "unknown")
+            extracted[metric_name] = scaled_value
+            source_cells[metric_name] = {
+                "page_number": candidate.get("page_number"),
+                "row_index": candidate.get("source_row"),
+                "column_index": column_index,
+                "row_label": candidate.get("source_text"),
+                "raw_value": candidate.get("candidate_value_text"),
+                "scaled_value": scaled_value,
+                "header_cell": binding["header_cell"],
+                "requested_period_end": binding["requested_period_end"],
+            }
+        extracted["_period_source_cells"] = source_cells
+        headers = list(getattr(table, "headers", []) or [])
+        extracted["period_col"] = (
+            headers[column_index]
+            if column_index < len(headers) and headers[column_index]
+            else binding["header_cell"]
+        )
+        return extracted
+
     source_cells: dict[str, dict[str, Any]] = {}
     for metric_name in metric_names:
         if extracted.get(metric_name) is None:
@@ -3593,6 +3684,10 @@ def _extract_single_table(
             "_markdown": table_markdown,
             "row_refs": row_refs,
         }
+        ocr_candidates = getattr(table, "ocr_source_candidates", None)
+        if not isinstance(ocr_candidates, list):
+            ocr_candidates = []
+        ocr_metric_provenance: dict[str, dict[str, Any]] = {}
         for metric_name in metrics:
             val = metrics_payload.get(metric_name)
             if val is not None:
@@ -3623,10 +3718,36 @@ def _extract_single_table(
                         # metric stores net debt as a positive magnitude.
                         scaled = abs(scaled)
                     extracted[metric_name] = scaled
+                    if ocr_candidates:
+                        matching_candidates = []
+                        for candidate in ocr_candidates:
+                            if not isinstance(candidate, dict):
+                                continue
+                            parsed_candidate = _parse_accounting_metric_number(
+                                candidate.get("candidate_value_text")
+                            )
+                            if parsed_candidate is None:
+                                continue
+                            candidate_value, _candidate_has_unit = parsed_candidate
+                            if abs(candidate_value - raw_float) <= 1e-9:
+                                matching_candidates.append(candidate)
+                        # OCR-derived metrics require one deterministic source
+                        # cell mapping. Ambiguous or invented model values abstain.
+                        if len(matching_candidates) != 1:
+                            extracted[metric_name] = None
+                        else:
+                            ocr_metric_provenance[metric_name] = dict(
+                                matching_candidates[0]
+                            )
+                            extracted["row_refs"][metric_name] = str(
+                                matching_candidates[0]["source_text"]
+                            )
                 else:
                     extracted[metric_name] = None
             else:
                 extracted[metric_name] = None
+        if ocr_candidates:
+            extracted["_ocr_metric_provenance"] = ocr_metric_provenance
 
         _MIN_PLAUSIBLE_SHARES = 1_000_000
         shares_val = extracted.get("shares_outstanding")
@@ -3932,6 +4053,14 @@ def _extract_single_table(
                         metric_name,
                         getattr(table, "page_number", "?"),
                     )
+        if ocr_candidates:
+            # Later native recovery gates rebuild row_refs. Restore the
+            # deterministic OCR row binding before the existing period gate.
+            for metric_name, candidate in ocr_metric_provenance.items():
+                if extracted.get(metric_name) is not None:
+                    extracted["row_refs"][metric_name] = str(
+                        candidate["source_text"]
+                    )
         if table_type in {"income_statement", "cashflow_statement"}:
             extracted = _bind_statement_metrics_to_current_period_cells(
                 extracted,
@@ -3939,6 +4068,36 @@ def _extract_single_table(
                 period_end=pass1_result.get("period_end"),
                 scale=scale_for_table,
             )
+        if ocr_candidates:
+            # Revalidate after every deterministic recovery/rebinding gate so
+            # no final OCR-derived value can retain missing or stale mapping.
+            final_ocr_provenance: dict[str, dict[str, Any]] = {}
+            for metric_name in metrics:
+                metric_value = extracted.get(metric_name)
+                if metric_value is None:
+                    continue
+                effective_multiplier = (
+                    1 if metric_name in _COUNT_METRICS else multiplier_for_table
+                )
+                expected_raw_value = float(metric_value) / effective_multiplier
+                matching_candidates = []
+                for candidate in ocr_candidates:
+                    if not isinstance(candidate, dict):
+                        continue
+                    parsed_candidate = _parse_accounting_metric_number(
+                        candidate.get("candidate_value_text")
+                    )
+                    if parsed_candidate is None:
+                        continue
+                    candidate_value, _candidate_has_unit = parsed_candidate
+                    if abs(candidate_value - expected_raw_value) <= 1e-9:
+                        matching_candidates.append(candidate)
+                if len(matching_candidates) != 1:
+                    extracted[metric_name] = None
+                    extracted["row_refs"].pop(metric_name, None)
+                    continue
+                final_ocr_provenance[metric_name] = dict(matching_candidates[0])
+            extracted["_ocr_metric_provenance"] = final_ocr_provenance
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -5839,6 +5998,9 @@ def _run_pass4_reconciler(
                     pass1_result=pass1_result,
                     source_cell=(extraction.get("_period_source_cells") or {}).get(m),
                 )
+                ocr_source = (extraction.get("_ocr_metric_provenance") or {}).get(m)
+                if isinstance(ocr_source, dict):
+                    field_provenance[m]["ocr_source"] = dict(ocr_source)
                 confidence_weighted_sum += conf
                 confidence_weight += 1
 
@@ -5868,6 +6030,11 @@ def _run_pass4_reconciler(
             scale_source=metric_scale_sources.get("net_debt"),
             pass1_result=pass1_result,
         )
+        ocr_source = (explicit_net_debt.get("_ocr_metric_provenance") or {}).get(
+            "net_debt"
+        )
+        if isinstance(ocr_source, dict):
+            field_provenance["net_debt"]["ocr_source"] = dict(ocr_source)
         net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
         confidence_weighted_sum += net_debt_conf
         confidence_weight += 1
