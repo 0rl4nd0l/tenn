@@ -11,9 +11,10 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.asx_financials import ASXRiskNote
 from app.models.documents import Document
 from app.services.analysis.financial_metrics import build_metrics_summary
+from app.services.financial_observations import stable_financial_profile
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +49,9 @@ def assemble(
     warnings: list[str] = []
 
     # --- Financial rows ---
-    fin_rows = (
-        db.query(ASXPeriodicFinancial)
-        .filter(ASXPeriodicFinancial.ticker == ticker)
-        .order_by(ASXPeriodicFinancial.period_end.desc())
-        .limit(max_periods * 3)  # fetch extra; build_metrics_summary filters by type
-        .all()
-    )
-    raw_rows = [_row_to_dict(r) for r in fin_rows]
+    raw_rows = list(stable_financial_profile(db, ticker=ticker))[
+        : max_periods * 3
+    ]
     if not raw_rows:
         warnings.append(f"No financial rows found for {ticker}.")
     metrics = build_metrics_summary(raw_rows, period_type=period_type, max_periods=max_periods)

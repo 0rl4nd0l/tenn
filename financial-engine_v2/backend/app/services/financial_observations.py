@@ -16,6 +16,7 @@ from app.models.financial_observations import (
     FinancialObservationSupersession,
     FinancialResultDisclosure,
 )
+from app.models.asx_financials import ASXPeriodicFinancial
 from app.services.extraction_eval import build_payload_provenance_summary
 from app.services.financial_metric_contract import (
     CANONICAL_METRIC_FIELDS,
@@ -1729,6 +1730,161 @@ def accepted_statutory_overrides(
                 continue
             overrides.setdefault(read_key, {})[metric] = value
     return overrides
+
+
+def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
+    """Project the public compatibility profile from accepted statutory truth.
+
+    Legacy rows supply compatibility metadata and values for metrics for which
+    no accepted observation exists.  Once accepted observations exist for a
+    metric identity, conflicts fail closed instead of exposing the legacy
+    value.
+    """
+    ticker = ticker.strip().upper()
+    legacy_rows = (
+        db.query(ASXPeriodicFinancial)
+        .filter(ASXPeriodicFinancial.ticker == ticker)
+        .all()
+    )
+    legacy_by_key = {
+        (row.period_end, row.period_type): row for row in legacy_rows
+    }
+    observations = (
+        db.query(FinancialObservation)
+        .filter(
+            FinancialObservation.ticker == ticker,
+            FinancialObservation.metric.in_(CANONICAL_METRIC_FIELDS),
+            FinancialObservation.accounting_basis == "statutory",
+            FinancialObservation.trust_state == "accepted",
+        )
+        .all()
+    )
+    active_ids = _active_observation_ids(db, observations)
+    candidates: dict[
+        tuple[date, str, str],
+        list[tuple[Decimal, str, str, uuid.UUID]],
+    ] = {}
+    for observation in observations:
+        if observation.observation_id not in active_ids:
+            continue
+        key = (
+            observation.period_end,
+            observation.period_basis,
+            observation.metric,
+        )
+        candidates.setdefault(key, []).append(
+            (
+                Decimal(observation.value),
+                observation.currency,
+                observation.scale,
+                observation.source_document_id,
+            )
+        )
+
+    keys = set(legacy_by_key)
+    keys.update((period_end, period_basis) for period_end, period_basis, _ in candidates)
+    projected_rows: list[dict[str, Any]] = []
+    for key in keys:
+        period_end, period_basis = key
+        legacy = legacy_by_key.get(key)
+        metric_truth: dict[str, tuple[Decimal, str, uuid.UUID]] = {}
+        conflicted: set[str] = set()
+        for metric in CANONICAL_METRIC_FIELDS:
+            truths = candidates.get((period_end, period_basis, metric))
+            if not truths:
+                continue
+            semantic_truths = {
+                (value, currency, scale)
+                for value, currency, scale, _ in truths
+            }
+            if len(semantic_truths) == 1:
+                value, currency, scale = next(iter(semantic_truths))
+                if scale != "units":
+                    conflicted.add(metric)
+                    continue
+                expected_currency = (
+                    "shares"
+                    if metric == "shares_outstanding"
+                    else getattr(legacy, "currency", None)
+                )
+                if (
+                    legacy is not None
+                    and expected_currency != currency
+                ):
+                    conflicted.add(metric)
+                    continue
+                source_document_id = min(
+                    (truth[3] for truth in truths),
+                    key=str,
+                )
+                metric_truth[metric] = (
+                    value,
+                    currency,
+                    source_document_id,
+                )
+            else:
+                conflicted.add(metric)
+
+        monetary_currencies = {
+            currency
+            for metric, (_, currency, _) in metric_truth.items()
+            if metric != "shares_outstanding"
+        }
+        if len(monetary_currencies) > 1:
+            conflicted.update(
+                metric
+                for metric in metric_truth
+                if metric != "shares_outstanding"
+            )
+            metric_truth = {
+                metric: truth
+                for metric, truth in metric_truth.items()
+                if metric == "shares_outstanding"
+            }
+
+        source_ids = sorted(
+            {truth[2] for truth in metric_truth.values()}, key=str
+        )
+        row = {
+            "ticker": ticker,
+            "period_end": period_end,
+            "period_type": period_basis,
+            "confidence_metrics": (
+                legacy.confidence_metrics if legacy is not None else None
+            ),
+            "source_document_id": (
+                str(source_ids[0])
+                if source_ids
+                else (
+                    str(legacy.source_document_id)
+                    if legacy is not None
+                    else None
+                )
+            ),
+        }
+        for metric in CANONICAL_METRIC_FIELDS:
+            if metric in metric_truth:
+                row[metric] = str(metric_truth[metric][0])
+            elif metric in conflicted:
+                row[metric] = None
+            else:
+                value = getattr(legacy, metric, None)
+                row[metric] = str(value) if value is not None else None
+        if period_basis not in _LEGACY_PERIOD_BASES:
+            row["period_basis"] = period_basis
+            row["observation_only"] = True
+            row["metric_units"] = {
+                metric: truth[1] for metric, truth in metric_truth.items()
+            }
+        projected_rows.append(row)
+
+    return tuple(
+        sorted(
+            projected_rows,
+            key=lambda row: (row["period_end"], row["period_type"]),
+            reverse=True,
+        )
+    )
 
 
 def accepted_revenue_overrides(

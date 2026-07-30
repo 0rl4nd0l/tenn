@@ -1938,6 +1938,64 @@ def test_read_projects_each_metric_independently_and_preserves_sparse_legacy():
     }
 
 
+def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import stable_financial_profile
+
+    original = _observation(100)
+    restated = _observation(90)
+    conflict_a = _observation(10, metric="ebit")
+    conflict_b = _observation(11, metric="ebit")
+    legacy = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2025, 6, 30),
+        period_type="A",
+        revenue=75,
+        ebit=8,
+        currency="AUD",
+        confidence_metrics=0.9,
+        source_document_id=uuid.uuid4(),
+    )
+    session = FakeSession(
+        model_rows={
+            ASXPeriodicFinancial: [legacy],
+            FinancialObservation: [
+                conflict_b,
+                original,
+                restated,
+                conflict_a,
+            ],
+            FinancialObservationSupersession: [
+                _supersession(restated, original)
+            ],
+        }
+    )
+
+    assert stable_financial_profile(session, ticker=" bhp ") == (
+        {
+            "ticker": "BHP",
+            "period_end": date(2025, 6, 30),
+            "period_type": "A",
+            "confidence_metrics": 0.9,
+            "source_document_id": str(restated.source_document_id),
+            "revenue": "90",
+            "ebit": None,
+            "np_attributable": None,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+    )
+
+
 def test_read_returns_only_uncontested_matching_legacy_context():
     from app.services.financial_observations import accepted_revenue_overrides
 

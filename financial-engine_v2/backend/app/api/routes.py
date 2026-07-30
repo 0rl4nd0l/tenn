@@ -10,7 +10,7 @@ from app.api.auth import require_api_key
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.db import SessionLocal, get_db
-from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.asx_financials import ASXRiskNote
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.models.financial_observations import FinancialObservationReview
@@ -26,13 +26,11 @@ from app.providers.universe import ASX20
 from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
 from app.services.extraction_run_observability import initialize_run_status
-from app.services.financial_metric_contract import CANONICAL_METRIC_FIELDS
 from app.services.financial_observations import (
     accepted_observation_history,
-    accepted_observation_periods,
-    accepted_statutory_overrides,
     decide_financial_observation_review,
     pending_financial_observation_reviews,
+    stable_financial_profile,
 )
 from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
@@ -223,59 +221,7 @@ def docs(ticker: str, db: Session = Depends(get_db)):
 
 @router.get("/financials")
 def financials(ticker: str, db: Session = Depends(get_db)):
-    rows = (
-        db.query(ASXPeriodicFinancial)
-        .filter(ASXPeriodicFinancial.ticker == ticker)
-        .order_by(ASXPeriodicFinancial.period_end.desc())
-        .all()
-    )
-    observation_overrides = accepted_statutory_overrides(
-        db,
-        ticker=ticker,
-        legacy_contexts={
-            (row.period_end, row.period_type): {
-                metric: (
-                    "shares" if metric == "shares_outstanding" else row.currency,
-                    "units",
-                )
-                for metric in CANONICAL_METRIC_FIELDS
-            }
-            for row in rows
-        },
-    )
-
-    def n(x):
-        return str(x) if x is not None else None
-
-    def projected(row, metric):
-        return observation_overrides.get(
-            (row.period_end, row.period_type), {}
-        ).get(metric, getattr(row, metric))
-
-    legacy_rows = [
-        {
-            "ticker": r.ticker,
-            "period_end": r.period_end,
-            "period_type": r.period_type,
-            "revenue": n(projected(r, "revenue")),
-            "ebit": n(projected(r, "ebit")),
-            "np_attributable": n(projected(r, "np_attributable")),
-            "operating_cf": n(projected(r, "operating_cf")),
-            "investing_cf": n(projected(r, "investing_cf")),
-            "financing_cf": n(projected(r, "financing_cf")),
-            "capex": n(projected(r, "capex")),
-            "cash_end": n(projected(r, "cash_end")),
-            "net_debt": n(projected(r, "net_debt")),
-            "shares_outstanding": n(projected(r, "shares_outstanding")),
-            "confidence_metrics": r.confidence_metrics,
-            "source_document_id": str(r.source_document_id),
-        }
-        for r in rows
-    ]
-    return [
-        *legacy_rows,
-        *accepted_observation_periods(db, ticker=ticker),
-    ]
+    return stable_financial_profile(db, ticker=ticker)
 
 
 @router.get(

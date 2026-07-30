@@ -1483,40 +1483,23 @@ def get_ticker_context(
     if err:
         errors.append(f"docs: {err}")
 
-    # --- financials (matches DbReader.get_financials) ---
-    financials, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT :limit
-    """,
-        {"ticker": ticker, "limit": financials_limit},
-    )
-    if err:
-        errors.append(f"financials: {err}")
+    # --- financials ---
+    from app.services.financial_observations import stable_financial_profile
 
-    # --- latest_financial_snapshot (matches DbReader.get_latest_financial_snapshot) ---
-    snapshot_rows, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT 1
-    """,
-        {"ticker": ticker},
-    )
-    latest_financial_snapshot = snapshot_rows[0] if snapshot_rows else None
-    if err:
-        errors.append(f"latest_financial_snapshot: {err}")
+    try:
+        profile_limit = (
+            financials_limit
+            if isinstance(financials_limit, int)
+            else int(financials_limit.default)
+        )
+        financials = list(stable_financial_profile(db, ticker=ticker))[
+            :profile_limit
+        ]
+        latest_financial_snapshot = financials[0] if financials else None
+    except Exception as exc:
+        financials = []
+        latest_financial_snapshot = None
+        errors.append(f"financials: {exc}")
 
     # --- announcement_context (matches DbReader.get_announcement_context) ---
     announcement_context_fallback_used = False
