@@ -43,6 +43,20 @@ class FakeSqlProbe:
             )
         )
 
+    def count_projected_financial_rows(
+        self, *, ticker: str | None = None
+    ) -> dict[str, object]:
+        self.calls.append(("accepted_financial_projection", ticker, "ticker"))
+        return dict(
+            self.counts.get(
+                ("accepted_financial_projection", ticker),
+                self.counts.get(
+                    ("accepted_financial_projection", None),
+                    {"available": False, "count": 0, "error": "missing"},
+                ),
+            )
+        )
+
 
 def _settings(**overrides: object) -> SimpleNamespace:
     defaults: dict[str, object] = {
@@ -99,15 +113,24 @@ def test_chat_readiness_allows_normal_analysis_only_when_core_substrates_are_rea
         conn.execute("CREATE TABLE memory_entries (company_id TEXT, status TEXT)")
         conn.execute("INSERT INTO memory_entries (company_id, status) VALUES ('BHP', 'active')")
 
+    sql_probe = FakeSqlProbe(
+        {
+            ("accepted_financial_projection", "BHP"): {
+                "available": True,
+                "count": 2,
+                "error": None,
+            },
+            ("documents", "BHP"): {
+                "available": True,
+                "count": 3,
+                "error": None,
+            },
+        }
+    )
     readiness = build_chat_readiness_status(
         ticker="BHP",
         settings_obj=_settings(enable_embeddings=True, enable_qdrant=True),
-        sql_probe=FakeSqlProbe(
-            {
-                ("asx_periodic_financials", "BHP"): {"available": True, "count": 2, "error": None},
-                ("documents", "BHP"): {"available": True, "count": 3, "error": None},
-            }
-        ),
+        sql_probe=sql_probe,
         http_probe=lambda url, path: (True, 12.5, None),
         state_db_path=str(state_db),
         memory_root=str(memory_root),
@@ -119,6 +142,8 @@ def test_chat_readiness_allows_normal_analysis_only_when_core_substrates_are_rea
     assert readiness["capabilities"]["local_news_rag"]["ready"] is True
     assert readiness["capabilities"]["memory_context"]["answer_scope"] == "context_only"
     assert readiness["capabilities"]["memory_context"]["ready"] is True
+    assert ("accepted_financial_projection", "BHP", "ticker") in sql_probe.calls
+    assert all(call[0] != "asx_periodic_financials" for call in sql_probe.calls)
 
 
 def test_readiness_route_exposes_read_only_capability_contract(monkeypatch) -> None:

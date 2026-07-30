@@ -88,18 +88,18 @@ disclosure table has no canonical-profile read path.
 
 ## Compatibility read
 
-`/financials` retains its existing rows and response fields. For each legacy
-period identity, each accepted statutory metric independently overrides its
-legacy field only when every accepted candidate for that metric agrees on
-value, native currency/share unit, and absolute-unit scale and that unit/scale
-context exactly matches the legacy row. Missing observations leave sparse
-legacy values intact. Missing or mismatched legacy context, or candidate
-disagreement, abstains only for that metric. No insertion-time or write-order
-precedence is used.
+`/financials` deterministically reconstructs its response exclusively from
+accepted observations. Legacy rows have no query, fallback, or write authority
+in this projection.
 
-Accepted `period_only` and `year_to_date` observations are appended as
-deterministically ordered, basis-labelled, sparse `observation_only` rows.
-Conflicting metrics abstain independently. These rows never replace or
-overwrite legacy `Q`, `H`, or `A` rows.
+Canonical-period rows contain only accepted canonical metrics, so missing or
+conflicting observations leave the corresponding metrics sparse. Accepted
+`period_only` and `year_to_date` observations produce deterministically ordered,
+basis-labelled, sparse `observation_only` rows.
+
+Every reconstructed row exposes `confidence_metrics=null`. Row `currency` is
+derived only when its accepted monetary observations have exactly one currency;
+share-only rows and rows with ambiguous monetary currencies expose
+`currency=null`.
 
 Restatement precedence remains outside Ticket 09.

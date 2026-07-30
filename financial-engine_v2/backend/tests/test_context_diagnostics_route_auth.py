@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -14,6 +15,8 @@ def _mock_db_session(query_results: dict[str, list[dict[str, Any]]]):
 
     def fake_execute(sql_text, params=None):
         sql_str = str(sql_text)
+        if "asx_periodic_financials" in sql_str.lower():
+            raise AssertionError("legacy financials must not be queried")
         result_mock = MagicMock()
         rows = []
         for table_key, table_rows in query_results.items():
@@ -31,6 +34,35 @@ def _mock_db_session(query_results: dict[str, list[dict[str, Any]]]):
 
     db.execute = fake_execute
     return db
+
+
+@pytest.fixture(autouse=True)
+def accepted_financial_projection(monkeypatch):
+    row = {
+        "ticker": "BHP",
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "confidence_metrics": None,
+        "source_document_id": "doc-accepted",
+        "revenue": "50000",
+        "ebit": None,
+        "np_attributable": None,
+        "operating_cf": None,
+        "investing_cf": None,
+        "financing_cf": None,
+        "capex": None,
+        "cash_end": None,
+        "net_debt": None,
+        "shares_outstanding": None,
+    }
+    monkeypatch.setattr(
+        "app.services.financial_observations.stable_financial_profile",
+        lambda db, *, ticker: (row,),
+    )
+    monkeypatch.setattr(
+        "app.services.financial_observations.stable_financial_profiles",
+        lambda db, *, ticker=None: (row,) if ticker in {None, "BHP"} else (),
+    )
 
 
 def _diagnostic_db():
@@ -144,7 +176,7 @@ def test_ticker_context_keeps_diagnostics_with_matching_api_key(monkeypatch):
     assert payload["announcement_context"][0]["excerpt"] == "local source excerpt"
     assert payload["announcement_context"][0]["extracted_text"] == "local source text"
     assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
-    assert payload["low_confidence_financials"]
+    assert payload["low_confidence_financials"] == []
 
 
 def test_ticker_context_internal_helper_keeps_diagnostics_when_api_key_configured(
@@ -158,7 +190,7 @@ def test_ticker_context_internal_helper_keeps_diagnostics_when_api_key_configure
     assert payload["docs"][0]["pdf_path"] == "/private/source/bhp.pdf"
     assert payload["announcement_context"][0]["excerpt"] == "local source excerpt"
     assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
-    assert payload["low_confidence_financials"]
+    assert payload["low_confidence_financials"] == []
 
 
 def test_ticker_context_keeps_diagnostics_when_local_api_key_unconfigured(monkeypatch):
@@ -171,7 +203,7 @@ def test_ticker_context_keeps_diagnostics_when_local_api_key_unconfigured(monkey
     assert payload["diagnostics_redacted"] is False
     assert payload["docs"][0]["pdf_path"] == "/private/source/bhp.pdf"
     assert payload["extraction_failures"]
-    assert payload["low_confidence_financials"]
+    assert payload["low_confidence_financials"] == []
 
 
 def test_company_dump_requires_api_key_when_configured(monkeypatch):
@@ -194,10 +226,10 @@ def test_company_dump_preserves_diagnostics_with_matching_api_key(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["summary"]["extraction_failure_count"] == 1
-    assert payload["summary"]["low_confidence_financial_count"] == 1
+    assert payload["summary"]["low_confidence_financial_count"] == 0
     assert payload["docs"][0]["pdf_path"] == "/private/source/bhp.pdf"
     assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
-    assert payload["low_confidence_financials"]
+    assert payload["low_confidence_financials"] == []
 
 
 def test_verification_context_requires_api_key_when_configured(monkeypatch):
@@ -220,7 +252,7 @@ def test_verification_context_accepts_matching_api_key(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["extraction_failures"][0]["error"] == "parser leaked stack path"
-    assert payload["low_confidence_financials"]
+    assert payload["low_confidence_financials"] == []
 
 
 def test_verification_runs_requires_api_key_before_service_call(monkeypatch):

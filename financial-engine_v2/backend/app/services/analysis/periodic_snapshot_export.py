@@ -1,4 +1,4 @@
-"""Export deterministic JSON snapshots from `asx_periodic_financials`.
+"""Export deterministic JSON snapshots from accepted financial observations.
 
 No LLM calls. Output is suitable for `reports/analysis/{TICKER}/` per roadmap.
 """
@@ -13,14 +13,56 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.asx_financials import ASXPeriodicFinancial
 from app.services.analysis.financial_metrics import build_metrics_summary
+from app.services.financial_observations import stable_financial_profile
 
 SCHEMA_VERSION = "financial_snapshot_v0"
+_PERIODIC_ROW_FIELDS = (
+    "ticker",
+    "period_end",
+    "period_type",
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+    "shares_outstanding",
+    "total_equity",
+    "interest_expense",
+    "period_start",
+    "currency",
+    "source_document_id",
+    "confidence_metrics",
+    "metric_provenance",
+    "created_at",
+    "updated_at",
+)
+_NUMERIC_FIELDS = {
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+    "shares_outstanding",
+    "total_equity",
+    "interest_expense",
+}
 
 
-def _row_to_dict(row: Any) -> dict[str, Any]:
-    return {c.name: getattr(row, c.name) for c in row.__table__.columns}
+def _snapshot_row(row: dict[str, Any]) -> dict[str, Any]:
+    shaped = {field: row.get(field) for field in _PERIODIC_ROW_FIELDS}
+    for field in _NUMERIC_FIELDS:
+        if shaped[field] is not None:
+            shaped[field] = Decimal(shaped[field])
+    return shaped
 
 
 def _serialize_cell(value: Any) -> Any:
@@ -58,7 +100,9 @@ def build_financial_snapshot_v0_from_rows(
 
     warnings: list[str] = []
     if not raw_rows:
-        warnings.append(f"No financial rows in asx_periodic_financials for {ticker_key}.")
+        warnings.append(
+            f"No accepted financial-observation projection rows for {ticker_key}."
+        )
 
     metrics_summary = build_metrics_summary(
         raw_rows, period_type=ptype, max_periods=max_periods
@@ -75,7 +119,7 @@ def build_financial_snapshot_v0_from_rows(
         "schema_version": SCHEMA_VERSION,
         "ticker": ticker_key,
         "period_type": ptype,
-        "source_table": "asx_periodic_financials",
+        "source_table": "accepted_financial_observation_projection",
         "warnings": warnings,
         "metrics_summary": metrics_summary,
         "periodic_rows": periodic_rows,
@@ -91,21 +135,17 @@ def build_financial_snapshot_v0(
     fetch_limit: int = 48,
 ) -> dict[str, Any]:
     """
-    Build the v0 financial snapshot dict from canonical periodic rows.
+    Build the v0 financial snapshot dict from accepted observation projections.
 
     ``metrics_summary`` matches ``financial_metrics.build_metrics_summary``;
     ``periodic_rows`` lists the same underlying DB rows (filtered to
     ``period_type``), oldest→newest, capped at ``max_periods``.
     """
     ticker_key = ticker.strip().upper()
-    fin_rows = (
-        db.query(ASXPeriodicFinancial)
-        .filter(ASXPeriodicFinancial.ticker == ticker_key)
-        .order_by(ASXPeriodicFinancial.period_end.desc())
-        .limit(fetch_limit)
-        .all()
-    )
-    raw_rows = [_row_to_dict(r) for r in fin_rows]
+    raw_rows = [
+        _snapshot_row(row)
+        for row in stable_financial_profile(db, ticker=ticker_key)[:fetch_limit]
+    ]
     return build_financial_snapshot_v0_from_rows(
         ticker_key,
         raw_rows,

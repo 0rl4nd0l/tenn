@@ -7,6 +7,8 @@ import uuid
 from types import SimpleNamespace
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.services.cockpit_service import (
@@ -806,31 +808,18 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
     service = CockpitService.__new__(CockpitService)
 
     doc_a = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=128_458_000,
-            ebit=None,
-            net_debt=None,
-            np_attributable=-73_500_000,
-            shares_outstanding=467_479_000,
-            capex=-14_026_000,
-            confidence_metrics=0.852,
-            source_document_id=doc_a,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": "128458000",
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": "-73500000",
+            "shares_outstanding": "467479000",
+            "capex": "-14026000",
+            "confidence_metrics": None,
+            "source_document_id": str(doc_a),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -846,13 +835,17 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
 
@@ -873,37 +866,24 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
     }
 
 
-def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
+def test_get_diagnostic_matrix_treats_accepted_evaluation_truth_as_populated(
     monkeypatch,
 ) -> None:
     service = CockpitService.__new__(CockpitService)
 
     doc_b = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=44_070_000,
-            ebit=None,
-            net_debt=None,
-            np_attributable=46_786_000,
-            shares_outstanding=467_309_000,
-            capex=-6_165_000,
-            confidence_metrics=0.7,
-            source_document_id=doc_b,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": "44070000",
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": "46786000",
+            "shares_outstanding": "467309000",
+            "capex": "-6165000",
+            "confidence_metrics": None,
+            "source_document_id": str(doc_b),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -919,19 +899,23 @@ def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "evaluation", "EOS")
 
-    assert result["entities"][0]["metrics"]["REVENUE"] == "abstain"
-    assert result["entities"][0]["metrics"]["CAPEX"] == "abstain"
-    assert result["entities"][0]["metrics"]["EPS"] == "abstain"
+    assert result["entities"][0]["metrics"]["REVENUE"] == "populated"
+    assert result["entities"][0]["metrics"]["CAPEX"] == "populated"
+    assert result["entities"][0]["metrics"]["EPS"] == "populated"
 
 
 def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_failed(
@@ -939,31 +923,18 @@ def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_fail
 ) -> None:
     service = CockpitService.__new__(CockpitService)
     doc_id = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=None,
-            ebit=None,
-            net_debt=None,
-            np_attributable=None,
-            shares_outstanding=None,
-            capex=None,
-            confidence_metrics=None,
-            source_document_id=doc_id,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": None,
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": None,
+            "shares_outstanding": None,
+            "capex": None,
+            "confidence_metrics": None,
+            "source_document_id": str(doc_id),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -979,20 +950,27 @@ def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_fail
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
 
     assert result["entities"][0]["metrics"]["REVENUE"] == "failed"
 
 
-def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> None:
+@pytest.mark.parametrize("ticker", ["EOS", None])
+def test_get_intel_pulse_stats_uses_canonical_financial_rows(
+    monkeypatch, ticker
+) -> None:
     service = CockpitService.__new__(CockpitService)
 
     documents_count = 4
@@ -1011,7 +989,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
             shares_outstanding=467_479_000,
             total_equity=None,
             interest_expense=None,
-            confidence_metrics=0.852,
+            confidence_metrics=None,
             period_end="2025-12-31",
             source_document_id=uuid.uuid4(),
         ),
@@ -1028,7 +1006,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
             shares_outstanding=467_309_000,
             total_equity=None,
             interest_expense=None,
-            confidence_metrics=0.889,
+            confidence_metrics=None,
             period_end="2025-06-30",
             source_document_id=uuid.uuid4(),
         ),
@@ -1114,10 +1092,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
 
     class _FakeDb:
         def __init__(self) -> None:
-            # db.query order: document count, (financial rows), (failure query), runs count, periodic count
-            self._scalars = iter(
-                [documents_count, 42, len(financial_rows)]
-            )
+            self._scalars = iter([documents_count, 42])
 
         def query(self, *args, **kwargs):
             if len(args) >= 2:
@@ -1126,7 +1101,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
             if getattr(target, "name", None) == "count":
                 return _ScalarQuery(next(self._scalars))
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _RowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _CountQuery()
 
         def close(self) -> None:
@@ -1136,20 +1111,24 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> Non
         "app.services.cockpit_service.SessionLocal",
         lambda: _FakeDb(),
     )
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profiles",
+        lambda db, *, ticker: tuple(vars(row) for row in financial_rows),
+    )
 
-    result = CockpitService.get_intel_pulse_stats(service, "EOS")
+    result = CockpitService.get_intel_pulse_stats(service, ticker)
 
     assert result["stats"]["document_count"] == documents_count
     assert result["stats"]["extraction_count"] == len(financial_rows)
     assert result["stats"]["recent_financial_rows_sampled"] == len(financial_rows)
     assert result["stats"]["periodic_financial_rows_total"] == len(financial_rows)
     assert result["stats"]["extraction_runs_total"] == 42
-    assert result["stats"]["trust_score_avg"] == 0.87
+    assert result["stats"]["trust_score_avg"] == 1.0
     assert result["stats"]["quarantine_rate"] == 25.0
     assert result["stats"]["extraction_failure_rate_pct"] == 25.0
     assert result["stats"]["population_index"] == 66.7
     assert result["pipeline"][0]["id"] == "overview"
-    assert result["pipeline"][0]["health"] == 76.9
+    assert result["pipeline"][0]["health"] == 83.3
     assert result["pipeline"][0]["status"] == "degraded"
     assert result["pipeline"][1]["id"] == "extraction"
     assert result["pipeline"][1]["health"] == 66.7

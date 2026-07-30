@@ -89,35 +89,14 @@ def test_asx_structured_models_have_created_at():
 # Guard C — Pipeline upsert field list includes all cash-flow fields
 # ---------------------------------------------------------------------------
 
-def test_pipeline_upsert_field_list_includes_cashflow_fields():
-    """
-    _upsert_financial_rows() must iterate over all cash-flow fields when
-    writing to the DB. If this fails, a field was removed from the for-loop
-    and extractions will silently stop being persisted.
-
-    Detection strategy: assert the fields belong to the shared persistence
-    contract and that _upsert_financial_rows uses that contract directly.
-    """
+def test_pipeline_does_not_directly_write_periodic_financials():
     import inspect
     from app.services import pipeline
-    from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
 
     source = inspect.getsource(pipeline._upsert_financial_rows)
-
-    required_fields = {
-        "operating_cf",
-        "investing_cf",
-        "financing_cf",
-        "capex",
-        "cash_end",
-        "net_debt",
-    }
-    missing = required_fields.difference(PERSISTED_METRIC_COLUMNS)
-    assert not missing, (
-        f"The shared persistence contract is missing field(s): {sorted(missing)}"
-    )
-    assert pipeline.PERSISTED_METRIC_COLUMNS is PERSISTED_METRIC_COLUMNS
-    assert "PERSISTED_METRIC_COLUMNS" in source
+    assert "ASXPeriodicFinancial" not in source
+    assert "setattr" not in source
+    assert "db.add" not in source
 
 
 # ---------------------------------------------------------------------------

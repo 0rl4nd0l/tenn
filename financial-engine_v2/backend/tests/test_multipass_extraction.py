@@ -2311,8 +2311,7 @@ def test_pass4_higher_priority_source_wins():
 
 
 def test_upsert_financial_rows_smoke():
-    """_upsert_financial_rows must write all metric and narrative fields to the DB,
-    and must update (not duplicate) on a second call with the same key."""
+    """Extraction writes narrative risk, but never the legacy financial row."""
     import uuid
     from types import SimpleNamespace
     from sqlalchemy import create_engine
@@ -2353,23 +2352,14 @@ def test_upsert_financial_rows_smoke():
 
     session = Session()
     try:
-        # --- First call: rows must be created ---
+        # Risk notes remain part of the extraction transaction.
         # Caller (process_document) is responsible for commit; flush here to make
         # rows visible within this session for assertions.
         _upsert_financial_rows(session, doc, payload)
         session.flush()
 
         fin = session.query(ASXPeriodicFinancial).filter_by(ticker="TST").first()
-        assert fin is not None, "ASXPeriodicFinancial row must be created"
-        assert fin.period_type == "H"
-        assert float(fin.revenue) == 1_000_000.0
-        assert float(fin.operating_cf) == 300_000.0
-        assert float(fin.investing_cf) == -50_000.0
-        assert float(fin.financing_cf) == -20_000.0
-        assert fin.capex is None
-        assert fin.net_debt is None
-        assert float(fin.shares_outstanding) == 50_000_000.0
-        assert fin.confidence_metrics == pytest.approx(0.85)
+        assert fin is None
 
         note = session.query(ASXRiskNote).first()
         assert note is not None, "ASXRiskNote row must be created"
@@ -2379,15 +2369,14 @@ def test_upsert_financial_rows_smoke():
         assert note.material_changes is None
         assert note.confidence_narrative == pytest.approx(0.7)
 
-        # --- Second call: same key must update, not duplicate ---
+        # A repeated extraction still updates the narrative atomically.
         payload["metrics"]["revenue"] = 2_000_000.0
         payload["risk_summary"] = "Updated risk summary"
         _upsert_financial_rows(session, doc, payload)
         session.flush()
 
         all_fin = session.query(ASXPeriodicFinancial).all()
-        assert len(all_fin) == 1, "Upsert must not create a duplicate row"
-        assert float(all_fin[0].revenue) == 2_000_000.0
+        assert all_fin == []
 
         all_notes = session.query(ASXRiskNote).all()
         assert len(all_notes) == 1, "Upsert must not create a duplicate risk note"

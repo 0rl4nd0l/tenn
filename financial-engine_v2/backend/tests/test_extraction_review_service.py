@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -13,6 +14,36 @@ from app.models.base import Base
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.services import extraction_review as review
+
+
+def test_previous_period_value_uses_accepted_projected_truth(monkeypatch):
+    projected = (
+        {
+            "ticker": "TST",
+            "period_end": date(2024, 6, 30),
+            "period_type": "A",
+            "revenue": "220",
+        },
+        {
+            "ticker": "TST",
+            "period_end": date(2023, 6, 30),
+            "period_type": "A",
+            "revenue": "180",
+        },
+    )
+
+    class _NoLegacyQuery:
+        def query(self, *args, **kwargs):
+            raise AssertionError("stale legacy financials must not be queried")
+
+    monkeypatch.setattr(review, "stable_financial_profile", lambda db, *, ticker: projected)
+
+    assert (
+        review._previous_period_value(
+            _NoLegacyQuery(), "TST", "revenue", date(2025, 6, 30), "A"
+        )
+        == 220.0
+    )
 
 try:
     from PIL import Image

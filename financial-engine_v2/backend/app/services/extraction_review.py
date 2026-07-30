@@ -66,8 +66,7 @@ _WHITESPACE_RE = re.compile(r"\s+")
 _ASCII_CHARS = " .:-=+*#%@"
 
 
-from sqlalchemy import desc
-from app.models.asx_financials import ASXPeriodicFinancial
+from app.services.financial_observations import stable_financial_profile
 
 
 def _previous_period_value(
@@ -85,20 +84,19 @@ def _previous_period_value(
                 return None
         
         # Find the most recent record for the same ticker and type before the current period_end
-        prev = (
-            db.query(ASXPeriodicFinancial)
-            .filter(
-                ASXPeriodicFinancial.ticker == ticker,
-                ASXPeriodicFinancial.period_type == period_type,
-                ASXPeriodicFinancial.period_end < period_end,
-            )
-            .order_by(desc(ASXPeriodicFinancial.period_end))
-            .first()
+        prev = next(
+            (
+                row
+                for row in stable_financial_profile(db, ticker=ticker)
+                if row.get("period_type") == period_type
+                and row.get("period_end") < period_end
+            ),
+            None,
         )
         
         if prev:
             try:
-                val = getattr(prev, metric, None)
+                val = prev.get(metric)
                 return float(val) if val is not None else None
             except (TypeError, ValueError, AttributeError):
                 return None
