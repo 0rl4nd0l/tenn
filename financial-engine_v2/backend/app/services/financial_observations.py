@@ -1850,7 +1850,9 @@ def stable_financial_profile(db, *, ticker: str) -> tuple[dict[str, Any], ...]:
             "period_end": period_end,
             "period_type": period_basis,
             "confidence_metrics": (
-                legacy.confidence_metrics if legacy is not None else None
+                legacy.confidence_metrics
+                if legacy is not None and not metric_truth
+                else None
             ),
             "source_document_id": (
                 str(source_ids[0])

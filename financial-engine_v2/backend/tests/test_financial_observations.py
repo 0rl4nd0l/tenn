@@ -1980,7 +1980,7 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
             "ticker": "BHP",
             "period_end": date(2025, 6, 30),
             "period_type": "A",
-            "confidence_metrics": 0.9,
+            "confidence_metrics": None,
             "source_document_id": str(restated.source_document_id),
             "revenue": "90",
             "ebit": None,
@@ -1994,6 +1994,62 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
             "shares_outstanding": None,
         },
     )
+
+
+def test_loader_includes_accepted_truth_despite_stale_legacy_confidence():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.modules.context_loader import TickerContextLoader
+    from app.modules.ticker_context import ContextRequest
+
+    original = _observation(100)
+    restated = _observation(90)
+    projected_legacy = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2025, 6, 30),
+        period_type="A",
+        revenue=75,
+        currency="AUD",
+        confidence_metrics=0.2,
+        source_document_id=uuid.uuid4(),
+    )
+    legacy_only = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2024, 6, 30),
+        period_type="A",
+        revenue=60,
+        currency="AUD",
+        confidence_metrics=0.2,
+        source_document_id=uuid.uuid4(),
+    )
+    session = FakeSession(
+        model_rows={
+            ASXPeriodicFinancial: [legacy_only, projected_legacy],
+            FinancialObservation: [original, restated],
+            FinancialObservationSupersession: [
+                _supersession(restated, original)
+            ],
+        }
+    )
+
+    context = TickerContextLoader().load(
+        "BHP",
+        ContextRequest(
+            needs_risk_notes=False,
+            needs_documents=False,
+            max_periods=5,
+        ),
+        db=session,
+    )
+
+    assert context.financials is not None
+    assert [
+        (period.period_end, period.revenue)
+        for period in context.financials.periods
+    ] == [(date(2025, 6, 30), 90.0)]
 
 
 def test_read_returns_only_uncontested_matching_legacy_context():
