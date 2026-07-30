@@ -6,6 +6,7 @@ from datetime import date
 
 from app.services.analysis.periodic_snapshot_export import (
     SCHEMA_VERSION,
+    build_financial_snapshot_v0,
     build_financial_snapshot_v0_from_rows,
     write_financial_snapshot_v0,
 )
@@ -104,3 +105,28 @@ def test_write_financial_snapshot_v0_roundtrip(tmp_path):
     text = path.read_text(encoding="utf-8")
     assert "financial_snapshot_v0" in text
     assert text.endswith("\n")
+
+
+def test_snapshot_uses_accepted_projected_rows_not_legacy_query(monkeypatch):
+    projected = (
+        {
+            "ticker": "TST",
+            "period_end": date(2024, 6, 30),
+            "period_type": "A",
+            "revenue": "220",
+            "source_document_id": str(uuid.uuid4()),
+        },
+    )
+
+    class _NoLegacyQuery:
+        def query(self, *args, **kwargs):
+            raise AssertionError("stale legacy financials must not be queried")
+
+    monkeypatch.setattr(
+        "app.services.analysis.periodic_snapshot_export.stable_financial_profile",
+        lambda db, *, ticker: projected,
+    )
+
+    payload = build_financial_snapshot_v0(" tst ", _NoLegacyQuery())
+
+    assert payload["periodic_rows"][0]["revenue"] == 220.0

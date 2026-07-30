@@ -10,11 +10,12 @@ import threading
 import uuid
 import time
 from contextlib import nullcontext
-from uuid import UUID
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 from urllib.parse import urlparse
+from uuid import UUID
 
 import httpx
 from sqlalchemy import func
@@ -29,6 +30,7 @@ from app.services.cockpit_auto_flagger import (
     build_auto_flag_note,
     detect_auto_flag_findings,
 )
+from app.services.financial_observations import stable_financial_profile
 from app.services.memory_events import suppress_memory_read_events
 from app.services.query_orchestrator import QueryOrchestrator
 
@@ -2869,13 +2871,19 @@ class CockpitService:
             stage_l = stage.lower()
             entities: list[dict[str, Any]] = []
             for comp in companies:
-                financial_rows = (
-                    db.query(ASXPeriodicFinancial)
-                    .filter(ASXPeriodicFinancial.ticker == comp)
-                    .order_by(ASXPeriodicFinancial.period_end.desc())
-                    .limit(12)
-                    .all()
-                )
+                financial_rows = [
+                    SimpleNamespace(
+                        **{
+                            **row,
+                            "source_document_id": (
+                                UUID(row["source_document_id"])
+                                if row.get("source_document_id")
+                                else None
+                            ),
+                        }
+                    )
+                    for row in stable_financial_profile(db, ticker=comp)[:12]
+                ]
                 doc_ids = {r.source_document_id for r in financial_rows}
                 failed_doc_ids: set[UUID] = set()
                 if doc_ids:

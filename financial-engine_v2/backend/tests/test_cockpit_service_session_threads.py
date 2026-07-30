@@ -806,31 +806,18 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
     service = CockpitService.__new__(CockpitService)
 
     doc_a = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=128_458_000,
-            ebit=None,
-            net_debt=None,
-            np_attributable=-73_500_000,
-            shares_outstanding=467_479_000,
-            capex=-14_026_000,
-            confidence_metrics=0.852,
-            source_document_id=doc_a,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": "128458000",
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": "-73500000",
+            "shares_outstanding": "467479000",
+            "capex": "-14026000",
+            "confidence_metrics": None,
+            "source_document_id": str(doc_a),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -846,13 +833,17 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
 
@@ -879,31 +870,18 @@ def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
     service = CockpitService.__new__(CockpitService)
 
     doc_b = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=44_070_000,
-            ebit=None,
-            net_debt=None,
-            np_attributable=46_786_000,
-            shares_outstanding=467_309_000,
-            capex=-6_165_000,
-            confidence_metrics=0.7,
-            source_document_id=doc_b,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": "44070000",
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": "46786000",
+            "shares_outstanding": "467309000",
+            "capex": "-6165000",
+            "confidence_metrics": 0.7,
+            "source_document_id": str(doc_b),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -919,13 +897,17 @@ def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "evaluation", "EOS")
 
@@ -939,31 +921,18 @@ def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_fail
 ) -> None:
     service = CockpitService.__new__(CockpitService)
     doc_id = uuid.uuid4()
-    rows = [
-        SimpleNamespace(
-            revenue=None,
-            ebit=None,
-            net_debt=None,
-            np_attributable=None,
-            shares_outstanding=None,
-            capex=None,
-            confidence_metrics=None,
-            source_document_id=doc_id,
-        )
-    ]
-
-    class _FinancialRowsQuery:
-        def filter(self, *args, **kwargs):
-            return self
-
-        def order_by(self, *args, **kwargs):
-            return self
-
-        def limit(self, *args, **kwargs):
-            return self
-
-        def all(self):
-            return rows
+    projected_rows = (
+        {
+            "revenue": None,
+            "ebit": None,
+            "net_debt": None,
+            "np_attributable": None,
+            "shares_outstanding": None,
+            "capex": None,
+            "confidence_metrics": None,
+            "source_document_id": str(doc_id),
+        },
+    )
 
     class _FailedDocQuery:
         def filter(self, *args, **kwargs):
@@ -979,13 +948,17 @@ def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_fail
         def query(self, *args, **kwargs):
             target = args[0] if args else None
             if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
-                return _FinancialRowsQuery()
+                raise AssertionError("stale legacy financials must not be queried")
             return _FailedDocQuery()
 
         def close(self) -> None:
             return None
 
     monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+    monkeypatch.setattr(
+        "app.services.cockpit_service.stable_financial_profile",
+        lambda db, *, ticker: projected_rows,
+    )
 
     result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
 
