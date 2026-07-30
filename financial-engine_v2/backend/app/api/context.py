@@ -1458,6 +1458,10 @@ def get_ticker_context(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     errors: list[str] = []
 
     # --- docs (matches DbReader.get_docs) ---
@@ -1850,6 +1854,10 @@ def get_verification_context(
     low_confidence_limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     return _build_verification_context(
         db,
         ticker=ticker,
