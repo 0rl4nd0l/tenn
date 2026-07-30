@@ -8835,6 +8835,43 @@ def _pass3b_response():
     }
 
 
+def test_run_multipass_abstains_when_currency_has_no_explicit_evidence():
+    """A generic dollar scale and classifier null must not be rewritten to AUD."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    pass1 = _pass1_response()
+    pass1["currency"] = "null"
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[_pass3a_response()],
+    ):
+        result = run_multipass_extraction(
+            "/fake/ambiguous-currency.pdf",
+            {
+                "document_id": "ambiguous-currency",
+                "ticker": "TST",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+    assert result.payload["_structured_extraction"]["warnings"] == []
+
+
 def test_skip_narrative_param_skips_pass3b_llm_call():
     """With skip_narrative=True, no LLM call should be made for pass3b."""
     from app.services.multipass_extraction import run_multipass_extraction
@@ -10414,8 +10451,7 @@ class TestNonAUDCurrencyDetection:
 
 
 class TestNonAUDCurrencyNormalisation:
-    """LLM string-'null' currency must normalise to AUD without triggering
-    a false non-AUD warning, and non-AUD must surface in _structured_extraction.warnings."""
+    """Ambiguous currency must abstain; explicit native currency stays unchanged."""
 
     def _good_payload_non_aud(self, currency: str) -> dict:
         """Minimal passing payload for non-AUD currency."""
@@ -10439,21 +10475,14 @@ class TestNonAUDCurrencyNormalisation:
             "confidence_metrics": 0.85,
         }
 
-    def test_validate_gate_string_null_currency_treated_as_aud(self) -> None:
-        """When LLM returns currency='null' (string), _validate_gate must treat it as AUD.
-
-        A string-null currency must not downgrade to ok_low_confidence — it is not
-        a genuine non-AUD document, just an LLM serialisation artefact.
-        """
+    def test_validate_gate_string_null_currency_abstains(self) -> None:
+        """A classifier null without source evidence must not be guessed as AUD."""
         from app.services.multipass_extraction import _validate_gate
 
         payload = self._good_payload_non_aud("null")
         status, error = _validate_gate(payload)
-        # A confidence of 0.85 → "ok" for AUD; must not be ok_low_confidence
-        assert status == "ok", (
-            f"string-null currency must be normalised to AUD (ok); got status={status!r}"
-        )
-        assert error is None
+        assert status == "failed"
+        assert error == "validation_gate:currency_unknown"
 
     def test_validate_gate_non_aud_passes_hard_gates_before_downgrade(self) -> None:
         """Non-AUD with < 3 metrics must still fail, not merely downgrade.

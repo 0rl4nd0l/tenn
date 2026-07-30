@@ -6467,7 +6467,7 @@ _HIGH_DENOMINATION_NATIVE_SANITY_CAPS = {
 
 def _normalize_currency_code(raw: Any) -> str:
     if not raw or str(raw).strip().lower() == "null":
-        return "AUD"
+        return ""
     return str(raw).strip().upper()
 
 
@@ -8999,6 +8999,10 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     if payload.get("scale") == "unknown":
         return "failed", "validation_gate:scale_unknown"
 
+    currency = _normalize_currency_code(payload.get("currency"))
+    if not currency:
+        return "failed", "validation_gate:currency_unknown"
+
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
     canonical_metrics = {metric_name: metrics.get(metric_name) for metric_name in METRIC_FIELDS}
     mismatch = _metric_label_mismatch(payload)
@@ -9082,22 +9086,21 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     # Flag as ok_low_confidence so consumers know to treat values with caution,
     # but only after all quality gates pass — non-AUD must not bypass them.
     # A warning was already emitted at ingestion time in run_multipass_extraction.
-    _currency = _normalize_currency_code(payload.get("currency"))
-    if _currency != "AUD":
+    if currency != "AUD":
         if _source_bound_native_currency_status_can_be_ok(
             payload,
             canonical_metrics,
-            _currency,
+            currency,
         ):
             logger.warning(
                 "validation_gate:non_aud_currency:%s — native-currency values "
                 "are source-bound; status remains ok",
-                _currency,
+                currency,
             )
             return "ok", None
         logger.warning(
             "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
-            _currency,
+            currency,
         )
         return "ok_low_confidence", None
 
@@ -9488,12 +9491,9 @@ def run_multipass_extraction(
             )
             pass1["currency"] = detected_currency
 
-    _raw_pass1_currency = pass1.get("currency") or ""
-    if not _raw_pass1_currency or str(_raw_pass1_currency).strip().lower() == "null":
-        _raw_pass1_currency = "AUD"
-    _currency = str(_raw_pass1_currency).upper()
-    pass1["currency"] = _currency  # normalise in-place so propagation is consistent
-    if _currency != "AUD":
+    _currency = _normalize_currency_code(pass1.get("currency"))
+    pass1["currency"] = _currency
+    if _currency and _currency != "AUD":
         logger.warning(
             "non-AUD currency detected: %s — values stored as-is (no FX conversion applied)",
             _currency,
@@ -9718,12 +9718,12 @@ def run_multipass_extraction(
 
     # Propagate scale and currency from Pass 1 into payload so _validate_gate
     # can inspect them and so _upsert_financial_rows stores the correct currency.
-    # pass1["currency"] was already normalised (string "null" → "AUD") at detection time.
+    # An absent currency remains empty so validation abstains rather than guessing AUD.
     payload["scale"] = _common_metric_source_scale(
         payload,
         pass1.get("scale", "unknown") or "unknown",
     )
-    payload["currency"] = pass1.get("currency") or "AUD"
+    payload["currency"] = pass1.get("currency") or ""
     payload["document_title"] = title
     _apply_appendix_wrapper_source_payload(
         payload,
@@ -9799,7 +9799,7 @@ def run_multipass_extraction(
     # Surface non-AUD currency as a structured warning for operator visibility.
     # Values are stored in native currency with no FX conversion; downstream
     # consumers must not compare them directly with AUD-denominated peers.
-    if payload["currency"] != "AUD":
+    if payload["currency"] and payload["currency"] != "AUD":
         payload["_structured_extraction"]["warnings"].append(
             f"non_aud_currency:{payload['currency']} — values in native currency, no FX conversion"
         )
