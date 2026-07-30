@@ -1,4 +1,4 @@
-"""Export deterministic JSON snapshots from `asx_periodic_financials`.
+"""Export deterministic JSON snapshots from accepted financial observations.
 
 No LLM calls. Output is suitable for `reports/analysis/{TICKER}/` per roadmap.
 """
@@ -100,7 +100,9 @@ def build_financial_snapshot_v0_from_rows(
 
     warnings: list[str] = []
     if not raw_rows:
-        warnings.append(f"No financial rows in asx_periodic_financials for {ticker_key}.")
+        warnings.append(
+            f"No accepted financial-observation projection rows for {ticker_key}."
+        )
 
     metrics_summary = build_metrics_summary(
         raw_rows, period_type=ptype, max_periods=max_periods
@@ -117,7 +119,7 @@ def build_financial_snapshot_v0_from_rows(
         "schema_version": SCHEMA_VERSION,
         "ticker": ticker_key,
         "period_type": ptype,
-        "source_table": "asx_periodic_financials",
+        "source_table": "accepted_financial_observation_projection",
         "warnings": warnings,
         "metrics_summary": metrics_summary,
         "periodic_rows": periodic_rows,
@@ -133,7 +135,7 @@ def build_financial_snapshot_v0(
     fetch_limit: int = 48,
 ) -> dict[str, Any]:
     """
-    Build the v0 financial snapshot dict from canonical periodic rows.
+    Build the v0 financial snapshot dict from accepted observation projections.
 
     ``metrics_summary`` matches ``financial_metrics.build_metrics_summary``;
     ``periodic_rows`` lists the same underlying DB rows (filtered to
