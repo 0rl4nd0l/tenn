@@ -34,6 +34,7 @@ from app.services.extraction_run_observability import (
     ExtractionRunObserver,
     initialize_run_status,
 )
+from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
 from app.services.financial_observations import (
     build_review_staging_payload,
     stage_financial_observations,
