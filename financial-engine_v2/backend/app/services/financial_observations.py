@@ -1774,6 +1774,23 @@ def stable_financial_profiles(
     }
     projected_rows: list[dict[str, Any]] = []
     for row_ticker, period_end, period_basis in keys:
+        monetary_currencies = {
+            currency
+            for (
+                candidate_ticker,
+                candidate_period_end,
+                candidate_period_basis,
+                metric,
+            ), truths in candidates.items()
+            if (
+                candidate_ticker,
+                candidate_period_end,
+                candidate_period_basis,
+            )
+            == (row_ticker, period_end, period_basis)
+            and metric != "shares_outstanding"
+            for _, currency, _, _ in truths
+        }
         metric_truth: dict[str, tuple[Decimal, str, uuid.UUID]] = {}
         for metric in CANONICAL_METRIC_FIELDS:
             truths = candidates.get(
@@ -1803,11 +1820,6 @@ def stable_financial_profiles(
                     source_document_id,
                 )
 
-        monetary_currencies = {
-            currency
-            for metric, (_, currency, _) in metric_truth.items()
-            if metric != "shares_outstanding"
-        }
         if len(monetary_currencies) > 1:
             metric_truth = {
                 metric: truth
@@ -1822,6 +1834,11 @@ def stable_financial_profiles(
             "ticker": row_ticker,
             "period_end": period_end,
             "period_type": period_basis,
+            "currency": (
+                next(iter(monetary_currencies))
+                if len(monetary_currencies) == 1
+                else None
+            ),
             "confidence_metrics": None,
             "source_document_id": str(source_ids[0]) if source_ids else None,
         }

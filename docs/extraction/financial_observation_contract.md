@@ -102,4 +102,13 @@ deterministically ordered, basis-labelled, sparse `observation_only` rows.
 Conflicting metrics abstain independently. These rows never replace or
 overwrite legacy `Q`, `H`, or `A` rows.
 
+The accepted-truth compatibility projection derives row `currency` only when
+the accepted monetary metrics have exactly one currency. Share-only rows and
+rows with ambiguous monetary currencies expose `currency=null`. The projection
+does not infer a numeric confidence from acceptance, provenance, or review
+state: `confidence_metrics` remains null unless a future authoritative numeric
+source is explicitly mapped. Consumers must treat accepted projection membership
+as categorical truth and must not reinterpret that null placeholder as a zero
+model-confidence score or a low-confidence diagnostic.
+
 Restatement precedence remains outside Ticket 09.

@@ -1986,6 +1986,7 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
             "ticker": "BHP",
             "period_end": date(2025, 6, 30),
             "period_type": "A",
+            "currency": "AUD",
             "confidence_metrics": None,
             "source_document_id": str(restated.source_document_id),
             "revenue": "90",
@@ -2000,6 +2001,131 @@ def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
             "shares_outstanding": None,
         },
     )
+
+
+def test_stable_profile_currency_is_null_for_share_only_and_ambiguous_truth():
+    from app.models.financial_observations import FinancialObservation
+    from app.services.financial_observations import stable_financial_profile
+
+    shares = _observation(
+        500,
+        metric="shares_outstanding",
+        currency="shares",
+    )
+    share_only = stable_financial_profile(
+        FakeSession(model_rows={FinancialObservation: [shares]}),
+        ticker="BHP",
+    )
+    assert share_only[0]["currency"] is None
+    assert share_only[0]["shares_outstanding"] == "500"
+    assert share_only[0]["confidence_metrics"] is None
+
+    aud = _observation(100, metric="revenue", currency="AUD")
+    usd = _observation(10, metric="ebit", currency="USD")
+    ambiguous = stable_financial_profile(
+        FakeSession(model_rows={FinancialObservation: [aud, usd, shares]}),
+        ticker="BHP",
+    )
+    assert ambiguous[0]["currency"] is None
+    assert ambiguous[0]["revenue"] is None
+    assert ambiguous[0]["ebit"] is None
+    assert ambiguous[0]["shares_outstanding"] == "500"
+    assert ambiguous[0]["confidence_metrics"] is None
+
+
+def test_accepted_projection_flows_to_context_diagnostics_without_fake_confidence():
+    from app.api.context import _projected_low_confidence_financials
+    from app.models.financial_observations import FinancialObservation
+
+    session = FakeSession(
+        model_rows={FinancialObservation: [_observation(100)]}
+    )
+
+    assert _projected_low_confidence_financials(
+        session,
+        ticker="BHP",
+        threshold=0.4,
+        limit=10,
+    ) == []
+
+
+def test_accepted_projection_flows_to_periodic_snapshot_metadata():
+    from app.models.financial_observations import FinancialObservation
+    from app.services.analysis.periodic_snapshot_export import (
+        build_financial_snapshot_v0,
+    )
+
+    payload = build_financial_snapshot_v0(
+        "BHP",
+        FakeSession(model_rows={FinancialObservation: [_observation(100)]}),
+    )
+
+    row = payload["periodic_rows"][0]
+    assert row["currency"] == "AUD"
+    assert row["confidence_metrics"] is None
+    assert row["revenue"] == 100.0
+
+
+def test_accepted_projection_flows_to_intel_pulse_truth_health(monkeypatch):
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.cockpit_service import CockpitService
+
+    observation = _observation(100)
+
+    class PulseQuery(FakeQuery):
+        def join(self, *_args):
+            return self
+
+        def distinct(self):
+            return self
+
+        def order_by(self, *_args):
+            return self
+
+        def limit(self, *_args):
+            return self
+
+        def scalar(self):
+            return 0
+
+        def count(self):
+            return 0
+
+    class PulseSession:
+        def query(self, *targets):
+            target = targets[0]
+            if target is FinancialObservation:
+                return PulseQuery(rows=[observation])
+            if target is FinancialObservationSupersession:
+                return PulseQuery(rows=[])
+            return PulseQuery(rows=[])
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        "app.services.cockpit_service.SessionLocal",
+        PulseSession,
+    )
+
+    payload = CockpitService.get_intel_pulse_stats(
+        CockpitService.__new__(CockpitService),
+        "BHP",
+    )
+
+    assert payload["stats"]["trust_score_avg"] == 1.0
+    evaluation = next(
+        stage for stage in payload["pipeline"] if stage["id"] == "evaluation"
+    )
+    assert evaluation == {
+        "id": "evaluation",
+        "label": "EVALUATION",
+        "health": 100.0,
+        "status": "nominal",
+    }
 
 
 def test_stable_profile_omits_legacy_only_rows_without_querying_legacy():

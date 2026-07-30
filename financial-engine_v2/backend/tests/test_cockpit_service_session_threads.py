@@ -866,7 +866,7 @@ def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> Non
     }
 
 
-def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
+def test_get_diagnostic_matrix_treats_accepted_evaluation_truth_as_populated(
     monkeypatch,
 ) -> None:
     service = CockpitService.__new__(CockpitService)
@@ -880,7 +880,7 @@ def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
             "np_attributable": "46786000",
             "shares_outstanding": "467309000",
             "capex": "-6165000",
-            "confidence_metrics": 0.7,
+            "confidence_metrics": None,
             "source_document_id": str(doc_b),
         },
     )
@@ -913,9 +913,9 @@ def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
 
     result = CockpitService.get_diagnostic_matrix(service, "evaluation", "EOS")
 
-    assert result["entities"][0]["metrics"]["REVENUE"] == "abstain"
-    assert result["entities"][0]["metrics"]["CAPEX"] == "abstain"
-    assert result["entities"][0]["metrics"]["EPS"] == "abstain"
+    assert result["entities"][0]["metrics"]["REVENUE"] == "populated"
+    assert result["entities"][0]["metrics"]["CAPEX"] == "populated"
+    assert result["entities"][0]["metrics"]["EPS"] == "populated"
 
 
 def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_failed(
@@ -989,7 +989,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(
             shares_outstanding=467_479_000,
             total_equity=None,
             interest_expense=None,
-            confidence_metrics=0.852,
+            confidence_metrics=None,
             period_end="2025-12-31",
             source_document_id=uuid.uuid4(),
         ),
@@ -1006,7 +1006,7 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(
             shares_outstanding=467_309_000,
             total_equity=None,
             interest_expense=None,
-            confidence_metrics=0.889,
+            confidence_metrics=None,
             period_end="2025-06-30",
             source_document_id=uuid.uuid4(),
         ),
@@ -1123,12 +1123,12 @@ def test_get_intel_pulse_stats_uses_canonical_financial_rows(
     assert result["stats"]["recent_financial_rows_sampled"] == len(financial_rows)
     assert result["stats"]["periodic_financial_rows_total"] == len(financial_rows)
     assert result["stats"]["extraction_runs_total"] == 42
-    assert result["stats"]["trust_score_avg"] == 0.87
+    assert result["stats"]["trust_score_avg"] == 1.0
     assert result["stats"]["quarantine_rate"] == 25.0
     assert result["stats"]["extraction_failure_rate_pct"] == 25.0
     assert result["stats"]["population_index"] == 66.7
     assert result["pipeline"][0]["id"] == "overview"
-    assert result["pipeline"][0]["health"] == 76.9
+    assert result["pipeline"][0]["health"] == 83.4
     assert result["pipeline"][0]["status"] == "degraded"
     assert result["pipeline"][1]["id"] == "extraction"
     assert result["pipeline"][1]["health"] == 66.7

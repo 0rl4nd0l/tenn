@@ -1807,6 +1807,15 @@ def _projected_low_confidence_financials(
     threshold: float,
     limit: int,
 ) -> list[dict[str, Any]]:
+    """Return only projected rows carrying authoritative numeric confidence.
+
+    Accepted-observation projection deliberately emits ``confidence_metrics``
+    as null: acceptance is categorical truth, not a model-confidence estimate.
+    Consequently accepted truth is never diagnosed as low confidence merely
+    because the legacy compatibility placeholder is absent.  This filter stays
+    narrow so a future authoritative numeric projection can participate without
+    manufacturing a score from acceptance, provenance, or review state.
+    """
     from app.services.financial_observations import stable_financial_profiles
 
     rows = stable_financial_profiles(db, ticker=ticker)

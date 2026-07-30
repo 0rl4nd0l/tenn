@@ -250,12 +250,10 @@ def _matrix_cell_state(
 
     if populated_rows:
         if stage == "evaluation":
-            high_confidence_rows = [
-                r
-                for r in populated_rows
-                if float(r.confidence_metrics or 0.0) >= 0.85
-            ]
-            return "populated" if high_confidence_rows else "abstain"
+            # These rows come from stable_financial_profile(), whose only input
+            # is active accepted statutory observations.  Its intentionally-null
+            # legacy confidence placeholder is not evidence of low confidence.
+            return "populated"
         return "populated"
 
     if not financial_rows:
@@ -2702,16 +2700,12 @@ class CockpitService:
             signal_count = 0
             memory_count = 0
 
-            confidence_values = [
-                float(_projected_value(row, "confidence_metrics") or 0.0)
-                for row in financial_rows
-                if _projected_value(row, "confidence_metrics") is not None
-            ]
-            avg_confidence = (
-                sum(confidence_values) / len(confidence_values)
-                if confidence_values
-                else 0.0
-            )
+            # stable_financial_profiles() contains only active accepted
+            # statutory truth.  Do not reinterpret its null compatibility
+            # confidence field as model confidence.  The public numeric field
+            # is retained as an accepted-truth coverage score: a projected row
+            # is trusted by construction, while no projected truth scores 0.
+            accepted_truth_score = 1.0 if financial_rows else 0.0
 
             metric_fields = [
                 "revenue",
@@ -2744,7 +2738,9 @@ class CockpitService:
             )
             quarantine_rate = extraction_failure_rate_pct
 
-            overview_health = round((population_index + avg_confidence * 100) / 2, 1)
+            overview_health = round(
+                (population_index + accepted_truth_score * 100) / 2, 1
+            )
             overview_status = (
                 "nominal"
                 if extraction_failure_rate_pct <= 10.0 and overview_health >= 50.0
@@ -2762,7 +2758,7 @@ class CockpitService:
                     "signal_count": signal_count,
                     "memory_count": memory_count,
                     "population_index": round(population_index, 1),
-                    "trust_score_avg": round(avg_confidence, 2),
+                    "trust_score_avg": round(accepted_truth_score, 2),
                     "quarantine_rate": round(quarantine_rate, 1),
                     "extraction_failure_rate_pct": round(extraction_failure_rate_pct, 1),
                 },
@@ -2782,8 +2778,10 @@ class CockpitService:
                     {
                         "id": "evaluation",
                         "label": "EVALUATION",
-                        "health": round(avg_confidence * 100, 1),
-                        "status": "nominal" if avg_confidence > 0.8 else "degraded",
+                        "health": round(accepted_truth_score * 100, 1),
+                        "status": (
+                            "nominal" if accepted_truth_score > 0.0 else "degraded"
+                        ),
                     },
                     {
                         "id": "signals",
