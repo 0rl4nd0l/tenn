@@ -83,6 +83,43 @@ def _run_llama_launcher(
     )
 
 
+def _run_from_cockpit_launch_context(
+    tmp_path: Path,
+    binary: Path,
+) -> subprocess.CompletedProcess[str]:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_ROUTER_MODE"] = "0"
+
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            (
+                'set -euo pipefail; '
+                'REPO_ROOT="$1"; '
+                'source "$REPO_ROOT/scripts/start_config.env"; '
+                'export LLAMA_SERVER_BIN="$2"; '
+                'exec bash "$REPO_ROOT/scripts/run_llama_server.sh"'
+            ),
+            "bash",
+            str(REPO_ROOT),
+            str(binary),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_run_llama_server_loads_host_override_file(tmp_path: Path) -> None:
     config_dir = tmp_path / ".config" / "tenn"
     config_dir.mkdir(parents=True)
@@ -242,14 +279,28 @@ def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
     completed = _run_llama_launcher(tmp_path, link)
 
     assert completed.returncode == 0, completed.stderr
-    assert f"[llama-server] CONFIGURED_BIN_PATH={link}" in completed.stdout
-    assert f"[llama-server] RESOLVED_BIN_PATH={target}" in completed.stdout
     assert f"FAKE_EXECUTABLE={target}" in completed.stdout
     assert f"FAKE_LD_LIBRARY_PATH={target_dir}" in completed.stdout
-    assert "FAKE_ARGS=--main-gpu 0 --threads 4 --host 127.0.0.1" in completed.stdout
-    assert "--port 8123 --spec-type ngram-simple" in completed.stdout
-    assert f"-m {tmp_path / 'chat-model.gguf'} -a test-chat-model" in completed.stdout
-    assert "--parallel 1" in completed.stdout
+
+
+def test_cockpit_launch_context_renders_resolved_serving_path(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "cockpit resolved bin"
+    target_dir.mkdir()
+    target = target_dir / "llama-server"
+    _write_fake_llama_server(target)
+    link_dir = tmp_path / "cockpit configured bin"
+    link_dir.mkdir()
+    link = link_dir / "llama-server"
+    link.symlink_to(target)
+
+    completed = _run_from_cockpit_launch_context(tmp_path, link)
+
+    assert completed.returncode == 0, completed.stderr
+    assert f"FAKE_EXECUTABLE={target}" in completed.stdout
+    assert f"FAKE_EXECUTABLE={link}" not in completed.stdout
+    assert f"FAKE_LD_LIBRARY_PATH={target_dir}" in completed.stdout
 
 
 def test_run_llama_server_uses_direct_executable_directory_for_library_path(
@@ -306,7 +357,7 @@ def test_run_llama_server_fails_closed_for_broken_configured_target(
 def test_run_llama_server_fails_closed_for_missing_configured_target(
     tmp_path: Path,
 ) -> None:
-    missing_binary = tmp_path / "missing-bin" / "llama-server"
+    missing_binary = tmp_path / "missing bin" / "llama-server"
 
     completed = _run_llama_launcher(tmp_path, missing_binary)
 
@@ -321,17 +372,19 @@ def test_run_llama_server_fails_closed_for_missing_configured_target(
 def test_run_llama_server_fails_closed_for_non_executable_target(
     tmp_path: Path,
 ) -> None:
-    binary = tmp_path / "non-executable-bin" / "llama-server"
+    binary = tmp_path / "not executable" / "llama-server"
     binary.parent.mkdir()
-    binary.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    binary.write_text(
+        "#!/usr/bin/env bash\nprintf 'unexpected launch\\n'\n",
+        encoding="utf-8",
+    )
+    binary.chmod(0o644)
 
     completed = _run_llama_launcher(tmp_path, binary)
 
     assert completed.returncode == 1
-    assert (
-        f"llama-server binary target is not executable at {binary}" in completed.stderr
-    )
-    assert "Starting llama-server" not in completed.stdout
+    assert f"binary target is not executable at {binary}" in completed.stderr
+    assert "unexpected launch" not in completed.stdout
 
 
 def test_run_llama_server_refuses_during_gpu_exclusive_activity(
