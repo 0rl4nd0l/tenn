@@ -266,6 +266,65 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
     assert "--n-gpu-layers" not in stdout
 
 
+def test_run_llama_server_uses_resolved_target_for_router_probe(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+
+    target_dir = tmp_path / "router resolved bin"
+    target_dir.mkdir()
+    target = target_dir / "llama-server"
+    target.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "${1:-}" == "--help" ]]; then',
+                '  printf "%s\\n" "--models-dir PATH"',
+                "  exit 0",
+                "fi",
+                'printf "FAKE_EXECUTABLE=%s\\n" "$0"',
+                'printf "FAKE_LD_LIBRARY_PATH=%s\\n" "${LD_LIBRARY_PATH:-}"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    target.chmod(0o755)
+    link_dir = tmp_path / "router configured bin"
+    link_dir.mkdir()
+    link = link_dir / "llama-server"
+    link.symlink_to(target)
+
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_BIN"] = str(link)
+    env["LLAMA_SERVER_MODELS_DIR"] = str(models_dir)
+    env["LLAMA_SERVER_ROUTER_MODE"] = "1"
+    env["LLAMA_SERVER_PORT"] = "8126"
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "[llama-server] ROUTER_MODE=enabled" in completed.stdout
+    assert f"FAKE_EXECUTABLE={target}" in completed.stdout
+    assert f"FAKE_EXECUTABLE={link}" not in completed.stdout
+    assert f"FAKE_LD_LIBRARY_PATH={target_dir}" in completed.stdout
+
+
 def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
     tmp_path: Path,
 ) -> None:
