@@ -137,7 +137,7 @@ case "${PROFILE}" in
 esac
 
 cmd=(
-  "${BIN_PATH}"
+  "${RESOLVED_BIN_PATH}"
   --main-gpu "${LLAMA_SERVER_MAIN_GPU:-0}"
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
