@@ -17,8 +17,8 @@ class ProviderClient:
     name: str = "provider"
 
     def fetch_window(self, *, window_start_utc: str, window_end_utc: str, tickers: Sequence[str]) -> List[Dict[str, Any]]:
-        raise NotImplementedError
+        raise NotImplementedError("Subclasses must implement fetch_window")
 
     def parse_item(self, item: Dict[str, Any], fetched_at_utc: str) -> ParseResult:
-        raise NotImplementedError
+        raise NotImplementedError("Subclasses must implement parse_item")
 
