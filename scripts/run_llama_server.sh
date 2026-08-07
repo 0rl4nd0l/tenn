@@ -160,6 +160,14 @@ DEFAULT_MODELS_DIR="/mnt/tenn-nvme2/tenn/models"
 MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${DEFAULT_MODELS_DIR}}"
 PRESET_PATH="${LLAMA_SERVER_PRESET:-${HOME}/.config/tenn/llamacpp-presets.ini}"
 
+case "${ROUTER_MODE}" in
+  0|1) ;;
+  *)
+    echo "[llama-server] ERROR: LLAMA_SERVER_ROUTER_MODE must be 0 or 1 (got '${ROUTER_MODE}')" >&2
+    exit 1
+    ;;
+esac
+
 echo "[llama-server] ROUTER_MODE_REQUESTED=${ROUTER_MODE}"
 
 if [[ "${ROUTER_MODE}" == "1" ]]; then
@@ -174,7 +182,7 @@ if [[ "${ROUTER_MODE}" == "1" ]]; then
     echo "[llama-server] ERROR: router mode was requested but binary capability inspection failed" >&2
     exit 1
   fi
-  if [[ "${ROUTER_HELP}" != *"--models-dir"* ]]; then
+  if ! grep -Eq '^[[:space:]]*(-[^[:space:],]+,[[:space:]]*)?--models-dir([[:space:]=]|$)' <<<"${ROUTER_HELP}"; then
     echo "[llama-server] ERROR: router mode was requested but binary does not support --models-dir" >&2
     exit 1
   fi

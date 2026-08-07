@@ -287,7 +287,7 @@ def test_run_llama_server_uses_resolved_target_for_router_probe(
             [
                 "#!/usr/bin/env bash",
                 'if [[ "${1:-}" == "--help" ]]; then',
-                '  printf "%s\\n" "--models-dir PATH"',
+                '  printf "%s\\n" "-md, --models-dir PATH"',
                 "  exit 0",
                 "fi",
                 'printf "FAKE_EXECUTABLE=%s\\n" "$0"',
@@ -375,6 +375,83 @@ def test_run_llama_server_fails_closed_when_router_capability_is_missing(
     assert "router mode was requested" in completed.stderr
     assert "FAKE_SERVER_STARTED" not in completed.stdout
     assert "ROUTER_MODE=disabled" not in completed.stdout
+
+
+def test_run_llama_server_rejects_invalid_router_mode(tmp_path: Path) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    with env_file.open("a", encoding="utf-8") as handle:
+        handle.write("LLAMA_SERVER_ROUTER_MODE=enabled\n")
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=_base_env(tmp_path, env_file),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert "LLAMA_SERVER_ROUTER_MODE must be 0 or 1" in completed.stderr
+    assert "Starting llama-server" not in completed.stdout
+
+
+def test_run_llama_server_rejects_incidental_router_help_text(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    fake_bin = tmp_path / "llama-server"
+    fake_bin.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "${1:-}" == "--help" ]]; then',
+                '  echo "Use --models-dir to configure a model directory"',
+                "  exit 0",
+                "fi",
+                'echo "FAKE_SERVER_STARTED"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    fake_bin.chmod(0o755)
+    env_file.write_text(
+        "\n".join(
+            [
+                f"LLAMA_SERVER_MODELS_DIR={models_dir}",
+                "LLAMA_SERVER_ROUTER_MODE=1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_BIN"] = str(fake_bin)
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert "router mode was requested" in completed.stderr
+    assert "FAKE_SERVER_STARTED" not in completed.stdout
 
 
 def test_run_llama_server_uses_resolved_symlink_target_for_library_path(
