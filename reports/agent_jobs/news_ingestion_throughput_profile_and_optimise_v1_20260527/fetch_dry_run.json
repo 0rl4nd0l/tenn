@@ -1,0 +1,52 @@
+{
+  "asx_wide": false,
+  "dry_run": true,
+  "lane": "high_precision",
+  "mode": "daily",
+  "news_articles_db": "SCRATCH_TMP_FETCH/news_articles.sqlite",
+  "news_runs_root": "SCRATCH_TMP_FETCH/news_runs",
+  "paths": {
+    "news_articles_db": "SCRATCH_TMP_FETCH/news_articles.sqlite",
+    "news_artifact_root": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED",
+    "news_artifact_root_source": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED",
+    "news_context_db": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED/news.sqlite",
+    "news_runs_root": "SCRATCH_TMP_FETCH/news_runs"
+  },
+  "provider_options": {
+    "newspaper4k": {
+      "max_articles_per_source": 15,
+      "max_total_articles": 60,
+      "no_playwright": true,
+      "request_timeout_seconds": 10,
+      "sleep_seconds": 0.5,
+      "source_profile": "daily"
+    }
+  },
+  "providers": [
+    "newspaper4k"
+  ],
+  "since_hours": 36,
+  "tickers_count": 375,
+  "tickers_sample": [
+    "10X",
+    "29M",
+    "AAM",
+    "ABE",
+    "ABV",
+    "ACF",
+    "ADC",
+    "ADD",
+    "ADR",
+    "ADT",
+    "AEF",
+    "AEG",
+    "AFI",
+    "AGD",
+    "AGE",
+    "AGL",
+    "AGX1",
+    "ALI",
+    "ALM",
+    "ALPH"
+  ]
+}
