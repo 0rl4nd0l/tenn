@@ -1,0 +1,31 @@
+{
+  "agent": "Codex",
+  "branch": "audit/cross-route-evidence-envelope-regression-matrix-v1-20260601",
+  "child_issues_created": [
+    175
+  ],
+  "job_id": "cross_route_evidence_envelope_regression_matrix_v1_20260526",
+  "lane": "Evaluation",
+  "mode": "audit_only",
+  "output_dir": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526",
+  "owner": "Codex",
+  "registry_released_at": "2026-06-01T10:19:12.823576Z",
+  "related_issue": 104,
+  "schema_version": 1,
+  "status": "completed_report_only_with_followups",
+  "updated_at": "2026-06-01T20:19:21+10:00",
+  "validation": {
+    "child_issue_creation": "PASS: #175",
+    "diff_check": "PASS",
+    "duplicate_child_search": "PASS",
+    "duplicate_parent_search": "PASS",
+    "forbidden_surface_changes": "PASS: report-only plus bounded child issue creation",
+    "json_validation": "PASS",
+    "registry_release": "PASS",
+    "static_source_inspection": "PASS",
+    "subagent_review": "PASS",
+    "task_card_check_diff": "PASS",
+    "task_card_validate": "PASS"
+  },
+  "worktree": "/home/l4nd0/tenn-cross-route-evidence-envelope-regression-matrix-v1-20260601"
+}
