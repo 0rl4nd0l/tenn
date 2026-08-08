@@ -1,0 +1,90 @@
+{
+  "collected_at": "2026-06-01T08:26:36Z",
+  "docker_compose_containers": [
+    {
+      "name": "fe_backend",
+      "image": "financial-engine_v2-backend",
+      "status": "Exited (0) 31 hours ago"
+    },
+    {
+      "name": "fe_worker",
+      "image": "financial-engine_v2-worker",
+      "status": "Exited (0) 31 hours ago"
+    },
+    {
+      "name": "fe_gpu_worker",
+      "image": "financial-engine_v2-gpu_worker",
+      "status": "Exited (0) 31 hours ago"
+    },
+    {
+      "name": "fe_redis",
+      "image": "redis:7",
+      "status": "Exited (1) 5 days ago"
+    }
+  ],
+  "fe_redis_inspect": {
+    "name": "/fe_redis",
+    "status": "exited",
+    "exit_code": 1,
+    "started_at": "2026-05-27T05:21:39.318257776Z",
+    "finished_at": "2026-05-27T05:21:39.415447684Z",
+    "restart_policy": "no",
+    "image": "redis:7",
+    "network_mode": "host"
+  },
+  "fe_redis_log_summary": [
+    "Redis tried to start in standalone mode on port 6379.",
+    "Startup aborted because the TCP listening socket on *:6379 was already in use.",
+    "The same bind conflict appeared in repeated startup attempts on 2026-05-27."
+  ],
+  "host_redis_listener": {
+    "ss": [
+      "LISTEN 0 511 127.0.0.1:6379 0.0.0.0:*",
+      "LISTEN 0 511 [::1]:6379 [::]:*"
+    ],
+    "process": "pid=931 ppid=1 user=redis stat=Ssl etime=1-07:18:27 cmd=/usr/bin/redis-server 127.0.0.1:6379"
+  },
+  "redis_ping": {
+    "127.0.0.1": "PONG",
+    "localhost": "PONG"
+  },
+  "container_redis_env": {
+    "fe_backend": {
+      "REDIS_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_BROKER_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_RESULT_BACKEND": "redis://127.0.0.1:6379/1",
+      "TENN_HOST_NETWORK": "true"
+    },
+    "fe_worker": {
+      "REDIS_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_BROKER_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_RESULT_BACKEND": "redis://127.0.0.1:6379/1",
+      "TENN_HOST_NETWORK": "true"
+    },
+    "fe_gpu_worker": {
+      "REDIS_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_BROKER_URL": "redis://127.0.0.1:6379/0",
+      "CELERY_RESULT_BACKEND": "redis://127.0.0.1:6379/1",
+      "TENN_HOST_NETWORK": "true"
+    }
+  },
+  "source_evidence": {
+    "financial-engine_v2/docker-compose.yml": [
+      "redis service container_name is fe_redis",
+      "redis service network_mode is host",
+      "backend/worker/gpu_worker/fe_beat depend on redis with condition service_started"
+    ],
+    "financial-engine_v2/backend/app/core/config.py": [
+      "_default_redis_base_url uses redis in Docker and 127.0.0.1 otherwise",
+      "_normalize_redis_url rewrites redis/localhost hostnames to 127.0.0.1 when TENN_HOST_NETWORK is true"
+    ],
+    "financial-engine_v2/scripts/run_local_backend.sh": [
+      "local backend defaults REDIS_URL to redis://127.0.0.1:6379/0",
+      "local backend defaults CELERY_RESULT_BACKEND to redis://127.0.0.1:6379/1"
+    ],
+    "financial-engine_v2/backend/app/routes/cockpit_api.py": [
+      "Cockpit health probes redis by opening a socket to settings.celery_broker_url"
+    ]
+  },
+  "runtime_conclusion": "The current host-network runtime is configured to use host Redis at 127.0.0.1:6379. fe_redis is exited because it also uses host networking and cannot bind a port already owned by the host redis-server."
+}

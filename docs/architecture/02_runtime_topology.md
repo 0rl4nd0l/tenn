@@ -16,6 +16,25 @@ Production runtime layout: Docker services for core stack plus a native llama.cp
 
 When OpenBB sidecar is used: **8081** (OpenBB sidecar HTTP API).
 
+### Redis ownership in host-network runtime
+
+The NVMe/local host-network runtime uses the host Redis listener on
+`127.0.0.1:6379` for `REDIS_URL`, `CELERY_BROKER_URL`, and
+`CELERY_RESULT_BACKEND`. Backend and worker containers that run with
+`network_mode: host` should therefore point at `redis://127.0.0.1:6379/...`,
+not Docker service DNS.
+
+The compose `redis` service is named `fe_redis` and also uses host networking.
+It cannot run at the same time as a host `redis-server` that already owns
+port `6379`. In that topology, `fe_redis` exiting with a bind conflict is a
+Redis ownership conflict, not by itself proof that the broker configured for
+backend or worker traffic is down. Broker health should be evaluated against
+the configured `CELERY_BROKER_URL` endpoint.
+
+Do not switch ownership between host Redis and `fe_redis` by stopping or
+starting Redis processes without an explicit runtime change plan and queue
+safety check.
+
 ---
 
 ## Native services (host)
