@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/watchlist/watchlist-screen.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/watchlist/watchlist-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_watchlist_empty_state_actionability_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/watchlist-empty-state.png",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_watchlist_empty_state_actionability_v1_20260526.md",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/README.md",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/status.json",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/validation.json",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/diff-check.json",
+        "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/watchlist-empty-state.png",
+        "cockpit-ui/components/cockpit/watchlist/watchlist-screen.tsx",
+        "cockpit-ui/components/cockpit/watchlist/watchlist-screen.test.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_watchlist_empty_state_actionability_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
