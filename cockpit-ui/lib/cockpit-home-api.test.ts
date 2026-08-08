@@ -489,7 +489,7 @@ describe('CockpitHomePage live BFF wiring', () => {
 
   it('loads partial BFF state without hiding missing portfolio fields behind mock data', async () => {
     const payload = homeBffPayload();
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(payload));
+    const fetchMock = routeAwareHomePageFetch(payload);
     vi.stubGlobal('fetch', fetchMock);
 
     render(createElement(CockpitHomePage));
@@ -564,7 +564,7 @@ describe('CockpitHomePage live BFF wiring', () => {
         },
       ],
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+    vi.stubGlobal('fetch', routeAwareHomePageFetch(payload));
 
     render(createElement(CockpitHomePage));
 
@@ -581,12 +581,27 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(within(panel).queryByText('CLAIM VERIFIED')).not.toBeInTheDocument();
   });
 
+  it('keeps the primary workspace before Strategy Lab audit cards', async () => {
+    const fetchMock = routeAwareHomePageFetch(homeBffPayload());
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(createElement(CockpitHomePage));
+
+    const usefulNowPanel = await screen.findByTestId('home-useful-now-panel');
+    const strategyLabSection = await screen.findByTestId('home-strategy-lab-section');
+    const relation = usefulNowPanel.compareDocumentPosition(strategyLabSection);
+
+    expect(Boolean(relation & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/home',
+      expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
   it('loads source detail for resolvable Home commentary sources', async () => {
     const payload = homeBffPayload();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(payload))
-      .mockResolvedValueOnce(
+    const fetchMock = routeAwareHomePageFetch(payload, {
+      '/api/cockpit/commentary/takeaways': () =>
         jsonResponse({
           ok: true,
           source_id: 'youtube_transcript:source-a',
@@ -600,7 +615,7 @@ describe('CockpitHomePage live BFF wiring', () => {
           model: 'deterministic:commentary-staged-chunks',
           prompt_version: 'takeaways-v1-deterministic',
         }),
-      );
+    });
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
@@ -712,7 +727,7 @@ describe('CockpitHomePage live BFF wiring', () => {
         },
       ],
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+    vi.stubGlobal('fetch', routeAwareHomePageFetch(payload));
 
     render(createElement(CockpitHomePage));
 
@@ -746,7 +761,7 @@ describe('CockpitHomePage live BFF wiring', () => {
         tomorrow_prep: ['Check BHP opening liquidity.', 'Review portfolio exposure before ASX open.'],
       },
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+    vi.stubGlobal('fetch', routeAwareHomePageFetch(payload));
 
     render(createElement(CockpitHomePage));
 
@@ -766,7 +781,7 @@ describe('CockpitHomePage live BFF wiring', () => {
       data_missing: [signal('news', 'NO_RECENT_COMMENTARY', 'Recent commentary endpoint returned no approved commentary sources.')],
       news: [],
     });
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(payload));
+    const fetchMock = routeAwareHomePageFetch(payload);
     vi.stubGlobal('fetch', fetchMock);
 
     render(createElement(CockpitHomePage));
@@ -791,7 +806,7 @@ describe('CockpitHomePage live BFF wiring', () => {
         session: 'DEGRADED',
       },
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+    vi.stubGlobal('fetch', routeAwareHomePageFetch(payload));
 
     render(createElement(CockpitHomePage));
 
@@ -827,6 +842,30 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}): Response {
       'Content-Type': 'application/json',
       ...init.headers,
     },
+  });
+}
+
+type RouteAwareFetchOverride = (input: RequestInfo | URL, init?: RequestInit) => Response | Promise<Response>;
+
+function routeAwareHomePageFetch(
+  homePayload: CockpitHomeBffResponse,
+  overrides: Record<string, RouteAwareFetchOverride> = {},
+) {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url = rawUrl.startsWith('http') ? new URL(rawUrl) : null;
+    const path = url ? `${url.pathname}${url.search}` : rawUrl;
+
+    if (path === '/api/cockpit/home') {
+      return jsonResponse(homePayload);
+    }
+
+    const override = overrides[path];
+    if (override) {
+      return override(input, init);
+    }
+
+    return jsonResponse({ ok: false }, { status: 503 });
   });
 }
 
