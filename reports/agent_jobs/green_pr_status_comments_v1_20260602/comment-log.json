@@ -1,0 +1,127 @@
+{
+  "job_id": "green_pr_status_comments_v1_20260602",
+  "generated_at": "2026-06-02T03:50:33Z",
+  "decision_policy": "post only when no equivalent current green/clean issue status comment was already visible; keep every issue open",
+  "comments": [
+    {
+      "issue": 181,
+      "issue_state_after": "OPEN",
+      "covering_pr": 190,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/181#issuecomment-4598551403",
+      "note": "Green/clean replacement status for closed/unmerged PR #187 replacement PR #190."
+    },
+    {
+      "issue": 101,
+      "issue_state_after": "OPEN",
+      "covering_pr": 191,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/101#issuecomment-4598553219",
+      "note": "Green/clean status for YouTube provenance metadata PR."
+    },
+    {
+      "issue": 102,
+      "issue_state_after": "OPEN",
+      "covering_pr": 192,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/102#issuecomment-4598553306",
+      "note": "Green/clean status for offline fail-closed YouTube intake quality gate PR."
+    },
+    {
+      "issue": 90,
+      "issue_state_after": "OPEN",
+      "covering_pr": 197,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/90#issuecomment-4598553379",
+      "note": "Green/clean replacement status for superseded PR #194 replacement PR #197."
+    },
+    {
+      "issue": 154,
+      "issue_state_after": "OPEN",
+      "covering_pr": 198,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/154#issuecomment-4598553447",
+      "note": "Green/clean status for scoped Memory Workbench write path guard PR."
+    },
+    {
+      "issue": 72,
+      "issue_state_after": "OPEN",
+      "covering_pr": 200,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/72#issuecomment-4598553537",
+      "note": "Green/clean status for candidate-only Appendix 4C sidecar parser PR."
+    },
+    {
+      "issue": 120,
+      "issue_state_after": "OPEN",
+      "covering_pr": 203,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/120#issuecomment-4598553620",
+      "note": "Green/clean status for pending-action normal follow-up regression PR."
+    },
+    {
+      "issue": 121,
+      "issue_state_after": "OPEN",
+      "covering_pr": 202,
+      "pr_state": "OPEN",
+      "pr_is_draft": false,
+      "merge_state_status": "CLEAN",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      },
+      "decision": "POST",
+      "comment_url": "https://github.com/0rl4nd0l/tenn/issues/121#issuecomment-4598553698",
+      "note": "Green/clean audit-only status; issue remains open for backend guard parity remediation."
+    }
+  ]
+}
