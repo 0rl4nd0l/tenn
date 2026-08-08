@@ -1,0 +1,32 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_intel_pulse_signals_memory_capability_v1_20260531.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md",
+    "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/README.md",
+    "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/status.json",
+    "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/validation.json",
+    "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/diff-check.json",
+    "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/capability_audit.md"
+  ],
+  "branch": "safe/reporting-intel-pulse-signals-memory-capability-v1-20260601",
+  "claimed_at": "2026-06-01T07:21:04.452687Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T07:21:04.452687Z",
+  "job_id": "cockpit_intel_pulse_signals_memory_capability_v1_20260531",
+  "lane": "Reporting",
+  "last_seen_at": "2026-06-01T07:23:28.767810Z",
+  "output_dir": "reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T07:23:28.767810Z",
+  "repo_root": "/home/l4nd0/tenn-reporting-intel-pulse-signals-memory-capability-v1-20260601",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:57454:cockpit_intel_pulse_signals_memory_capability_v1_20260531",
+  "started_at": "2026-06-01T07:21:04.452687Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md",
+  "updated_at": "2026-06-01T07:23:28.767810Z",
+  "worktree": "/home/l4nd0/tenn-reporting-intel-pulse-signals-memory-capability-v1-20260601"
+}

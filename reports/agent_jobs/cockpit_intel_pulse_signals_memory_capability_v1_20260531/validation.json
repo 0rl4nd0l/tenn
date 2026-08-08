@@ -1,0 +1,80 @@
+{
+  "job_id": "cockpit_intel_pulse_signals_memory_capability_v1_20260531",
+  "issue": 148,
+  "lane": "Reporting",
+  "supporting_lanes": [
+    "Memory",
+    "Query Orchestration"
+  ],
+  "branch": "safe/reporting-intel-pulse-signals-memory-capability-v1-20260601",
+  "worktree": "/home/l4nd0/tenn-reporting-intel-pulse-signals-memory-capability-v1-20260601",
+  "mode": "audit_only",
+  "checks": [
+    {
+      "name": "duplicate_issue_pr_search",
+      "command": "gh pr list --state all --search \"Intel Pulse Signals Memory capability\" --json number,title,state,headRefName,url && gh issue list --state all --search \"Intel Pulse Signals Memory\" --json number,title,state,url",
+      "result": "passed",
+      "details": "No PR matched; only issue #148 matched."
+    },
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md",
+      "result": "passed"
+    },
+    {
+      "name": "registry_list_active_preclaim",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "details": "active_jobs=[]"
+    },
+    {
+      "name": "registry_check_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "name": "read_only_evidence_inspection",
+      "command": "gh issue view 148; sed/nl/rg over Intel Pulse UI, API client/types, backend route and service files, prior report artifacts",
+      "result": "passed"
+    },
+    {
+      "name": "json_validation",
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/cockpit_intel_pulse_signals_memory_capability_v1_20260531/validation.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "name": "diff_whitespace",
+      "command": "git diff --check && git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_intel_pulse_signals_memory_capability_v1_20260531.md --repo-root .",
+      "result": "passed"
+    }
+  ],
+  "decision": "Backend capability contract first; do not wire live Signals or Memory data until canonical source and scope are selected.",
+  "data_missing": [
+    "Canonical Signals source is not selected.",
+    "Intel Pulse Memory scope is not selected.",
+    "Product choice between visible disabled stages and hidden unavailable stages is not selected.",
+    "graphify-out/GRAPH_REPORT.md was absent in this isolated worktree."
+  ],
+  "mutations_not_performed": [
+    "backend changes",
+    "frontend product changes",
+    "memory store writes",
+    "retrieval changes",
+    "financial truth changes",
+    "source or evidence label changes",
+    "Qdrant writes",
+    "Postgres writes",
+    "production data access",
+    "GPU or runtime configuration changes"
+  ]
+}
