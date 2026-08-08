@@ -1,0 +1,245 @@
+{
+  "cases": [
+    {
+      "decision": "reject",
+      "description": "Video metadata is available but no transcript text can be fetched.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 0.0,
+        "duration_seconds": 600,
+        "factual_signal_count": 0,
+        "factual_signals": [],
+        "has_transcript": false,
+        "speculative_signal_count": 0,
+        "speculative_signals": [],
+        "tickers": [],
+        "transcript_chars": 0
+      },
+      "expected_decision": "reject",
+      "id": "no_transcript",
+      "matches_expected": true,
+      "reason": "transcript_missing",
+      "routing_fields": {
+        "candidate_kind": "none",
+        "may_write_memory": false,
+        "requires_user_approval": false,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "reject",
+      "description": "Members-only videos must not enter autonomous intake.",
+      "evidence": {
+        "access_status": "members_only",
+        "chars_per_second": 0.0,
+        "duration_seconds": 900,
+        "factual_signal_count": 0,
+        "factual_signals": [],
+        "has_transcript": false,
+        "speculative_signal_count": 0,
+        "speculative_signals": [],
+        "tickers": [],
+        "transcript_chars": 0
+      },
+      "expected_decision": "reject",
+      "id": "members_only",
+      "matches_expected": true,
+      "reason": "members_only",
+      "routing_fields": {
+        "candidate_kind": "none",
+        "may_write_memory": false,
+        "requires_user_approval": false,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "quarantine",
+      "description": "A long video with only a short caption fragment is quarantined.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 0.038,
+        "duration_seconds": 1560,
+        "factual_signal_count": 2,
+        "factual_signals": [
+          "reported",
+          "production"
+        ],
+        "has_transcript": true,
+        "speculative_signal_count": 0,
+        "speculative_signals": [],
+        "tickers": [
+          "BHP"
+        ],
+        "transcript_chars": 59
+      },
+      "expected_decision": "quarantine",
+      "id": "short_incomplete",
+      "matches_expected": true,
+      "reason": "transcript_incomplete",
+      "routing_fields": {
+        "candidate_kind": "none",
+        "may_write_memory": false,
+        "requires_user_approval": false,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "requires_user_review",
+      "description": "Generic market talk without tickers or concrete evidence requires review.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 4.167,
+        "duration_seconds": 30,
+        "factual_signal_count": 0,
+        "factual_signals": [],
+        "has_transcript": true,
+        "speculative_signal_count": 0,
+        "speculative_signals": [],
+        "tickers": [],
+        "transcript_chars": 125
+      },
+      "expected_decision": "requires_user_review",
+      "id": "generic_low_signal",
+      "matches_expected": true,
+      "reason": "low_signal_or_no_ticker",
+      "routing_fields": {
+        "candidate_kind": "review",
+        "may_write_memory": false,
+        "requires_user_approval": true,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "factual_candidate",
+      "description": "Ticker-bearing factual discussion can become a factual candidate after review.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 4.433,
+        "duration_seconds": 30,
+        "factual_signal_count": 8,
+        "factual_signals": [
+          "reported",
+          "quarterly",
+          "results?",
+          "production",
+          "cash flow",
+          "costs?",
+          "capex",
+          "guidance"
+        ],
+        "has_transcript": true,
+        "speculative_signal_count": 0,
+        "speculative_signals": [],
+        "tickers": [
+          "BHP"
+        ],
+        "transcript_chars": 133
+      },
+      "expected_decision": "factual_candidate",
+      "id": "ticker_factual",
+      "matches_expected": true,
+      "reason": "ticker_factual_signals",
+      "routing_fields": {
+        "candidate_kind": "factual",
+        "may_write_memory": false,
+        "requires_user_approval": true,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "speculative_candidate",
+      "description": "Ticker-bearing thesis language stays speculative.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 3.533,
+        "duration_seconds": 30,
+        "factual_signal_count": 0,
+        "factual_signals": [],
+        "has_transcript": true,
+        "speculative_signal_count": 7,
+        "speculative_signals": [
+          "i think",
+          "could",
+          "if",
+          "my thesis",
+          "10x",
+          "ten[- ]?bagger",
+          "not financial advice"
+        ],
+        "tickers": [
+          "BHP"
+        ],
+        "transcript_chars": 106
+      },
+      "expected_decision": "speculative_candidate",
+      "id": "ticker_speculative",
+      "matches_expected": true,
+      "reason": "speculative_signals",
+      "routing_fields": {
+        "candidate_kind": "speculative",
+        "may_write_memory": false,
+        "requires_user_approval": true,
+        "source_issue": "refs #100"
+      }
+    },
+    {
+      "decision": "requires_user_review",
+      "description": "Mixed factual and speculative claims require review before memory routing.",
+      "evidence": {
+        "access_status": "public",
+        "chars_per_second": 3.9,
+        "duration_seconds": 30,
+        "factual_signal_count": 4,
+        "factual_signals": [
+          "reported",
+          "quarterly",
+          "production",
+          "costs?"
+        ],
+        "has_transcript": true,
+        "speculative_signal_count": 3,
+        "speculative_signals": [
+          "i think",
+          "could",
+          "if"
+        ],
+        "tickers": [
+          "BHP"
+        ],
+        "transcript_chars": 117
+      },
+      "expected_decision": "requires_user_review",
+      "id": "mixed_factual_speculative",
+      "matches_expected": true,
+      "reason": "mixed_factual_and_speculative",
+      "routing_fields": {
+        "candidate_kind": "review",
+        "may_write_memory": false,
+        "requires_user_approval": true,
+        "source_issue": "refs #100"
+      }
+    }
+  ],
+  "decision_counts": {
+    "factual_candidate": 1,
+    "quarantine": 1,
+    "reject": 2,
+    "requires_user_review": 2,
+    "speculative_candidate": 1
+  },
+  "ok": true,
+  "required_case_ids": [
+    "generic_low_signal",
+    "members_only",
+    "mixed_factual_speculative",
+    "no_transcript",
+    "short_incomplete",
+    "ticker_factual",
+    "ticker_speculative"
+  ],
+  "schema_version": 1,
+  "validation": {
+    "errors": [],
+    "ok": true
+  }
+}
