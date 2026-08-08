@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { ExternalLink, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
 
 import {
   listMarketplaceAlerts,
+  listMarketplaceMissions,
   type MarketplaceAlert,
+  type MarketplaceMission,
   updateMarketplaceAlert,
 } from '@/lib/marketplace-api'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +18,100 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface MarketplaceAlertsScreenProps {
   apiKey: string
+}
+
+interface MarketplaceEmptyContext {
+  reason: 'data_missing' | 'filter_excludes' | 'no_missions' | 'not_run' | 'zero_results'
+  title: string
+  detail: string
+  actionLabel: string
+  actionHref?: string
+  showClearFilters?: boolean
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+function missionScanCount(missions: MarketplaceMission[]): number {
+  return missions.filter((mission) => Boolean(mission.last_scan_at)).length
+}
+
+function firstMissionError(missions: MarketplaceMission[]): string | null {
+  const failedMission = missions.find((mission) => mission.last_error)
+  if (!failedMission?.last_error) return null
+  return `${failedMission.name}: ${failedMission.last_error}`
+}
+
+function emptyContextUnavailable(error: unknown): MarketplaceEmptyContext {
+  const detail = error instanceof Error ? error.message : 'unknown error'
+  return {
+    reason: 'data_missing',
+    title: 'DATA_MISSING: Marketplace mission context unavailable.',
+    detail: `The alerts endpoint returned zero items, but mission/run evidence could not be loaded: ${detail}`,
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
+}
+
+function alertsEmptyContext(
+  missions: MarketplaceMission[],
+  unfilteredAlertCount: number,
+  filtersActive: boolean,
+): MarketplaceEmptyContext {
+  if (filtersActive && unfilteredAlertCount > 0) {
+    return {
+      reason: 'filter_excludes',
+      title: 'Filters are hiding existing alerts.',
+      detail: `Unfiltered Marketplace evidence contains ${pluralize(
+        unfilteredAlertCount,
+        'alert',
+        'alerts',
+      )}; the selected status returned zero.`,
+      actionLabel: 'Clear filters',
+      showClearFilters: true,
+    }
+  }
+
+  if (missions.length === 0) {
+    return {
+      reason: 'no_missions',
+      title: 'No Marketplace missions configured yet.',
+      detail: 'Alerts require a saved mission and match-generating scan before Tenn can raise notifications.',
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  const missionError = firstMissionError(missions)
+  if (missionError) {
+    return {
+      reason: 'data_missing',
+      title: 'DATA_MISSING: Marketplace scan state is degraded.',
+      detail: `Mission evidence is available, but at least one mission reports an error: ${missionError}`,
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  const scannedMissions = missionScanCount(missions)
+  if (scannedMissions === 0) {
+    return {
+      reason: 'not_run',
+      title: 'Marketplace missions exist, but no scan run is recorded.',
+      detail: `${pluralize(missions.length, 'mission')} returned from the backend; none include last_scan_at.`,
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  return {
+    reason: 'zero_results',
+    title: 'Marketplace scans ran, but no alerts were returned.',
+    detail: `${pluralize(scannedMissions, 'mission')} include last_scan_at; no alert-triggering matches are available.`,
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
 }
 
 function formatClock(value: string): string {
@@ -41,18 +138,76 @@ function alertVariant(
   return 'outline'
 }
 
+function AlertsEmptyState({
+  context,
+  onClearFilters,
+  onRefresh,
+}: {
+  context: MarketplaceEmptyContext | null
+  onClearFilters: () => void
+  onRefresh: () => void
+}) {
+  const resolved = context ?? {
+    reason: 'data_missing',
+    title: 'DATA_MISSING: Marketplace empty-state context unavailable.',
+    detail: 'The alerts endpoint returned zero items, but no mission/run context was available to explain why.',
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
+
+  return (
+    <div className="rounded-md border border-dashed border-border px-4 py-6 text-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <p className="font-medium text-foreground">{resolved.title}</p>
+          <p className="max-w-2xl text-muted-foreground">{resolved.detail}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {resolved.showClearFilters ? (
+            <Button size="sm" onClick={onClearFilters}>
+              {resolved.actionLabel}
+            </Button>
+          ) : resolved.actionHref ? (
+            <Button size="sm" asChild>
+              <Link href={resolved.actionHref}>{resolved.actionLabel}</Link>
+            </Button>
+          ) : null}
+          <Button size="sm" variant="outline" onClick={onRefresh}>
+            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function MarketplaceAlertsScreen({ apiKey }: MarketplaceAlertsScreenProps) {
   const [alerts, setAlerts] = useState<MarketplaceAlert[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [emptyContext, setEmptyContext] = useState<MarketplaceEmptyContext | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setEmptyContext(null)
     try {
       const items = await listMarketplaceAlerts(apiKey, statusFilter === 'all' ? undefined : statusFilter)
       setAlerts(items)
+      if (items.length === 0) {
+        const filtersActive = statusFilter !== 'all'
+        try {
+          const [missions, unfilteredAlerts] = await Promise.all([
+            listMarketplaceMissions(apiKey),
+            filtersActive ? listMarketplaceAlerts(apiKey) : Promise.resolve<MarketplaceAlert[]>([]),
+          ])
+          setEmptyContext(alertsEmptyContext(missions, unfilteredAlerts.length, filtersActive))
+        } catch (contextError) {
+          setEmptyContext(emptyContextUnavailable(contextError))
+        }
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load Marketplace alerts')
     } finally {
@@ -72,6 +227,10 @@ export function MarketplaceAlertsScreen({ apiKey }: MarketplaceAlertsScreenProps
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Alert update failed')
     }
+  }
+
+  function clearAlertFilters() {
+    setStatusFilter('all')
   }
 
   return (
@@ -117,10 +276,16 @@ export function MarketplaceAlertsScreen({ apiKey }: MarketplaceAlertsScreenProps
         </Card>
 
         <div className="space-y-4">
-          {alerts.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-              No Marketplace alerts found for the selected filter.
+          {loading && alerts.length === 0 ? (
+            <div className="flex items-center justify-center p-12">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : alerts.length === 0 ? (
+            <AlertsEmptyState
+              context={emptyContext}
+              onClearFilters={clearAlertFilters}
+              onRefresh={() => void load()}
+            />
           ) : (
             alerts.map((alert) => (
               <Card key={alert.alert_id}>

@@ -1,0 +1,91 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/marketplace/alerts-screen.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/marketplace/alerts-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/marketplace/matches-screen.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/marketplace/matches-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_marketplace_empty_state_actionability_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state-mobile.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state-mobile.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_marketplace_empty_state_actionability_v1_20260526.md",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/README.md",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/status.json",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/validation.json",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/diff-check.json",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state.png",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state.png",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state-mobile.png",
+        "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state-mobile.png",
+        "cockpit-ui/components/cockpit/marketplace/matches-screen.tsx",
+        "cockpit-ui/components/cockpit/marketplace/matches-screen.test.tsx",
+        "cockpit-ui/components/cockpit/marketplace/alerts-screen.tsx",
+        "cockpit-ui/components/cockpit/marketplace/alerts-screen.test.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_marketplace_empty_state_actionability_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

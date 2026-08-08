@@ -5,11 +5,13 @@ import { BellOff, CheckSquare, ExternalLink, ImageOff, RefreshCw, ThumbsDown, Th
 import Link from 'next/link'
 
 import {
+  listMarketplaceMissions,
   listMarketplaceMatches,
   type MarketplaceAlertPolicy,
   type MarketplaceDealMetrics,
   type MarketplaceMatch,
   type MarketplaceMatchFeedbackValue,
+  type MarketplaceMission,
   type MarketplacePriceComparison,
   updateMarketplaceMatch,
   updateMarketplaceMatchFeedback,
@@ -62,6 +64,100 @@ const MATCH_SORT_OPTIONS = [
 ] as const
 
 type MatchSortMode = (typeof MATCH_SORT_OPTIONS)[number]['value']
+
+interface MarketplaceEmptyContext {
+  reason: 'data_missing' | 'filter_excludes' | 'no_missions' | 'not_run' | 'zero_results'
+  title: string
+  detail: string
+  actionLabel: string
+  actionHref?: string
+  showClearFilters?: boolean
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+function missionScanCount(missions: MarketplaceMission[]): number {
+  return missions.filter((mission) => Boolean(mission.last_scan_at)).length
+}
+
+function firstMissionError(missions: MarketplaceMission[]): string | null {
+  const failedMission = missions.find((mission) => mission.last_error)
+  if (!failedMission?.last_error) return null
+  return `${failedMission.name}: ${failedMission.last_error}`
+}
+
+function emptyContextUnavailable(error: unknown, surface: 'matches' | 'alerts'): MarketplaceEmptyContext {
+  const detail = error instanceof Error ? error.message : 'unknown error'
+  return {
+    reason: 'data_missing',
+    title: 'DATA_MISSING: Marketplace mission context unavailable.',
+    detail: `The ${surface} endpoint returned zero items, but mission/run evidence could not be loaded: ${detail}`,
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
+}
+
+function matchesEmptyContext(
+  missions: MarketplaceMission[],
+  unfilteredMatchCount: number,
+  filtersActive: boolean,
+): MarketplaceEmptyContext {
+  if (filtersActive && unfilteredMatchCount > 0) {
+    return {
+      reason: 'filter_excludes',
+      title: 'Filters are hiding existing matches.',
+      detail: `Unfiltered Marketplace evidence contains ${pluralize(
+        unfilteredMatchCount,
+        'match',
+        'matches',
+      )}; the current filters returned zero.`,
+      actionLabel: 'Clear filters',
+      showClearFilters: true,
+    }
+  }
+
+  if (missions.length === 0) {
+    return {
+      reason: 'no_missions',
+      title: 'No Marketplace missions configured yet.',
+      detail: 'Matches require a saved mission before Tenn can scan Marketplace listings.',
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  const missionError = firstMissionError(missions)
+  if (missionError) {
+    return {
+      reason: 'data_missing',
+      title: 'DATA_MISSING: Marketplace scan state is degraded.',
+      detail: `Mission evidence is available, but at least one mission reports an error: ${missionError}`,
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  const scannedMissions = missionScanCount(missions)
+  if (scannedMissions === 0) {
+    return {
+      reason: 'not_run',
+      title: 'Marketplace missions exist, but no scan run is recorded.',
+      detail: `${pluralize(missions.length, 'mission')} returned from the backend; none include last_scan_at.`,
+      actionLabel: 'Open mission setup',
+      actionHref: '/marketplace',
+    }
+  }
+
+  return {
+    reason: 'zero_results',
+    title: 'Marketplace scans ran, but no matches were returned.',
+    detail: `${pluralize(scannedMissions, 'mission')} include last_scan_at; the current result set is empty.`,
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
+}
 
 function decisionVariant(
   decisionBand: string,
@@ -372,6 +468,49 @@ function ScoreGauge({ score, compact = false }: { score: number; compact?: boole
   )
 }
 
+function MatchesEmptyState({
+  context,
+  onClearFilters,
+  onRefresh,
+}: {
+  context: MarketplaceEmptyContext | null
+  onClearFilters: () => void
+  onRefresh: () => void
+}) {
+  const resolved = context ?? {
+    reason: 'data_missing',
+    title: 'DATA_MISSING: Marketplace empty-state context unavailable.',
+    detail: 'The matches endpoint returned zero items, but no mission/run context was available to explain why.',
+    actionLabel: 'Open mission setup',
+    actionHref: '/marketplace',
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-md border border-dashed border-border px-6 py-16 text-center">
+      <RefreshCw className="h-12 w-12 text-muted-foreground/30" />
+      <div className="max-w-2xl space-y-2">
+        <p className="text-base font-medium text-foreground">{resolved.title}</p>
+        <p className="text-sm text-muted-foreground">{resolved.detail}</p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {resolved.showClearFilters ? (
+          <Button size="sm" onClick={onClearFilters}>
+            {resolved.actionLabel}
+          </Button>
+        ) : resolved.actionHref ? (
+          <Button size="sm" asChild>
+            <Link href={resolved.actionHref}>{resolved.actionLabel}</Link>
+          </Button>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={onRefresh}>
+          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+          Refresh
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenProps) {
   const [matches, setMatches] = useState<MarketplaceMatch[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
@@ -384,11 +523,13 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const [bulkSaving, setBulkSaving] = useState(false)
   const [selectedMatchIds, setSelectedMatchIds] = useState<Set<string>>(() => new Set())
   const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
+  const [emptyContext, setEmptyContext] = useState<MarketplaceEmptyContext | null>(null)
   const serverSort = sortMode === 'newest' ? 'first_found_desc' : undefined
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setEmptyContext(null)
     try {
       const items = await listMarketplaceMatches(apiKey, {
         status: statusFilter === 'all' ? undefined : statusFilter,
@@ -397,6 +538,20 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
       })
       setMatches(items)
       setSelectedMatchIds(new Set())
+      if (items.length === 0) {
+        const filtersActive = statusFilter !== 'all' || bandFilter !== 'all'
+        try {
+          const [missions, unfilteredMatches] = await Promise.all([
+            listMarketplaceMissions(apiKey),
+            filtersActive
+              ? listMarketplaceMatches(apiKey, { sort: serverSort })
+              : Promise.resolve<MarketplaceMatch[]>([]),
+          ])
+          setEmptyContext(matchesEmptyContext(missions, unfilteredMatches.length, filtersActive))
+        } catch (contextError) {
+          setEmptyContext(emptyContextUnavailable(contextError, 'matches'))
+        }
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load Marketplace matches')
     } finally {
@@ -455,6 +610,13 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const selectedMatches = visibleMatches.filter((match) => selectedMatchIds.has(match.match_id))
   const aboveRetailMatches = visibleMatches.filter(isAboveRetail)
   const weakBenchmarkMatches = visibleMatches.filter(hasWeakBenchmark)
+
+  function clearMatchFilters() {
+    setStatusFilter('all')
+    setBandFilter('all')
+    setNewOnly(false)
+    setSelectedMatchIds(new Set())
+  }
 
   function toggleMatchSelection(matchId: string) {
     setSelectedMatchIds((current) => {
@@ -651,15 +813,23 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
             <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : matches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-            <RefreshCw className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">No matches found for the current filters.</p>
-          </div>
+          <MatchesEmptyState
+            context={emptyContext}
+            onClearFilters={clearMatchFilters}
+            onRefresh={() => void load()}
+          />
         ) : visibleMatches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-            <RefreshCw className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">No new matches found for the current filters.</p>
-          </div>
+          <MatchesEmptyState
+            context={{
+              reason: 'filter_excludes',
+              title: 'New only is hiding existing matches.',
+              detail: `Marketplace returned ${pluralize(matches.length, 'match', 'matches')}, but none qualify as new.`,
+              actionLabel: 'Clear filters',
+              showClearFilters: true,
+            }}
+            onClearFilters={clearMatchFilters}
+            onRefresh={() => void load()}
+          />
         ) : (
           <div data-testid="marketplace-match-grid" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {visibleMatches.map((match) => {
