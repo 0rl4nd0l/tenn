@@ -15,6 +15,14 @@ import type {
   CockpitHomeDataMissingSignal,
 } from '@/types/cockpit-home';
 
+vi.mock('@/components/cockpit/home/cards/strategy-lab-status-card', () => ({
+  StrategyLabStatusCard: () => null,
+}));
+
+vi.mock('@/components/cockpit/home/cards/strategy-lab-artifacts-review-card', () => ({
+  StrategyLabArtifactsReviewCard: () => null,
+}));
+
 describe('Cockpit Home BFF route', () => {
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_API_URL;
@@ -473,6 +481,7 @@ describe('Cockpit Home BFF route', () => {
 
 describe('CockpitHomePage live BFF wiring', () => {
   afterEach(() => {
+    localStorage.clear();
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -513,6 +522,26 @@ describe('CockpitHomePage live BFF wiring', () => {
       "/full-chat?prompt=Summarize+today%27s+available+Home+context.",
     );
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
+  });
+
+  it('passes the configured API key to the Home BFF load request', async () => {
+    localStorage.setItem('cockpit.apiKey', 'home-test-key');
+    const payload = homeBffPayload();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(payload));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(createElement(CockpitHomePage));
+
+    expect(await screen.findByText('Home state: PARTIAL')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/home',
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({
+          'X-API-Key': 'home-test-key',
+        }),
+      }),
+    );
   });
 
   it('renders Useful Now from existing Home signals without upgrading missing state', async () => {
@@ -582,6 +611,7 @@ describe('CockpitHomePage live BFF wiring', () => {
   });
 
   it('loads source detail for resolvable Home commentary sources', async () => {
+    localStorage.setItem('cockpit.apiKey', 'home-test-key');
     const payload = homeBffPayload();
     const fetchMock = vi
       .fn()
@@ -615,6 +645,10 @@ describe('CockpitHomePage live BFF wiring', () => {
       '/api/cockpit/commentary/takeaways',
       expect.objectContaining({
         method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-API-Key': 'home-test-key',
+        }),
         body: JSON.stringify({ source_id: 'youtube_transcript:source-a', limit: 3 }),
         cache: 'no-store',
       }),
