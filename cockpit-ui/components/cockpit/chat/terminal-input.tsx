@@ -168,6 +168,7 @@ export function TerminalInput({ onSend, disabled, value: controlledValue, onValu
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={disabled ? 'Processing...' : 'Enter command or query...'}
+          aria-label="Cockpit command or query"
           disabled={disabled}
           className="flex-1 border-none bg-transparent font-mono text-lg text-white placeholder:text-blue-400/40 outline-none transition-colors duration-150 focus:placeholder:text-blue-400/60"
           autoComplete="off"
