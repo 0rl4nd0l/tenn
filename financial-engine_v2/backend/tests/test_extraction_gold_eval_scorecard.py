@@ -56,6 +56,10 @@ SOURCE_ASSET_MANIFEST = (
     / "eval_source_assets"
     / "confirmed_metric_coverage_source_assets.json"
 )
+REAL_GOLD_REVIEW_SOURCE_ASSET_MANIFEST = (
+    Path(__file__).parent / "eval_source_assets" / "real_gold_review_source_assets.json"
+)
+REAL_GOLD_CORPUS_DIR = Path(__file__).resolve().parents[2] / "data" / "extraction_gold_real"
 
 
 def _source_asset_manifest(tmp_path: Path, assets: list[dict]) -> dict:
@@ -903,6 +907,49 @@ def test_committed_source_asset_manifest_is_metadata_only():
         assert "bytes" not in asset
         assert "local_candidate_paths" in asset
         assert asset["source_kind"] in {"real_gold", "confirmed_metric_coverage"}
+
+
+def test_real_gold_review_source_asset_manifest_records_identity_metadata():
+    manifest = load_source_asset_manifest(REAL_GOLD_REVIEW_SOURCE_ASSET_MANIFEST)
+    assets = manifest["assets"]
+    fixture_ids = {
+        fixture_path.stem for fixture_path in REAL_GOLD_CORPUS_DIR.glob("*.json")
+    }
+
+    assert manifest["asset_policy"]["metadata_only"] is True
+    assert manifest["asset_policy"]["raw_pdfs_committed"] is False
+    assert manifest["asset_policy"]["hash_size_metadata_required"] is True
+    assert len(assets) == 15
+    assert {asset["fixture_id"] for asset in assets} == fixture_ids
+
+    for asset in assets:
+        assert asset["source_kind"] == "real_gold"
+        assert asset["source_file"].startswith("data/asx/docs/")
+        assert asset["expected_filename"].endswith(".pdf")
+        assert isinstance(asset["size_bytes"], int)
+        assert asset["size_bytes"] > 0
+        assert isinstance(asset["sha256"], str)
+        assert len(asset["sha256"]) == 64
+        int(asset["sha256"], 16)
+        assert asset["period_type"] in {"A", "H", "Q"}
+        assert asset["period_end"]
+        assert not any(
+            str(candidate).startswith("/mnt/")
+            for candidate in asset["local_candidate_paths"]
+        )
+
+    resolution = resolve_source_asset_manifest(
+        REAL_GOLD_REVIEW_SOURCE_ASSET_MANIFEST,
+        workspace_root=Path(__file__).resolve().parents[3],
+    )
+    assert resolution["status_counts"]["manifest_error"] == 0
+    assert resolution["status_counts"]["present_metadata_mismatch"] == 0
+    assert resolution["status_counts"]["present_unverified"] == 0
+    assert (
+        resolution["status_counts"]["present_verified"]
+        + resolution["status_counts"]["missing"]
+        == 15
+    )
 
 
 def test_source_asset_manifest_loads_and_reports_missing_without_pdf_requirement(
