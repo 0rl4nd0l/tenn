@@ -1,0 +1,67 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/tests/test_query_orchestrator.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/shared/ticker_inference.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/chat_ticker_intent_misclassification_fix_v1_20260602.md",
+        "financial-engine_v2/shared/ticker_inference.py",
+        "financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py",
+        "financial-engine_v2/cockpit/tests/test_tool_executor.py",
+        "financial-engine_v2/backend/tests/test_query_orchestrator.py",
+        "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/README.md",
+        "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/status.json",
+        "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/validation.json",
+        "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_comment_targets": [
+        119
+      ],
+      "job_id": "chat_ticker_intent_misclassification_fix_v1_20260602",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/chat_ticker_intent_misclassification_fix_v1_20260602",
+      "owner": "Codex",
+      "primary_lane": "Query Orchestration",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Chat ticker intent misclassification fix"
+    },
+    "ok": true
+  }
+}

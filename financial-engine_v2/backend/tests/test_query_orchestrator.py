@@ -240,6 +240,39 @@ def test_resolve_rejects_plain_language_false_ticker() -> None:
     assert entities["tickers"] == []
 
 
+def test_resolve_rejects_audit_prompt_ui_acronym_as_ticker() -> None:
+    entities = resolve(
+        "UI_AUDIT_GEMINI 2026-05-26: From the current Cockpit UI, "
+        "what should I review first today across holdings, watchlist, "
+        "and recent news? Use only visible/source-backed Tenn context "
+        "and say DATA_MISSING where needed."
+    )
+
+    assert entities["primary_ticker"] is None
+    assert entities["tickers"] == []
+
+
+def test_resolve_preserves_explicit_ui_ticker_forms() -> None:
+    entities = resolve("ASX:UI news")
+
+    assert entities["primary_ticker"] == "UI"
+    assert entities["tickers"] == ["UI"]
+
+
+def test_resolve_keeps_market_move_prompt_ticker_scoped() -> None:
+    entities = resolve("why did BHP fall today")
+
+    assert entities["primary_ticker"] == "BHP"
+    assert entities["tickers"] == ["BHP"]
+
+
+def test_resolve_keeps_financial_fact_prompt_ticker_scoped() -> None:
+    entities = resolve("What were BHP operating cash flows?")
+
+    assert entities["primary_ticker"] == "BHP"
+    assert entities["tickers"] == ["BHP"]
+
+
 def test_resolve_keeps_document_prompt_from_promoting_say_to_ticker() -> None:
     entities = resolve("What does the document say about BHP?")
 

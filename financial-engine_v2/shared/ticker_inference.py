@@ -10,6 +10,7 @@ EXPLICIT_TICKER_RE = re.compile(
 TICKER_TOKEN_RE = re.compile(
     r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b"
 )
+ALNUM_WORD_RE = re.compile(r"\b(?:[A-Za-z][A-Za-z0-9]*|[0-9]+[A-Za-z][A-Za-z0-9]*)\b")
 WHOLE_MESSAGE_TICKER_RE = re.compile(
     r"^\s*([A-Za-z0-9]{2,5})(?:\s+(?:1m|5m|15m|30m|1h|4h|1d|1w|1M|news|announcements?|price|chart|financials?))?\s*$",
     re.IGNORECASE,
@@ -17,14 +18,23 @@ WHOLE_MESSAGE_TICKER_RE = re.compile(
 DEFAULT_TICKER_CUE_PATTERNS = (
     r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
     r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle|"
-    r"report|results?|strategy|thesis|risk|catalysts?|document|history|was)\s+{token}\b",
+    r"report|results?|strategy|thesis|risk|catalysts?|document|history|was|"
+    r"summari[sz]e)\s+{token}\b",
     r"\b(?:what(?:'s| is)?\s+happened|what\s+happened|what(?:'s| is)?\s+going\s+on|"
     r"what(?:'s| is)?\s+new|latest\s+on|recent\s+update|update\s+me\s+on)\s+(?:with\s+)?{token}\b",
     r"\bwhat\s+does\s+{token}\s+do\b",
+    r"\bwhat\s+(?:was|were|is|are)\s+{token}\s+(?:revenue|sales|earnings?|profit|"
+    r"profits|ebitda?|cash\s+flows?|operating\s+cash\s+flows?|free\s+cash\s+flow|"
+    r"net\s+debt|debt|balance\s+sheet|risks?|catalysts?|margins?|valuation|guidance|"
+    r"capex|assets?|liabilities|equity|dividends?|eps|financials?)\b",
     r"\b(?:what|who)\s+is\s+{token}\b",
+    r"\bwhy\s+(?:did|is|was)\s+{token}\s+(?:fall|fell|drop|dropped|rise|rose|"
+    r"rally|rallied|sell\s*off|selloff|move|moving|jump|jumped|plunge|plunged)\b",
     r"\bprice\s+history\s+{token}\b",
     r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news|on|between|"
-    r"close|closing|summary|performance|results?|strategy|thesis)\b",
+    r"close|closing|summary|performance|results?|strategy|thesis|fall|fell|drop|"
+    r"dropped|rise|rose|rally|rallied|sell\s*off|selloff|move|moving|jump|jumped|"
+    r"plunge|plunged)\b",
 )
 COMMON_TICKER_STOPWORDS = frozenset(
     {
@@ -151,21 +161,17 @@ def detect_tickers(
         if is_valid_ticker_token(token, stopwords=stopwords):
             return [token]
 
-    tokens = extract_alpha_tokens(text)
-    uppercase_candidates = _unique_tickers(
-        upper
-        for original, upper in tokens
-        if original.isupper() and is_valid_ticker_token(upper, stopwords=stopwords)
-    )
-    if uppercase_candidates:
-        return uppercase_candidates
-
     whole_message = WHOLE_MESSAGE_TICKER_RE.fullmatch(text.strip())
     if whole_message:
         token = whole_message.group(1).upper()
         if is_valid_ticker_token(token, stopwords=stopwords):
             return [token]
 
+    compact_uppercase_tickers = _compact_uppercase_ticker_list(text, stopwords=stopwords)
+    if compact_uppercase_tickers:
+        return compact_uppercase_tickers
+
+    tokens = extract_alpha_tokens(text)
     return _unique_tickers(
         upper
         for original, upper in tokens
@@ -212,6 +218,24 @@ def _normalized_stopwords(stopwords: Iterable[str] | None) -> set[str]:
             str(word or "").strip().upper() for word in stopwords if str(word or "").strip()
         )
     return normalized
+
+
+def _compact_uppercase_ticker_list(
+    text: str,
+    *,
+    stopwords: Iterable[str] | None = None,
+) -> list[str]:
+    normalized_stopwords = _normalized_stopwords(stopwords)
+    candidates: list[str] = []
+    for match in ALNUM_WORD_RE.finditer(text):
+        original = match.group(0)
+        upper = original.upper()
+        if upper in normalized_stopwords:
+            continue
+        if not original.isupper() or not is_valid_ticker_token(upper, stopwords=stopwords):
+            return []
+        candidates.append(upper)
+    return _unique_tickers(candidates)
 
 
 def _unique_tickers(tokens: Iterable[str]) -> list[str]:
