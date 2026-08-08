@@ -1,0 +1,52 @@
+{
+  "job_id": "chat_context_only_local_news_sufficiency_v1_20260602",
+  "topic": "issue 265 local news context recent claims",
+  "pre_implementation_guard_observed": {
+    "evidence_grade": "VERIFIED pre-compaction current-turn command output",
+    "repo_root": "/home/l4nd0/tenn-issue265-chat-context-only-local-news-v1-20260629",
+    "branch": "safe/issue265-chat-context-only-local-news-current-base-v1-20260629",
+    "head": "f60b5161cd121a41c5cc56048feb055f82ebdd10",
+    "result": "PASS",
+    "registry_ledger": "PASS",
+    "duplicate_work_status": "CONTINUE",
+    "stop_reimplementation": false,
+    "active_matching_work": false
+  },
+  "post_implementation_guard_snapshot": {
+    "evidence_grade": "VERIFIED",
+    "repo_root": "/home/l4nd0/tenn-issue265-chat-context-only-local-news-v1-20260629",
+    "branch": "safe/issue265-chat-context-only-local-news-current-base-v1-20260629",
+    "head": "f60b5161cd121a41c5cc56048feb055f82ebdd10",
+    "canonical_head": "55da116ad6b20adccb7a66931601895b3e8ab757",
+    "merge_base": "f60b5161cd121a41c5cc56048feb055f82ebdd10",
+    "duplicate_work_status": "CONTINUE",
+    "registry_status": "PASS",
+    "ledger_status": "PASS",
+    "stop_reimplementation": true,
+    "path_ownership": {
+      "classification": "DIRTY_RELATED_WORKTREE",
+      "reasons": [
+        "dirty status overlaps topic terms"
+      ],
+      "dirty_status": [
+        " M financial-engine_v2/backend/app/services/tenn_chat.py",
+        " M financial-engine_v2/backend/tests/test_chat_route.py",
+        " M financial-engine_v2/backend/tests/test_news_retrieval_eval.py",
+        "?? docs/agent_tasks/chat_context_only_local_news_sufficiency_v1_20260602.md"
+      ]
+    },
+    "interpretation": "Expected after implementation because the topic worktree is dirty/staged; not a pre-implementation blocker. Canonical advanced after the branch was created, so refresh/rebase requires owner approval before PR."
+  },
+  "post_rebase_guard_snapshot": {
+    "evidence_grade": "VERIFIED",
+    "final_decision": "pass",
+    "path_ownership_classification": "VALID_TASK_WORKTREE",
+    "head": "015ada639dff0a7d8a659b513af0d707bb44f1ad",
+    "canonical_head": "55da116ad6b20adccb7a66931601895b3e8ab757",
+    "merge_base": "55da116ad6b20adccb7a66931601895b3e8ab757",
+    "duplicate_work_classification": "NO_MATCHING_ACTIVE_WORK_FOUND",
+    "registry_status": "PASS",
+    "ledger_status": "PASS",
+    "stop_reimplementation": false
+  }
+}
