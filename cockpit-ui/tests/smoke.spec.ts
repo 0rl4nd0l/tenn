@@ -40,8 +40,9 @@ test.describe('Cockpit Smoke Tests', () => {
     await expect(operationsLink).toBeVisible();
     await operationsLink.click();
     
-    // Use a longer timeout for navigation URL check
     await expect(page).toHaveURL(/\/operations/, { timeout: 30000 });
+    await expect(page.getByTestId('operations-ready')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('operations-ready')).toHaveAttribute('data-operations-ready', 'true');
   });
 
   test('should show Intel Pulse storage levels or no-data indicator', async ({ page }) => {
