@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/schemas/codex_automation_run_v1.schema.json",
+  "title": "Tenn Codex Automation Run Record V1",
+  "type": "object",
+  "required": [
+    "record_type",
+    "schema_version",
+    "run_id",
+    "job",
+    "lifecycle_status",
+    "execution_status",
+    "evidence_status",
+    "usefulness",
+    "functionality_result",
+    "started_at",
+    "model",
+    "usage",
+    "cost",
+    "artifacts",
+    "hashes",
+    "provenance"
+  ],
+  "properties": {
+    "record_type": {"const": "run"},
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "job": {"type": "string", "minLength": 1},
+    "lifecycle_status": {"enum": ["RUNNING", "SUCCEEDED", "PARTIAL", "FAILED", "ABANDONED", "SKIPPED_CONCURRENT"]},
+    "execution_status": {"type": ["string", "null"], "enum": [null, "SUCCEEDED", "PARTIAL", "FAILED"]},
+    "evidence_status": {"type": ["string", "null"], "enum": [null, "COMPLETE", "DEGRADED"]},
+    "usefulness": {"type": ["string", "null"], "enum": [null, "ACTIONABLE", "CONFIRMING", "NOISE"]},
+    "functionality_result": {"enum": ["WORKING", "PARTIAL", "BROKEN", "DATA_MISSING"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "ended_at": {"type": ["string", "null"]},
+    "duration_seconds": {"type": ["number", "null"], "minimum": 0},
+    "model_gate": {"type": ["object", "null"]},
+    "model": {
+      "type": "object",
+      "required": ["name", "reasoning_effort", "selection_source"],
+      "properties": {
+        "name": {"type": ["string", "null"]},
+        "reasoning_effort": {"type": ["string", "null"]},
+        "selection_source": {"type": "string"}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "required": ["input_tokens", "cached_input_tokens", "uncached_input_tokens", "output_tokens", "reasoning_output_tokens"],
+      "properties": {
+        "input_tokens": {"type": "integer", "minimum": 0},
+        "cached_input_tokens": {"type": "integer", "minimum": 0},
+        "uncached_input_tokens": {"type": "integer", "minimum": 0},
+        "output_tokens": {"type": "integer", "minimum": 0},
+        "reasoning_output_tokens": {"type": "integer", "minimum": 0}
+      }
+    },
+    "cost": {
+      "type": "object",
+      "required": ["status", "estimated_usd", "pricing_source"],
+      "properties": {
+        "status": {"enum": ["VERIFIED", "DATA_MISSING"]},
+        "estimated_usd": {"type": ["number", "null"]},
+        "pricing_source": {"type": ["string", "null"]}
+      }
+    },
+    "required_probe_coverage": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "comparison_state": {"type": ["string", "null"]},
+    "artifacts": {"type": "object"},
+    "hashes": {"type": "object"},
+    "provenance": {"type": "object"},
+    "scoring_reason": {"type": ["string", "null"]},
+    "abandoned": {"type": "object"},
+    "concurrent_with": {"type": ["string", "null"]}
+  }
+}
