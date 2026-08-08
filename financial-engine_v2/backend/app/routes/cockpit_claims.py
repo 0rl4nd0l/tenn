@@ -4,9 +4,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.routes import require_api_key
 from app.services.claim_verification import verify_claims_against_evidence
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,11 @@ def _current_turn_evidence(session_id: str | None, assistant_text: str) -> list[
     return evidence if isinstance(evidence, list) else []
 
 
-@router.post("/claims/verify", response_model=ClaimVerificationResponse)
+@router.post(
+    "/claims/verify",
+    response_model=ClaimVerificationResponse,
+    dependencies=[Depends(require_api_key)],
+)
 async def cockpit_verify_claims(payload: ClaimVerificationRequest) -> ClaimVerificationResponse:
     assistant_text = str(payload.assistant_text or "").strip()
     if not assistant_text:
