@@ -1,0 +1,94 @@
+{
+  "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+  "issue": 150,
+  "generated_at": "2026-06-01T18:46:54+10:00",
+  "repo_evidence_only": true,
+  "routes": [
+    {
+      "route": "POST /chat",
+      "owner": "financial-engine_v2/backend/app/routes/chat.py",
+      "mount_evidence": [
+        "financial-engine_v2/backend/app/main.py:97",
+        "financial-engine_v2/backend/app/routes/chat.py:156"
+      ],
+      "handler": "chat(payload: ChatRequest, request: Request)",
+      "response_contract": "analysis wrapper with content from chat_with_tenn, or strategy proposal/confirmation responses",
+      "source_label_status": {
+        "content_sources_have_labels": true,
+        "response_level_evidence_labels": true,
+        "route_level_source_label_taxonomy_version": false,
+        "route_level_evidence_envelope": false
+      },
+      "known_callers": [
+        "cockpit-ui/app/chat/route.ts:23 proxies to backend /chat"
+      ],
+      "coverage": [
+        "financial-engine_v2/backend/tests/test_chat_route.py:15-76"
+      ]
+    },
+    {
+      "route": "POST /api/chat",
+      "owner": "financial-engine_v2/backend/app/routes/chat.py",
+      "mount_evidence": [
+        "financial-engine_v2/backend/app/main.py:98",
+        "financial-engine_v2/backend/app/routes/chat.py:156"
+      ],
+      "handler": "same handler as POST /chat via /api prefix mount",
+      "response_contract": "same as POST /chat",
+      "source_label_status": {
+        "content_sources_have_labels": true,
+        "response_level_evidence_labels": true,
+        "route_level_source_label_taxonomy_version": false,
+        "route_level_evidence_envelope": false
+      },
+      "known_callers": [
+        "financial-engine_v2/README.md:48",
+        "docs/architecture/19_backend_api_surface.md:93-98"
+      ],
+      "coverage": [
+        "financial-engine_v2/backend/tests/test_chat_route.py:15-76"
+      ]
+    },
+    {
+      "route": "POST /api/cockpit/chat",
+      "owner": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "mount_evidence": [
+        "financial-engine_v2/backend/app/main.py:113-114",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:9927"
+      ],
+      "handler": "cockpit_chat(payload: CockpitChatRequest, request: Request)",
+      "response_contract": "blocking done envelope or SSE stream with status/chunk/tool/sources/action/chart/done/end events",
+      "source_label_status": {
+        "content_sources_have_labels": true,
+        "response_level_evidence_labels": true,
+        "route_level_source_label_taxonomy_version": true,
+        "visible_source_contract": true,
+        "route_level_evidence_envelope": "cockpit metadata envelope, not legacy compatibility envelope"
+      },
+      "known_callers": [
+        "cockpit-ui/lib/api-client.ts:671-684",
+        "cockpit-ui/lib/api-client.ts:757-792",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx:1378-1454",
+        "cockpit-ui/lib/marketplace-assistant.ts:861-868"
+      ],
+      "coverage": [
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py:21-60",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream_keepalive.py:34-46",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_sessions.py:29-42",
+        "cockpit-ui/lib/api-client.test.ts:49-62"
+      ]
+    }
+  ],
+  "parked_evidence": {
+    "candidate_branch": "safe/query-legacy-chat-envelope-compat-v1",
+    "candidate_commit": "9fc3d158f0cab218ae17343c00a56cf4d66cc240",
+    "current_branch_contains_candidate": false,
+    "classification": "parked_not_current_behavior",
+    "report": "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1/README.md"
+  },
+  "data_missing": [
+    "No live HTTP smoke was run.",
+    "No product decision was made to harden or deprecate legacy routes.",
+    "No cherry-pick validation was run for parked evidence-envelope commits."
+  ]
+}

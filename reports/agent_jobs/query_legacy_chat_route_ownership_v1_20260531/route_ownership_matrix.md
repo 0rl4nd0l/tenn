@@ -1,0 +1,14 @@
+# Route Ownership Matrix
+
+| Route | Owner | Mount Evidence | Current Callers | Current Envelope | Source/Evidence Label Status | Test Coverage | Decision |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `POST /chat` | Legacy backend chat route in `financial-engine_v2/backend/app/routes/chat.py` | `main.py:97` mounts `chat_router`; `routes/chat.py:156` declares `@router.post("/chat")` | Next `/chat` proxy posts to backend `/chat` at `cockpit-ui/app/chat/route.ts:23`; current audit did not find `ChatScreen` using this proxy | `{"type": "analysis", "content": ...}` for analysis; strategy returns proposal/confirmation content | `content.sources[]` and response-level `content.evidence_labels` come from `chat_with_tenn()`, but no route-level `source_label_taxonomy_version` or compatibility evidence envelope was found | Direct function tests in `test_chat_route.py:15-76`; no route-level taxonomy/envelope regression found | Keep classified as legacy compatibility until a separate safe-extension task hardens or deprecates it |
+| `POST /api/chat` | Same legacy backend chat route in `financial-engine_v2/backend/app/routes/chat.py` | `main.py:98` mounts `chat_router` with `prefix="/api"`; same `routes/chat.py:156` handler | Documented backend compatibility/API surface; current Cockpit UI chat uses `/api/cockpit/chat` instead | Same as `/chat` | Same as `/chat` | Same as `/chat`; no HTTP route-level taxonomy/envelope regression found | Keep classified as legacy compatibility until a separate safe-extension task hardens or deprecates it |
+| `POST /api/cockpit/chat` | Cockpit backend API in `financial-engine_v2/backend/app/routes/cockpit_api.py` | `main.py:113-114` mounts `cockpit_api_router` under `/api/cockpit`; `cockpit_api.py:9927` declares `@router.post("/chat")` | `cockpit-ui/lib/api-client.ts:671-684`, `cockpit-ui/lib/api-client.ts:757-792`, `chat-screen.tsx:1378-1454`, `marketplace-assistant.ts:861-868` | Blocking: `{"type": "done", "data": ...}`; streaming: SSE status/chunk/tool/sources/action/chart/done/end events | Uses shared taxonomy and metadata: `source_label_taxonomy_version`, source-label counts, `evidence_labels`, coverage status, visible-source contract, evidence-gap labels | Broad backend streaming/session/keepalive tests plus frontend streaming transport tests | Treat as current Cockpit web chat contract; do not use its coverage to claim legacy route parity |
+
+## Ownership Boundary
+
+- `/chat` and `/api/chat` are live legacy compatibility routes, not the current Cockpit web chat route.
+- `/api/cockpit/chat` is the Cockpit web control-plane chat route.
+- Route-parity and source-label audits must report which route family they exercised.
+- The parked legacy evidence-envelope work can inform a future safe-extension task, but is not current behavior until integrated and validated.
