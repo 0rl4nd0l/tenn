@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/root_owned_python_cache_validation_blocker_v1.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/README.md",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/cache_inventory.json",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/cleanup_decision.md",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/status.json",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/validation.json",
+    "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/diff-check.json"
+  ],
+  "branch": "audit/root-owned-python-cache-validation-blocker-v1-20260601",
+  "claimed_at": "2026-06-01T09:36:10.694698Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T09:36:10.694698Z",
+  "job_id": "root_owned_python_cache_validation_blocker_v1",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-06-01T09:36:51.329062Z",
+  "output_dir": "reports/agent_jobs/root_owned_python_cache_validation_blocker_v1",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T09:36:51.329062Z",
+  "repo_root": "/home/l4nd0/tenn-root-owned-python-cache-validation-blocker-audit-v1-20260601",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:445001:root_owned_python_cache_validation_blocker_v1",
+  "started_at": "2026-06-01T09:36:10.694698Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+  "updated_at": "2026-06-01T09:36:51.329062Z",
+  "worktree": "/home/l4nd0/tenn-root-owned-python-cache-validation-blocker-audit-v1-20260601"
+}

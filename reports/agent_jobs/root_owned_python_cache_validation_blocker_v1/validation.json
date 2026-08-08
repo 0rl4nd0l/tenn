@@ -1,0 +1,61 @@
+{
+  "job_id": "root_owned_python_cache_validation_blocker_v1",
+  "issue": 140,
+  "checks": [
+    {
+      "command": "gh issue view 140 --repo 0rl4nd0l/tenn --json number,title,state,body,labels,url,comments",
+      "result": "pass"
+    },
+    {
+      "command": "gh pr list --repo 0rl4nd0l/tenn --state all --search \"140 OR root-owned Python cache OR compileall PermissionError OR __pycache__ validation writes\" --json number,title,state,url,headRefName,baseRefName,updatedAt,mergeStateStatus",
+      "result": "pass",
+      "evidence": "no duplicate PR found"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "pass",
+      "evidence": "active same-checkout Financial Truth job present"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+      "result": "pass",
+      "evidence": "no write-set overlap with the active Financial Truth job"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/root_owned_python_cache_validation_blocker_v1.md",
+      "result": "pass",
+      "evidence": "task card/report bundle only; no disallowed files"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/root_owned_python_cache_validation_blocker_v1/*.json",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release root_owned_python_cache_validation_blocker_v1",
+      "result": "pass"
+    },
+    {
+      "command": "find financial-engine_v2 -name '__pycache__' -type d -not -user \"$(id -un)\" -printf '%u %g %m %p\\n' | sort",
+      "result": "pass",
+      "evidence": "19 root-owned cache directories inventoried"
+    }
+  ],
+  "data_missing": [
+    "cleanup result after active same-worktree Financial Truth job releases",
+    "focused compile/write validation after cleanup or owner repair",
+    "post-cleanup proof that root-owned ignored source-tree __pycache__ directories are gone"
+  ],
+  "result": "pass_report_only_cleanup_deferred"
+}
