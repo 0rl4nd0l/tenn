@@ -1,0 +1,68 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/updater/updater-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_accessible_controls_memory_updater_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/accessibility_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_accessible_controls_memory_updater_v1_20260601.md",
+        "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/README.md",
+        "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/status.json",
+        "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/validation.json",
+        "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/diff-check.json",
+        "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601/accessibility_after.json",
+        "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
+        "cockpit-ui/components/cockpit/updater/updater-screen.tsx"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "pr_create",
+      "job_id": "cockpit_accessible_controls_memory_updater_v1_20260601",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_accessible_controls_memory_updater_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 53,
+      "stale_after_seconds": 7200,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
