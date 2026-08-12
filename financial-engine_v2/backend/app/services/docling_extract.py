@@ -548,7 +548,10 @@ def _openability_row_candidates(
             selected_words = [
                 word
                 for word in provenance.get("ocr_words", [])
-                if str(word.get("text") or "") == candidate_value
+                if candidate_value
+                in OPENABILITY_VALUE_TOKEN_PATTERN.findall(
+                    str(word.get("text") or "")
+                )
             ]
             selected_word = (
                 selected_words[candidate_value_occurrence]
@@ -576,6 +579,8 @@ def _openability_row_candidates(
                 if selected_word
                 else provenance.get("recognition_confidence")
             )
+            if selected_word is None:
+                candidate["candidate_value_quality"] = "low_confidence"
             if (
                 float(candidate["recognition_confidence"] or 0)
                 < OPENABILITY_OCR_MIN_CONFIDENCE

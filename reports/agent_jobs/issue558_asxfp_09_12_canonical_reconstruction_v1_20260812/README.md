@@ -43,7 +43,7 @@ No merge or rebase was performed, and no unrelated PR #537 content was carried f
 - Ticket 09, 10, and 11 historical task cards validate successfully with only their
   declared legacy-v1 warnings. Ticket 12 was an exceptional code-and-synthetic-test
   repair candidate and contains no task card.
-- Combined focused and highest available no-write selection: `488 passed` across
+- Combined focused and highest available no-write selection: `489 passed` across
   `test_financial_observations.py`, `test_financial_observation_reviews.py`,
   `test_asx_appendix4c_parser.py`, `test_asx_extraction_contracts.py`,
   `test_docling_extract.py`, and `test_multipass_extraction.py`.
@@ -66,7 +66,8 @@ No merge or rebase was performed, and no unrelated PR #537 content was carried f
   selected cell's provenance. The repaired selector excludes bare four-digit years from
   financial-amount priority and binds region, word index, and confidence to the selected
   numeric occurrence, including duplicate current/comparative value text. Regression
-  tests cover both boundaries.
+  tests cover both boundaries plus punctuation-bearing OCR tokens; unmatched tokens
+  fail closed.
 - The final exact-head Standards and Spec re-review is summarized in the session handoff.
 - Accepted carry-forward identity: resolve the final Issue #558 commit on the integration
   branch. Its immutable SHA is reported in the session handoff because a tracked file
