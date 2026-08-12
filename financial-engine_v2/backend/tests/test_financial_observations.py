@@ -1955,6 +1955,268 @@ def test_read_projects_each_metric_independently_and_preserves_sparse_legacy():
     }
 
 
+def test_stable_profile_rebuilds_legacy_shape_and_fails_closed():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.financial_observations import stable_financial_profile
+
+    original = _observation(100)
+    restated = _observation(90)
+    conflict_a = _observation(10, metric="ebit")
+    conflict_b = _observation(11, metric="ebit")
+    legacy = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2025, 6, 30),
+        period_type="A",
+        revenue=75,
+        ebit=8,
+        currency="AUD",
+        confidence_metrics=0.9,
+        source_document_id=uuid.uuid4(),
+    )
+    class AuthorityOnlySession(FakeSession):
+        def query(self, model):
+            if model is ASXPeriodicFinancial:
+                raise AssertionError("legacy financials must not be queried")
+            return super().query(model)
+
+    session = AuthorityOnlySession(
+        model_rows={
+            ASXPeriodicFinancial: [legacy],
+            FinancialObservation: [
+                conflict_b,
+                original,
+                restated,
+                conflict_a,
+            ],
+            FinancialObservationSupersession: [
+                _supersession(restated, original)
+            ],
+        }
+    )
+
+    assert stable_financial_profile(session, ticker=" bhp ") == (
+        {
+            "ticker": "BHP",
+            "period_end": date(2025, 6, 30),
+            "period_type": "A",
+            "currency": "AUD",
+            "confidence_metrics": None,
+            "source_document_id": str(restated.source_document_id),
+            "revenue": "90",
+            "ebit": None,
+            "np_attributable": None,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+    )
+
+
+def test_stable_profile_currency_is_null_for_share_only_and_ambiguous_truth():
+    from app.models.financial_observations import FinancialObservation
+    from app.services.financial_observations import stable_financial_profile
+
+    shares = _observation(
+        500,
+        metric="shares_outstanding",
+        currency="shares",
+    )
+    share_only = stable_financial_profile(
+        FakeSession(model_rows={FinancialObservation: [shares]}),
+        ticker="BHP",
+    )
+    assert share_only[0]["currency"] is None
+    assert share_only[0]["shares_outstanding"] == "500"
+    assert share_only[0]["confidence_metrics"] is None
+
+    aud = _observation(100, metric="revenue", currency="AUD")
+    usd = _observation(10, metric="ebit", currency="USD")
+    ambiguous = stable_financial_profile(
+        FakeSession(model_rows={FinancialObservation: [aud, usd, shares]}),
+        ticker="BHP",
+    )
+    assert ambiguous[0]["currency"] is None
+    assert ambiguous[0]["revenue"] is None
+    assert ambiguous[0]["ebit"] is None
+    assert ambiguous[0]["shares_outstanding"] == "500"
+    assert ambiguous[0]["confidence_metrics"] is None
+
+
+def test_accepted_projection_flows_to_context_diagnostics_without_fake_confidence():
+    from app.api.context import _projected_low_confidence_financials
+    from app.models.financial_observations import FinancialObservation
+
+    session = FakeSession(
+        model_rows={FinancialObservation: [_observation(100)]}
+    )
+
+    assert _projected_low_confidence_financials(
+        session,
+        ticker="BHP",
+        threshold=0.4,
+        limit=10,
+    ) == []
+
+
+def test_accepted_projection_flows_to_periodic_snapshot_metadata():
+    from app.models.financial_observations import FinancialObservation
+    from app.services.analysis.periodic_snapshot_export import (
+        build_financial_snapshot_v0,
+    )
+
+    payload = build_financial_snapshot_v0(
+        "BHP",
+        FakeSession(model_rows={FinancialObservation: [_observation(100)]}),
+    )
+
+    row = payload["periodic_rows"][0]
+    assert row["currency"] == "AUD"
+    assert row["confidence_metrics"] is None
+    assert row["revenue"] == 100.0
+
+
+def test_accepted_projection_flows_to_intel_pulse_truth_health(monkeypatch):
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.services.cockpit_service import CockpitService
+
+    observation = _observation(100)
+
+    class PulseQuery(FakeQuery):
+        def join(self, *_args):
+            return self
+
+        def distinct(self):
+            return self
+
+        def order_by(self, *_args):
+            return self
+
+        def limit(self, *_args):
+            return self
+
+        def scalar(self):
+            return 0
+
+        def count(self):
+            return 0
+
+    class PulseSession:
+        def query(self, *targets):
+            target = targets[0]
+            if target is FinancialObservation:
+                return PulseQuery(rows=[observation])
+            if target is FinancialObservationSupersession:
+                return PulseQuery(rows=[])
+            return PulseQuery(rows=[])
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        "app.services.cockpit_service.SessionLocal",
+        PulseSession,
+    )
+
+    payload = CockpitService.get_intel_pulse_stats(
+        CockpitService.__new__(CockpitService),
+        "BHP",
+    )
+
+    assert payload["stats"]["trust_score_avg"] == 1.0
+    evaluation = next(
+        stage for stage in payload["pipeline"] if stage["id"] == "evaluation"
+    )
+    assert evaluation == {
+        "id": "evaluation",
+        "label": "EVALUATION",
+        "health": 100.0,
+        "status": "nominal",
+    }
+
+
+def test_stable_profile_omits_legacy_only_rows_without_querying_legacy():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.services.financial_observations import stable_financial_profile
+
+    class AuthorityOnlySession(FakeSession):
+        def query(self, model):
+            if model is ASXPeriodicFinancial:
+                raise AssertionError("legacy financials must not be queried")
+            return super().query(model)
+
+    assert stable_financial_profile(
+        AuthorityOnlySession(rows=[]),
+        ticker="BHP",
+    ) == ()
+
+
+def test_loader_includes_accepted_truth_despite_stale_legacy_confidence():
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.models.financial_observations import (
+        FinancialObservation,
+        FinancialObservationSupersession,
+    )
+    from app.modules.context_loader import TickerContextLoader
+    from app.modules.ticker_context import ContextRequest
+
+    original = _observation(100)
+    restated = _observation(90)
+    projected_legacy = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2025, 6, 30),
+        period_type="A",
+        revenue=75,
+        currency="AUD",
+        confidence_metrics=0.2,
+        source_document_id=uuid.uuid4(),
+    )
+    legacy_only = SimpleNamespace(
+        ticker="BHP",
+        period_end=date(2024, 6, 30),
+        period_type="A",
+        revenue=60,
+        currency="AUD",
+        confidence_metrics=0.2,
+        source_document_id=uuid.uuid4(),
+    )
+    session = FakeSession(
+        model_rows={
+            ASXPeriodicFinancial: [legacy_only, projected_legacy],
+            FinancialObservation: [original, restated],
+            FinancialObservationSupersession: [
+                _supersession(restated, original)
+            ],
+        }
+    )
+
+    context = TickerContextLoader().load(
+        "BHP",
+        ContextRequest(
+            needs_risk_notes=False,
+            needs_documents=False,
+            max_periods=5,
+        ),
+        db=session,
+    )
+
+    assert context.financials is not None
+    assert [
+        (period.period_end, period.revenue)
+        for period in context.financials.periods
+    ] == [(date(2025, 6, 30), 90.0)]
+
+
 def test_read_returns_only_uncontested_matching_legacy_context():
     from app.services.financial_observations import accepted_revenue_overrides
 

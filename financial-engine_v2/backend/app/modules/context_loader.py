@@ -14,7 +14,7 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import Session
 
-from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.asx_financials import ASXRiskNote
 from app.models.documents import Document
 from app.models.openbb_snapshots import OpenBBPriceSnapshot
 from app.modules.math_utils import coerce
@@ -25,6 +25,7 @@ from app.modules.ticker_context import (
 from app.services.analysis.financial_metrics import (
     compute_period_metrics, compute_trends, score_financial_health,
 )
+from app.services.financial_observations import stable_financial_profile
 
 logger = logging.getLogger(__name__)
 
@@ -97,17 +98,15 @@ class TickerContextLoader:
         if not req.needs_financials:
             return None
         try:
-            rows = (
-                db.query(ASXPeriodicFinancial)
-                .filter(
-                    ASXPeriodicFinancial.ticker == ticker,
-                    ASXPeriodicFinancial.period_type == req.period_type,
-                    # Skip low-confidence rows (bad scale, extraction failures)
-                    ASXPeriodicFinancial.confidence_metrics > 0.5,
+            rows = [
+                row
+                for row in stable_financial_profile(db, ticker=ticker)
+                if row["period_type"] == req.period_type
+                and (
+                    row["confidence_metrics"] is None
+                    or row["confidence_metrics"] > 0.5
                 )
-                .order_by(ASXPeriodicFinancial.period_end.desc())
-                .limit(req.max_periods).all()
-            )
+            ][: req.max_periods]
         except Exception:
             logger.exception("DB error querying financials for %s", ticker)
             w.append(f"Failed to query financials for {ticker}.")
@@ -115,7 +114,7 @@ class TickerContextLoader:
         if not rows:
             w.append(f"No {req.period_type} financial rows for {ticker}.")
             return FinancialSummary(period_type=req.period_type)
-        raw = sorted((_row_to_dict(r) for r in rows),
+        raw = sorted((dict(r) for r in rows),
                      key=lambda r: str(r.get("period_end", "")))
         computed = [compute_period_metrics(r) for r in raw]
         trends_d = compute_trends(computed)

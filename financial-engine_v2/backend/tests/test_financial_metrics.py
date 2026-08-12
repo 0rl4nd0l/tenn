@@ -290,3 +290,50 @@ class TestBuildMetricsSummary:
         result = build_metrics_summary([], period_type="A")
         assert result["period_count"] == 0
         assert result["financial_health_score"] == 50.0  # default when no data
+
+
+def test_context_assembler_limits_rows_after_period_type_filter(monkeypatch):
+    from app.services.analysis import context_assembler
+
+    class EmptyQuery:
+        def filter(self, *args):
+            return self
+
+        def order_by(self, *args):
+            return self
+
+        def limit(self, value):
+            return self
+
+        def all(self):
+            return []
+
+    class EmptySession:
+        def query(self, model):
+            return EmptyQuery()
+
+    projected_rows = [
+        {"period_end": "2026-03-31", "period_type": "Q"},
+        {"period_end": "2025-12-31", "period_type": "year_to_date"},
+        {"period_end": "2025-09-30", "period_type": "H"},
+        {
+            "period_end": "2025-06-30",
+            "period_type": "A",
+            "revenue": 100.0,
+        },
+    ]
+    monkeypatch.setattr(
+        context_assembler,
+        "stable_financial_profile",
+        lambda db, *, ticker: tuple(projected_rows),
+    )
+
+    result = context_assembler.assemble(
+        "TST",
+        EmptySession(),
+        period_type="A",
+        max_periods=1,
+    )
+
+    assert result["metrics"]["period_count"] == 1
+    assert result["metrics"]["periods"][0]["period_end"] == "2025-06-30"
