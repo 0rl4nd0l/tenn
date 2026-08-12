@@ -57,7 +57,12 @@ or preserve `period_basis`. Red commit: `285f0c62`.
 
 ## Review, recoverability, and handoff
 
-- Standards and Spec review run against exact fixed point `6432765591f458fb54849926295a647f5831fd0b`; final findings are recorded in the session handoff.
+- Standards and Spec review ran against exact fixed point `6432765591f458fb54849926295a647f5831fd0b`.
+- Standards found no documented-standard violation or blocker. One low-priority
+  duplicated-code observation was deferred: the OCR and native-source paths attach the
+  same three quarter-binding provenance fields independently. Extracting a helper would
+  widen this evidence-backed recovery repair without changing required behavior.
+- Spec found no missing or partial requirement, scope creep, incorrect behavior, or blocker.
 - The red tracer and repair are separate commits, so the change is recoverable or revertible without reconstructing the historical stack.
 - Accepted carry-forward identity is the final Issue #559 commit on this branch. Its immutable SHA is reported in the session handoff because a tracked file cannot truthfully contain its own commit identity.
 - No push, merge, PR/issue mutation, deployment, runtime/data mutation, cleanup, branch/worktree deletion, closure, or registry release occurred.
