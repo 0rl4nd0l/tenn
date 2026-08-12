@@ -1890,8 +1890,8 @@ def test_currency_detection_from_tables_prefers_dominant_signal():
     assert _detect_currency_from_tables(tables) == "AUD"
 
 
-def test_currency_detection_returns_none_when_signals_tie():
-    """When AUD/USD evidence ties, currency detector must abstain (None)."""
+def test_currency_detection_marks_conflict_when_signals_tie():
+    """When AUD/USD evidence ties, currency detector must mark a conflict."""
     from app.services.multipass_extraction import _detect_currency_from_tables
     from app.services.docling_extract import DoclingTable
 
@@ -1910,7 +1910,7 @@ def test_currency_detection_returns_none_when_signals_tie():
         ),
     ]
 
-    assert _detect_currency_from_tables(tables) is None
+    assert _detect_currency_from_tables(tables) == ""
 
 
 def test_currency_detection_ignores_foreign_note_body_markers():
@@ -10509,6 +10509,40 @@ class TestNonAUDCurrencyNormalisation:
         status, error = _validate_gate(payload)
         assert status == "failed"
         assert error == "validation_gate:currency_unknown"
+
+    @pytest.mark.parametrize("currency", ["none", "n/a", "unknown", "-"])
+    def test_validate_gate_other_null_like_currencies_abstain(
+        self, currency: str
+    ) -> None:
+        from app.services.multipass_extraction import _validate_gate
+
+        payload = self._good_payload_non_aud(currency)
+
+        assert _validate_gate(payload) == (
+            "failed",
+            "validation_gate:currency_unknown",
+        )
+
+    def test_conflicting_table_currency_evidence_abstains(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _detect_currency_from_tables
+
+        tables = [
+            DoclingTable(
+                page_number=1,
+                caption="Consolidated Income Statement (AUD millions)",
+                headers=["AUD millions", "Current", "Comparative"],
+                rows=[["Revenue", "100", "90"]],
+            ),
+            DoclingTable(
+                page_number=2,
+                caption="Consolidated Cash Flow Statement (USD millions)",
+                headers=["USD millions", "Current", "Comparative"],
+                rows=[["Operating cash flow", "20", "18"]],
+            ),
+        ]
+
+        assert _detect_currency_from_tables(tables) == ""
 
     def test_validate_gate_non_aud_passes_hard_gates_before_downgrade(self) -> None:
         """Non-AUD with < 3 metrics must still fail, not merely downgrade.

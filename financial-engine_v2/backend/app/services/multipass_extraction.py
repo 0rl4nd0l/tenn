@@ -341,10 +341,9 @@ def _explicit_currency_million_hits(text: str) -> dict[str, int]:
 def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
     if not hits:
         return None
-    ranked = sorted(hits.items(), key=lambda item: item[1], reverse=True)
-    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-        return None
-    return ranked[0][0]
+    if len(hits) > 1:
+        return ""
+    return next(iter(hits))
 
 
 def _detect_scale_marker_in_text(text: str) -> str:
@@ -566,12 +565,13 @@ def _detect_currency_from_tables(tables) -> str | None:
     Detect a dominant document currency from table headers/captions/body rows.
 
     Returns a 3-letter currency code when one currency has clear evidence,
-    otherwise returns None. Row-level evidence is limited to canonical
+    an empty string for conflicting explicit evidence, and None when there is
+    no evidence. Row-level evidence is limited to canonical
     statement/highlight tables so foreign-currency note text does not override
     the filing currency.
     """
     explicit_header_currency = _detect_explicit_currency_million_header(tables)
-    if explicit_header_currency:
+    if explicit_header_currency is not None:
         return explicit_header_currency
 
     hits: dict[str, int] = {}
@@ -6466,9 +6466,10 @@ _HIGH_DENOMINATION_NATIVE_SANITY_CAPS = {
 
 
 def _normalize_currency_code(raw: Any) -> str:
-    if not raw or str(raw).strip().lower() == "null":
+    normalized = str(raw or "").strip().lower()
+    if normalized in {"", "-", "n/a", "na", "none", "null", "unknown"}:
         return ""
-    return str(raw).strip().upper()
+    return normalized.upper()
 
 
 def _native_currency_sanity_cap(raw_currency: Any) -> int:
@@ -9481,9 +9482,14 @@ def run_multipass_extraction(
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
     detected_currency = _detect_currency_from_tables(structured_tables)
-    if detected_currency:
+    if detected_currency is not None:
         classifier_currency = str(pass1.get("currency") or "").strip().upper()
-        if classifier_currency != detected_currency:
+        if detected_currency == "":
+            logger.warning(
+                "conflicting explicit currency evidence in statement tables; abstaining"
+            )
+            pass1["currency"] = ""
+        elif classifier_currency != detected_currency:
             logger.info(
                 "currency from table headers (%s) overrides Pass 1 (%s)",
                 detected_currency,
