@@ -10547,6 +10547,36 @@ class TestDerivedNetDebtFragmentsCoverageGate:
 
 
 class TestCurrentPeriodColumnBinding:
+    def test_same_date_quarter_columns_bind_requested_basis(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=[
+                "",
+                "Current quarter 31 March 2025",
+                "Year to date 31 March 2025",
+            ],
+            raw_header_rows=[
+                ["", "Current quarter", "Year to date"],
+                ["", "31 March 2025", "31 March 2025"],
+            ],
+            rows=[["Receipts from customers", "25", "70"]],
+        )
+
+        binding = _bind_current_period_column(
+            table,
+            "2025-03-31",
+            period_basis="period_only",
+        )
+
+        assert binding["status"] == "BOUND"
+        assert binding["column_index"] == 1
+        assert binding["column_role"] == "current_quarter"
+        assert binding["period_basis"] == "period_only"
+
     def test_binds_exact_requested_period_and_ignores_note_column(self) -> None:
         from app.services.docling_extract import DoclingTable
         from app.services.multipass_extraction import _bind_current_period_column
