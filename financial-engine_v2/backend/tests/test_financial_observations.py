@@ -336,13 +336,35 @@ def accepted_quarter_member(
     provenance.pop("period_type")
     provenance["period_end"] = "2025-03-31"
     provenance["source_cell"].update(
+        table_index=0,
         column_index=2 if basis == "period_only" else 3,
         column_role=role,
+        period_basis=basis,
         header_cell="Current quarter AUD millions"
         if basis == "period_only"
         else "Year to date AUD millions",
     )
     return context
+
+
+@pytest.mark.parametrize("field", ("table_index", "column_role", "period_basis"))
+def test_quarter_observation_requires_explicit_source_cell_binding_fields(field):
+    from app.services.financial_observations import stage_financial_observations
+
+    document_id = uuid.uuid4()
+    member = accepted_quarter_member(
+        document_id, basis="period_only", value=25
+    )
+    member["field_provenance"]["revenue"]["source_cell"].pop(field)
+
+    assert stage_financial_observations(
+        FakeSession(),
+        document=SimpleNamespace(document_id=document_id, ticker="BHP"),
+        extraction_run=SimpleNamespace(
+            run_id=uuid.uuid4(), extractor_version="multipass-v5"
+        ),
+        structured={"period_observations": [member]},
+    ) == ()
 
 
 def test_one_document_stages_distinct_quarter_and_ytd_observations():
