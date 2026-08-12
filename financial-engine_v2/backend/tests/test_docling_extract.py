@@ -353,15 +353,15 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
             "source_text": "Net cash from operating activities 2,529,823",
             "candidate_value_text": "2,529,823",
             "value_text_candidates": ["2,529,823"],
-            "candidate_value_quality": "financial_amount",
-            "source_region": {
-                "left": 30,
-                "top": 120,
-                "right": 148,
-                "bottom": 132,
-            },
-            "source_row": 4,
-            "source_cell": [1, 2, 3, 4, 5, 6],
+                "candidate_value_quality": "financial_amount",
+                "source_region": {
+                    "left": 130,
+                    "top": 120,
+                    "right": 148,
+                    "bottom": 132,
+                },
+                "source_row": 4,
+                "source_cell": [6],
             "recognition_confidence": 92.0,
         }
     ]
@@ -632,14 +632,45 @@ def test_openability_tsv_retains_region_row_cell_and_confidence():
 
     candidate = parsed["row_candidates"][0]
     assert candidate["source_region"] == {
-        "left": 30,
+        "left": 130,
         "top": 120,
         "right": 148,
         "bottom": 132,
     }
     assert candidate["source_row"] == 4
-    assert candidate["source_cell"] == [1, 2, 3, 4, 5, 6]
+    assert candidate["source_cell"] == [6]
     assert candidate["recognition_confidence"] == 92
+
+
+def test_openability_tsv_selects_amount_after_year_with_cell_local_provenance():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t10\t20\t60\t12\t96\tRevenue",
+        "5\t1\t1\t1\t1\t2\t80\t20\t35\t12\t95\t2025",
+        "5\t1\t1\t1\t1\t3\t125\t20\t80\t12\t94\t4,920,102",
+        "5\t1\t1\t1\t1\t4\t215\t20\t80\t12\t93\t1,556,976",
+    ]
+    text, provenance = docling_extract._parse_openability_tsv(
+        "\n".join([header, *rows])
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["candidate_value_text"] == "4,920,102"
+    assert candidate["source_region"] == {
+        "left": 125,
+        "top": 20,
+        "right": 205,
+        "bottom": 32,
+    }
+    assert candidate["source_cell"] == [3]
+    assert candidate["recognition_confidence"] == 94
 
 
 def test_docling_table_retains_structured_ocr_source_candidates():

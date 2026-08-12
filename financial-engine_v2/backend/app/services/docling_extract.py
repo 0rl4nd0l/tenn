@@ -526,7 +526,7 @@ def _openability_row_candidates(
             for token in value_tokens
             if "," in token
             or token.startswith("(")
-            or len(token.strip("()-").split(".")[0]) >= 4
+            or len(token.strip("()-").split(".")[0]) >= 5
         ]
         candidate_value = (financial_amounts or value_tokens)[0]
         if line in seen:
@@ -542,11 +542,32 @@ def _openability_row_candidates(
         }
         if line_provenance and row_index < len(line_provenance):
             provenance = line_provenance[row_index]
-            candidate["source_region"] = provenance.get("source_region")
+            selected_words = [
+                word
+                for word in provenance.get("ocr_words", [])
+                if str(word.get("text") or "") == candidate_value
+            ]
+            selected_word = selected_words[0] if len(selected_words) == 1 else None
+            candidate["source_region"] = (
+                {
+                    "left": selected_word["left"],
+                    "top": selected_word["top"],
+                    "right": selected_word["right"],
+                    "bottom": selected_word["bottom"],
+                }
+                if selected_word
+                else provenance.get("source_region")
+            )
             candidate["source_row"] = provenance.get("source_row")
-            candidate["source_cell"] = provenance.get("source_cell")
-            candidate["recognition_confidence"] = provenance.get(
-                "recognition_confidence"
+            candidate["source_cell"] = (
+                [selected_word["word"]]
+                if selected_word
+                else provenance.get("source_cell")
+            )
+            candidate["recognition_confidence"] = (
+                selected_word["confidence"]
+                if selected_word
+                else provenance.get("recognition_confidence")
             )
             if (
                 float(candidate["recognition_confidence"] or 0)
@@ -661,6 +682,7 @@ def _parse_openability_tsv(tsv: str) -> tuple[str, list[dict[str, Any]]]:
                     float(word["confidence"]) for word in words
                 ),
                 "ocr_line_key": list(line_key),
+                "ocr_words": [dict(word) for word in words],
             }
         )
     return "\n".join(text_lines), provenance
