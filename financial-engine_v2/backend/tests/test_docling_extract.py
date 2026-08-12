@@ -673,6 +673,36 @@ def test_openability_tsv_selects_amount_after_year_with_cell_local_provenance():
     assert candidate["recognition_confidence"] == 94
 
 
+def test_openability_tsv_binds_first_duplicate_amount_to_its_ocr_cell():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t10\t20\t60\t12\t96\tRevenue",
+        "5\t1\t1\t1\t1\t2\t80\t20\t80\t12\t94\t4,920,102",
+        "5\t1\t1\t1\t1\t3\t170\t20\t80\t12\t91\t4,920,102",
+    ]
+    text, provenance = docling_extract._parse_openability_tsv(
+        "\n".join([header, *rows])
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["candidate_value_text"] == "4,920,102"
+    assert candidate["source_region"] == {
+        "left": 80,
+        "top": 20,
+        "right": 160,
+        "bottom": 32,
+    }
+    assert candidate["source_cell"] == [2]
+    assert candidate["recognition_confidence"] == 94
+
+
 def test_docling_table_retains_structured_ocr_source_candidates():
     candidate = {
         "page_number": 1,

@@ -529,6 +529,9 @@ def _openability_row_candidates(
             or len(token.strip("()-").split(".")[0]) >= 5
         ]
         candidate_value = (financial_amounts or value_tokens)[0]
+        candidate_value_occurrence = value_tokens[: value_tokens.index(candidate_value)].count(
+            candidate_value
+        )
         if line in seen:
             continue
         seen.add(line)
@@ -547,7 +550,11 @@ def _openability_row_candidates(
                 for word in provenance.get("ocr_words", [])
                 if str(word.get("text") or "") == candidate_value
             ]
-            selected_word = selected_words[0] if len(selected_words) == 1 else None
+            selected_word = (
+                selected_words[candidate_value_occurrence]
+                if candidate_value_occurrence < len(selected_words)
+                else None
+            )
             candidate["source_region"] = (
                 {
                     "left": selected_word["left"],
