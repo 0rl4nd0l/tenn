@@ -7552,6 +7552,262 @@ def _clear_payload_metric(payload: dict[str, Any], metric_name: str) -> None:
     payload["metric_scale_sources"] = metric_scale_sources
 
 
+_APPENDIX_TABLE_ROWS = {
+    "1.9": ("Net cash from / (used in) operating activities", "operating_cf"),
+    "2.6": ("Net cash from / (used in) investing activities", "investing_cf"),
+    "3.10": ("Net cash from / (used in) financing activities", "financing_cf"),
+    "4.6": ("Cash and cash equivalents at end of period", "cash_end"),
+    "5.5": (
+        "Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+        "cash_end",
+    ),
+}
+_APPENDIX_TABLE_SCALE_CONFLICT = object()
+
+
+def _trusted_appendix_cashflow_form(pass1_result: dict[str, Any]) -> str | None:
+    classification = pass1_result.get("_asx_document_type_classification")
+    contract = pass1_result.get("_asx_extraction_contract")
+    routing = pass1_result.get("_asx_extraction_contract_routing")
+    if not all(isinstance(item, dict) for item in (classification, contract, routing)):
+        return None
+    document_type = classification.get("document_type")
+    if document_type not in {"appendix_4c", "appendix_5b"}:
+        return None
+    contract_id = f"asx_{document_type}_extraction_contract_v1"
+    if (
+        classification.get("abstain") is not False
+        or contract.get("document_type") != document_type
+        or contract.get("contract_id") != contract_id
+        or contract.get("abstain") is not False
+        or routing.get("contract_id") != contract_id
+        or routing.get("allowed") is not True
+        or routing.get("abstain") is not False
+    ):
+        return None
+    return document_type.removeprefix("appendix_")
+
+
+def _appendix_table_scale_markers(value: Any) -> set[str]:
+    text = str(value or "")
+    return {
+        scale
+        for pattern, scale in _SCALE_PATTERNS
+        if _re.search(pattern, text, _re.IGNORECASE)
+    }
+
+
+def _appendix_table_has_trusted_cashflow_identity(
+    table: Any, *, trusted_form: str
+) -> bool:
+    headers = list(getattr(table, "headers", None) or [])
+    rows = list(getattr(table, "rows", None) or [])
+    anchor = " ".join(
+        [
+            str(getattr(table, "caption", "") or ""),
+            " ".join(str(cell) for cell in headers),
+            " ".join(
+                " ".join(str(cell) for cell in row)
+                for row in rows[:4]
+                if isinstance(row, (list, tuple))
+            ),
+        ]
+    )
+    explicit_forms = {
+        match.lower()
+        for match in re.findall(r"\bAppendix\s+(4C|5B)\b", anchor, re.IGNORECASE)
+    }
+    return (
+        len(explicit_forms) <= 1
+        and (not explicit_forms or explicit_forms == {trusted_form})
+        and "consolidatedstatementofcashflows" in _normalize_filter_text(anchor)
+    )
+
+
+def _appendix_table_context(
+    table: Any,
+    *,
+    trusted_form: str,
+    document_scale: Any,
+) -> tuple[int, str, str] | object | None:
+    headers = list(getattr(table, "headers", None) or [])
+    if not _appendix_table_has_trusted_cashflow_identity(
+        table, trusted_form=trusted_form
+    ):
+        return None
+    current_columns = [
+        index
+        for index, header in enumerate(headers)
+        if re.search(r"\bcurrent\s+(?:quarter|period)\b", str(header), re.IGNORECASE)
+        and not re.search(
+            r"\b(?:previous|prior|comparative|year\s+to\s+date|ytd)\b",
+            str(header),
+            re.IGNORECASE,
+        )
+    ]
+    if len(current_columns) != 1:
+        return None
+    current_column = current_columns[0]
+    header_scales = _appendix_table_scale_markers(headers[current_column])
+    caption_scales = _appendix_table_scale_markers(getattr(table, "caption", ""))
+    if len(header_scales) > 1 or len(caption_scales) > 1:
+        return _APPENDIX_TABLE_SCALE_CONFLICT
+    header_scale = next(iter(header_scales), None)
+    caption_scale = next(iter(caption_scales), None)
+    if header_scale and caption_scale and header_scale != caption_scale:
+        return _APPENDIX_TABLE_SCALE_CONFLICT
+    if not header_scale and any(
+        _appendix_table_scale_markers(header)
+        for index, header in enumerate(headers)
+        if index != current_column
+    ):
+        return None
+    scale = header_scale or caption_scale or str(document_scale or "unknown").lower()
+    if scale not in SCALE_MULTIPLIERS or scale == "unknown":
+        return None
+    return current_column, scale, "table" if header_scale or caption_scale else "document"
+
+
+def _appendix_table_row(row: Sequence[Any]) -> tuple[str, str, str, bool] | None:
+    if len(row) < 2:
+        return None
+    item = _normalise_appendix5b_section(row[0])
+    expected = _APPENDIX_TABLE_ROWS.get(item)
+    if expected is None:
+        return None
+    label = _normalise_fragmented_pdf_text(row[1])
+    return item, label, expected[1], label == expected[0]
+
+
+def _recover_structured_appendix_cashflow(
+    tables: Any,
+    *,
+    trusted_form: str,
+    document_scale: Any,
+) -> tuple[dict[str, tuple[float, str, Any, str, str]], set[str]]:
+    observations: dict[
+        tuple[str, str], list[tuple[float, str, Any, str, str, tuple[int, Any, int]]]
+    ] = {}
+    ambiguous: set[str] = set()
+    for table_index, table in enumerate(tables or []):
+        recognized = {
+            match[2]
+            for row in getattr(table, "rows", None) or []
+            if isinstance(row, (list, tuple))
+            and (match := _appendix_table_row(row)) is not None
+        }
+        context = _appendix_table_context(
+            table, trusted_form=trusted_form, document_scale=document_scale
+        )
+        if context is _APPENDIX_TABLE_SCALE_CONFLICT:
+            ambiguous.update(recognized)
+            continue
+        if context is None:
+            if _appendix_table_has_trusted_cashflow_identity(
+                table, trusted_form=trusted_form
+            ):
+                ambiguous.update(recognized)
+            continue
+        current_column, scale, scale_source = context
+        for row_index, row in enumerate(getattr(table, "rows", None) or []):
+            if not isinstance(row, (list, tuple)):
+                continue
+            match = _appendix_table_row(row)
+            if match is None:
+                continue
+            item, label, metric, label_is_valid = match
+            if not label_is_valid:
+                ambiguous.add(metric)
+                continue
+            if item == "5.5" and trusted_form != "4c":
+                ambiguous.add(metric)
+                continue
+            if current_column >= len(row):
+                ambiguous.add(metric)
+                continue
+            parsed = _parse_accounting_metric_number(row[current_column])
+            if parsed is None:
+                ambiguous.add(metric)
+                continue
+            raw, explicit_unit = parsed
+            value = raw if explicit_unit else raw * SCALE_MULTIPLIERS[scale]
+            kind = "check" if item == "5.5" else "primary"
+            observations.setdefault((metric, kind), []).append(
+                (
+                    value,
+                    f"{item} {label}",
+                    getattr(table, "page_number", None),
+                    scale,
+                    scale_source,
+                    (table_index, getattr(table, "page_number", None), row_index),
+                )
+            )
+    metrics = {metric for metric, _kind in observations}
+    scales = {item[3] for values in observations.values() for item in values}
+    scale_sources = {item[4] for values in observations.values() for item in values}
+    if len(scales) > 1 or len(scale_sources) > 1:
+        return {}, ambiguous | metrics
+    recovered: dict[str, tuple[float, str, Any, str, str]] = {}
+    for metric in metrics:
+        if metric in ambiguous:
+            continue
+        primary = observations.get((metric, "primary"), [])
+        checks = observations.get((metric, "check"), [])
+        if (
+            len({item[0] for item in primary}) > 1
+            or len({item[0] for item in checks}) > 1
+            or len({item[5] for item in primary}) > 1
+            or len({item[5] for item in checks}) > 1
+        ):
+            ambiguous.add(metric)
+            continue
+        if (
+            metric == "cash_end"
+            and primary
+            and checks
+            and primary[0][0] != checks[0][0]
+        ):
+            ambiguous.add(metric)
+            continue
+        if primary:
+            recovered[metric] = primary[0][:5]
+        elif trusted_form == "4c" and len(checks) == 1:
+            recovered[metric] = checks[0][:5]
+    return recovered, ambiguous
+
+
+def _apply_structured_appendix_cashflow_payload(
+    payload: dict[str, Any], tables: Any, *, pass1_result: dict[str, Any]
+) -> None:
+    trusted_form = _trusted_appendix_cashflow_form(pass1_result)
+    if trusted_form is None:
+        return
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        tables,
+        trusted_form=trusted_form,
+        document_scale=payload.get("scale") or pass1_result.get("scale"),
+    )
+    for metric in ambiguous:
+        _clear_payload_metric(payload, metric)
+    for metric, (value, row_ref, page, scale, scale_source) in recovered.items():
+        payload.setdefault("metrics", {})[metric] = value
+        payload[metric] = value
+        payload.setdefault("row_refs", {})[metric] = row_ref
+        page_tag = page if page is not None else "?"
+        payload.setdefault("provenance", {})[metric] = f"source_table:page_{page_tag}:{row_ref}"
+        payload.setdefault("metric_source_scales", {})[metric] = scale
+        payload.setdefault("metric_scale_sources", {})[metric] = scale_source
+        payload.setdefault("field_provenance", {})[metric] = _build_field_provenance_entry(
+            metric_name=metric,
+            source="source_table",
+            page=page,
+            row_ref=row_ref,
+            scale=scale,
+            scale_source=scale_source,
+            pass1_result=pass1_result,
+        )
+
+
 def _read_pdf_pages_for_statement_text(source_path: Any) -> list[tuple[int, list[str]]]:
     path = Path(str(source_path or ""))
     if not path.is_file() or path.suffix.lower() != ".pdf":
@@ -9778,6 +10034,17 @@ def run_multipass_extraction(
             payload,
             structured_tables,
             scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
+    if set(allowed_contract_metrics) & {
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "cash_end",
+    }:
+        _apply_structured_appendix_cashflow_payload(
+            payload,
+            structured_tables,
             pass1_result=pass1,
         )
     _enforce_contract_metric_allowance(payload, allowed_contract_metrics)

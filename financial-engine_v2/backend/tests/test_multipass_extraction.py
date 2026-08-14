@@ -11173,3 +11173,256 @@ class TestCurrentPeriodColumnBinding:
             "header_cell": "31 December 2025",
             "requested_period_end": "2025-12-31",
         }
+
+
+def _ticket16_appendix_table(*, headers=None, rows=None, caption=None):
+    from app.services.docling_extract import DoclingTable
+
+    return DoclingTable(
+        page_number=7,
+        caption=(
+            "Appendix 4C consolidated statement of cash flows"
+            if caption is None
+            else caption
+        ),
+        headers=headers
+        or ["Item", "Description", "Current quarter $A'000", "Year to date $A'000"],
+        rows=rows
+        or [
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+            ["2.6", "Net cash from / (used in) investing activities", "(20)", "(80)"],
+            ["3.10", "Net cash from / (used in) financing activities", "30", "60"],
+            ["4.6", "Cash and cash equivalents at end of period", "70", "700"],
+            [
+                "5.5",
+                "Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+                "70",
+                "700",
+            ],
+        ],
+    )
+
+
+def _ticket16_pass1(form="4c"):
+    document_type = f"appendix_{form}"
+    contract_id = f"asx_{document_type}_extraction_contract_v1"
+    return {
+        "scale": "thousands",
+        "_asx_document_type_classification": {
+            "document_type": document_type,
+            "abstain": False,
+        },
+        "_asx_extraction_contract": {
+            "document_type": document_type,
+            "contract_id": contract_id,
+            "abstain": False,
+        },
+        "_asx_extraction_contract_routing": {
+            "contract_id": contract_id,
+            "allowed": True,
+            "abstain": False,
+        },
+    }
+
+
+def test_ticket16_structured_appendix_binds_current_cells_and_metric_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {"metrics": {}, "scale": "thousands"}
+    _apply_structured_appendix_cashflow_payload(
+        payload, [_ticket16_appendix_table()], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["metrics"] == {
+        "operating_cf": 100_000,
+        "investing_cf": -20_000,
+        "financing_cf": 30_000,
+        "cash_end": 70_000,
+    }
+    assert payload["row_refs"]["operating_cf"].startswith("1.9 ")
+    assert payload["provenance"]["operating_cf"].startswith("source_table:page_7:")
+    assert payload["metric_source_scales"]["operating_cf"] == "thousands"
+    assert payload["metric_scale_sources"]["operating_cf"] == "table"
+
+
+def test_ticket16_appendix_rejects_ambiguous_current_column_and_clears_stale_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        headers=[
+            "Item",
+            "Description",
+            "Current quarter $A'000",
+            "Current period $A'000",
+        ]
+    )
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_row_anchored_identity_context_failure_clears_stale_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        caption="",
+        headers=["Item", "Description", "Current quarter", "Current period"],
+        rows=[
+            ["Appendix 4C", "Consolidated statement of cash flows", "", ""],
+            ["1.9", "Unexpected operating cash label", "100", "100"],
+        ],
+    )
+
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_appendix_rejects_conflicting_scale_sources_for_all_metrics():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    explicit = _ticket16_appendix_table()
+    inherited = _ticket16_appendix_table(
+        caption="Appendix 4C consolidated statement of cash flows",
+        headers=["Item", "Description", "Current quarter", "Year to date"],
+        rows=[
+            [
+                "2.6",
+                "Net cash from / (used in) investing activities",
+                "(20)",
+                "(80)",
+            ]
+        ],
+    )
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [explicit, inherited], trusted_form="4c", document_scale="thousands"
+    )
+    assert recovered == {}
+    assert {"operating_cf", "investing_cf", "financing_cf", "cash_end"} <= ambiguous
+
+
+def test_ticket16_appendix_cash_end_cross_check_disagreement_is_rejected():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    table = _ticket16_appendix_table()
+    table.rows[-1][2] = "71"
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [table], trusted_form="4c", document_scale="thousands"
+    )
+    assert "cash_end" not in recovered
+    assert ambiguous == {"cash_end"}
+
+
+def test_ticket16_appendix_requires_exact_trusted_form_identity():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {"metrics": {}, "scale": "thousands"}
+    pass1 = _ticket16_pass1()
+    pass1["_asx_extraction_contract_routing"]["allowed"] = False
+    _apply_structured_appendix_cashflow_payload(
+        payload, [_ticket16_appendix_table()], pass1_result=pass1
+    )
+    assert payload == {"metrics": {}, "scale": "thousands"}
+
+
+def test_ticket16_known_item_with_invalid_label_clears_stale_metric_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        rows=[["1.9", "Net cash from operating activities (unaudited)", "100", "900"]]
+    )
+
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_duplicate_equal_rows_are_ambiguous_by_source_identity():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    table = _ticket16_appendix_table(
+        rows=[
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+        ]
+    )
+
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [table], trusted_form="4c", document_scale="thousands"
+    )
+
+    assert "operating_cf" not in recovered
+    assert ambiguous == {"operating_cf"}
