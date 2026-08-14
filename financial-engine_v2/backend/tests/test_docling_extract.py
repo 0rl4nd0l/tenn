@@ -67,15 +67,31 @@ class FakeOpenabilityRunner:
             return docling_extract.OpenabilityCommandResult(
                 args=args,
                 returncode=0,
-                stdout=(
-                    "Consolidated statement of cash flows\n"
-                    "For the year ended 30 June 2022\n"
-                    "$000 $000\n"
-                    "Net cash from operating activities 2,529,823\n"
-                ),
+                stdout=_openability_tsv_fixture(),
                 stderr="",
             )
         raise AssertionError(f"unexpected command: {args}")
+
+
+def _openability_tsv_fixture() -> str:
+    lines = [
+        ("Consolidated statement of cash flows", 95),
+        ("For the year ended 30 June 2022", 94),
+        ("$000 $000", 93),
+        ("Net cash from operating activities 2,529,823", 92),
+    ]
+    rows = [
+        "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\t"
+        "top\twidth\theight\tconf\ttext"
+    ]
+    for line_number, (line, confidence) in enumerate(lines, start=1):
+        for word_number, word in enumerate(line.split(), start=1):
+            rows.append(
+                f"5\t1\t1\t1\t{line_number}\t{word_number}\t"
+                f"{10 + word_number * 20}\t{line_number * 30}\t18\t12\t"
+                f"{confidence}\t{word}"
+            )
+    return "\n".join(rows)
 
 
 def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
@@ -337,7 +353,16 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
             "source_text": "Net cash from operating activities 2,529,823",
             "candidate_value_text": "2,529,823",
             "value_text_candidates": ["2,529,823"],
-            "candidate_value_quality": "financial_amount",
+                "candidate_value_quality": "financial_amount",
+                "source_region": {
+                    "left": 130,
+                    "top": 120,
+                    "right": 148,
+                    "bottom": 132,
+                },
+                "source_row": 4,
+                "source_cell": [6],
+            "recognition_confidence": 92.0,
         }
     ]
 
@@ -592,6 +617,187 @@ def test_openability_text_parser_uses_first_current_period_amount_before_compara
             "candidate_value_quality": "financial_amount",
         }
     ]
+
+
+def test_openability_tsv_retains_region_row_cell_and_confidence():
+    text, provenance = docling_extract._parse_openability_tsv(
+        _openability_tsv_fixture()
+    )
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["source_region"] == {
+        "left": 130,
+        "top": 120,
+        "right": 148,
+        "bottom": 132,
+    }
+    assert candidate["source_row"] == 4
+    assert candidate["source_cell"] == [6]
+    assert candidate["recognition_confidence"] == 92
+
+
+def test_openability_tsv_selects_amount_after_year_with_cell_local_provenance():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t10\t20\t60\t12\t96\tRevenue",
+        "5\t1\t1\t1\t1\t2\t80\t20\t35\t12\t95\t2025",
+        "5\t1\t1\t1\t1\t3\t125\t20\t80\t12\t94\t4,920,102",
+        "5\t1\t1\t1\t1\t4\t215\t20\t80\t12\t93\t1,556,976",
+    ]
+    text, provenance = docling_extract._parse_openability_tsv(
+        "\n".join([header, *rows])
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["candidate_value_text"] == "4,920,102"
+    assert candidate["source_region"] == {
+        "left": 125,
+        "top": 20,
+        "right": 205,
+        "bottom": 32,
+    }
+    assert candidate["source_cell"] == [3]
+    assert candidate["recognition_confidence"] == 94
+
+
+def test_openability_tsv_binds_first_duplicate_amount_to_its_ocr_cell():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t10\t20\t60\t12\t96\tRevenue",
+        "5\t1\t1\t1\t1\t2\t80\t20\t80\t12\t94\t4,920,102",
+        "5\t1\t1\t1\t1\t3\t170\t20\t80\t12\t91\t4,920,102",
+    ]
+    text, provenance = docling_extract._parse_openability_tsv(
+        "\n".join([header, *rows])
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["candidate_value_text"] == "4,920,102"
+    assert candidate["source_region"] == {
+        "left": 80,
+        "top": 20,
+        "right": 160,
+        "bottom": 32,
+    }
+    assert candidate["source_cell"] == [2]
+    assert candidate["recognition_confidence"] == 94
+
+
+def test_openability_tsv_binds_amount_inside_punctuated_ocr_word():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"
+    rows = [
+        "5\t1\t1\t1\t1\t1\t10\t20\t60\t12\t96\tRevenue",
+        "5\t1\t1\t1\t1\t2\t80\t20\t80\t12\t94\t4,920,102*",
+    ]
+    text, provenance = docling_extract._parse_openability_tsv(
+        "\n".join([header, *rows])
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        text,
+        source="test",
+        line_provenance=provenance,
+    )
+
+    candidate = parsed["row_candidates"][0]
+    assert candidate["candidate_value_text"] == "4,920,102"
+    assert candidate["candidate_value_quality"] == "financial_amount"
+    assert candidate["source_region"] == {
+        "left": 80,
+        "top": 20,
+        "right": 160,
+        "bottom": 32,
+    }
+    assert candidate["source_cell"] == [2]
+    assert candidate["recognition_confidence"] == 94
+
+
+def test_docling_table_retains_structured_ocr_source_candidates():
+    candidate = {
+        "page_number": 1,
+        "source_region": {"left": 30, "top": 120, "right": 148, "bottom": 132},
+        "source_row": 4,
+        "source_cell": [1, 2, 3, 4, 5, 6],
+        "source_text": "Revenue 4,920,102",
+        "candidate_value_text": "4,920,102",
+        "recognition_confidence": 92.0,
+    }
+
+    table = DoclingTable(
+        page_number=1,
+        caption="OCR statement",
+        rows=[["Revenue", "4,920,102"]],
+        headers=["Source row", "Value"],
+        ocr_source_candidates=[candidate],
+    )
+
+    assert table.ocr_source_candidates == [candidate]
+
+
+def test_openability_low_confidence_and_conflicting_rows_fail_closed():
+    low_confidence = docling_extract._parse_openability_text(
+        1,
+        "Revenue 4,920,102",
+        source="test",
+        line_provenance=[
+            {
+                "source_region": {"left": 1, "top": 2, "right": 3, "bottom": 4},
+                "source_row": 1,
+                "source_cell": [1, 2],
+                "recognition_confidence": 79,
+            }
+        ],
+    )
+    assert (
+        low_confidence["row_candidates"][0]["candidate_value_quality"]
+        == "low_confidence"
+    )
+
+    parsed = docling_extract._parse_openability_text(
+        1,
+        "Revenue 4,920,102\nRevenue 4,920,192",
+        source="test",
+        line_provenance=[
+            {
+                "source_region": {"left": 1, "top": 2, "right": 3, "bottom": 4},
+                "source_row": 1,
+                "source_cell": [1, 2],
+                "recognition_confidence": 79,
+            },
+            {
+                "source_region": {"left": 1, "top": 5, "right": 3, "bottom": 7},
+                "source_row": 2,
+                "source_cell": [1, 2],
+                "recognition_confidence": 99,
+            },
+        ],
+    )
+
+    assert {
+        candidate["candidate_value_quality"]
+        for candidate in parsed["row_candidates"]
+    } == {"conflicting_recognition"}
 
 
 def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypatch):

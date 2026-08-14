@@ -999,3 +999,37 @@ class TestSectorStatsCache:
         sc._sector_stats_cache["B"] = (0.0, {})
         sc.invalidate_sector_cache(None)
         assert len(sc._sector_stats_cache) == 0
+
+
+class TestSectorStatsBackendProjection:
+    """Production sector flow consumes BackendApiClient context projections."""
+
+    def test_compute_sector_stats_uses_projected_financials(self, monkeypatch):
+        sc = _load_sector_comparison()
+        backend = MagicMock()
+        backend.get_ticker_context.side_effect = [
+            {"financials": [{"ticker": "BHP", "period_type": "A"}]},
+            {"financials": []},
+        ]
+        extracted = {
+            "pe_ratio": None,
+            "fcf_yield_pct": None,
+            "revenue_growth": 0.12,
+            "ebit_margin": 0.25,
+        }
+        extract = MagicMock(return_value=extracted)
+        monkeypatch.setattr(sc, "_extract_ticker_metrics", extract)
+
+        stats = sc.compute_sector_stats(backend, ["BHP", "RIO"])
+
+        assert stats["tickers_with_data"] == 1
+        assert stats["revenue_growth_median"] == 0.12
+        assert stats["ebit_margin_median"] == 0.25
+        assert backend.get_ticker_context.call_args_list == [
+            (("BHP",), {"financials_limit": 10}),
+            (("RIO",), {"financials_limit": 10}),
+        ]
+        extract.assert_called_once_with(
+            [{"ticker": "BHP", "period_type": "A"}],
+            None,
+        )

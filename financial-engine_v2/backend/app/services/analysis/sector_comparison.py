@@ -1,12 +1,13 @@
 """sector_comparison.py — sector-relative metric comparison for ASX equities.
 
 Computes how a ticker's fundamentals compare to its GICS sector peers.
-No LLM, no network calls beyond DB reads. All outputs are numeric or None.
+No LLM. Financial rows come from the authoritative backend context projection.
+All outputs are numeric or None.
 
 Usage:
     sector = get_sector_for_ticker("BHP")          # "Materials"
     peers  = SECTOR_TICKERS["Materials"]            # ["BHP", "RIO", ...]
-    stats  = compute_sector_stats(db_reader, peers)
+    stats  = compute_sector_stats(backend_api_client, peers)
     result = compare_to_sector("BHP", ticker_metrics, stats)
 """
 from __future__ import annotations
@@ -155,14 +156,15 @@ def _get_last_close(tool_router: Any, ticker: str) -> float | None:
 
 
 def compute_sector_stats(
-    db_reader: Any,
+    backend_api_client: Any,
     sector_tickers: list[str],
     *,
     tool_router: Any | None = None,
 ) -> dict[str, Any]:
     """Compute median PE, FCF yield, revenue growth, EBIT margin for a sector.
 
-    Queries financials for each ticker via *db_reader.get_financials(ticker, limit=N)*.
+    Fetches each ticker's accepted financial-observation projection via
+    *backend_api_client.get_ticker_context(ticker, financials_limit=N)*.
     Falls back gracefully when data is missing for individual tickers.
 
     If *tool_router* is provided, it is used to fetch last-close prices for
@@ -192,7 +194,11 @@ def compute_sector_stats(
 
     for ticker in sector_tickers:
         try:
-            raw_rows = db_reader.get_financials(ticker, limit=10)
+            context = backend_api_client.get_ticker_context(
+                ticker,
+                financials_limit=10,
+            )
+            raw_rows = (context or {}).get("financials", [])
             if not raw_rows:
                 continue
             rows = [_row_to_dict(r) for r in raw_rows]
@@ -228,7 +234,7 @@ def compute_sector_stats(
 
 
 def get_sector_stats_cached(
-    db_reader: Any,
+    backend_api_client: Any,
     sector: str,
     *,
     tool_router: Any | None = None,
@@ -259,7 +265,11 @@ def get_sector_stats_cached(
             "ebit_margin_values": [],
         }
 
-    stats = compute_sector_stats(db_reader, tickers, tool_router=tool_router)
+    stats = compute_sector_stats(
+        backend_api_client,
+        tickers,
+        tool_router=tool_router,
+    )
     _sector_stats_cache[sector] = (now, stats)
     return stats
 

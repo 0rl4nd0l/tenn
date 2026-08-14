@@ -43,17 +43,6 @@ class CockpitDbReaderQualitySignalsTests(unittest.TestCase):
             )
             conn.exec_driver_sql(
                 """
-                create table asx_periodic_financials (
-                    ticker text,
-                    period_end text,
-                    period_type text,
-                    confidence_metrics real,
-                    source_document_id text
-                )
-                """
-            )
-            conn.exec_driver_sql(
-                """
                 insert into documents(document_id, ticker, published_at, title) values
                 ('doc-bhp', 'BHP', '2026-02-18', 'BHP Interim Results'),
                 ('doc-rio', 'RIO', '2026-02-17', 'RIO Quarterly Update')
@@ -67,14 +56,6 @@ class CockpitDbReaderQualitySignalsTests(unittest.TestCase):
                 (3, 'doc-bhp', 'completed', '', '2026-02-18T11:00:00Z')
                 """
             )
-            conn.exec_driver_sql(
-                """
-                insert into asx_periodic_financials(ticker, period_end, period_type, confidence_metrics, source_document_id) values
-                ('BHP', '2025-12-31', 'HY', 0.22, 'doc-bhp'),
-                ('RIO', '2025-12-31', 'HY', 0.31, 'doc-rio'),
-                ('BHP', '2024-12-31', 'FY', 0.91, 'doc-bhp')
-                """
-            )
 
     def test_get_extraction_failures_ticker_filter(self):
         rows = self.reader.get_extraction_failures(limit=10, ticker="BHP")
@@ -86,15 +67,13 @@ class CockpitDbReaderQualitySignalsTests(unittest.TestCase):
 
     def test_get_low_confidence_financials_ticker_filter(self):
         rows = self.reader.get_low_confidence_financials(threshold=0.4, limit=10, ticker="RIO")
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0].get("ticker"), "RIO")
-        self.assertLess(float(rows[0].get("confidence_metrics")), 0.4)
+        self.assertEqual(rows, [])
 
-    def test_calls_without_ticker_preserve_legacy_behavior(self):
+    def test_calls_without_ticker_preserve_diagnostics_and_empty_stub(self):
         failures = self.reader.get_extraction_failures(limit=10)
         low_conf = self.reader.get_low_confidence_financials(threshold=0.4, limit=10)
         self.assertEqual(len(failures), 2)
-        self.assertEqual(len(low_conf), 2)
+        self.assertEqual(low_conf, [])
 
 
 if __name__ == "__main__":

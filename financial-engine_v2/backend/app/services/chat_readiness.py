@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from app.core.config import PROJECT_ROOT, settings
 
@@ -148,6 +149,19 @@ class ReadinessSqlProbe:
                     params,
                 ).mappings().first()
             return {"available": True, "count": int(row["count"] if row else 0), "error": None}
+        except Exception as exc:
+            return {"available": False, "count": 0, "error": str(exc)}
+
+    def count_projected_financial_rows(
+        self, *, ticker: str | None = None
+    ) -> dict[str, Any]:
+        from app.services.financial_observations import stable_financial_profiles
+
+        try:
+            engine = create_engine(self.database_url, pool_pre_ping=True)
+            with Session(engine) as db:
+                count = len(stable_financial_profiles(db, ticker=ticker))
+            return {"available": True, "count": count, "error": None}
         except Exception as exc:
             return {"available": False, "count": 0, "error": str(exc)}
 
@@ -309,15 +323,13 @@ def build_chat_readiness_status(
     db_probe = sql_probe or ReadinessSqlProbe(_str_setting(settings_obj, "database_url"))
     capabilities: dict[str, dict[str, Any]] = {}
 
-    financial_count = db_probe.count_rows(
-        "asx_periodic_financials",
-        ticker=normalized_ticker,
-        ticker_column="ticker",
+    financial_count = db_probe.count_projected_financial_rows(
+        ticker=normalized_ticker
     )
     status, ready, blockers, evidence, activation = _status_from_count(
         financial_count,
-        missing_table_blocker="asx_periodic_financials table unavailable",
-        empty_blocker="no extracted financial rows for requested ticker",
+        missing_table_blocker="accepted financial observations unavailable",
+        empty_blocker="no accepted financial rows for requested ticker",
         activation_action="Run reviewed metric extraction for the ticker before numeric financial questions.",
     )
     capabilities["financial_fact"] = _capability(

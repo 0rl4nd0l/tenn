@@ -1890,8 +1890,8 @@ def test_currency_detection_from_tables_prefers_dominant_signal():
     assert _detect_currency_from_tables(tables) == "AUD"
 
 
-def test_currency_detection_returns_none_when_signals_tie():
-    """When AUD/USD evidence ties, currency detector must abstain (None)."""
+def test_currency_detection_marks_conflict_when_signals_tie():
+    """When AUD/USD evidence ties, currency detector must mark a conflict."""
     from app.services.multipass_extraction import _detect_currency_from_tables
     from app.services.docling_extract import DoclingTable
 
@@ -1910,7 +1910,7 @@ def test_currency_detection_returns_none_when_signals_tie():
         ),
     ]
 
-    assert _detect_currency_from_tables(tables) is None
+    assert _detect_currency_from_tables(tables) == ""
 
 
 def test_currency_detection_ignores_foreign_note_body_markers():
@@ -2311,8 +2311,7 @@ def test_pass4_higher_priority_source_wins():
 
 
 def test_upsert_financial_rows_smoke():
-    """_upsert_financial_rows must write all metric and narrative fields to the DB,
-    and must update (not duplicate) on a second call with the same key."""
+    """Extraction writes narrative risk, but never the legacy financial row."""
     import uuid
     from types import SimpleNamespace
     from sqlalchemy import create_engine
@@ -2353,23 +2352,14 @@ def test_upsert_financial_rows_smoke():
 
     session = Session()
     try:
-        # --- First call: rows must be created ---
+        # Risk notes remain part of the extraction transaction.
         # Caller (process_document) is responsible for commit; flush here to make
         # rows visible within this session for assertions.
         _upsert_financial_rows(session, doc, payload)
         session.flush()
 
         fin = session.query(ASXPeriodicFinancial).filter_by(ticker="TST").first()
-        assert fin is not None, "ASXPeriodicFinancial row must be created"
-        assert fin.period_type == "H"
-        assert float(fin.revenue) == 1_000_000.0
-        assert float(fin.operating_cf) == 300_000.0
-        assert float(fin.investing_cf) == -50_000.0
-        assert float(fin.financing_cf) == -20_000.0
-        assert fin.capex is None
-        assert fin.net_debt is None
-        assert float(fin.shares_outstanding) == 50_000_000.0
-        assert fin.confidence_metrics == pytest.approx(0.85)
+        assert fin is None
 
         note = session.query(ASXRiskNote).first()
         assert note is not None, "ASXRiskNote row must be created"
@@ -2379,15 +2369,14 @@ def test_upsert_financial_rows_smoke():
         assert note.material_changes is None
         assert note.confidence_narrative == pytest.approx(0.7)
 
-        # --- Second call: same key must update, not duplicate ---
+        # A repeated extraction still updates the narrative atomically.
         payload["metrics"]["revenue"] = 2_000_000.0
         payload["risk_summary"] = "Updated risk summary"
         _upsert_financial_rows(session, doc, payload)
         session.flush()
 
         all_fin = session.query(ASXPeriodicFinancial).all()
-        assert len(all_fin) == 1, "Upsert must not create a duplicate row"
-        assert float(all_fin[0].revenue) == 2_000_000.0
+        assert all_fin == []
 
         all_notes = session.query(ASXRiskNote).all()
         assert len(all_notes) == 1, "Upsert must not create a duplicate risk note"
@@ -8835,6 +8824,80 @@ def _pass3b_response():
     }
 
 
+def test_run_multipass_abstains_when_currency_has_no_explicit_evidence():
+    """A generic dollar scale and classifier null must not be rewritten to AUD."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    pass1 = _pass1_response()
+    pass1["currency"] = "null"
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[_pass3a_response()],
+    ):
+        result = run_multipass_extraction(
+            "/fake/ambiguous-currency.pdf",
+            {
+                "document_id": "ambiguous-currency",
+                "ticker": "TST",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+    assert result.payload["_structured_extraction"]["warnings"] == []
+
+
+def test_run_multipass_abstains_when_classifier_omits_currency():
+    """An omitted classifier currency without table evidence must stay unknown."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    pass1 = _pass1_response()
+    del pass1["currency"]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ), patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=pass1,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[_pass3a_response()],
+    ):
+        result = run_multipass_extraction(
+            "/fake/missing-currency.pdf",
+            {
+                "document_id": "missing-currency",
+                "ticker": "TST",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+    assert result.payload["_structured_extraction"]["warnings"] == []
+
+
 def test_skip_narrative_param_skips_pass3b_llm_call():
     """With skip_narrative=True, no LLM call should be made for pass3b."""
     from app.services.multipass_extraction import run_multipass_extraction
@@ -9133,7 +9196,7 @@ def test_validation_gate_accepts_null_narrative_fields():
 
 
 def _whc_openability_diagnostic():
-    return {
+    diagnostic = {
         "schema": "docling_openability_diagnostics_v1",
         "provenance_only": True,
         "feeds_canonical_output": False,
@@ -9189,7 +9252,7 @@ def _whc_openability_diagnostic():
                 "page": 60,
                 "statement_label": "cashflow_statement",
                 "period_phrases": ["For the year ended 30 June 2022"],
-                "scale_phrases": [],
+                "scale_phrases": ["$000"],
                 "row_candidates": [
                     {
                         "source_text": "Net cash from operating activities 3.4 2,529,823 138,765",
@@ -9220,6 +9283,22 @@ def _whc_openability_diagnostic():
             },
         ],
     }
+    for record in diagnostic["ocr_records"]:
+        for row_index, candidate in enumerate(record["row_candidates"], start=1):
+            candidate.update(
+                {
+                    "source_region": {
+                        "left": 10,
+                        "top": row_index * 20,
+                        "right": 500,
+                        "bottom": row_index * 20 + 12,
+                    },
+                    "source_row": row_index,
+                    "source_cell": [1, 2],
+                    "recognition_confidence": 95,
+                }
+            )
+    return diagnostic
 
 
 class _OpenabilityDoc:
@@ -9253,6 +9332,9 @@ def test_openability_selected_tables_builds_statement_tables_from_source_bound_d
     assert [table.page_number for table in tables] == [57, 58, 60]
     assert all(_detect_scale_from_table(table) == "thousands" for table in tables)
     assert "Revenue 21 4,920,102 1,556,976" in tables[0].rows[1][0]
+    assert "region=" in tables[0].rows[1][0]
+    assert "row=1" in tables[0].rows[1][0]
+    assert "cells=[1, 2]" in tables[0].rows[1][0]
     assert "Unusable subtotal" not in " ".join(
         " ".join(row) for table in tables for row in table.rows
     )
@@ -9281,6 +9363,101 @@ def test_openability_selected_tables_fail_closed_without_period_or_scale_evidenc
     for record in _MissingScaleDoc.parser_diagnostics["openability"]["ocr_records"]:
         record["scale_phrases"] = []
     assert _build_openability_selected_tables(_MissingScaleDoc()) == []
+
+
+def test_openability_selected_tables_quarantine_conflicting_cross_page_scales():
+    import copy
+
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    diagnostic = copy.deepcopy(_whc_openability_diagnostic())
+    diagnostic["ocr_records"][0]["scale_phrases"] = ["$000"]
+    diagnostic["ocr_records"][1]["scale_phrases"] = ["millions"]
+    diagnostic["ocr_records"][2]["scale_phrases"] = ["$000", "millions"]
+
+    class _ConflictingScaleDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": diagnostic}
+
+    tables = _build_openability_selected_tables(_ConflictingScaleDoc())
+
+    assert [(table.page_number, table.headers[1]) for table in tables] == [
+        (57, "For the year ended 30 June 2022 $000"),
+        (58, "As at 30 June 2022 millions"),
+    ]
+
+
+@pytest.mark.parametrize("confidence", [None, "not-a-number", True, 79.99])
+def test_openability_final_selection_requires_numeric_confidence_at_least_80(
+    confidence,
+):
+    import copy
+
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    diagnostic = copy.deepcopy(_whc_openability_diagnostic())
+    diagnostic["ocr_records"][0]["row_candidates"][0][
+        "recognition_confidence"
+    ] = confidence
+
+    class _InvalidConfidenceDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": diagnostic}
+
+    tables = _build_openability_selected_tables(_InvalidConfidenceDoc())
+
+    income_table = next(
+        table for table in tables if table.page_number == 57
+    )
+    assert all("Revenue 21" not in row[0] for row in income_table.rows)
+    assert all(
+        candidate["source_text"] != "Revenue 21 4,920,102 1,556,976"
+        for candidate in income_table.ocr_source_candidates
+    )
+
+
+def test_openability_final_metric_retains_structured_provenance_without_row_refs():
+    from app.services.multipass_extraction import (
+        _build_openability_selected_tables,
+        _run_pass3a_metric_extractor,
+        _run_pass4_reconciler,
+    )
+
+    table = _build_openability_selected_tables(_OpenabilityDoc())[0]
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2022-06-30",
+        "currency": "AUD",
+        "scale": "unknown",
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value={
+            "revenue": 4_920_102,
+            "ebit": None,
+            "np_attributable": None,
+            "row_refs": {},
+            "pass3_confidence": 0.9,
+        },
+    ):
+        extracted = _run_pass3a_metric_extractor(
+            {"income_statement": table},
+            pass1,
+            llm_client=None,
+        )
+
+    payload = _run_pass4_reconciler(extracted, {}, pass1)
+
+    assert payload["metrics"]["revenue"] == 4_920_102_000
+    assert payload["row_refs"]["revenue"] == "Revenue 21 4,920,102 1,556,976"
+    assert payload["field_provenance"]["revenue"]["ocr_source"] == {
+        "page_number": 57,
+        "source_region": {"left": 10, "top": 20, "right": 500, "bottom": 32},
+        "source_row": 1,
+        "source_cell": [1, 2],
+        "source_text": "Revenue 21 4,920,102 1,556,976",
+        "candidate_value_text": "4,920,102",
+        "recognition_confidence": 95.0,
+    }
 
 
 def test_openability_period_source_text_reuses_existing_ambiguous_period_guard():
@@ -10300,8 +10477,7 @@ class TestNonAUDCurrencyDetection:
 
 
 class TestNonAUDCurrencyNormalisation:
-    """LLM string-'null' currency must normalise to AUD without triggering
-    a false non-AUD warning, and non-AUD must surface in _structured_extraction.warnings."""
+    """Ambiguous currency must abstain; explicit native currency stays unchanged."""
 
     def _good_payload_non_aud(self, currency: str) -> dict:
         """Minimal passing payload for non-AUD currency."""
@@ -10325,21 +10501,48 @@ class TestNonAUDCurrencyNormalisation:
             "confidence_metrics": 0.85,
         }
 
-    def test_validate_gate_string_null_currency_treated_as_aud(self) -> None:
-        """When LLM returns currency='null' (string), _validate_gate must treat it as AUD.
-
-        A string-null currency must not downgrade to ok_low_confidence — it is not
-        a genuine non-AUD document, just an LLM serialisation artefact.
-        """
+    def test_validate_gate_string_null_currency_abstains(self) -> None:
+        """A classifier null without source evidence must not be guessed as AUD."""
         from app.services.multipass_extraction import _validate_gate
 
         payload = self._good_payload_non_aud("null")
         status, error = _validate_gate(payload)
-        # A confidence of 0.85 → "ok" for AUD; must not be ok_low_confidence
-        assert status == "ok", (
-            f"string-null currency must be normalised to AUD (ok); got status={status!r}"
+        assert status == "failed"
+        assert error == "validation_gate:currency_unknown"
+
+    @pytest.mark.parametrize("currency", ["none", "n/a", "unknown", "-"])
+    def test_validate_gate_other_null_like_currencies_abstain(
+        self, currency: str
+    ) -> None:
+        from app.services.multipass_extraction import _validate_gate
+
+        payload = self._good_payload_non_aud(currency)
+
+        assert _validate_gate(payload) == (
+            "failed",
+            "validation_gate:currency_unknown",
         )
-        assert error is None
+
+    def test_conflicting_table_currency_evidence_abstains(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _detect_currency_from_tables
+
+        tables = [
+            DoclingTable(
+                page_number=1,
+                caption="Consolidated Income Statement (AUD millions)",
+                headers=["AUD millions", "Current", "Comparative"],
+                rows=[["Revenue", "100", "90"]],
+            ),
+            DoclingTable(
+                page_number=2,
+                caption="Consolidated Cash Flow Statement (USD millions)",
+                headers=["USD millions", "Current", "Comparative"],
+                rows=[["Operating cash flow", "20", "18"]],
+            ),
+        ]
+
+        assert _detect_currency_from_tables(tables) == ""
 
     def test_validate_gate_non_aud_passes_hard_gates_before_downgrade(self) -> None:
         """Non-AUD with < 3 metrics must still fail, not merely downgrade.
@@ -10432,7 +10635,173 @@ class TestDerivedNetDebtFragmentsCoverageGate:
         )
 
 
+def test_pass2_locator_abstains_on_equal_top_income_table_evidence():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _run_pass2_locator
+
+    tables = [
+        DoclingTable(
+            page_number=page,
+            caption="Consolidated Income Statement",
+            headers=["", "Current", "Comparative"],
+            rows=[["Revenue", "100", "90"], ["Profit after tax", "20", "18"]],
+        )
+        for page in (4, 9)
+    ]
+
+    labelled = _run_pass2_locator(tables)
+
+    assert labelled["income_statement"] is None
+    assert all(table in labelled["unmatched"] for table in tables)
+
+
 class TestCurrentPeriodColumnBinding:
+    def test_single_table_flow_fails_closed_without_quarter_basis_evidence(
+        self,
+    ) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _extract_single_table
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "31 March 2025"],
+            raw_header_rows=[["", "31 March 2025"]],
+            rows=[["Net cash from operating activities", "25"]],
+        )
+
+        with patch(
+            "app.services.multipass_extraction._llm_json_call",
+            return_value={
+                "operating_cf": 25,
+                "row_refs": {
+                    "operating_cf": "Net cash from operating activities"
+                },
+                "pass3_confidence": 0.9,
+            },
+        ):
+            extracted = _extract_single_table(
+                "cashflow_statement",
+                table,
+                {
+                    "report_type": "Q",
+                    "period_basis": "period_only",
+                    "period_end": "2025-03-31",
+                    "currency": "AUD",
+                },
+                "units",
+                1,
+                llm_client=None,
+            )
+
+        assert extracted is not None
+        assert extracted["operating_cf"] is None
+        assert extracted["_period_binding"]["reason"] == "quarter_basis_missing"
+
+    def test_preferred_income_overlay_fails_closed_on_ambiguous_quarter_basis(
+        self,
+    ) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _apply_preferred_income_statement_source_payload,
+        )
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly income statement",
+            headers=["", "Current quarter / Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter / Year to date"],
+                ["", "31 March 2025"],
+            ],
+            rows=[["Revenue", "25"]],
+        )
+        payload = {
+            "metrics": {"revenue": None},
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            [table],
+            scale="units",
+            pass1_result={
+                "report_type": "Q",
+                "period_basis": "period_only",
+                "period_end": "2025-03-31",
+                "currency": "AUD",
+            },
+        )
+
+        assert payload["metrics"]["revenue"] == 25
+        assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+    def test_announcement_date_never_binds_as_period_end(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Results announcement",
+            headers=["", "Announcement date 31 March 2025"],
+            raw_header_rows=[["", "Announcement date 31 March 2025"]],
+            rows=[["Revenue", "25"]],
+        )
+
+        binding = _bind_current_period_column(table, "2025-03-31")
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "period_headers_missing"
+
+    def test_quarter_binding_records_exact_table_role_and_basis(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "Current quarter 31 March 2025", "Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter", "Year to date"],
+                ["", "31 March 2025", "31 March 2025"],
+            ],
+            rows=[["Receipts from customers", "25", "70"]],
+        )
+        table.index_in_doc = 4
+
+        binding = _bind_current_period_column(
+            table, "2025-03-31", period_basis="period_only"
+        )
+
+        assert binding["status"] == "BOUND"
+        assert binding["table_index"] == 4
+        assert binding["column_index"] == 1
+        assert binding["column_role"] == "current_quarter"
+        assert binding["period_basis"] == "period_only"
+
+    def test_same_date_conflicting_quarter_basis_fails_closed(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _bind_current_period_column
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Quarterly cash flow report",
+            headers=["", "Current quarter / Year to date 31 March 2025"],
+            raw_header_rows=[
+                ["", "Current quarter / Year to date"],
+                ["", "31 March 2025"],
+            ],
+            rows=[["Receipts from customers", "25"]],
+        )
+
+        binding = _bind_current_period_column(
+            table, "2025-03-31", period_basis="period_only"
+        )
+
+        assert binding["status"] == "DATA_MISSING"
+        assert binding["reason"] == "conflicting_quarter_basis"
+
     def test_binds_exact_requested_period_and_ignores_note_column(self) -> None:
         from app.services.docling_extract import DoclingTable
         from app.services.multipass_extraction import _bind_current_period_column
@@ -10804,3 +11173,256 @@ class TestCurrentPeriodColumnBinding:
             "header_cell": "31 December 2025",
             "requested_period_end": "2025-12-31",
         }
+
+
+def _ticket16_appendix_table(*, headers=None, rows=None, caption=None):
+    from app.services.docling_extract import DoclingTable
+
+    return DoclingTable(
+        page_number=7,
+        caption=(
+            "Appendix 4C consolidated statement of cash flows"
+            if caption is None
+            else caption
+        ),
+        headers=headers
+        or ["Item", "Description", "Current quarter $A'000", "Year to date $A'000"],
+        rows=rows
+        or [
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+            ["2.6", "Net cash from / (used in) investing activities", "(20)", "(80)"],
+            ["3.10", "Net cash from / (used in) financing activities", "30", "60"],
+            ["4.6", "Cash and cash equivalents at end of period", "70", "700"],
+            [
+                "5.5",
+                "Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+                "70",
+                "700",
+            ],
+        ],
+    )
+
+
+def _ticket16_pass1(form="4c"):
+    document_type = f"appendix_{form}"
+    contract_id = f"asx_{document_type}_extraction_contract_v1"
+    return {
+        "scale": "thousands",
+        "_asx_document_type_classification": {
+            "document_type": document_type,
+            "abstain": False,
+        },
+        "_asx_extraction_contract": {
+            "document_type": document_type,
+            "contract_id": contract_id,
+            "abstain": False,
+        },
+        "_asx_extraction_contract_routing": {
+            "contract_id": contract_id,
+            "allowed": True,
+            "abstain": False,
+        },
+    }
+
+
+def test_ticket16_structured_appendix_binds_current_cells_and_metric_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {"metrics": {}, "scale": "thousands"}
+    _apply_structured_appendix_cashflow_payload(
+        payload, [_ticket16_appendix_table()], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["metrics"] == {
+        "operating_cf": 100_000,
+        "investing_cf": -20_000,
+        "financing_cf": 30_000,
+        "cash_end": 70_000,
+    }
+    assert payload["row_refs"]["operating_cf"].startswith("1.9 ")
+    assert payload["provenance"]["operating_cf"].startswith("source_table:page_7:")
+    assert payload["metric_source_scales"]["operating_cf"] == "thousands"
+    assert payload["metric_scale_sources"]["operating_cf"] == "table"
+
+
+def test_ticket16_appendix_rejects_ambiguous_current_column_and_clears_stale_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        headers=[
+            "Item",
+            "Description",
+            "Current quarter $A'000",
+            "Current period $A'000",
+        ]
+    )
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_row_anchored_identity_context_failure_clears_stale_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        caption="",
+        headers=["Item", "Description", "Current quarter", "Current period"],
+        rows=[
+            ["Appendix 4C", "Consolidated statement of cash flows", "", ""],
+            ["1.9", "Unexpected operating cash label", "100", "100"],
+        ],
+    )
+
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_appendix_rejects_conflicting_scale_sources_for_all_metrics():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    explicit = _ticket16_appendix_table()
+    inherited = _ticket16_appendix_table(
+        caption="Appendix 4C consolidated statement of cash flows",
+        headers=["Item", "Description", "Current quarter", "Year to date"],
+        rows=[
+            [
+                "2.6",
+                "Net cash from / (used in) investing activities",
+                "(20)",
+                "(80)",
+            ]
+        ],
+    )
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [explicit, inherited], trusted_form="4c", document_scale="thousands"
+    )
+    assert recovered == {}
+    assert {"operating_cf", "investing_cf", "financing_cf", "cash_end"} <= ambiguous
+
+
+def test_ticket16_appendix_cash_end_cross_check_disagreement_is_rejected():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    table = _ticket16_appendix_table()
+    table.rows[-1][2] = "71"
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [table], trusted_form="4c", document_scale="thousands"
+    )
+    assert "cash_end" not in recovered
+    assert ambiguous == {"cash_end"}
+
+
+def test_ticket16_appendix_requires_exact_trusted_form_identity():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {"metrics": {}, "scale": "thousands"}
+    pass1 = _ticket16_pass1()
+    pass1["_asx_extraction_contract_routing"]["allowed"] = False
+    _apply_structured_appendix_cashflow_payload(
+        payload, [_ticket16_appendix_table()], pass1_result=pass1
+    )
+    assert payload == {"metrics": {}, "scale": "thousands"}
+
+
+def test_ticket16_known_item_with_invalid_label_clears_stale_metric_evidence():
+    from app.services.multipass_extraction import (
+        _apply_structured_appendix_cashflow_payload,
+    )
+
+    payload = {
+        "metrics": {"operating_cf": 999},
+        "operating_cf": 999,
+        "row_refs": {"operating_cf": "stale"},
+        "provenance": {"operating_cf": "stale"},
+        "field_provenance": {"operating_cf": {"stale": True}},
+        "metric_source_scales": {"operating_cf": "units"},
+        "metric_scale_sources": {"operating_cf": "model"},
+        "scale": "thousands",
+    }
+    table = _ticket16_appendix_table(
+        rows=[["1.9", "Net cash from operating activities (unaudited)", "100", "900"]]
+    )
+
+    _apply_structured_appendix_cashflow_payload(
+        payload, [table], pass1_result=_ticket16_pass1()
+    )
+
+    assert payload["operating_cf"] is None
+    assert payload["metrics"]["operating_cf"] is None
+    for key in (
+        "row_refs",
+        "provenance",
+        "field_provenance",
+        "metric_source_scales",
+        "metric_scale_sources",
+    ):
+        assert "operating_cf" not in payload[key]
+
+
+def test_ticket16_duplicate_equal_rows_are_ambiguous_by_source_identity():
+    from app.services.multipass_extraction import _recover_structured_appendix_cashflow
+
+    table = _ticket16_appendix_table(
+        rows=[
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+            ["1.9", "Net cash from / (used in) operating activities", "100", "900"],
+        ]
+    )
+
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        [table], trusted_form="4c", document_scale="thousands"
+    )
+
+    assert "operating_cf" not in recovered
+    assert ambiguous == {"operating_cf"}

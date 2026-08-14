@@ -30,6 +30,8 @@ If this README conflicts with those setup docs, the `docs/setup/*` files are the
   - GET `/api/health`
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
+  - GET `/api/financials/reviews?ticker=BHP`
+  - POST `/api/financials/reviews/{review_id}/decision`
   - GET `/api/risk?document_id=...`
   - POST `/api/ingest/transcript`
   - POST `/api/ingest/book`
