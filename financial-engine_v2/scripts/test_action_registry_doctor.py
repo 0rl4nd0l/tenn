@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +27,38 @@ class ActionRegistryDoctorTests(unittest.TestCase):
         )
         self.assertEqual(clean, {"ticker": "BHP"})
         self.assertTrue(control["dry_run"])
+
+    def test_python_bin_prefers_executable_repo_virtualenv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp) / "financial-engine_v2"
+            repo_python = repo_root / ".venv" / "bin" / "python"
+            parent_python = repo_root.parent / ".venv" / "bin" / "python"
+            for candidate in (repo_python, parent_python):
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                candidate.touch(mode=0o755)
+
+            self.assertEqual(
+                ActionRegistry._resolve_python_bin(repo_root), str(repo_python)
+            )
+
+    def test_python_bin_falls_back_to_executable_parent_virtualenv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp) / "financial-engine_v2"
+            parent_python = repo_root.parent / ".venv" / "bin" / "python"
+            parent_python.parent.mkdir(parents=True)
+            parent_python.touch(mode=0o755)
+
+            self.assertEqual(
+                ActionRegistry._resolve_python_bin(repo_root), str(parent_python)
+            )
+
+    def test_python_bin_falls_back_to_verified_current_interpreter(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp) / "financial-engine_v2"
+            with mock.patch("cockpit.core.actions.sys.executable", sys.executable):
+                self.assertEqual(
+                    ActionRegistry._resolve_python_bin(repo_root), sys.executable
+                )
 
     def test_doctor_quick_single_action_does_not_crash(self) -> None:
         reg = ActionRegistry(repo_root=REPO_ROOT, confirm_required=True)
