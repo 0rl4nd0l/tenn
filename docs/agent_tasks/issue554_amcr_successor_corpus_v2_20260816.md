@@ -44,6 +44,9 @@ allowed_files:
   - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/CODE_REVIEW.json
   - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/diff-check.json
   - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/git_status_final.log
+  - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/handoff/HANDOFF.md
+  - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/handoff/NEXT_GOAL.md
+  - reports/agent_jobs/issue554_amcr_successor_corpus_v2_20260816/handoff/LEDGER_ENTRY.json
 docs_impact: DOCS_UPDATED
 docs_checked:
   - AGENTS.md
