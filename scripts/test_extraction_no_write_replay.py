@@ -13,6 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -622,6 +623,223 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             path.write_text(__import__("json").dumps(bad), encoding="utf-8")
             with self.assertRaises(RUNNER.ReplayConfigError):
                 RUNNER.load_manifest(path)
+
+    def test_v1_manifest_behavior_remains_compatible(self):
+        manifest = self.manifest()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            loaded = RUNNER.load_manifest(path)
+
+        self.assertEqual("extraction_no_write_case_manifest_v1", loaded["artifact_type"])
+        self.assertEqual(["HUB", "LBL"], [row["case_id"] for row in RUNNER.select_cases(loaded, [])])
+
+    def test_v2_receipt_is_bound_to_one_report_and_rejects_reuse(self):
+        report_parent = ROOT / "reports" / "agent_jobs"
+        report_parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=report_parent) as directory:
+            job = Path(directory)
+            output = job / "output"
+            receipt_path = job / "INVOCATION_RECEIPT.json"
+            invocation_id = "synthetic-invocation"
+            stage = job / f".output.staging-{invocation_id}"
+            report_dir = stage / "replay"
+            manifest_path = job / "cases.json"
+            corpus_path = job / "corpus.json"
+            source_root = job / "sources"
+            manifest_path.write_text("{}\n", encoding="utf-8")
+            corpus_path.write_text("{}\n", encoding="utf-8")
+            corpus_sha = RUNNER._sha256(corpus_path)
+            command = [
+                sys.executable,
+                str(RUNNER_PATH),
+                "--case-manifest",
+                str(manifest_path),
+                "--source-contract",
+                str(corpus_path),
+                "--case",
+                "all",
+                "--report-dir",
+                report_dir.relative_to(ROOT).as_posix(),
+                "--invocation-receipt",
+                str(receipt_path),
+                "--source-root",
+                str(source_root),
+                "--llm-base-url",
+                "http://127.0.0.1:8001",
+                "--case-timeout-seconds",
+                "900",
+                "--profile",
+                RUNNER.BASELINE_PROFILE,
+            ]
+            receipt = {
+                "artifact_type": "broad_extraction_invocation_receipt_v2",
+                "invocation_id": invocation_id,
+                "receipt_path": str(receipt_path),
+                "final_output_root": str(output),
+                "staging_root": str(stage),
+                "replay_report_dir": str(report_dir),
+                "case_manifest_path": str(manifest_path),
+                "case_manifest_sha256": RUNNER._sha256(manifest_path),
+                "corpus_path": str(corpus_path),
+                "corpus_sha256": corpus_sha,
+                "case_count": 20,
+                "command": command,
+            }
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+            with mock.patch.object(RUNNER, "V2_CORPUS_SHA256", corpus_sha):
+                validated = RUNNER.validate_v2_invocation_receipt(
+                    receipt_path,
+                    manifest_path=manifest_path,
+                    corpus_path=corpus_path,
+                    report_dir=report_dir,
+                    source_root=source_root,
+                    llm_url="http://127.0.0.1:8001",
+                    case_timeout_seconds=900,
+                )
+                receipt["command"][0] = "/usr/bin/not-the-current-python"
+                receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "command binding mismatch"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=report_dir,
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                    )
+                receipt["command"][0] = sys.executable
+                receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "path binding mismatch"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=job / "different-replay",
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                    )
+
+                report_dir.mkdir(parents=True)
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "staging root already exists"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=report_dir,
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                    )
+
+                output.mkdir()
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "final output already exists"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=report_dir,
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                    )
+
+            self.assertEqual(invocation_id, validated["invocation_id"])
+
+    def test_v2_manifest_accepts_only_exact_complete_direct_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            source_root = root / "source"
+            corpus_path = repo.joinpath(*RUNNER.V2_CORPUS_REPO_PATH.parts)
+            corpus_path.parent.mkdir(parents=True)
+            cases = []
+            documents = []
+            for index in range(20):
+                ticker = f"T{index:02d}"
+                document_id = f"doc_{index:02d}"
+                relative = f"asx/docs/{ticker}/report.pdf"
+                source = source_root / relative
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_bytes(f"source-{index}".encode())
+                cases.append(
+                    {
+                        "case_id": f"CASE_{index:02d}",
+                        "ticker": ticker,
+                        "document_id": document_id,
+                        "title": ticker,
+                        "source_path": relative,
+                    }
+                )
+                documents.append(
+                    {
+                        "document_id": document_id,
+                        "issuer_id": ticker,
+                        "admission_status": "admitted",
+                        "source_path": relative,
+                        "source_sha256": RUNNER._sha256(source),
+                    }
+                )
+            corpus = {
+                "artifact_type": "broad_extraction_benchmark_corpus_v2",
+                "documents": documents,
+            }
+            manifest = {
+                "artifact_type": RUNNER.V2_MANIFEST_ARTIFACT_TYPE,
+                "certification": {
+                    "allow_production_writes": False,
+                    "loopback_llm_only": True,
+                    "source_contract": RUNNER.V2_CORPUS_REPO_PATH.as_posix(),
+                },
+                "cases": cases,
+            }
+            corpus_path.write_text(json.dumps(corpus), encoding="utf-8")
+            manifest_path = root / "cases.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with (
+                mock.patch.object(RUNNER, "V2_CORPUS_SHA256", RUNNER._sha256(corpus_path)),
+                mock.patch.object(RUNNER, "V2_MANIFEST_SHA256", RUNNER._sha256(manifest_path)),
+            ):
+                contract = RUNNER._validate_v2_manifest_contract(
+                    manifest_path, manifest, repo_root=repo
+                )
+                resolved = RUNNER.resolve_v2_case_source_paths(
+                    manifest_path,
+                    manifest,
+                    source_root=source_root,
+                    repo_root=repo,
+                )
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "complete 20-case"
+                ):
+                    RUNNER.select_cases(manifest, ["CASE_00"])
+
+                (source_root / cases[0]["source_path"]).write_bytes(b"changed")
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "source SHA-256 mismatch"
+                ):
+                    RUNNER.resolve_v2_case_source_paths(
+                        manifest_path,
+                        manifest,
+                        source_root=source_root,
+                        repo_root=repo,
+                    )
+
+            self.assertEqual(20, len(contract["document_by_id"]))
+            self.assertEqual(20, len(resolved))
+            self.assertNotIn("source_path_candidates", resolved[0])
 
 
 if __name__ == "__main__":

@@ -37,6 +37,13 @@ BASELINE_PROFILE = "baseline-no-write"
 DOCLING_PROFILE = "docling-no-write"
 SUPPORTED_PROFILES = {BASELINE_PROFILE, DOCLING_PROFILE}
 DEFAULT_CASE_TIMEOUT_SECONDS = 900
+V2_MANIFEST_ARTIFACT_TYPE = "extraction_no_write_case_manifest_v2"
+V2_MANIFEST_SHA256 = "fa1880e039ab86ae2f2d7d7ebd9444ead8fed4c362925f2105c668819898f741"
+V2_CORPUS_REPO_PATH = PurePosixPath(
+    "financial-engine_v2/data/broad_extraction_benchmark/v2/corpus.json"
+)
+V2_CORPUS_SHA256 = "815649beffc63946eeeb77771deb961e1f36f06ee5ec49c9cd6ac068a49323dd"
+V2_CASE_COUNT = 20
 APPROVED_VENV_RELATIVE_PYTHONS = (
     "financial-engine_v2/.venv/bin/python",
     "financial-engine_v2/.venv/bin/python3",
@@ -193,18 +200,33 @@ def resolve_manifest_path(path: Path, *, repo_root: Path = REPO_ROOT) -> Path:
     try:
         resolved.relative_to(certified_root)
     except ValueError as exc:
-        raise ReplayConfigError(
-            f"case manifest must be under certified manifest root: {certified_root}"
-        ) from exc
+        if (
+            resolved.is_symlink()
+            or not resolved.is_file()
+            or _sha256(resolved) != V2_MANIFEST_SHA256
+        ):
+            raise ReplayConfigError(
+                f"case manifest must be under certified manifest root: {certified_root}; "
+                "only the exact hash-bound v2 manifest may be external"
+            ) from exc
     if resolved.exists() and resolved.is_symlink():
         raise ReplayConfigError(f"case manifest must not be a symlink: {resolved}")
     return resolved
 
 
-def load_manifest(path: Path) -> dict[str, Any]:
+def load_manifest(
+    path: Path, *, v2_corpus_path: Path | None = None
+) -> dict[str, Any]:
     manifest = _read_json(path)
-    if manifest.get("artifact_type") != "extraction_no_write_case_manifest_v1":
-        raise ReplayConfigError("manifest artifact_type must be extraction_no_write_case_manifest_v1")
+    artifact_type = manifest.get("artifact_type")
+    if artifact_type not in {
+        "extraction_no_write_case_manifest_v1",
+        V2_MANIFEST_ARTIFACT_TYPE,
+    }:
+        raise ReplayConfigError(
+            "manifest artifact_type must be extraction_no_write_case_manifest_v1 "
+            f"or {V2_MANIFEST_ARTIFACT_TYPE}"
+        )
     cases = manifest.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ReplayConfigError("manifest cases must be a non-empty list")
@@ -234,11 +256,90 @@ def load_manifest(path: Path) -> dict[str, Any]:
         raise ReplayConfigError("manifest must explicitly disallow production writes")
     if certification.get("loopback_llm_only") is not True:
         raise ReplayConfigError("manifest must require loopback-only LLM access")
+    if artifact_type == V2_MANIFEST_ARTIFACT_TYPE:
+        _validate_v2_manifest_contract(
+            path, manifest, corpus_path=v2_corpus_path
+        )
     return manifest
+
+
+def _validate_v2_manifest_contract(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    *,
+    repo_root: Path = REPO_ROOT,
+    corpus_path: Path | None = None,
+) -> dict[str, Any]:
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ReplayConfigError("v2 case manifest must be a non-symlink regular file")
+    observed_manifest_sha = _sha256(manifest_path)
+    if observed_manifest_sha != V2_MANIFEST_SHA256:
+        raise ReplayConfigError(
+            f"v2 case manifest SHA-256 mismatch: expected {V2_MANIFEST_SHA256}, "
+            f"observed {observed_manifest_sha}"
+        )
+    cases = manifest["cases"]
+    if len(cases) != V2_CASE_COUNT:
+        raise ReplayConfigError(f"v2 case manifest must contain exactly {V2_CASE_COUNT} cases")
+    certification = manifest["certification"]
+    if certification.get("source_contract") != V2_CORPUS_REPO_PATH.as_posix():
+        raise ReplayConfigError("v2 case manifest must declare the exact v2 corpus path")
+    corpus_path = (
+        corpus_path.expanduser().resolve()
+        if corpus_path is not None
+        else repo_root.joinpath(*V2_CORPUS_REPO_PATH.parts)
+    )
+    if corpus_path.is_symlink() or not corpus_path.is_file():
+        raise ReplayConfigError(f"v2 corpus must be a non-symlink regular file: {corpus_path}")
+    observed_corpus_sha = _sha256(corpus_path)
+    if observed_corpus_sha != V2_CORPUS_SHA256:
+        raise ReplayConfigError(
+            f"v2 corpus SHA-256 mismatch: expected {V2_CORPUS_SHA256}, "
+            f"observed {observed_corpus_sha}"
+        )
+    corpus = _read_json(corpus_path)
+    if corpus.get("artifact_type") != "broad_extraction_benchmark_corpus_v2":
+        raise ReplayConfigError("v2 corpus artifact_type mismatch")
+    documents = corpus.get("documents")
+    if not isinstance(documents, list) or len(documents) != V2_CASE_COUNT:
+        raise ReplayConfigError(f"v2 corpus must contain exactly {V2_CASE_COUNT} documents")
+    document_by_id = {
+        row.get("document_id"): row for row in documents if isinstance(row, dict)
+    }
+    if len(document_by_id) != len(documents):
+        raise ReplayConfigError("v2 corpus document IDs must be unique")
+    seen_documents: set[str] = set()
+    for case in cases:
+        document_id = str(case.get("document_id") or "")
+        document = document_by_id.get(document_id)
+        if document is None or document_id in seen_documents:
+            raise ReplayConfigError("v2 cases must map one-to-one to corpus documents")
+        if (
+            case.get("ticker") != document.get("issuer_id")
+            or case.get("source_path") != document.get("source_path")
+            or document.get("admission_status") != "admitted"
+        ):
+            raise ReplayConfigError(
+                f"v2 case/corpus identity mismatch: {case.get('case_id')}"
+            )
+        seen_documents.add(document_id)
+    if seen_documents != set(document_by_id):
+        raise ReplayConfigError("v2 case manifest omits corpus documents")
+    return {
+        "manifest_sha256": observed_manifest_sha,
+        "corpus_path": str(corpus_path),
+        "corpus_sha256": observed_corpus_sha,
+        "document_by_id": document_by_id,
+    }
 
 
 def select_cases(manifest: dict[str, Any], selectors: list[str]) -> list[dict[str, Any]]:
     cases = manifest["cases"]
+    if manifest.get("artifact_type") == V2_MANIFEST_ARTIFACT_TYPE and selectors not in (
+        [],
+        ["all"],
+    ):
+        raise ReplayConfigError("v2 replay requires the complete 20-case manifest")
     if not selectors or selectors == ["all"] or "all" in selectors:
         return [dict(case) for case in cases]
 
@@ -349,6 +450,137 @@ def resolve_case_source_paths(cases: list[dict[str, Any]]) -> list[dict[str, Any
         resolved_case["source_path_candidates"] = [str(candidate) for candidate in candidates]
         resolved_cases.append(resolved_case)
     return resolved_cases
+
+
+def resolve_v2_case_source_paths(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    *,
+    source_root: Path,
+    repo_root: Path = REPO_ROOT,
+    corpus_path: Path | None = None,
+) -> list[dict[str, Any]]:
+    contract = _validate_v2_manifest_contract(
+        manifest_path,
+        manifest,
+        repo_root=repo_root,
+        corpus_path=corpus_path,
+    )
+    document_by_id = contract["document_by_id"]
+    resolved_cases: list[dict[str, Any]] = []
+    for case in manifest["cases"]:
+        document = document_by_id[str(case["document_id"])]
+        declared = Path(str(case["source_path"])).expanduser()
+        if declared.is_absolute():
+            source = declared
+        else:
+            relative = _normalize_repo_path(str(case["source_path"]))
+            source = source_root.joinpath(*relative.parts)
+        if source.is_symlink() or not source.is_file():
+            raise ReplayConfigError(
+                f"v2 declared source missing or not a regular file: {case['case_id']}:{source}"
+            )
+        observed = _sha256(source)
+        expected = document.get("source_sha256")
+        if observed != expected:
+            raise ReplayConfigError(
+                f"v2 source SHA-256 mismatch for {case['case_id']}: "
+                f"expected {expected}, observed {observed}"
+            )
+        resolved = dict(case)
+        resolved["source_path"] = str(source)
+        resolved["source_path_declared"] = str(case["source_path"])
+        resolved["source_sha256"] = observed
+        resolved_cases.append(resolved)
+    return resolved_cases
+
+
+def validate_v2_invocation_receipt(
+    receipt_path: Path,
+    *,
+    manifest_path: Path,
+    corpus_path: Path,
+    report_dir: Path,
+    source_root: Path,
+    llm_url: str,
+    case_timeout_seconds: int,
+) -> dict[str, Any]:
+    if receipt_path.is_symlink() or not receipt_path.is_file():
+        raise ReplayConfigError("v2 launch requires an existing non-symlink invocation receipt")
+    receipt_path = receipt_path.resolve()
+    manifest_path = manifest_path.resolve()
+    corpus_path = corpus_path.resolve()
+    report_dir = report_dir.resolve()
+    receipt = _read_json(receipt_path)
+    if receipt.get("artifact_type") != "broad_extraction_invocation_receipt_v2":
+        raise ReplayConfigError("v2 invocation receipt artifact_type mismatch")
+    invocation_id = str(receipt.get("invocation_id") or "")
+    try:
+        bound_receipt = Path(str(receipt["receipt_path"])).resolve()
+        final_output_path = Path(str(receipt["final_output_root"]))
+        staging_root_path = Path(str(receipt["staging_root"]))
+        final_output = final_output_path.resolve()
+        staging_root = staging_root_path.resolve()
+        replay_report_dir = Path(str(receipt["replay_report_dir"])).resolve()
+        bound_manifest = Path(str(receipt["case_manifest_path"])).resolve()
+        bound_corpus = Path(str(receipt["corpus_path"])).resolve()
+    except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+        raise ReplayConfigError("v2 invocation receipt path bindings are invalid") from exc
+    expected_receipt = final_output.parent / "INVOCATION_RECEIPT.json"
+    expected_stage = final_output.parent / f".{final_output.name}.staging-{invocation_id}"
+    if (
+        not invocation_id
+        or bound_receipt != receipt_path
+        or expected_receipt != receipt_path
+        or staging_root != expected_stage
+        or replay_report_dir != staging_root / "replay"
+        or replay_report_dir != report_dir
+        or bound_manifest != manifest_path
+        or bound_corpus != corpus_path
+    ):
+        raise ReplayConfigError("v2 invocation receipt output/report/input path binding mismatch")
+    if final_output_path.exists() or final_output_path.is_symlink():
+        raise ReplayConfigError(
+            f"v2 invocation receipt final output already exists: {final_output}"
+        )
+    if staging_root_path.exists() or staging_root_path.is_symlink():
+        raise ReplayConfigError(
+            f"v2 invocation receipt staging root already exists: {staging_root}"
+        )
+    if receipt.get("case_manifest_sha256") != _sha256(manifest_path):
+        raise ReplayConfigError("v2 invocation receipt manifest SHA-256 mismatch")
+    if receipt.get("corpus_sha256") != V2_CORPUS_SHA256:
+        raise ReplayConfigError("v2 invocation receipt corpus SHA-256 mismatch")
+    if receipt.get("case_count") != V2_CASE_COUNT:
+        raise ReplayConfigError("v2 invocation receipt case count mismatch")
+    command = receipt.get("command")
+    if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+        raise ReplayConfigError("v2 invocation receipt command binding is invalid")
+
+    def command_option(name: str) -> str:
+        if command.count(name) != 1:
+            raise ReplayConfigError(f"v2 invocation receipt command must bind {name} once")
+        index = command.index(name)
+        if index + 1 >= len(command):
+            raise ReplayConfigError(f"v2 invocation receipt command omits {name} value")
+        return command[index + 1]
+
+    if (
+        len(command) < 2
+        or not _same_python_path(Path(command[0]), Path(sys.executable))
+        or Path(command[1]).resolve() != Path(__file__).resolve()
+        or Path(command_option("--case-manifest")).resolve() != manifest_path
+        or Path(command_option("--source-contract")).resolve() != corpus_path
+        or resolve_report_dir(command_option("--report-dir")) != report_dir
+        or Path(command_option("--invocation-receipt")).resolve() != receipt_path
+        or Path(command_option("--source-root")).resolve() != source_root.resolve()
+        or assert_loopback_url(command_option("--llm-base-url")) != llm_url
+        or command_option("--case-timeout-seconds") != str(case_timeout_seconds)
+        or command_option("--profile") != BASELINE_PROFILE
+        or command_option("--case") != "all"
+    ):
+        raise ReplayConfigError("v2 invocation receipt command binding mismatch")
+    return receipt
 
 
 def assert_loopback_url(raw_url: str) -> str:
@@ -1380,8 +1612,15 @@ def _write_no_run_artifacts(
 def run_replay(args: argparse.Namespace) -> int:
     profile, profile_info, profile_preflight_issue = prepare_profile_process(args)
     manifest_path = resolve_manifest_path(Path(args.case_manifest).expanduser())
-    manifest = load_manifest(manifest_path)
-    cases = resolve_case_source_paths(select_cases(manifest, list(args.case)))
+    raw_source_contract = str(getattr(args, "source_contract", "") or "").strip()
+    source_contract_path = (
+        Path(raw_source_contract).expanduser() if raw_source_contract else None
+    )
+    manifest = load_manifest(
+        manifest_path, v2_corpus_path=source_contract_path
+    )
+    selected_cases = select_cases(manifest, list(args.case))
+    is_v2 = manifest.get("artifact_type") == V2_MANIFEST_ARTIFACT_TYPE
     llm_url = assert_loopback_url(
         args.llm_base_url
         or os.environ.get("EXTRACTION_LLAMACPP_URL")
@@ -1389,8 +1628,45 @@ def run_replay(args: argparse.Namespace) -> int:
         or "http://127.0.0.1:8001"
     )
     report_dir = resolve_report_dir(args.report_dir)
-    report_dir.mkdir(parents=True, exist_ok=True)
-    _reset_report_outputs(report_dir)
+    receipt: dict[str, Any] | None = None
+    if is_v2:
+        cases = resolve_v2_case_source_paths(
+            manifest_path,
+            manifest,
+            source_root=Path(
+                getattr(args, "source_root", DEFAULT_SHARED_DATA_ROOT)
+            ).expanduser(),
+            corpus_path=source_contract_path,
+        )
+        if not args.preflight_only:
+            raw_receipt = str(getattr(args, "invocation_receipt", "") or "").strip()
+            if not raw_receipt:
+                raise ReplayConfigError("v2 launch requires --invocation-receipt")
+            if source_contract_path is None:
+                raise ReplayConfigError("v2 launch requires --source-contract")
+            receipt = validate_v2_invocation_receipt(
+                Path(raw_receipt).expanduser(),
+                manifest_path=manifest_path,
+                corpus_path=source_contract_path,
+                report_dir=report_dir,
+                source_root=Path(
+                    getattr(args, "source_root", DEFAULT_SHARED_DATA_ROOT)
+                ).expanduser(),
+                llm_url=llm_url,
+                case_timeout_seconds=int(args.case_timeout_seconds),
+            )
+    else:
+        cases = resolve_case_source_paths(selected_cases)
+    if is_v2:
+        try:
+            report_dir.mkdir(parents=True, exist_ok=False)
+        except FileExistsError as exc:
+            raise ReplayConfigError(
+                f"v2 report directory already exists; refusing replacement: {report_dir}"
+            ) from exc
+    else:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        _reset_report_outputs(report_dir)
     log_path = report_dir / "logs" / "replay.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
@@ -1525,6 +1801,7 @@ def run_replay(args: argparse.Namespace) -> int:
         input_manifest = {
             "manifest_path": str(manifest_path),
             "manifest_sha256": _sha256(manifest_path),
+            "manifest_artifact_type": manifest.get("artifact_type"),
             "selected_cases": cases,
             "profile": profile,
             "profile_info": profile_info,
@@ -1535,6 +1812,23 @@ def run_replay(args: argparse.Namespace) -> int:
             "cache_root_verification_mode": cache_verification_mode,
             "safe_env": _safe_env_report(safe_env),
         }
+        if is_v2:
+            input_manifest["source_contract"] = {
+                "path": V2_CORPUS_REPO_PATH.as_posix(),
+                "sha256": V2_CORPUS_SHA256,
+            }
+            if receipt is None:
+                input_manifest["invocation_receipt"] = {
+                    "created": False,
+                    "preflight_only": True,
+                }
+            else:
+                receipt_path = Path(str(args.invocation_receipt))
+                input_manifest["invocation_receipt"] = {
+                    "path": str(receipt_path),
+                    "sha256": _sha256(receipt_path),
+                    "invocation_id": receipt.get("invocation_id"),
+                }
         _write_json(report_dir / "input_manifest.json", input_manifest)
         if not cache_ok:
             validation = {"status": "FAIL", "reason": cache_error}
@@ -1619,7 +1913,11 @@ def run_replay(args: argparse.Namespace) -> int:
         "expectation_failures": expectation_failures,
     }
     replay_payload = {
-        "artifact_type": "extraction_no_write_replay_results_v1",
+        "artifact_type": (
+            "extraction_no_write_replay_results_v2"
+            if is_v2
+            else "extraction_no_write_replay_results_v1"
+        ),
         "status": status,
         "profile": profile,
         "case_count": len(cases),
@@ -1659,6 +1957,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case", action="append", default=[], help="Certified case id/ticker/document id, or all.")
     parser.add_argument("--report-dir", default=DEFAULT_REPORT_DIR)
     parser.add_argument("--llm-base-url", default="")
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        default=DEFAULT_SHARED_DATA_ROOT,
+        help=(
+            "Root used only to resolve v2 repo-relative declared source paths. "
+            "No fallback candidates are searched."
+        ),
+    )
+    parser.add_argument(
+        "--source-contract",
+        type=Path,
+        default=None,
+        help=(
+            "Physical path to the exact hash-bound v2 corpus. The manifest's "
+            "declared logical source_contract path remains fixed."
+        ),
+    )
+    parser.add_argument(
+        "--invocation-receipt",
+        default="",
+        help="Existing exclusive v2 receipt required for a non-preflight v2 launch.",
+    )
     parser.add_argument(
         "--profile",
         choices=sorted(SUPPORTED_PROFILES),

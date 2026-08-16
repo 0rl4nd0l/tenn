@@ -3,7 +3,7 @@
 - Status: evaluation contract only
 - Owner: Financial Truth
 - Source of truth: `financial-engine_v2/backend/app/services/broad_extraction_benchmark.py`
-- Last verified base: `7a28721deb93dfefa3859a2d79bfca81453b54c5`
+- Last verified base: `2bd1033e6e202998be6db82858c75a8119f7ac40`
 - Stale if: the issue #554 corpus size, metric profile, identity dimensions, or
   acceptance thresholds change
 
@@ -17,6 +17,8 @@ function validates those inputs and returns an immutable deterministic score.
 
 This module is not an extractor or benchmark runner. It does not open PDFs,
 call a model, access a database, mutate gold data, or promote an observation.
+The separate `scripts/run_broad_extraction_benchmark_v2.py` adapter binds and
+scores an authorized v2 replay; it does not change this pure scorer contract.
 
 ## Frozen input contract
 
@@ -91,10 +93,42 @@ Neither gate promotes data or closes issue #554 automatically.
 
 ## Current evidence boundary
 
-This contract is tested only with synthetic in-memory fixtures. Synthetic
-fixtures prove scorer behavior; they are not extraction-quality evidence.
-The frozen source-adjudicated 20-by-10 matrix, a no-write runner adapter, and a
-real before/after corpus result remain separate work. Running that corpus or
-changing extractor behavior requires its own exact task scope and Tier-2
-approval. Until then, no broad recovery, 95% coverage, or issue-completion claim
-is supported by this contract.
+The scorer and v2 execution adapter are tested with synthetic fixtures.
+Synthetic fixtures prove contract, receipt, completeness, and publication
+behavior; they are not extraction-quality evidence. The source-adjudicated v2
+20-by-10 matrix is frozen and hash-bound, but no v2 extraction or score exists.
+Running that corpus or changing extractor behavior requires its own exact
+Tier-2 authority. Until then, no broad recovery, 95% coverage, or
+issue-completion claim is supported by this contract.
+
+## V2 execution contract
+
+The v2 adapter accepts only the frozen input identities recorded in its source
+manifest: corpus, expectations, case manifest, semantic corpus digest, and
+semantic contract digest. All 20 cases must map one-to-one to admitted corpus
+documents. Repo-relative source paths are joined once to the declared source
+root and hashed; the replay does not search fallback roots or substitute a
+different matching file. The predecessor v1 runner and replay behavior remain
+unchanged.
+
+Validation requires an explicit absolute Python interpreter. The runner starts
+with an import-only preflight for the real replay modules, records the Python
+binary hash and installed dependency-version snapshot, and creates no receipt.
+Use the documented `financial-engine_v2/.venv` environment or another explicit
+existing repo-supported interpreter; do not install or alter dependencies as
+part of a one-shot run.
+
+An authorized launch requires both the output root and its sibling
+`INVOCATION_RECEIPT.json` to be absent. After every input, source, output, and
+interpreter check passes, the runner creates the receipt using
+`O_CREAT|O_EXCL` and immediately launches replay. The receipt is never removed
+or replaced. Direct non-preflight v2 replay also requires that exact
+hash-matching receipt, so calling the lower-level script cannot bypass the
+one-shot boundary.
+
+Replay writes only to a fresh hidden staging directory. Scoring requires one
+result for each of the 20 declared case/document pairs and a passing side-effect
+audit. Missing or duplicate results produce no score. Success and post-launch
+failure evidence are sealed with `OUTPUT_MANIFEST.json` and `SHA256SUMS`, then
+published with an atomic no-replace directory rename. An existing or racing
+output is never deleted, reset, or overwritten.
