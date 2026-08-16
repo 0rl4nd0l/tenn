@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ConfirmedMetricCoveragePacket } from '../types'
 import { MetricCoverageTabPanel } from './metric-coverage-tab-panel'
@@ -19,7 +19,12 @@ beforeAll(() => {
 })
 
 afterEach(() => {
+  delete process.env.NEXT_PUBLIC_API_KEY
   vi.restoreAllMocks()
+})
+
+beforeEach(() => {
+  process.env.NEXT_PUBLIC_API_KEY = 'test-key'
 })
 
 function packet(): ConfirmedMetricCoveragePacket {
@@ -343,7 +348,7 @@ describe('MetricCoverageTabPanel', () => {
     expect(screen.getByRole('button', { name: /Copy source evidence/i })).toBeInTheDocument()
   })
 
-  it('opens the backend source PDF route with a page hint', async () => {
+  it('opens the BFF source PDF route with a page hint', async () => {
     const user = userEvent.setup()
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     renderPanel()
@@ -360,6 +365,17 @@ describe('MetricCoverageTabPanel', () => {
     expect(openedUrl).toContain('path=data%2Fasx%2Fdocs%2FBHP%2Freport.pdf')
     expect(openedUrl).toContain('page=44')
     expect(openedUrl.endsWith('#page=44')).toBe(true)
+  })
+
+  it('keeps source opening disabled with DATA_MISSING when no API key can be forwarded', async () => {
+    delete process.env.NEXT_PUBLIC_API_KEY
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+
+    expect(screen.getByText(/DATA_MISSING: source opening requires a Cockpit API key/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open source page/i })).toBeDisabled()
   })
 
   it('keeps source action disabled with DATA_MISSING when the PDF is unavailable', async () => {
