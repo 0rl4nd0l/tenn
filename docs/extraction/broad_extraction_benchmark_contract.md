@@ -117,6 +117,11 @@ binary hash and installed dependency-version snapshot, and creates no receipt.
 It also requires an explicit exact Git HEAD, a clean tracked worktree, no
 untracked files in the executable code roots, and records the commit tree plus
 hashes of the runner, replay, scorer, extractor, and metric-contract modules.
+The outer runner imports no backend module at startup. After identity
+inspection it opens the recorded scorer source without following symlinks,
+verifies those exact bytes against the receipt binding, compiles one private
+module from those bytes, and uses that module's contracts, metric set, and
+scorer throughout validation and scoring.
 Use the documented `financial-engine_v2/.venv` environment or another explicit
 existing repo-supported interpreter; do not install or alter dependencies as
 part of a one-shot run.
@@ -129,6 +134,15 @@ versions/snapshot against the receipt before extraction modules are imported.
 The receipt-bound Git/code identity is revalidated immediately around those
 imports, after case execution, and again before the outer runner publishes any
 scored artifact. Any observed drift is terminal `EVIDENCE_CONFLICT`.
+For v2 only, pass-3a terminal table failures are captured as sanitized exception
+types and integer HTTP status codes. Transport failures or HTTP 5xx responses
+are infrastructure `DATA_MISSING`; messages, 4xx responses, and quality errors
+do not broaden that classification. V1 replay behavior is unchanged.
+
+The already-executing outer runner remains a trusted local bootstrap boundary:
+these in-process checks do not claim protection from adversarial replacement of
+the runner itself before process startup. The launch procedure therefore still
+requires the verified clean exact-head worktree and trusted local operator.
 
 An authorized launch requires both the output root and its sibling
 `INVOCATION_RECEIPT.json` to be absent. After every input, source, output, and

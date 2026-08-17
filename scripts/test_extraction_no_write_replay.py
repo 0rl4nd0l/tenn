@@ -261,6 +261,20 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
         self.assertFalse(any(key.startswith("benchmark_internal_") for key in payload))
 
+    def test_pass3a_failure_capture_keeps_v1_case_row_keys_unchanged(self):
+        v1_row = {"case_id": "A", "result": {"status": "ok"}}
+        expected_keys = set(v1_row)
+        debug_capture = {"pass3a_failures": [{"table_type": "income_statement"}]}
+
+        RUNNER._attach_pass3a_failure_capture(v1_row, debug_capture, enabled=False)
+
+        self.assertEqual(expected_keys, set(v1_row))
+        self.assertNotIn("pass3a_failures", v1_row)
+
+        v2_row = dict(v1_row)
+        RUNNER._attach_pass3a_failure_capture(v2_row, debug_capture, enabled=True)
+        self.assertEqual(debug_capture["pass3a_failures"], v2_row["pass3a_failures"])
+
     def test_case_timeout_is_infrastructure_failure(self):
         self.assertTrue(
             RUNNER._is_infrastructure_failure(
@@ -307,6 +321,102 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                     }
                 }
             )
+        )
+
+    def test_captured_pass3a_transport_and_5xx_failures_are_infrastructure(self):
+        for cause in (
+            {"exception_type": "ReadError", "status_code": None},
+            {"exception_type": "HTTPStatusError", "status_code": 503},
+            {"exception_type": "LlamaCppServerUnavailable", "status_code": None},
+        ):
+            with self.subTest(cause=cause):
+                row = {
+                    "result": {"status": "ok", "error": None},
+                    "pass3a_failures": [
+                        {
+                            "initial_error_chain": [cause],
+                            "retry_error_chain": [cause],
+                        }
+                    ],
+                }
+                self.assertTrue(
+                    RUNNER._is_infrastructure_failure(row, include_raw_transport=True)
+                )
+
+    def test_captured_pass3a_quality_and_4xx_failures_are_not_infrastructure(self):
+        for cause in (
+            {"exception_type": "ValueError", "status_code": None},
+            {"exception_type": "HTTPStatusError", "status_code": 400},
+        ):
+            with self.subTest(cause=cause):
+                row = {
+                    "result": {"status": "ok", "error": None},
+                    "pass3a_failures": [
+                        {
+                            "initial_error_chain": [cause],
+                            "retry_error_chain": [cause],
+                        }
+                    ],
+                }
+                self.assertFalse(
+                    RUNNER._is_infrastructure_failure(row, include_raw_transport=True)
+                )
+
+    def test_v1_ignores_captured_pass3a_transport_metadata(self):
+        row = {
+            "result": {"status": "ok", "error": None},
+            "pass3a_failures": [
+                {
+                    "initial_error_chain": [
+                        {"exception_type": "ReadError", "status_code": None}
+                    ]
+                }
+            ],
+        }
+        self.assertFalse(RUNNER._is_infrastructure_failure(row))
+
+    def test_captured_pass3a_outage_survives_later_quality_exception(self):
+        row = {
+            "result": {
+                "status": "exception",
+                "error": "ValueError: post-processing failed",
+            }
+        }
+        RUNNER._attach_pass3a_failure_capture(
+            row,
+            {
+                "pass3a_failures": [
+                    {
+                        "table_type": "income_statement",
+                        "initial_error_chain": [
+                            {"exception_type": "ReadError", "status_code": None}
+                        ],
+                        "retry_error_chain": [
+                            {"exception_type": "ReadError", "status_code": None}
+                        ],
+                    }
+                ]
+            },
+            enabled=True,
+        )
+
+        self.assertTrue(
+            RUNNER._is_infrastructure_failure(row, include_raw_transport=True)
+        )
+        self.assertEqual(
+            "DATA_MISSING",
+            RUNNER._derive_replay_status(
+                {
+                    "forbidden_surface_clean": True,
+                    "report_only_durable_writes": True,
+                    "isolated_cache_contained": True,
+                    "isolated_runtime_contained": True,
+                },
+                llm_missing=False,
+                extraction_exception_count=1,
+                infrastructure_failure_count=1,
+                expectation_failure_count=0,
+            ),
         )
 
     def test_docling_profile_rejects_non_docling_manifest_cases(self):

@@ -80,6 +80,31 @@ CODE_IDENTITY_PATHS = (
     "financial-engine_v2/backend/app/services/multipass_extraction.py",
     "financial-engine_v2/backend/app/services/financial_metric_contract.py",
 )
+TRANSPORT_EXCEPTION_TYPES = frozenset(
+    {
+        "closeerror",
+        "connectionerror",
+        "connecterror",
+        "connecttimeout",
+        "localprotocolerror",
+        "networkerror",
+        "pooltimeout",
+        "protocolerror",
+        "proxyerror",
+        "readerror",
+        "readtimeout",
+        "remoteprotocolerror",
+        "timeoutexception",
+        "transporterror",
+        "unsupportedprotocol",
+        "writeerror",
+        "writetimeout",
+    }
+)
+RAW_TRANSPORT_EXCEPTION_TYPES = TRANSPORT_EXCEPTION_TYPES | {"httperror"}
+PASS3A_TRANSPORT_EXCEPTION_TYPES = TRANSPORT_EXCEPTION_TYPES | {
+    "llamacppserverunavailable"
+}
 APPROVED_VENV_RELATIVE_PYTHONS = (
     "financial-engine_v2/.venv/bin/python",
     "financial-engine_v2/.venv/bin/python3",
@@ -1648,6 +1673,16 @@ def _case_metadata(case: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _attach_pass3a_failure_capture(
+    row: dict[str, Any],
+    debug_capture: dict[str, Any],
+    *,
+    enabled: bool,
+) -> None:
+    if enabled:
+        row["pass3a_failures"] = debug_capture.get("pass3a_failures", [])
+
+
 def _run_cases(
     cases: list[dict[str, Any]],
     llm_url: str,
@@ -1694,6 +1729,7 @@ def _run_cases(
                             strict_parser=bool(case.get("strict_parser", False)),
                             observer=observer,
                             debug_capture=debug_capture,
+                            capture_pass3a_failures=include_benchmark_internal_metrics,
                             openability_pages=case.get("openability_pages"),
                             openability_selected_tables=bool(
                                 case.get("openability_selected_tables", False)
@@ -1707,47 +1743,55 @@ def _run_cases(
                             else None
                         ),
                     )
-                    results.append(
-                        {
-                            "case_id": case_id,
-                            "role": case.get("role"),
-                            "ticker": case.get("ticker"),
-                            "document_id": case.get("document_id"),
-                            "source_path": case.get("source_path"),
-                            "expected_status": case.get("expected_status"),
-                            "expected_period_type": case.get("expected_period_type"),
-                            "expected_period_end": case.get("expected_period_end"),
-                            "elapsed_s": round(time.monotonic() - started, 3),
-                            "observer_events": observer.events,
-                            "debug_capture_keys": sorted(debug_capture),
-                            "pass3a_result_count": len(
-                                debug_capture.get("pass3a_results") or []
-                            ),
-                            "case_timeout_seconds": case_timeout_seconds,
-                            "result": payload,
-                        }
+                    case_result = {
+                        "case_id": case_id,
+                        "role": case.get("role"),
+                        "ticker": case.get("ticker"),
+                        "document_id": case.get("document_id"),
+                        "source_path": case.get("source_path"),
+                        "expected_status": case.get("expected_status"),
+                        "expected_period_type": case.get("expected_period_type"),
+                        "expected_period_end": case.get("expected_period_end"),
+                        "elapsed_s": round(time.monotonic() - started, 3),
+                        "observer_events": observer.events,
+                        "debug_capture_keys": sorted(debug_capture),
+                        "pass3a_result_count": len(
+                            debug_capture.get("pass3a_results") or []
+                        ),
+                        "case_timeout_seconds": case_timeout_seconds,
+                        "result": payload,
+                    }
+                    _attach_pass3a_failure_capture(
+                        case_result,
+                        debug_capture,
+                        enabled=include_benchmark_internal_metrics,
                     )
+                    results.append(case_result)
                     log.write(
                         f"case_done {case_id} status={result.status} error={result.error}\n"
                     )
                 except Exception as exc:  # pragma: no cover - exercised by smoke runs
-                    results.append(
-                        {
-                            "case_id": case_id,
-                            "role": case.get("role"),
-                            "ticker": case.get("ticker"),
-                            "document_id": case.get("document_id"),
-                            "source_path": case.get("source_path"),
-                            "elapsed_s": round(time.monotonic() - started, 3),
-                            "observer_events": observer.events,
-                            "case_timeout_seconds": case_timeout_seconds,
-                            "result": {
-                                "status": "exception",
-                                "error": f"{type(exc).__name__}: {exc}",
-                                "traceback": traceback.format_exc(limit=20),
-                            },
-                        }
+                    exception_result = {
+                        "case_id": case_id,
+                        "role": case.get("role"),
+                        "ticker": case.get("ticker"),
+                        "document_id": case.get("document_id"),
+                        "source_path": case.get("source_path"),
+                        "elapsed_s": round(time.monotonic() - started, 3),
+                        "observer_events": observer.events,
+                        "case_timeout_seconds": case_timeout_seconds,
+                        "result": {
+                            "status": "exception",
+                            "error": f"{type(exc).__name__}: {exc}",
+                            "traceback": traceback.format_exc(limit=20),
+                        },
+                    }
+                    _attach_pass3a_failure_capture(
+                        exception_result,
+                        debug_capture,
+                        enabled=include_benchmark_internal_metrics,
                     )
+                    results.append(exception_result)
                     log.write(f"case_exception {case_id} {type(exc).__name__}: {exc}\n")
         finally:
             if client is not None:
@@ -1760,6 +1804,8 @@ def _run_cases(
 def _is_infrastructure_failure(
     row: dict[str, Any], *, include_raw_transport: bool = False
 ) -> bool:
+    if include_raw_transport and _has_pass3a_infrastructure_failure(row):
+        return True
     result = row.get("result") if isinstance(row.get("result"), dict) else {}
     error = str(result.get("error") or "").lower()
     if not error:
@@ -1780,33 +1826,37 @@ def _is_infrastructure_failure(
     )
     if include_raw_transport and result.get("status") == "exception":
         exception_type = error.partition(":")[0].strip()
-        transport_exception_types = {
-            "closeerror",
-            "connecterror",
-            "connecttimeout",
-            "httperror",
-            "localprotocolerror",
-            "networkerror",
-            "pooltimeout",
-            "protocolerror",
-            "proxyerror",
-            "readerror",
-            "readtimeout",
-            "remoteprotocolerror",
-            "timeoutexception",
-            "transporterror",
-            "unsupportedprotocol",
-            "writeerror",
-            "writetimeout",
-        }
         if (
-            exception_type in transport_exception_types
+            exception_type in RAW_TRANSPORT_EXCEPTION_TYPES
             or exception_type == "modulenotfounderror"
         ):
             return True
     return error.startswith(("pass1:", "pass3a:", "pass3b:")) and any(
         marker in error for marker in markers
     )
+
+
+def _has_pass3a_infrastructure_failure(row: dict[str, Any]) -> bool:
+    failures = row.get("pass3a_failures")
+    if not isinstance(failures, list):
+        return False
+    for failure in failures:
+        if not isinstance(failure, dict):
+            continue
+        for key in ("initial_error_chain", "retry_error_chain"):
+            chain = failure.get(key)
+            if not isinstance(chain, list):
+                continue
+            for cause in chain:
+                if not isinstance(cause, dict):
+                    continue
+                exception_type = str(cause.get("exception_type") or "").lower()
+                status_code = cause.get("status_code")
+                if exception_type in PASS3A_TRANSPORT_EXCEPTION_TYPES:
+                    return True
+                if isinstance(status_code, int) and status_code >= 500:
+                    return True
+    return False
 
 
 def _is_runner_infrastructure_exception(exc: Exception) -> bool:

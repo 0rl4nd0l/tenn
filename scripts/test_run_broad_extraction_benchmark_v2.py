@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,10 +11,16 @@ import sys
 import subprocess
 import tempfile
 import threading
+import types
 import unittest
 from unittest import mock
 
 from scripts import run_broad_extraction_benchmark_v2 as RUNNER
+
+sys.path.insert(0, str(RUNNER.BACKEND_ROOT))
+from app.services import broad_extraction_benchmark as TEST_BENCHMARK  # noqa: E402
+
+RUNNER.bind_benchmark_module(TEST_BENCHMARK)
 
 
 def write_json(path: Path, payload: object) -> None:
@@ -566,22 +573,33 @@ class OneShotSafetyTests(unittest.TestCase):
                 case_timeout_seconds=1,
                 expected_git_head="a" * 40,
             )
+            events: list[str] = []
+            bundle = {
+                "cases": [{}] * 20,
+                "input_sha256": {},
+                "corpus_digest": "c",
+                "contract_digest": "e",
+            }
             with (
                 mock.patch.object(
                     RUNNER,
                     "validate_bundle",
-                    return_value={
-                        "cases": [{}] * 20,
-                        "input_sha256": {},
-                        "corpus_digest": "c",
-                        "contract_digest": "e",
-                    },
+                    side_effect=lambda **_kwargs: events.append("bundle") or bundle,
                 ),
                 mock.patch.object(RUNNER, "inspect_interpreter", return_value={}),
                 mock.patch.object(
                     RUNNER,
                     "inspect_code_identity",
-                    return_value={"head_sha": "a" * 40},
+                    side_effect=lambda _head: (
+                        events.append("identity") or {"head_sha": "a" * 40}
+                    ),
+                ),
+                mock.patch.object(
+                    RUNNER,
+                    "load_bound_benchmark_module",
+                    side_effect=lambda _binding: (
+                        events.append("load") or TEST_BENCHMARK
+                    ),
                 ),
                 mock.patch.object(
                     RUNNER, "require_atomic_publish_capability"
@@ -589,6 +607,8 @@ class OneShotSafetyTests(unittest.TestCase):
             ):
                 self.assertEqual(0, RUNNER._validate_only(args))
             atomic_capability.assert_called_once_with(job)
+            self.assertLess(events.index("identity"), events.index("load"))
+            self.assertLess(events.index("load"), events.index("bundle"))
             self.assertFalse(args.receipt_path.exists())
 
     def test_validate_only_cannot_bypass_consumed_sibling_receipt(self) -> None:
@@ -673,6 +693,11 @@ class OneShotSafetyTests(unittest.TestCase):
                 ),
                 mock.patch.object(
                     RUNNER,
+                    "load_bound_benchmark_module",
+                    return_value=TEST_BENCHMARK,
+                ),
+                mock.patch.object(
+                    RUNNER,
                     "require_atomic_publish_capability",
                     side_effect=RUNNER.RunnerError("publication unavailable"),
                 ) as atomic_capability,
@@ -744,6 +769,38 @@ class OneShotSafetyTests(unittest.TestCase):
             self.assertRaisesRegex(RUNNER.RunnerError, "tracked worktree"),
         ):
             RUNNER.inspect_code_identity(expected)
+
+    def test_bound_benchmark_loader_ignores_hostile_cached_module(self) -> None:
+        hostile = types.ModuleType("app.services.broad_extraction_benchmark")
+        hostile.score_benchmark = mock.Mock(side_effect=AssertionError("hostile"))
+        runner_path = Path(RUNNER.__file__)
+        spec = importlib.util.spec_from_file_location("isolated_v2_runner", runner_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        isolated = importlib.util.module_from_spec(spec)
+        with mock.patch.dict(
+            sys.modules,
+            {"app.services.broad_extraction_benchmark": hostile},
+        ):
+            spec.loader.exec_module(isolated)
+
+        self.assertEqual((), isolated.METRICS)
+        source_path = isolated.REPO_ROOT / isolated.BENCHMARK_MODULE_PATH
+        binding = {
+            "head_sha": "a" * 40,
+            "tree_sha": "b" * 40,
+            "tracked_files_sha256": {
+                isolated.BENCHMARK_MODULE_PATH: isolated._sha256(source_path)
+            },
+        }
+        with mock.patch.object(isolated, "require_unchanged_code_identity"):
+            bound = isolated.load_bound_benchmark_module(binding)
+        isolated.bind_benchmark_module(bound)
+
+        self.assertIs(isolated.CorpusDocument, bound.CorpusDocument)
+        self.assertEqual(TEST_BENCHMARK.METRICS, isolated.METRICS)
+        self.assertIsNot(bound.score_benchmark, hostile.score_benchmark)
+        hostile.score_benchmark.assert_not_called()
 
     def _mock_run(
         self,
@@ -876,7 +933,14 @@ class OneShotSafetyTests(unittest.TestCase):
             mock.patch.object(RUNNER, "inspect_code_identity", identity_probe),
             mock.patch.object(RUNNER.subprocess, "run", side_effect=replay),
             mock.patch.object(
-                RUNNER, "score_benchmark", wraps=RUNNER.score_benchmark
+                RUNNER,
+                "load_bound_benchmark_module",
+                return_value=TEST_BENCHMARK,
+            ),
+            mock.patch.object(
+                TEST_BENCHMARK,
+                "score_benchmark",
+                wraps=TEST_BENCHMARK.score_benchmark,
             ) as scorer,
         ):
             returncode = RUNNER._run(args)

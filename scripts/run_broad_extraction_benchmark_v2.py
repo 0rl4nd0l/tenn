@@ -14,10 +14,12 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 import subprocess
 import sys
 import tempfile
 import time
+import types
 from typing import Any
 from urllib.parse import urlparse
 import uuid
@@ -25,16 +27,11 @@ import uuid
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
-sys.path.insert(0, str(BACKEND_ROOT))
-
-from app.services.broad_extraction_benchmark import (  # noqa: E402
-    ActualCell,
-    BenchmarkContractError,
-    CorpusDocument,
-    ExpectedCell,
-    METRICS,
-    score_benchmark,
-)
+ActualCell: Any = None
+BenchmarkContractError: type[Exception] = ValueError
+CorpusDocument: Any = None
+ExpectedCell: Any = None
+METRICS: tuple[str, ...] = ()
 
 
 DEFAULT_BUNDLE_ROOT = (
@@ -137,6 +134,9 @@ CODE_IDENTITY_PATHS = (
     "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py",
     "financial-engine_v2/backend/app/services/multipass_extraction.py",
     "financial-engine_v2/backend/app/services/financial_metric_contract.py",
+)
+BENCHMARK_MODULE_PATH = (
+    "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py"
 )
 
 
@@ -624,6 +624,80 @@ def require_unchanged_code_identity(binding: dict[str, Any]) -> None:
         )
 
 
+def load_bound_benchmark_module(binding: dict[str, Any]) -> types.ModuleType:
+    require_unchanged_code_identity(binding)
+    tracked_hashes = binding.get("tracked_files_sha256")
+    if not isinstance(tracked_hashes, dict):
+        raise CodeIdentityConflict("benchmark scorer code identity is invalid")
+    expected_sha = str(tracked_hashes.get(BENCHMARK_MODULE_PATH) or "")
+    source_path = REPO_ROOT / BENCHMARK_MODULE_PATH
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        source_fd = os.open(source_path, flags)
+    except OSError as exc:
+        raise CodeIdentityConflict("unable to open bound benchmark scorer") from exc
+    try:
+        if not stat.S_ISREG(os.fstat(source_fd).st_mode):
+            raise CodeIdentityConflict("bound benchmark scorer is not a regular file")
+        with os.fdopen(source_fd, "rb", closefd=False) as source_handle:
+            source = source_handle.read()
+    finally:
+        os.close(source_fd)
+    observed_sha = hashlib.sha256(source).hexdigest()
+    if observed_sha != expected_sha:
+        raise CodeIdentityConflict("bound benchmark scorer source SHA-256 mismatch")
+
+    module_name = f"_tenn_bound_benchmark_{observed_sha}"
+    module = types.ModuleType(module_name)
+    module.__file__ = str(source_path)
+    module.__package__ = "app.services"
+    sys.modules[module_name] = module
+    try:
+        exec(compile(source, str(source_path), "exec"), module.__dict__)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+    require_unchanged_code_identity(binding)
+    return module
+
+
+def bind_benchmark_module(module: types.ModuleType) -> None:
+    required = (
+        "ActualCell",
+        "BenchmarkContractError",
+        "CorpusDocument",
+        "ExpectedCell",
+        "METRICS",
+        "score_benchmark",
+    )
+    if any(not hasattr(module, name) for name in required):
+        raise CodeIdentityConflict("bound benchmark scorer exports are incomplete")
+    global ActualCell, BenchmarkContractError, CorpusDocument, ExpectedCell, METRICS
+    ActualCell = module.ActualCell
+    BenchmarkContractError = module.BenchmarkContractError
+    CorpusDocument = module.CorpusDocument
+    ExpectedCell = module.ExpectedCell
+    METRICS = tuple(module.METRICS)
+
+
+def score_with_bound_benchmark(
+    module: types.ModuleType,
+    documents: tuple[CorpusDocument, ...],
+    expectations: tuple[ExpectedCell, ...],
+    actuals: tuple[ActualCell, ...],
+) -> Any:
+    bound_documents = tuple(module.CorpusDocument(**asdict(row)) for row in documents)
+    bound_expectations = tuple(
+        module.ExpectedCell(**asdict(row)) for row in expectations
+    )
+    bound_actuals = tuple(module.ActualCell(**asdict(row)) for row in actuals)
+    return module.score_benchmark(
+        bound_documents,
+        bound_expectations,
+        bound_actuals,
+    )
+
+
 def require_fresh_authority(output_root: Path, receipt_path: Path) -> None:
     if output_root.exists() or output_root.is_symlink():
         raise RunnerError(
@@ -1092,6 +1166,10 @@ def _run(args: argparse.Namespace) -> int:
         args.llm_base_url, args.case_timeout_seconds
     )
     require_fresh_authority(output_root, receipt_path)
+    interpreter = inspect_interpreter(Path(args.python_bin))
+    code_identity = inspect_code_identity(args.expected_git_head)
+    bound_benchmark = load_bound_benchmark_module(code_identity)
+    bind_benchmark_module(bound_benchmark)
     bundle = validate_bundle(
         corpus_path=Path(args.corpus).resolve(),
         expectations_path=Path(args.expectations).resolve(),
@@ -1099,8 +1177,6 @@ def _run(args: argparse.Namespace) -> int:
         case_manifest_path=Path(args.case_manifest).resolve(),
         source_root=Path(args.source_root).resolve(),
     )
-    interpreter = inspect_interpreter(Path(args.python_bin))
-    code_identity = inspect_code_identity(args.expected_git_head)
     launch_environment = replay_launch_environment()
     require_fresh_authority(output_root, receipt_path)
     require_atomic_publish_capability(output_root.parent)
@@ -1191,7 +1267,12 @@ def _run(args: argparse.Namespace) -> int:
             require_scoreable_replay(validation, replay, completed.returncode)
             actuals = actuals_from_replay(bundle["documents"], replay)
             score = _jsonable_score(
-                score_benchmark(bundle["documents"], bundle["expectations"], actuals)
+                score_with_bound_benchmark(
+                    bound_benchmark,
+                    bundle["documents"],
+                    bundle["expectations"],
+                    actuals,
+                )
             )
             terminal = "BASELINE_FROZEN_SCORED"
     except CodeIdentityConflict as exc:
@@ -1253,6 +1334,10 @@ def _validate_only(args: argparse.Namespace) -> int:
         args.output_root, args.receipt_path
     )
     require_fresh_authority(output_root, receipt_path)
+    interpreter = inspect_interpreter(Path(args.python_bin))
+    code_identity = inspect_code_identity(args.expected_git_head)
+    bound_benchmark = load_bound_benchmark_module(code_identity)
+    bind_benchmark_module(bound_benchmark)
     bundle = validate_bundle(
         corpus_path=Path(args.corpus).resolve(),
         expectations_path=Path(args.expectations).resolve(),
@@ -1260,8 +1345,6 @@ def _validate_only(args: argparse.Namespace) -> int:
         case_manifest_path=Path(args.case_manifest).resolve(),
         source_root=Path(args.source_root).resolve(),
     )
-    interpreter = inspect_interpreter(Path(args.python_bin))
-    code_identity = inspect_code_identity(args.expected_git_head)
     launch_environment = replay_launch_environment()
     require_atomic_publish_capability(output_root.parent)
     print(

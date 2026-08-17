@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
+from queue import Empty, SimpleQueue
 from typing import Any, Optional, Sequence
 
 from dateutil import parser as dtparser
@@ -3753,6 +3754,43 @@ def _expand_income_statement_row_refs(
     return refs
 
 
+def _sanitized_exception_chain(exc: Exception) -> list[dict[str, Any]]:
+    chain: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        response = getattr(current, "response", None)
+        status_code = getattr(response, "status_code", None)
+        chain.append(
+            {
+                "exception_type": type(current).__name__,
+                "status_code": status_code if isinstance(status_code, int) else None,
+            }
+        )
+        current = current.__cause__ or current.__context__
+    return chain
+
+
+def _capture_pass3a_failure(
+    capture: SimpleQueue[dict[str, Any]] | None,
+    *,
+    table_type: str,
+    initial_error: Exception,
+    retry_error: Exception | None = None,
+) -> None:
+    if capture is None:
+        return
+    payload: dict[str, Any] = {
+        "stage": "pass3a",
+        "table_type": table_type,
+        "initial_error_chain": _sanitized_exception_chain(initial_error),
+    }
+    if retry_error is not None:
+        payload["retry_error_chain"] = _sanitized_exception_chain(retry_error)
+    capture.put(payload)
+
+
 def _extract_single_table(
     table_type: str,
     table,
@@ -3763,6 +3801,7 @@ def _extract_single_table(
     *,
     prompt_bundle: PromptBundle | None = None,
     model_override: str | None = None,
+    failure_capture: SimpleQueue[dict[str, Any]] | None = None,
 ) -> dict | None:
     """Extract metrics from a single labelled table via one LLM call.
 
@@ -4300,6 +4339,12 @@ def _extract_single_table(
             selected_rows = None
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
+            _capture_pass3a_failure(
+                failure_capture,
+                table_type=table_type,
+                initial_error=e,
+                retry_error=e2,
+            )
             return None
 
     selected_raw = raw
@@ -4380,6 +4425,7 @@ def _run_pass3a_metric_extractor(
     *,
     prompt_bundle: PromptBundle | None = None,
     model_override: str | None = None,
+    failure_capture: SimpleQueue[dict[str, Any]] | None = None,
 ) -> list[dict]:
     """
     Pass 3a: one LLM call per labelled table. Returns list of extraction dicts,
@@ -4433,6 +4479,7 @@ def _run_pass3a_metric_extractor(
                     llm_client,
                     prompt_bundle=bundle,
                     model_override=model_override,
+                    failure_capture=failure_capture,
                 ): table_type
                 for table_type, table in eligible
             }
@@ -4444,8 +4491,13 @@ def _run_pass3a_metric_extractor(
                     result = future.result()
                     if result is not None:
                         results_by_type[tt] = result
-                except Exception:
+                except Exception as exc:
                     logger.exception("Pass 3a thread failed for %s", tt)
+                    _capture_pass3a_failure(
+                        failure_capture,
+                        table_type=tt,
+                        initial_error=exc,
+                    )
         # Preserve original table order from labelled_tables.
         results = [results_by_type[tt] for tt, _ in eligible if tt in results_by_type]
     else:
@@ -4465,6 +4517,7 @@ def _run_pass3a_metric_extractor(
                 llm_client,
                 prompt_bundle=bundle,
                 model_override=model_override,
+                failure_capture=failure_capture,
             )
             if out is not None:
                 results.append(out)
@@ -9388,6 +9441,7 @@ def run_multipass_extraction(
     openability_diagnostics: bool = False,
     openability_pages: list[int] | None = None,
     openability_selected_tables: bool = False,
+    capture_pass3a_failures: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -9844,6 +9898,9 @@ def run_multipass_extraction(
             "running",
             "Extracting metric candidates.",
         )
+    pass3a_failure_queue: SimpleQueue[dict[str, Any]] | None = (
+        SimpleQueue() if capture_pass3a_failures else None
+    )
     try:
         pass3a_results = _run_pass3a_metric_extractor(
             labelled,
@@ -9851,6 +9908,7 @@ def run_multipass_extraction(
             llm_client,
             prompt_bundle=bundle,
             model_override=model_override,
+            failure_capture=pass3a_failure_queue,
         )
     except Exception as e:
         if observer is not None:
@@ -9861,6 +9919,18 @@ def run_multipass_extraction(
                 error_code="pass3a_failed",
             )
         raise
+    finally:
+        if debug_capture is not None and pass3a_failure_queue is not None:
+            pass3a_failures: list[dict[str, Any]] = []
+            while True:
+                try:
+                    pass3a_failures.append(pass3a_failure_queue.get_nowait())
+                except Empty:
+                    break
+            debug_capture["pass3a_failures"] = sorted(
+                pass3a_failures,
+                key=lambda row: (str(row.get("table_type") or ""), json.dumps(row)),
+            )
     allowed_internal_metrics = (
         {"total_debt"} if "net_debt" in allowed_contract_metrics else set()
     )

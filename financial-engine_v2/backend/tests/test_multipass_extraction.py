@@ -11426,3 +11426,150 @@ def test_ticket16_duplicate_equal_rows_are_ambiguous_by_source_identity():
 
     assert "operating_cf" not in recovered
     assert ambiguous == {"operating_cf"}
+
+
+def test_pass3a_double_failure_capture_is_sanitized_and_sequential():
+    from queue import SimpleQueue
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    class ReadError(Exception):
+        pass
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Income statement",
+        headers=["Metric", "2025"],
+        rows=[["Revenue", "10"]],
+    )
+    failures = SimpleQueue()
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=[ReadError("primary secret"), ReadError("retry secret")],
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {"period_end": "2025-06-30", "currency": "AUD"},
+            "units",
+            1,
+            llm_client=None,
+            failure_capture=failures,
+        )
+
+    assert result is None
+    captured = failures.get_nowait()
+    assert captured["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert captured["retry_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None},
+        {"exception_type": "ReadError", "status_code": None},
+    ]
+    assert "secret" not in str(captured)
+
+
+def test_pass3a_parallel_worker_failure_capture_is_thread_safe(monkeypatch):
+    from queue import SimpleQueue
+
+    from app.services.docling_extract import DoclingTable
+    from app.services import multipass_extraction as multipass
+
+    class ReadError(Exception):
+        pass
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Statement",
+        headers=["Metric", "2025"],
+        rows=[["Revenue", "10"]],
+    )
+    failures = SimpleQueue()
+
+    def fail_worker(*_args, **_kwargs):
+        raise ReadError("worker secret")
+
+    monkeypatch.setenv("EXTRACTION_PARALLEL", "1")
+    monkeypatch.setattr(multipass, "_extract_single_table", fail_worker)
+    results = multipass._run_pass3a_metric_extractor(
+        {"income_statement": table, "balance_sheet": table},
+        {"scale": "units"},
+        llm_client=None,
+        failure_capture=failures,
+    )
+
+    captured = [failures.get_nowait(), failures.get_nowait()]
+    assert results == []
+    assert {row["table_type"] for row in captured} == {
+        "income_statement",
+        "balance_sheet",
+    }
+    assert all(
+        row["initial_error_chain"]
+        == [{"exception_type": "ReadError", "status_code": None}]
+        for row in captured
+    )
+    assert "secret" not in str(captured)
+
+
+def test_run_multipass_publishes_capture_when_later_pass3a_work_raises():
+    from app.services import multipass_extraction as multipass
+
+    class ReadError(Exception):
+        pass
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [{"text": "Annual report 2025", "page": 1}]
+
+    debug_capture = {}
+
+    def fail_after_capture(*_args, failure_capture=None, **_kwargs):
+        multipass._capture_pass3a_failure(
+            failure_capture,
+            table_type="income_statement",
+            initial_error=ReadError("primary secret"),
+            retry_error=ReadError("retry secret"),
+        )
+        raise ValueError("later table quality failure")
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "units",
+            "classifier_confidence": 0.99,
+        },
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=fail_after_capture,
+    ), pytest.raises(ValueError, match="later table quality failure"):
+        multipass.run_multipass_extraction(
+            "/fake/report.pdf",
+            {"document_id": "doc", "ticker": "TST", "title": "Annual report"},
+            llm_client=None,
+            skip_narrative=True,
+            debug_capture=debug_capture,
+            capture_pass3a_failures=True,
+        )
+
+    captured = debug_capture["pass3a_failures"]
+    assert len(captured) == 1
+    assert captured[0]["table_type"] == "income_statement"
+    assert captured[0]["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert "secret" not in str(captured)
