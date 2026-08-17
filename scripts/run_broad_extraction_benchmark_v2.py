@@ -918,9 +918,14 @@ def _run(args: argparse.Namespace) -> int:
         if launch_error:
             raise RunnerError(launch_error)
         validation = _read_json(stage_root / "replay/validation.json")
-        if not validation.get("side_effect_pass"):
+        side_effect_pass = validation.get("side_effect_pass")
+        if side_effect_pass is False:
             terminal = "EVIDENCE_CONFLICT"
             error = "replay side-effect audit failed"
+        elif side_effect_pass is not True:
+            raise RunnerError(
+                "replay validation side_effect_pass must be an explicit boolean"
+            )
         else:
             replay = _read_json(stage_root / "replay/replay_results.json")
             require_complete_results(bundle["cases"], replay)
