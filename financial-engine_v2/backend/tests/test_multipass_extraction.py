@@ -7316,8 +7316,8 @@ def test_shares_source_overlay_handles_parser_shape_without_header_units():
 
     assert payload["metrics"]["shares_outstanding"] == 1_510_000_000
     assert payload["shares_outstanding"] == 1_510_000_000
-    assert payload["metric_source_scales"]["shares_outstanding"] == "millions"
     assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
 
 
 def test_shares_source_overlay_default_keeps_v1_metadata_contract():
@@ -7357,6 +7357,48 @@ def test_shares_source_overlay_default_keeps_v1_metadata_contract():
     assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
     assert "metric_source_scales" not in payload
     assert "metric_scale_sources" not in payload
+
+
+def test_shares_source_overlay_keeps_v1_explicit_unit_behavior_when_capture_enabled():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid at 30 June 2025", "500k"]],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 500_000_000_000
+    assert payload["row_refs"]["shares_outstanding"] == (
+        "Issued ordinary shares fully paid at 30 June 2025"
+    )
+    assert payload["field_provenance"]["shares_outstanding"]["scale"] == "units"
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
 
 
 def test_shares_source_overlay_captures_absolute_count_in_scaled_table():

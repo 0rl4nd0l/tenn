@@ -11,7 +11,7 @@ allow_unapproved_safe_extension: true
 timeout_seconds: 7200
 mutation_mode: safe_extension
 production_data_access: false
-github_mutation_allowed: false
+github_mutation_allowed: true
 merge_allowed: false
 output_dir: reports/agent_jobs/issue554_v2_execution_support_20260816
 closeout_scope: ready_for_review
@@ -22,6 +22,8 @@ allowed_files:
   - scripts/test_extraction_no_write_replay.py
   - scripts/run_broad_extraction_benchmark_v2.py
   - scripts/test_run_broad_extraction_benchmark_v2.py
+  - financial-engine_v2/backend/app/services/multipass_extraction.py
+  - financial-engine_v2/backend/tests/test_multipass_extraction.py
   - reports/agent_jobs/issue554_v2_execution_support_20260816/README.md
   - reports/agent_jobs/issue554_v2_execution_support_20260816/STATE.md
   - reports/agent_jobs/issue554_v2_execution_support_20260816/DECISIONS.md
@@ -58,6 +60,14 @@ authority. The implementation base is audited HEAD
 commit `2bd1033e6e202998be6db82858c75a8119f7ac40` and whose canonical tree is
 `cb66c5961b78cc2d6a35b35e70e3b9f4685215db`.
 
+On 2026-08-17 the owner additionally authorized exactly
+`financial-engine_v2/backend/app/services/multipass_extraction.py` and
+`financial-engine_v2/backend/tests/test_multipass_extraction.py` for
+default-off v2-only sanitized failure/source-cell instrumentation, while
+requiring base-equivalent default share behavior. This authority permits the
+normal Tier 1 commit/push needed to refresh PR #567, but grants no merge,
+durability, runtime, extraction, scoring, receipt, or retry authority.
+
 ## Objective
 
 Add a separate v2 benchmark runner and the smallest replay extension needed to
@@ -72,9 +82,13 @@ launch, and publish complete staged outputs atomically.
 - Leave the predecessor v1 benchmark runner, corpus, reports, and consumed
   evidence unchanged.
 - Do not change source PDFs, v2 corpus/expectation/source-manifest/case files,
-  parser or extractor behavior, canonical Financial Truth, dependencies,
-  runtime, services, queues, DB, Redis, Qdrant, models, prompts, or GPUs.
-- Do not mutate GitHub, the shared registry, or the shared task ledger.
+  canonical Financial Truth, dependencies, runtime, services, queues, DB,
+  Redis, Qdrant, models, prompts, or GPUs. The only permitted production-module
+  change is default-off v2-only sanitized failure/source-cell instrumentation;
+  default share values, row selection, provenance, and metadata must remain
+  base-equivalent.
+- Do not mutate GitHub except for the normal Tier 1 commit/push needed to
+  refresh existing PR #567. Do not mutate the shared registry or task ledger.
 - Do not merge, deploy, clean, reset, stash, overwrite, unlink, retry, or
   substitute missing evidence.
 
