@@ -535,7 +535,9 @@ class OneShotSafetyTests(unittest.TestCase):
         ):
             RUNNER.inspect_interpreter(Path(sys.executable))
 
-    def _mock_run(self, *, result_count: int) -> tuple[int, Path, Path, int]:
+    def _mock_run(
+        self, *, result_count: int, side_effect_pass: bool = True
+    ) -> tuple[int, Path, Path, int]:
         report_parent = RUNNER.REPO_ROOT / "reports/agent_jobs"
         report_parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.TemporaryDirectory(dir=report_parent)
@@ -612,7 +614,10 @@ class OneShotSafetyTests(unittest.TestCase):
                     "results": results,
                 },
             )
-            write_json(replay_root / "validation.json", {"side_effect_pass": True})
+            write_json(
+                replay_root / "validation.json",
+                {"side_effect_pass": side_effect_pass},
+            )
             write_json(
                 replay_root / "side_effect_audit.json",
                 {"forbidden_surface_clean": True},
@@ -655,6 +660,20 @@ class OneShotSafetyTests(unittest.TestCase):
         outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
         self.assertEqual("DATA_MISSING", outcome["terminal_state"])
         self.assertIn("all 20", outcome["error"])
+
+    def test_side_effect_conflict_outranks_incomplete_results(self) -> None:
+        returncode, output, receipt, scorer_calls = self._mock_run(
+            result_count=19, side_effect_pass=False
+        )
+
+        self.assertEqual(2, returncode)
+        self.assertTrue(receipt.is_file())
+        self.assertTrue(output.is_dir())
+        self.assertFalse((output / "baseline_score.json").exists())
+        self.assertEqual(0, scorer_calls)
+        outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
+        self.assertEqual("EVIDENCE_CONFLICT", outcome["terminal_state"])
+        self.assertEqual("replay side-effect audit failed", outcome["error"])
 
 
 if __name__ == "__main__":

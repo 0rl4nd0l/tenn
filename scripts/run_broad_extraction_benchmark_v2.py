@@ -917,24 +917,28 @@ def _run(args: argparse.Namespace) -> int:
     try:
         if launch_error:
             raise RunnerError(launch_error)
-        replay = _read_json(stage_root / "replay/replay_results.json")
         validation = _read_json(stage_root / "replay/validation.json")
-        require_complete_results(bundle["cases"], replay)
         if not validation.get("side_effect_pass"):
             terminal = "EVIDENCE_CONFLICT"
             error = "replay side-effect audit failed"
-        elif completed.returncode != 0 or replay.get("status") != "PASS":
-            error = "replay did not complete with PASS"
         else:
-            actuals = actuals_from_replay(bundle["documents"], replay)
-            score = _jsonable_score(
-                score_benchmark(bundle["documents"], bundle["expectations"], actuals)
-            )
-            _write_json(stage_root / "baseline_score.json", score)
-            _write_json(
-                stage_root / "failure_attribution.json", _failure_attribution(score)
-            )
-            terminal = "BASELINE_FROZEN_SCORED"
+            replay = _read_json(stage_root / "replay/replay_results.json")
+            require_complete_results(bundle["cases"], replay)
+            if completed.returncode != 0 or replay.get("status") != "PASS":
+                error = "replay did not complete with PASS"
+            else:
+                actuals = actuals_from_replay(bundle["documents"], replay)
+                score = _jsonable_score(
+                    score_benchmark(
+                        bundle["documents"], bundle["expectations"], actuals
+                    )
+                )
+                _write_json(stage_root / "baseline_score.json", score)
+                _write_json(
+                    stage_root / "failure_attribution.json",
+                    _failure_attribution(score),
+                )
+                terminal = "BASELINE_FROZEN_SCORED"
     except (
         BenchmarkContractError,
         KeyError,
