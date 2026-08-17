@@ -45,6 +45,13 @@ V2_CORPUS_REPO_PATH = PurePosixPath(
 )
 V2_CORPUS_SHA256 = "815649beffc63946eeeb77771deb961e1f36f06ee5ec49c9cd6ac068a49323dd"
 V2_CASE_COUNT = 20
+CODE_IDENTITY_PATHS = (
+    "scripts/run_broad_extraction_benchmark_v2.py",
+    "scripts/extraction_no_write_replay.py",
+    "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/app/services/financial_metric_contract.py",
+)
 APPROVED_VENV_RELATIVE_PYTHONS = (
     "financial-engine_v2/.venv/bin/python",
     "financial-engine_v2/.venv/bin/python3",
@@ -551,6 +558,7 @@ def validate_v2_invocation_receipt(
     llm_url: str,
     case_timeout_seconds: int,
     profile: str,
+    requested_git_head: str | None = None,
 ) -> dict[str, Any]:
     if receipt_path.is_symlink() or not receipt_path.is_file():
         raise ReplayConfigError("v2 launch requires an existing non-symlink invocation receipt")
@@ -600,6 +608,14 @@ def validate_v2_invocation_receipt(
         raise ReplayConfigError("v2 invocation receipt corpus SHA-256 mismatch")
     if receipt.get("case_count") != V2_CASE_COUNT:
         raise ReplayConfigError("v2 invocation receipt case count mismatch")
+    code_identity = receipt.get("code_identity")
+    if not isinstance(code_identity, dict):
+        raise ReplayConfigError("v2 invocation receipt code identity is invalid")
+    expected_git_head = str(code_identity.get("head_sha") or "")
+    if requested_git_head is not None and str(requested_git_head).strip() != expected_git_head:
+        raise ReplayConfigError("v2 invocation receipt Git HEAD argument mismatch")
+    if inspect_code_identity(expected_git_head) != code_identity:
+        raise ReplayConfigError("v2 invocation receipt code identity mismatch")
     command = receipt.get("command")
     if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
         raise ReplayConfigError("v2 invocation receipt command binding is invalid")
@@ -623,6 +639,7 @@ def validate_v2_invocation_receipt(
         or Path(command_option("--source-root")).resolve() != source_root.resolve()
         or assert_loopback_url(command_option("--llm-base-url")) != llm_url
         or command_option("--case-timeout-seconds") != str(case_timeout_seconds)
+        or command_option("--expected-git-head") != expected_git_head
         or profile != BASELINE_PROFILE
         or command_option("--profile") != profile
         or command_option("--case") != "all"
@@ -915,6 +932,63 @@ def _sha256(path: Path) -> str | None:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _git_code_output(*args: str) -> str:
+    completed = subprocess.run(
+        ["git", *args],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).strip()
+        raise ReplayConfigError(f"Git code-identity validation failed: {detail}")
+    return completed.stdout.strip()
+
+
+def inspect_code_identity(expected_head: str) -> dict[str, Any]:
+    expected = str(expected_head or "").strip()
+    if re.fullmatch(r"[0-9a-f]{40}", expected) is None:
+        raise ReplayConfigError("v2 invocation receipt Git HEAD is invalid")
+    observed = _git_code_output("rev-parse", "HEAD")
+    if observed != expected:
+        raise ReplayConfigError(
+            f"v2 invocation receipt Git HEAD mismatch: expected {expected}, observed {observed}"
+        )
+    tracked_status = _git_code_output("status", "--porcelain=v1", "--untracked-files=no")
+    if tracked_status:
+        raise ReplayConfigError(
+            f"v2 invocation receipt tracked worktree is not clean: {tracked_status}"
+        )
+    code_status = _git_code_output(
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--",
+        "scripts",
+        "financial-engine_v2/backend",
+    )
+    if code_status:
+        raise ReplayConfigError(
+            f"v2 invocation receipt code paths are not clean: {code_status}"
+        )
+    tree_sha = _git_code_output("show", "-s", "--format=%T", "HEAD")
+    file_hashes: dict[str, str] = {}
+    for relative in CODE_IDENTITY_PATHS:
+        digest = _sha256(REPO_ROOT / relative)
+        if digest is None:
+            raise ReplayConfigError(
+                f"v2 invocation receipt code identity source missing: {relative}"
+            )
+        file_hashes[relative] = digest
+    return {
+        "head_sha": observed,
+        "tree_sha": tree_sha,
+        "tracked_files_sha256": file_hashes,
+    }
 
 
 def _file_snapshot(path: Path, *, hash_file: bool = False) -> dict[str, Any]:
@@ -1445,6 +1519,13 @@ def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
         "ollama_url",
         "llamacpp_url",
     )
+    if result.get("status") == "exception":
+        exception_type = error.partition(":")[0].strip()
+        if any(
+            marker in exception_type
+            for marker in ("connect", "connection", "timeout", "http")
+        ) or exception_type == "modulenotfounderror":
+            return True
     return error.startswith(("pass1:", "pass3a:", "pass3b:")) and any(
         marker in error for marker in markers
     )
@@ -1799,6 +1880,9 @@ def run_replay(args: argparse.Namespace) -> int:
                 llm_url=llm_url,
                 case_timeout_seconds=int(args.case_timeout_seconds),
                 profile=profile,
+                requested_git_head=str(
+                    getattr(args, "expected_git_head", "") or ""
+                ),
             )
     else:
         cases = resolve_case_source_paths(selected_cases)
@@ -2132,6 +2216,11 @@ def parse_args() -> argparse.Namespace:
         "--invocation-receipt",
         default="",
         help="Existing exclusive v2 receipt required for a non-preflight v2 launch.",
+    )
+    parser.add_argument(
+        "--expected-git-head",
+        default="",
+        help="Exact clean Git HEAD bound by the outer v2 one-shot runner.",
     )
     parser.add_argument(
         "--profile",

@@ -114,6 +114,9 @@ unchanged.
 Validation requires an explicit absolute Python interpreter. The runner starts
 with an import-only preflight for the real replay modules, records the Python
 binary hash and installed dependency-version snapshot, and creates no receipt.
+It also requires an explicit exact Git HEAD, a clean tracked worktree, no
+untracked files in the executable code roots, and records the commit tree plus
+hashes of the runner, replay, scorer, extractor, and metric-contract modules.
 Use the documented `financial-engine_v2/.venv` environment or another explicit
 existing repo-supported interpreter; do not install or alter dependencies as
 part of a one-shot run.
@@ -125,20 +128,26 @@ interpreter check passes, the runner creates the receipt using
 or replaced. Direct non-preflight v2 replay also requires that exact
 hash-matching receipt, so calling the lower-level script cannot bypass the
 one-shot boundary. The lower-level replay also binds its actual execution
-profile to the receipt and rejects non-baseline v2 launches.
+profile and current clean Git/code identity to the receipt and rejects
+non-baseline or code-drifted v2 launches.
 
 Replay writes only to a fresh hidden staging directory. Scoring requires one
 result for each of the 20 declared case/document pairs, no infrastructure
 failure, and a passing side-effect audit. A complete replay is scored even when
 its extraction expectations fail; those misses are benchmark outcomes, not
-missing execution evidence. Missing or duplicate results produce no score.
+missing execution evidence. Raw per-case connection and timeout exceptions are
+infrastructure failures even when they do not carry an extraction-pass prefix.
+Missing or duplicate results produce no score.
 
 The replay payload keeps strong, direct `total_debt` capture in a separate
 benchmark-only internal namespace so the frozen metric can be observed without
 promoting that internal extractor field into canonical or persisted Financial
 Truth. It admits that capture only when the debug candidate also carries an
 exact requested-period source cell; strong but period-unbound debt remains an
-abstention. Accepted monetary observations preserve the bound source cell's
+abstention. The current production-shaped extractor does not emit such a bound
+debt source cell, so current debt observations truthfully abstain; changing
+extractor period binding is outside this execution-support contract. Accepted
+monetary observations preserve the bound source cell's
 raw value and explicit unit suffix instead of reconstructing them from the
 normalized value. Both `ok` and `ok_low_confidence` are scoreable successful
 observations.

@@ -126,6 +126,13 @@ EXPECTED_DEPENDENCY_IMPORTS = {
     "PyMuPDF": "fitz",
 }
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+CODE_IDENTITY_PATHS = (
+    "scripts/run_broad_extraction_benchmark_v2.py",
+    "scripts/extraction_no_write_replay.py",
+    "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/app/services/financial_metric_contract.py",
+)
 
 
 class RunnerError(RuntimeError):
@@ -507,6 +514,58 @@ def inspect_interpreter(python_bin: Path) -> dict[str, Any]:
         json.dumps(payload["versions"], sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     return payload
+
+
+def _git_output(*args: str) -> str:
+    completed = subprocess.run(
+        ["git", *args],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).strip()
+        raise RunnerError(f"Git code-identity preflight failed: {detail}")
+    return completed.stdout.strip()
+
+
+def inspect_code_identity(expected_head: str) -> dict[str, Any]:
+    expected = str(expected_head or "").strip()
+    if re.fullmatch(r"[0-9a-f]{40}", expected) is None:
+        raise RunnerError(
+            "expected Git HEAD must be an exact lowercase 40-character SHA"
+        )
+    observed = _git_output("rev-parse", "HEAD")
+    if observed != expected:
+        raise RunnerError(f"expected Git HEAD {expected}, observed {observed}")
+    tracked_status = _git_output("status", "--porcelain=v1", "--untracked-files=no")
+    if tracked_status:
+        raise RunnerError(f"tracked worktree is not clean: {tracked_status}")
+    code_status = _git_output(
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--",
+        "scripts",
+        "financial-engine_v2/backend",
+    )
+    if code_status:
+        raise RunnerError(
+            f"code paths contain untracked or modified files: {code_status}"
+        )
+    tree_sha = _git_output("show", "-s", "--format=%T", "HEAD")
+    file_hashes: dict[str, str] = {}
+    for relative in CODE_IDENTITY_PATHS:
+        path = REPO_ROOT / relative
+        _require_regular_file(path, f"code identity source {relative}")
+        file_hashes[relative] = _sha256(path)
+    return {
+        "head_sha": observed,
+        "tree_sha": tree_sha,
+        "tracked_files_sha256": file_hashes,
+    }
 
 
 def require_fresh_authority(output_root: Path, receipt_path: Path) -> None:
@@ -924,6 +983,8 @@ def _build_replay_command(args: argparse.Namespace, stage_root: Path) -> list[st
         str(args.source_root),
         "--invocation-receipt",
         str(args.receipt_path),
+        "--expected-git-head",
+        args.expected_git_head,
     ]
 
 
@@ -963,6 +1024,7 @@ def _run(args: argparse.Namespace) -> int:
         source_root=Path(args.source_root).resolve(),
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
+    code_identity = inspect_code_identity(args.expected_git_head)
     require_fresh_authority(output_root, receipt_path)
     require_atomic_publish_capability(output_root.parent)
     invocation_id = uuid.uuid4().hex
@@ -985,6 +1047,7 @@ def _run(args: argparse.Namespace) -> int:
         "contract_digest": bundle["contract_digest"],
         "case_count": EXPECTED_CASE_COUNT,
         "interpreter": interpreter,
+        "code_identity": code_identity,
         "command": command,
     }
     # No fallible preflight belongs between this exclusive create and launch.
@@ -1007,6 +1070,7 @@ def _run(args: argparse.Namespace) -> int:
             "contract_digest": bundle["contract_digest"],
             "source_count": len(bundle["cases"]),
             "interpreter": interpreter,
+            "code_identity": code_identity,
         },
     )
     _write_json(
@@ -1097,6 +1161,7 @@ def _validate_only(args: argparse.Namespace) -> int:
         source_root=Path(args.source_root).resolve(),
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
+    code_identity = inspect_code_identity(args.expected_git_head)
     require_atomic_publish_capability(output_root.parent)
     print(
         json.dumps(
@@ -1109,6 +1174,7 @@ def _validate_only(args: argparse.Namespace) -> int:
                 "corpus_digest": bundle["corpus_digest"],
                 "contract_digest": bundle["contract_digest"],
                 "interpreter": interpreter,
+                "code_identity": code_identity,
             },
             indent=2,
             sort_keys=True,
@@ -1131,6 +1197,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_ROOT.parent / RECEIPT_NAME,
     )
     parser.add_argument("--python-bin", type=Path, required=True)
+    parser.add_argument("--expected-git-head", required=True)
     parser.add_argument("--llm-base-url", default="http://127.0.0.1:8001")
     parser.add_argument("--case-timeout-seconds", type=int, default=900)
     parser.add_argument("--validate-only", action="store_true")

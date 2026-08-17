@@ -504,6 +504,7 @@ class OneShotSafetyTests(unittest.TestCase):
                 python_bin=Path(sys.executable),
                 llm_base_url="http://127.0.0.1:8001",
                 case_timeout_seconds=1,
+                expected_git_head="a" * 40,
             )
             with (
                 mock.patch.object(
@@ -517,6 +518,11 @@ class OneShotSafetyTests(unittest.TestCase):
                     },
                 ),
                 mock.patch.object(RUNNER, "inspect_interpreter", return_value={}),
+                mock.patch.object(
+                    RUNNER,
+                    "inspect_code_identity",
+                    return_value={"head_sha": "a" * 40},
+                ),
                 mock.patch.object(
                     RUNNER, "require_atomic_publish_capability"
                 ) as atomic_capability,
@@ -561,6 +567,7 @@ class OneShotSafetyTests(unittest.TestCase):
                 "python_bin": Path(sys.executable),
                 "llm_base_url": "https://example.com",
                 "case_timeout_seconds": 1,
+                "expected_git_head": "a" * 40,
             }
             for changes, message in (
                 ({}, "loopback"),
@@ -594,10 +601,16 @@ class OneShotSafetyTests(unittest.TestCase):
                 python_bin=Path(sys.executable),
                 llm_base_url="http://127.0.0.1:8001",
                 case_timeout_seconds=1,
+                expected_git_head="a" * 40,
             )
             with (
                 mock.patch.object(RUNNER, "validate_bundle", return_value={}),
                 mock.patch.object(RUNNER, "inspect_interpreter", return_value={}),
+                mock.patch.object(
+                    RUNNER,
+                    "inspect_code_identity",
+                    return_value={"head_sha": "a" * 40},
+                ),
                 mock.patch.object(
                     RUNNER,
                     "require_atomic_publish_capability",
@@ -633,6 +646,22 @@ class OneShotSafetyTests(unittest.TestCase):
             self.assertRaisesRegex(RUNNER.RunnerError, "dependency versions mismatch"),
         ):
             RUNNER.inspect_interpreter(Path(sys.executable))
+
+    def test_code_identity_rejects_head_mismatch_and_tracked_dirt(self) -> None:
+        expected = "a" * 40
+        clean_outputs = iter(["b" * 40, "", "", "c" * 40])
+        with (
+            mock.patch.object(RUNNER, "_git_output", side_effect=clean_outputs),
+            self.assertRaisesRegex(RUNNER.RunnerError, "expected Git HEAD"),
+        ):
+            RUNNER.inspect_code_identity(expected)
+
+        dirty_outputs = iter([expected, " M scripts/extraction_no_write_replay.py"])
+        with (
+            mock.patch.object(RUNNER, "_git_output", side_effect=dirty_outputs),
+            self.assertRaisesRegex(RUNNER.RunnerError, "tracked worktree"),
+        ):
+            RUNNER.inspect_code_identity(expected)
 
     def _mock_run(
         self,
@@ -698,6 +727,7 @@ class OneShotSafetyTests(unittest.TestCase):
             python_bin=Path(sys.executable),
             llm_base_url="http://127.0.0.1:8001",
             case_timeout_seconds=1,
+            expected_git_head="a" * 40,
         )
 
         def replay(command: list[str], **_kwargs: object) -> object:
@@ -739,6 +769,15 @@ class OneShotSafetyTests(unittest.TestCase):
         with (
             mock.patch.object(RUNNER, "validate_bundle", return_value=bundle),
             mock.patch.object(RUNNER, "inspect_interpreter", return_value={"ok": True}),
+            mock.patch.object(
+                RUNNER,
+                "inspect_code_identity",
+                return_value={
+                    "head_sha": "a" * 40,
+                    "tree_sha": "b" * 40,
+                    "tracked_files_sha256": {},
+                },
+            ),
             mock.patch.object(RUNNER.subprocess, "run", side_effect=replay),
             mock.patch.object(
                 RUNNER, "score_benchmark", wraps=RUNNER.score_benchmark

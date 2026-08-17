@@ -257,6 +257,30 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             )
         )
 
+    def test_raw_transport_exceptions_are_infrastructure_failures(self):
+        for error in (
+            "ConnectError: All connection attempts failed",
+            "TimeoutException: timed out",
+        ):
+            with self.subTest(error=error):
+                self.assertTrue(
+                    RUNNER._is_infrastructure_failure(
+                        {"result": {"status": "exception", "error": error}}
+                    )
+                )
+
+    def test_raw_non_transport_exception_is_not_infrastructure_failure(self):
+        self.assertFalse(
+            RUNNER._is_infrastructure_failure(
+                {
+                    "result": {
+                        "status": "exception",
+                        "error": "ValueError: timeout parsing metric payload",
+                    }
+                }
+            )
+        )
+
     def test_docling_profile_rejects_non_docling_manifest_cases(self):
         cases = [
             {"case_id": "HUB", "parser_backend": "docling"},
@@ -777,7 +801,14 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 "900",
                 "--profile",
                 RUNNER.BASELINE_PROFILE,
+                "--expected-git-head",
+                "a" * 40,
             ]
+            code_identity = {
+                "head_sha": "a" * 40,
+                "tree_sha": "b" * 40,
+                "tracked_files_sha256": {"scripts/extraction_no_write_replay.py": "c" * 64},
+            }
             receipt = {
                 "artifact_type": "broad_extraction_invocation_receipt_v2",
                 "invocation_id": invocation_id,
@@ -790,11 +821,17 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 "corpus_path": str(corpus_path),
                 "corpus_sha256": corpus_sha,
                 "case_count": 20,
+                "code_identity": code_identity,
                 "command": command,
             }
             receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
-            with mock.patch.object(RUNNER, "V2_CORPUS_SHA256", corpus_sha):
+            with (
+                mock.patch.object(RUNNER, "V2_CORPUS_SHA256", corpus_sha),
+                mock.patch.object(
+                    RUNNER, "inspect_code_identity", return_value=code_identity
+                ),
+            ):
                 validated = RUNNER.validate_v2_invocation_receipt(
                     receipt_path,
                     manifest_path=manifest_path,
@@ -804,7 +841,22 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                     llm_url="http://127.0.0.1:8001",
                     case_timeout_seconds=900,
                     profile=RUNNER.BASELINE_PROFILE,
+                    requested_git_head="a" * 40,
                 )
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "Git HEAD argument mismatch"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=report_dir,
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                        profile=RUNNER.BASELINE_PROFILE,
+                        requested_git_head="d" * 40,
+                    )
                 with self.assertRaisesRegex(
                     RUNNER.ReplayConfigError, "command binding mismatch"
                 ):
