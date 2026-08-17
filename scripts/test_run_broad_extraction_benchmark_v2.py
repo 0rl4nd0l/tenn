@@ -465,6 +465,84 @@ class OneShotSafetyTests(unittest.TestCase):
         shares = next(row for row in missing if row.metric == "shares_outstanding")
         self.assertEqual("abstained", shares.status)
 
+    def test_produced_share_source_cell_survives_compaction_and_scores(self) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _apply_preferred_shares_source_payload,
+        )
+        from scripts import extraction_no_write_replay as REPLAY
+
+        table = DoclingTable(
+            page_number=22,
+            caption="Number of shares millions",
+            headers=["", "30 June 2025", "30 June 2024"],
+            raw_header_rows=[["", "30 June 2025", "30 June 2024"]],
+            rows=[
+                [
+                    "Issued ordinary shares fully paid at 30 June 2025",
+                    "2,945",
+                    "2,900",
+                ]
+            ],
+        )
+        payload = {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        compacted = REPLAY._compact_payload(
+            types.SimpleNamespace(status="ok", error=None, payload=payload),
+            benchmark_internal_metrics={
+                "values": {},
+                "metric_source_scales": {},
+                "metric_scale_sources": {},
+                "provenance": {},
+                "source_cells": {},
+            },
+        )
+        document = RUNNER.CorpusDocument(
+            document_id="doc_0",
+            issuer_id="T00",
+            document_class="annual_report",
+            period_type="A",
+            period_end="2025-06-30",
+            admission_status="admitted",
+            source_path="source_0.pdf",
+            source_sha256="1" * 64,
+        )
+        actuals = RUNNER.actuals_from_replay(
+            (document,),
+            {"results": [{"document_id": "doc_0", "result": compacted}]},
+        )
+        shares = next(row for row in actuals if row.metric == "shares_outstanding")
+
+        self.assertEqual("accepted", shares.status)
+        self.assertEqual("2945", shares.raw_value)
+        self.assertEqual("millions", shares.raw_unit)
+        self.assertEqual("2945000000", shares.normalized_value)
+        self.assertEqual(
+            "2025-06-30",
+            compacted["benchmark_metric_source_cells"]["shares_outstanding"][
+                "requested_period_end"
+            ],
+        )
+
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = build_bundle(Path(directory))

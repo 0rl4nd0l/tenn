@@ -7311,10 +7311,328 @@ def test_shares_source_overlay_handles_parser_shape_without_header_units():
             "period_end": "2025-06-30",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 1_510_000_000
     assert payload["shares_outstanding"] == 1_510_000_000
+    assert payload["metric_source_scales"]["shares_outstanding"] == "millions"
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_default_keeps_v1_metadata_contract():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid at 30 June 2025", "1,510"]],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["shares_outstanding"] == 1_510_000_000
+    assert payload["field_provenance"]["shares_outstanding"]["scale"] == "units"
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
+    assert "metric_scale_sources" not in payload
+
+
+def test_shares_source_overlay_captures_absolute_count_in_scaled_table():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=30,
+        caption="Number of shares millions",
+        headers=["", "31 December 2025"],
+        raw_header_rows=[["", "31 December 2025"]],
+        rows=[
+            [
+                "Issued ordinary shares fully paid at 31 December 2025",
+                "3,078,964,918",
+            ]
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 3_078_964_918
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"][
+        "raw_value"
+    ] == "3,078,964,918"
+
+
+def test_shares_source_overlay_rejects_abbreviated_conflicting_headers():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    for conflicting_header in (
+        "Jun 2024",
+        "FY24",
+        "30/06/24",
+        "31 December 2025 / FY24",
+        "31 December 2025 / 30/06/24",
+    ):
+        table = DoclingTable(
+            page_number=30,
+            caption="Number of shares millions",
+            headers=["", conflicting_header],
+            raw_header_rows=[["", conflicting_header]],
+            rows=[
+                ["Issued ordinary shares fully paid at 31 December 2025", "1,510"]
+            ],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == 1_510_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_omits_duplicate_period_columns():
+    """Duplicate exact-date columns preserve the value but cannot prove its source."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025", "30 June 2025"]],
+        rows=[
+            [
+                "Issued ordinary shares fully paid at 30 June 2025",
+                "1,510",
+                "1,502",
+            ]
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 1_510_000_000
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_omits_tied_preferred_rows():
+    """A period column cannot disambiguate equally ranked share-count rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    for first_value, second_value in (
+        ("1,510", "1,510"),
+        ("1,510", "1,511"),
+    ):
+        table = DoclingTable(
+            page_number=32,
+            caption="Number of shares millions",
+            headers=["", "30 June 2025"],
+            raw_header_rows=[["", "30 June 2025"]],
+            rows=[
+                [
+                    "Issued ordinary shares fully paid at 30 June 2025",
+                    first_value,
+                ],
+                [
+                    "Issued ordinary shares fully paid at 30 June 2025",
+                    second_value,
+                ],
+            ],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == float(second_value.replace(",", "")) * 1_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_rejects_conflicting_row_dates():
+    """Row dates cannot conflict with each other or an exact current column."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    cases = [
+        (
+            ["", "Current"],
+            "Issued ordinary shares fully paid at 30 June 2025 and 30 June 2024",
+        ),
+        (
+            ["", "30 June 2025"],
+            "Issued ordinary shares fully paid at 30 June 2024",
+        ),
+        (
+            ["", "Current"],
+            (
+                "Issued ordinary shares fully paid at 30 June 2025; "
+                "comparative Jun 2024"
+            ),
+        ),
+    ]
+    for headers, row_label in cases:
+        table = DoclingTable(
+            page_number=32,
+            caption="Number of shares millions",
+            headers=headers,
+            raw_header_rows=[headers],
+            rows=[[row_label, "1,510"]],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == 1_510_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_share_source_cell_rejects_value_mismatch():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _period_bound_share_source_cell,
+        _RecoveredShareObservation,
+    )
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid", "1,510"]],
+    )
+    observation = _RecoveredShareObservation(
+        value=1_511_000_000,
+        row_ref="Issued ordinary shares fully paid",
+        row_index=0,
+        column_index=1,
+        raw_value="1,510",
+        source_unit="millions",
+        unique_preferred_candidate=True,
+    )
+
+    assert (
+        _period_bound_share_source_cell(
+            table,
+            observation,
+            period_end="2025-06-30",
+        )
+        is None
+    )
 
 
 def test_shares_source_overlay_handles_fmg_split_share_count_header_table():
@@ -7444,11 +7762,23 @@ def test_shares_source_overlay_handles_fmg_split_share_count_header_table():
             "period_end": "2025-12-31",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 3_078_964_918
     assert payload["shares_outstanding"] == 3_078_964_918
     assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"] == {
+        "page_number": 30,
+        "row_index": 6,
+        "column_index": 1,
+        "column_role": "period_end_row",
+        "row_label": "At 31 December 2025",
+        "raw_value": "3,078,964,918",
+        "header_cell": "At 31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
 
 
 def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance():
@@ -7491,10 +7821,22 @@ def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance
             "period_end": "2025-12-31",
             "currency": "AUD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 1_924_937_480
     assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"] == {
+        "page_number": 31,
+        "row_index": 2,
+        "column_index": 7,
+        "column_role": "period_end_row",
+        "row_label": "At 31 December 2025",
+        "raw_value": "1,924,937,480",
+        "header_cell": "At 31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
 
 
 def test_shares_source_overlay_ignores_at_date_without_share_count_evidence():

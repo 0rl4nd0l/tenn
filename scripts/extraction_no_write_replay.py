@@ -1730,6 +1730,9 @@ def _run_cases(
                             observer=observer,
                             debug_capture=debug_capture,
                             capture_pass3a_failures=include_benchmark_internal_metrics,
+                            capture_benchmark_source_cells=(
+                                include_benchmark_internal_metrics
+                            ),
                             openability_pages=case.get("openability_pages"),
                             openability_selected_tables=bool(
                                 case.get("openability_selected_tables", False)

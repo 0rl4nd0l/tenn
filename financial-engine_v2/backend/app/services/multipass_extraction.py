@@ -1935,6 +1935,16 @@ _PERIOD_HEADER_DATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ABBREVIATED_PERIOD_EVIDENCE_RE = re.compile(
+    r"\b(?:FY|H[12]|[12]H|HY|Q[1-4])\s*(?:FY)?\s*\d{2,4}\b"
+    r"|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"
+    r"|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)[\s/-]+\d{2,4}\b"
+    r"|\b(?:19|20)\d{2}\b",
+    re.IGNORECASE,
+)
+
 
 def _period_dates_from_header_cell(cell: Any) -> list[date]:
     dates: list[date] = []
@@ -1946,6 +1956,11 @@ def _period_dates_from_header_cell(cell: Any) -> list[date]:
         if parsed not in dates:
             dates.append(parsed)
     return dates
+
+
+def _has_unresolved_period_evidence(value: Any) -> bool:
+    residual = _PERIOD_HEADER_DATE_RE.sub(" ", str(value or ""))
+    return bool(_ABBREVIATED_PERIOD_EVIDENCE_RE.search(residual))
 
 
 def _normalized_table_index(table: Any) -> int | None:
@@ -3556,6 +3571,68 @@ def _share_count_multiplier_from_table(table: Any) -> int:
     return 1
 
 
+def _share_count_unit(multiplier: int) -> str:
+    return {
+        1: "units",
+        1_000: "thousands",
+        1_000_000: "millions",
+        1_000_000_000: "billions",
+        1_000_000_000_000: "trillions",
+    }.get(multiplier, "unknown")
+
+
+@dataclass(frozen=True)
+class _RecoveredShareObservation:
+    value: float
+    row_ref: str
+    row_index: int
+    column_index: int
+    raw_value: str
+    source_unit: str
+    unique_preferred_candidate: bool
+
+
+def _share_count_cell_from_row(
+    row: list[Any],
+    *,
+    table_multiplier: int,
+) -> tuple[int, str, float, str] | None:
+    parsed_cells: list[tuple[int, str, float, bool]] = []
+    for column_index, cell in enumerate(row[1:], start=1):
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        parsed_cells.append((column_index, str(cell or "").strip(), *parsed))
+    if not parsed_cells:
+        return None
+
+    selected = parsed_cells[0]
+    if (
+        len(parsed_cells) >= 2
+        and not selected[3]
+        and abs(selected[2]) < 100
+        and abs(parsed_cells[1][2]) >= 100
+    ):
+        selected = parsed_cells[1]
+    column_index, raw_cell, raw_value, has_explicit_unit = selected
+    if has_explicit_unit or abs(raw_value) >= 1_000_000:
+        effective_multiplier = 1
+        value = raw_value
+    else:
+        effective_multiplier = table_multiplier
+        value = raw_value * table_multiplier
+    compact_label = _normalize_filter_text(_row_label_before_numeric_cells(row))
+    if (
+        value < 1_000_000
+        and 100 <= abs(raw_value) < 1_000_000
+        and "issuedordinarysharesfullypaid" in compact_label
+        and len(parsed_cells) >= 2
+    ):
+        value = raw_value * 1_000_000
+        effective_multiplier = 1_000_000
+    return column_index, raw_cell, value, _share_count_unit(effective_multiplier)
+
+
 def _share_count_table_surface(table: Any, *, row_limit: int = 10) -> str:
     return " ".join(
         [
@@ -3601,14 +3678,14 @@ def _share_row_period_match_rank(compact_label: str, period_end: Any) -> int:
     return 0
 
 
-def _recover_preferred_shares_outstanding_from_table(
+def _recover_preferred_share_observation_from_table(
     table: Any,
     *,
     period_end: Any = None,
-) -> tuple[float, str] | None:
+) -> _RecoveredShareObservation | None:
     multiplier = _share_count_multiplier_from_table(table)
     table_has_share_count_evidence = _table_has_share_count_evidence(table)
-    candidates: list[tuple[int, int, int, float, str]] = []
+    candidates: list[tuple[int, int, _RecoveredShareObservation]] = []
     for row_index, row in enumerate(getattr(table, "rows", []) or []):
         if not row:
             continue
@@ -3637,24 +3714,13 @@ def _recover_preferred_shares_outstanding_from_table(
             and not row_has_share_count_evidence
         ):
             continue
-        raw_value = _parse_current_period_metric_cell(row, "unknown")
-        if raw_value is None:
+        selected_cell = _share_count_cell_from_row(
+            row,
+            table_multiplier=multiplier,
+        )
+        if selected_cell is None:
             continue
-        value = raw_value if abs(raw_value) >= 1_000_000 else raw_value * multiplier
-        if (
-            value < 1_000_000
-            and 100 <= abs(raw_value) < 1_000_000
-            and "issuedordinarysharesfullypaid" in compact_label
-            and len(
-                [
-                    cell
-                    for cell in row[1:]
-                    if _parse_accounting_metric_number(cell) is not None
-                ]
-            )
-            >= 2
-        ):
-            value = raw_value * 1_000_000
+        column_index, raw_cell, value, source_unit = selected_cell
         if value >= 1_000_000:
             rank = 1
             if any(
@@ -3680,26 +3746,50 @@ def _recover_preferred_shares_outstanding_from_table(
                 (
                     rank,
                     _share_row_period_match_rank(compact_label, period_end),
-                    row_index,
-                    value,
-                    row_label,
+                    _RecoveredShareObservation(
+                        value=value,
+                        row_ref=row_label,
+                        row_index=row_index,
+                        column_index=column_index,
+                        raw_value=raw_cell,
+                        source_unit=source_unit,
+                        unique_preferred_candidate=False,
+                    ),
                 )
             )
     if not candidates:
         return None
-    _rank, _period_rank, _row_index, value, row_label = max(
+    _rank, _period_rank, observation = max(
         candidates,
-        key=lambda item: (item[0], item[1], item[2]),
+        key=lambda item: (item[0], item[1], item[2].row_index),
     )
-    return value, row_label
+    unique_preferred_candidate = (
+        len(
+            [
+                candidate
+                for candidate in candidates
+                if candidate[0:2] == (_rank, _period_rank)
+            ]
+        )
+        == 1
+    )
+    return _RecoveredShareObservation(
+        value=observation.value,
+        row_ref=observation.row_ref,
+        row_index=observation.row_index,
+        column_index=observation.column_index,
+        raw_value=observation.raw_value,
+        source_unit=observation.source_unit,
+        unique_preferred_candidate=unique_preferred_candidate,
+    )
 
 
-def _recover_preferred_shares_outstanding_from_split_header_table(
+def _recover_preferred_share_observation_from_split_header_table(
     previous_table: Any,
     table: Any,
     *,
     period_end: Any = None,
-) -> tuple[float, str] | None:
+) -> _RecoveredShareObservation | None:
     if previous_table is None:
         return None
     if getattr(previous_table, "page_number", None) != getattr(
@@ -3725,10 +3815,93 @@ def _recover_preferred_shares_outstanding_from_split_header_table(
         rows=list(getattr(previous_table, "rows", []) or [])
         + list(getattr(table, "rows", []) or []),
     )
-    return _recover_preferred_shares_outstanding_from_table(
+    observation = _recover_preferred_share_observation_from_table(
         combined,
         period_end=period_end,
     )
+    if observation is None:
+        return None
+    previous_row_count = len(getattr(previous_table, "rows", []) or [])
+    if observation.row_index < previous_row_count:
+        return None
+    return _RecoveredShareObservation(
+        value=observation.value,
+        row_ref=observation.row_ref,
+        row_index=observation.row_index - previous_row_count,
+        column_index=observation.column_index,
+        raw_value=observation.raw_value,
+        source_unit=observation.source_unit,
+        unique_preferred_candidate=observation.unique_preferred_candidate,
+    )
+
+
+def _period_bound_share_source_cell(
+    table: Any,
+    observation: _RecoveredShareObservation,
+    *,
+    period_end: Any,
+) -> dict[str, Any] | None:
+    if not observation.unique_preferred_candidate:
+        return None
+    requested = parse_period_end(str(period_end) if period_end else None)
+    if requested is None:
+        return None
+    parsed = _parse_accounting_metric_number(observation.raw_value)
+    multiplier = SCALE_MULTIPLIERS.get(observation.source_unit)
+    if parsed is None or multiplier is None:
+        return None
+    raw_value, has_explicit_unit = parsed
+    normalized = raw_value if has_explicit_unit else raw_value * multiplier
+    if normalized != observation.value:
+        return None
+    row_dates = _period_dates_from_header_cell(observation.row_ref)
+    if (
+        (row_dates and row_dates != [requested])
+        or _has_unresolved_period_evidence(observation.row_ref)
+    ):
+        return None
+    header_rows = getattr(table, "raw_header_rows", None) or [
+        getattr(table, "headers", None) or []
+    ]
+    selected_header_text = " ".join(
+        str(row[observation.column_index] or "")
+        for row in header_rows
+        if observation.column_index < len(row)
+    )
+    if _has_unresolved_period_evidence(selected_header_text):
+        return None
+
+    binding = _bind_current_period_column(table, requested.isoformat())
+    if (
+        binding.get("status") == "BOUND"
+        and binding.get("column_index") == observation.column_index
+    ):
+        header_cell = binding["header_cell"]
+        column_role = binding.get("column_role")
+    elif row_dates == [requested]:
+        if _period_dates_from_header_cell(selected_header_text):
+            return None
+        header_cell = observation.row_ref
+        column_role = "period_end_row"
+    else:
+        return None
+
+    source_cell = {
+        "page_number": getattr(table, "page_number", None),
+        "row_index": observation.row_index,
+        "column_index": observation.column_index,
+        "row_label": observation.row_ref,
+        "raw_value": observation.raw_value,
+        "scaled_value": observation.value,
+        "header_cell": header_cell,
+        "requested_period_end": requested.isoformat(),
+    }
+    table_index = _normalized_table_index(table)
+    if table_index is not None:
+        source_cell["table_index"] = table_index
+    if column_role is not None:
+        source_cell["column_role"] = column_role
+    return source_cell
 
 
 def _expand_income_statement_row_refs(
@@ -4112,14 +4285,13 @@ def _extract_single_table(
                         getattr(table, "page_number", "?"),
                     )
         if table_type == "share_capital":
-            recovered_shares = _recover_preferred_shares_outstanding_from_table(
+            recovered_shares = _recover_preferred_share_observation_from_table(
                 table,
                 period_end=pass1_result.get("period_end"),
             )
             if recovered_shares is not None:
-                recovered_value, recovered_row_ref = recovered_shares
-                extracted["shares_outstanding"] = recovered_value
-                extracted["row_refs"]["shares_outstanding"] = recovered_row_ref
+                extracted["shares_outstanding"] = recovered_shares.value
+                extracted["row_refs"]["shares_outstanding"] = recovered_shares.row_ref
                 logger.info(
                     "Recovered shares_outstanding from preferred share-count row on page %s",
                     getattr(table, "page_number", "?"),
@@ -8461,15 +8633,16 @@ def _apply_preferred_shares_source_payload(
     tables: Any,
     *,
     pass1_result: dict,
+    capture_benchmark_source_cell: bool = False,
 ) -> None:
     previous_table = None
     for table in tables or []:
-        recovered = _recover_preferred_shares_outstanding_from_table(
+        recovered = _recover_preferred_share_observation_from_table(
             table,
             period_end=pass1_result.get("period_end"),
         )
         if recovered is None:
-            recovered = _recover_preferred_shares_outstanding_from_split_header_table(
+            recovered = _recover_preferred_share_observation_from_split_header_table(
                 previous_table,
                 table,
                 period_end=pass1_result.get("period_end"),
@@ -8477,7 +8650,8 @@ def _apply_preferred_shares_source_payload(
         if recovered is None:
             previous_table = table
             continue
-        recovered_value, recovered_row_ref = recovered
+        recovered_value = recovered.value
+        recovered_row_ref = recovered.row_ref
         metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
         row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
         provenance = (
@@ -8487,6 +8661,15 @@ def _apply_preferred_shares_source_payload(
             payload.get("field_provenance")
             if isinstance(payload.get("field_provenance"), dict)
             else {}
+        )
+        source_cell = (
+            _period_bound_share_source_cell(
+                table,
+                recovered,
+                period_end=pass1_result.get("period_end"),
+            )
+            if capture_benchmark_source_cell
+            else None
         )
         metrics["shares_outstanding"] = recovered_value
         payload["shares_outstanding"] = recovered_value
@@ -8498,14 +8681,30 @@ def _apply_preferred_shares_source_payload(
             source="share_capital",
             page=getattr(table, "page_number", None),
             row_ref=recovered_row_ref,
-            scale="units",
+            scale=recovered.source_unit if capture_benchmark_source_cell else "units",
             scale_source="source_table",
             pass1_result=pass1_result,
+            source_cell=source_cell,
         )
         payload["metrics"] = metrics
         payload["row_refs"] = row_refs
         payload["provenance"] = provenance
         payload["field_provenance"] = field_provenance
+        if capture_benchmark_source_cell:
+            metric_source_scales = (
+                payload.get("metric_source_scales")
+                if isinstance(payload.get("metric_source_scales"), dict)
+                else {}
+            )
+            metric_scale_sources = (
+                payload.get("metric_scale_sources")
+                if isinstance(payload.get("metric_scale_sources"), dict)
+                else {}
+            )
+            metric_source_scales["shares_outstanding"] = recovered.source_unit
+            metric_scale_sources["shares_outstanding"] = "source_table"
+            payload["metric_source_scales"] = metric_source_scales
+            payload["metric_scale_sources"] = metric_scale_sources
         return
 
 
@@ -9442,6 +9641,7 @@ def run_multipass_extraction(
     openability_pages: list[int] | None = None,
     openability_selected_tables: bool = False,
     capture_pass3a_failures: bool = False,
+    capture_benchmark_source_cells: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -9462,6 +9662,9 @@ def run_multipass_extraction(
     gaps. Defaults off; when enabled, parser diagnostics are requested and any
     source-bound openability rows are converted into synthetic tables that still
     pass through normal Pass 2/3a/4 validation gates.
+
+    capture_benchmark_source_cells: opt-in v2 replay evidence. Defaults off so
+    normal extraction and v1 replay metadata remain unchanged.
     """
     bundle = resolve(prompt_bundle_id)
 
@@ -10098,6 +10301,7 @@ def run_multipass_extraction(
             payload,
             structured_tables,
             pass1_result=pass1,
+            capture_benchmark_source_cell=capture_benchmark_source_cells,
         )
     if "cash_end" in allowed_contract_metrics:
         _apply_preferred_cash_end_source_payload(
