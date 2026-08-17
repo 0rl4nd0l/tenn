@@ -77,6 +77,9 @@ CODE_IDENTITY_PATHS = (
     "scripts/run_broad_extraction_benchmark_v2.py",
     "scripts/extraction_no_write_replay.py",
     "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py",
+    "financial-engine_v2/backend/app/core/config.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/app/services/llm.py",
     "financial-engine_v2/backend/app/services/multipass_extraction.py",
     "financial-engine_v2/backend/app/services/financial_metric_contract.py",
 )
@@ -1699,17 +1702,42 @@ def _run_cases(
     case_timeout_seconds: int,
     include_benchmark_internal_metrics: bool = False,
     expected_code_identity: dict[str, Any] | None = None,
+    expected_cache_root: Path | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if expected_code_identity is not None:
+        cached_backend_modules = sorted(
+            name for name in sys.modules if name == "app" or name.startswith("app.")
+        )
+        if cached_backend_modules:
+            raise CodeIdentityConflict(
+                "v2 replay backend modules were loaded before the identity bracket: "
+                + ", ".join(cached_backend_modules)
+            )
         require_v2_code_identity(expected_code_identity)
     sys.path.insert(0, str(BACKEND_ROOT))
     from app.services import llm as llm_module
     from app.services import multipass_extraction as mp
 
+    docling_module = None
     if expected_code_identity is not None:
+        from app.services import docling_extract as docling_module
+
+    sentinels = _install_write_sentinels()
+    if expected_code_identity is not None:
+        if docling_module is None:  # pragma: no cover - guarded by branch above
+            raise CodeIdentityConflict("v2 replay parser module was not loaded")
+        if expected_cache_root is None:
+            raise CodeIdentityConflict("v2 replay expected cache root is missing")
+        try:
+            observed_cache_root = docling_module._extract_cache_root().resolve()
+        except Exception as exc:
+            raise CodeIdentityConflict(
+                "v2 replay could not resolve the bound extraction cache root"
+            ) from exc
+        if observed_cache_root != expected_cache_root.resolve():
+            raise CodeIdentityConflict("v2 replay bound extraction cache root mismatch")
         require_v2_code_identity(expected_code_identity)
     _patch_runtime_side_effects(llm_module)
-    sentinels = _install_write_sentinels()
     client = None
     llm_info: dict[str, Any] = {"write_sentinels": sentinels}
     results: list[dict[str, Any]] = []
@@ -1988,20 +2016,28 @@ def _expectation_failures(results: list[dict[str, Any]]) -> list[dict[str, Any]]
     return failures
 
 
-def _check_cache_root(data_root: Path) -> tuple[bool, str, str | None, str]:
-    sys.path.insert(0, str(BACKEND_ROOT))
-    verification_mode = "docling_extract"
-    try:
-        from app.services.docling_extract import _extract_cache_root
-
-        cache_root = _extract_cache_root().resolve()
-    except ModuleNotFoundError as exc:
-        verification_mode = f"settings_fallback_missing_dependency:{exc.name}"
+def _check_cache_root(
+    data_root: Path, *, import_backend: bool = True
+) -> tuple[bool, str, str | None, str]:
+    if not import_backend:
+        verification_mode = "v2_static_isolated_path"
         cache_root = (
             data_root / "reports" / "extraction_cache" / "docling_extract"
         ).resolve()
+    else:
+        sys.path.insert(0, str(BACKEND_ROOT))
+        verification_mode = "docling_extract"
+        try:
+            from app.services.docling_extract import _extract_cache_root
+
+            cache_root = _extract_cache_root().resolve()
+        except ModuleNotFoundError as exc:
+            verification_mode = f"settings_fallback_missing_dependency:{exc.name}"
+            cache_root = (
+                data_root / "reports" / "extraction_cache" / "docling_extract"
+            ).resolve()
     try:
-        cache_root.relative_to(data_root)
+        cache_root.relative_to(data_root.resolve())
     except ValueError:
         return (
             False,
@@ -2428,7 +2464,7 @@ def run_replay(args: argparse.Namespace) -> int:
                 return 2
             cases = _force_docling_profile_cases(cases)
         cache_ok, cache_root_text, cache_error, cache_verification_mode = (
-            _check_cache_root(data_root)
+            _check_cache_root(data_root, import_backend=not is_v2)
         )
         input_manifest = {
             "manifest_path": str(manifest_path),
@@ -2494,6 +2530,7 @@ def run_replay(args: argparse.Namespace) -> int:
                         if is_v2 and receipt is not None
                         else None
                     ),
+                    expected_cache_root=(Path(cache_root_text) if is_v2 else None),
                 )
             except CodeIdentityConflict as exc:
                 code_identity_conflict = str(exc)

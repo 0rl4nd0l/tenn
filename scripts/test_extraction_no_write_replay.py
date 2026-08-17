@@ -244,6 +244,194 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertTrue(RUNNER._is_infrastructure_failure(rows[0]))
         fake_client.close.assert_called_once_with()
 
+    def test_v2_run_cases_rejects_preloaded_backend_module(self):
+        fake_module = type(sys)("app.services.docling_extract")
+        with (
+            mock.patch.dict(sys.modules, {"app.services.docling_extract": fake_module}),
+            tempfile.TemporaryDirectory() as tmp,
+        ):
+            with self.assertRaisesRegex(
+                RUNNER.CodeIdentityConflict, "loaded before the identity bracket"
+            ):
+                RUNNER._run_cases(
+                    [],
+                    "http://127.0.0.1:8001",
+                    Path(tmp) / "replay.log",
+                    case_timeout_seconds=0,
+                    expected_code_identity={"head_sha": "a" * 40},
+                    expected_cache_root=Path(tmp) / "cache",
+                )
+
+    def test_v1_run_cases_does_not_eagerly_import_docling_backend(self):
+        app_module = type(sys)("app")
+        services_module = type(sys)("app.services")
+        llm_module = type(sys)("app.services.llm")
+        multipass_module = type(sys)("app.services.multipass_extraction")
+        services_module.llm = llm_module
+        services_module.multipass_extraction = multipass_module
+        app_module.services = services_module
+        fake_client = mock.Mock()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with (
+                mock.patch.dict(
+                    sys.modules,
+                    {
+                        "app": app_module,
+                        "app.services": services_module,
+                        "app.services.llm": llm_module,
+                        "app.services.multipass_extraction": multipass_module,
+                        "app.services.docling_extract": None,
+                    },
+                ),
+                mock.patch.object(RUNNER, "_patch_runtime_side_effects"),
+                mock.patch.object(RUNNER, "_install_write_sentinels", return_value=[]),
+                mock.patch.object(
+                    RUNNER,
+                    "_build_client",
+                    return_value=(fake_client, {"status": "ready"}),
+                ),
+            ):
+                rows, llm_info = RUNNER._run_cases(
+                    [],
+                    "http://127.0.0.1:8001",
+                    Path(tmp) / "replay.log",
+                    case_timeout_seconds=0,
+                )
+
+        self.assertEqual([], rows)
+        self.assertEqual("ready", llm_info["status"])
+        fake_client.close.assert_called_once_with()
+
+    def test_v2_backend_import_drift_fails_before_client_probe(self):
+        preserved_modules = {
+            name: module
+            for name, module in sys.modules.items()
+            if name == "app" or name.startswith("app.")
+        }
+        for name in preserved_modules:
+            sys.modules.pop(name, None)
+        build_client = mock.Mock()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                data_root = Path(tmp) / "data"
+                cache_root = (
+                    data_root / "reports" / "extraction_cache" / "docling_extract"
+                )
+                with (
+                    mock.patch.dict(
+                        os.environ, {"DATA_ROOT": str(data_root)}, clear=False
+                    ),
+                    mock.patch.object(
+                        RUNNER,
+                        "require_v2_code_identity",
+                        side_effect=[
+                            None,
+                            RUNNER.CodeIdentityConflict("changed during import"),
+                        ],
+                    ),
+                    mock.patch.object(
+                        RUNNER, "_install_write_sentinels", return_value=[]
+                    ),
+                    mock.patch.object(RUNNER, "_build_client", build_client),
+                ):
+                    with self.assertRaisesRegex(
+                        RUNNER.CodeIdentityConflict, "changed during import"
+                    ):
+                        RUNNER._run_cases(
+                            [],
+                            "http://127.0.0.1:8001",
+                            Path(tmp) / "replay.log",
+                            case_timeout_seconds=0,
+                            expected_code_identity={"head_sha": "a" * 40},
+                            expected_cache_root=cache_root,
+                        )
+        finally:
+            for name in list(sys.modules):
+                if name == "app" or name.startswith("app."):
+                    sys.modules.pop(name, None)
+            sys.modules.update(preserved_modules)
+
+        build_client.assert_not_called()
+
+    def test_v2_cache_root_preflight_does_not_import_backend(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data_root = Path(tmp) / "data"
+            before = {
+                name for name in sys.modules if name == "app" or name.startswith("app.")
+            }
+            cache_ok, cache_root, error, mode = RUNNER._check_cache_root(
+                data_root, import_backend=False
+            )
+            after = {
+                name for name in sys.modules if name == "app" or name.startswith("app.")
+            }
+
+        self.assertTrue(cache_ok)
+        self.assertIsNone(error)
+        self.assertEqual(before, after)
+        self.assertEqual("v2_static_isolated_path", mode)
+        self.assertEqual(
+            str(
+                (
+                    data_root / "reports" / "extraction_cache" / "docling_extract"
+                ).resolve()
+            ),
+            cache_root,
+        )
+
+    def test_v2_cache_root_preflight_rejects_symlink_escape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_root = root / "data"
+            cache_parent = data_root / "reports" / "extraction_cache"
+            cache_parent.mkdir(parents=True)
+            outside = root / "outside"
+            outside.mkdir()
+            (cache_parent / "docling_extract").symlink_to(
+                outside, target_is_directory=True
+            )
+
+            cache_ok, cache_root, error, mode = RUNNER._check_cache_root(
+                data_root, import_backend=False
+            )
+
+        self.assertFalse(cache_ok)
+        self.assertEqual(str(outside.resolve()), cache_root)
+        self.assertIn("outside isolated DATA_ROOT", error)
+        self.assertEqual("v2_static_isolated_path", mode)
+
+    def test_v1_cache_root_keeps_backend_helper_behavior(self):
+        sys.path.insert(0, str(RUNNER.BACKEND_ROOT))
+        from app.services import docling_extract
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_root = Path(tmp) / "data"
+            expected = (
+                data_root / "reports" / "extraction_cache" / "docling_extract"
+            ).resolve()
+            with mock.patch.object(
+                docling_extract, "_extract_cache_root", return_value=expected
+            ) as helper:
+                cache_ok, cache_root, error, mode = RUNNER._check_cache_root(data_root)
+
+        helper.assert_called_once_with()
+        self.assertTrue(cache_ok)
+        self.assertEqual(str(expected), cache_root)
+        self.assertIsNone(error)
+        self.assertEqual("docling_extract", mode)
+
+    def test_v2_code_identity_matches_outer_runner_backend_bindings(self):
+        from scripts import run_broad_extraction_benchmark_v2 as outer_runner
+
+        self.assertEqual(outer_runner.CODE_IDENTITY_PATHS, RUNNER.CODE_IDENTITY_PATHS)
+        for path in (
+            "financial-engine_v2/backend/app/core/config.py",
+            "financial-engine_v2/backend/app/services/docling_extract.py",
+            "financial-engine_v2/backend/app/services/llm.py",
+        ):
+            self.assertIn(path, RUNNER.CODE_IDENTITY_PATHS)
+
     def test_compact_payload_preserves_strong_total_debt_for_benchmark_only(self):
         result = mock.Mock(
             status="ok",

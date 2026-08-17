@@ -132,6 +132,9 @@ CODE_IDENTITY_PATHS = (
     "scripts/run_broad_extraction_benchmark_v2.py",
     "scripts/extraction_no_write_replay.py",
     "financial-engine_v2/backend/app/services/broad_extraction_benchmark.py",
+    "financial-engine_v2/backend/app/core/config.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/app/services/llm.py",
     "financial-engine_v2/backend/app/services/multipass_extraction.py",
     "financial-engine_v2/backend/app/services/financial_metric_contract.py",
 )
