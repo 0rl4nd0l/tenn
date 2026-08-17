@@ -155,10 +155,94 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         with RUNNER._case_timeout(0):
             self.assertTrue(True)
 
-    def test_case_timeout_raises_timeout_error(self):
+    def test_case_timeout_raises_cancellation(self):
         with self.assertRaises(RUNNER.CaseTimeoutError):
             with RUNNER._case_timeout(1):
                 time.sleep(2)
+
+    def test_case_timeout_bypasses_multipass_retry_handlers(self):
+        sys.path.insert(0, str(RUNNER.BACKEND_ROOT))
+        from app.services.docling_extract import DoclingTable
+        from app.services import multipass_extraction as multipass
+
+        table = DoclingTable(
+            page_number=1,
+            caption="Income Statement",
+            rows=[["Revenue", "10"]],
+            headers=["Metric", "30 June 2025"],
+        )
+        scoreable_retry = {
+            "revenue": 10,
+            "ebit": 2,
+            "np_attributable": 1,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "EBIT",
+                "np_attributable": "NPAT",
+            },
+        }
+        with mock.patch.object(
+            multipass,
+            "_llm_json_call",
+            side_effect=[
+                RUNNER.CaseTimeoutError("case_timeout: exceeded 1 seconds"),
+                scoreable_retry,
+            ],
+        ) as llm_call:
+            with self.assertRaises(RUNNER.CaseTimeoutError):
+                multipass._extract_single_table(
+                    "income_statement",
+                    table,
+                    {"period_end": "2025-06-30", "currency": "AUD"},
+                    "units",
+                    1,
+                    llm_client=None,
+                )
+
+        self.assertEqual(1, llm_call.call_count)
+
+    def test_run_cases_serializes_case_timeout_as_infrastructure(self):
+        sys.path.insert(0, str(RUNNER.BACKEND_ROOT))
+        from app.services import multipass_extraction as multipass
+
+        fake_client = mock.Mock()
+        case = {
+            "case_id": "TIMEOUT",
+            "role": "anchor",
+            "ticker": "TMO",
+            "document_id": "doc-timeout",
+            "title": "timeout.pdf",
+            "source_path": "/tmp/timeout.pdf",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "replay.log"
+            with (
+                mock.patch.object(
+                    RUNNER,
+                    "_build_client",
+                    return_value=(fake_client, {"status": "ready"}),
+                ),
+                mock.patch.object(RUNNER, "_patch_runtime_side_effects"),
+                mock.patch.object(RUNNER, "_install_write_sentinels", return_value={}),
+                mock.patch.object(
+                    multipass,
+                    "run_multipass_extraction",
+                    side_effect=RUNNER.CaseTimeoutError(
+                        "case_timeout: exceeded 1 seconds"
+                    ),
+                ),
+            ):
+                rows, _ = RUNNER._run_cases(
+                    [case],
+                    "http://127.0.0.1:8001",
+                    log_path,
+                    case_timeout_seconds=0,
+                )
+
+        self.assertEqual(1, len(rows))
+        self.assertEqual("exception", rows[0]["result"]["status"])
+        self.assertTrue(RUNNER._is_infrastructure_failure(rows[0]))
+        fake_client.close.assert_called_once_with()
 
     def test_compact_payload_preserves_strong_total_debt_for_benchmark_only(self):
         result = mock.Mock(

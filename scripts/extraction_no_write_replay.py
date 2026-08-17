@@ -183,8 +183,12 @@ class CodeIdentityConflict(ReplayConfigError):
     """Raised when v2 execution code no longer matches its invocation receipt."""
 
 
-class CaseTimeoutError(TimeoutError):
-    """Raised when one replay case exceeds the configured runtime budget."""
+class CaseTimeoutError(BaseException):
+    """Cancel one replay case when it exceeds the configured runtime budget.
+
+    This intentionally bypasses library ``except Exception`` recovery and retry
+    paths.  The replay's per-case boundary catches it explicitly below.
+    """
 
 
 @contextmanager
@@ -1777,7 +1781,7 @@ def _run_cases(
                     log.write(
                         f"case_done {case_id} status={result.status} error={result.error}\n"
                     )
-                except Exception as exc:  # pragma: no cover - exercised by smoke runs
+                except (CaseTimeoutError, Exception) as exc:  # pragma: no branch
                     exception_result = {
                         "case_id": case_id,
                         "role": case.get("role"),
