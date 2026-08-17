@@ -816,6 +816,51 @@ class OneShotSafetyTests(unittest.TestCase):
         ):
             RUNNER.inspect_interpreter(Path(sys.executable))
 
+    def test_interpreter_preflight_isolates_import_side_effects(self) -> None:
+        payload = {
+            "executable": sys.executable,
+            "python": "3.12.0",
+            "modules": list(RUNNER.IMPORT_PREFLIGHT_MODULES),
+            "versions": dict(RUNNER.EXPECTED_DEPENDENCY_VERSIONS),
+            "site_packages": [str(Path(sys.executable).resolve().parent)],
+        }
+        isolated_data_root: Path | None = None
+
+        def simulate_import_side_effect(*args: object, **kwargs: object) -> object:
+            nonlocal isolated_data_root
+            environment = kwargs["env"]
+            assert isinstance(environment, dict)
+            isolated_data_root = Path(environment["DATA_ROOT"])
+            snapshot = isolated_data_root / "reports/router_metrics_snapshot.json"
+            snapshot.parent.mkdir(parents=True)
+            snapshot.write_text("isolated\n", encoding="utf-8")
+            return subprocess.CompletedProcess(
+                args[0], 0, stdout=json.dumps(payload), stderr=""
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            live_data_root = Path(directory) / "live-data"
+            live_snapshot = live_data_root / "reports/router_metrics_snapshot.json"
+            live_snapshot.parent.mkdir(parents=True)
+            live_snapshot.write_text("preserve-me\n", encoding="utf-8")
+            with (
+                mock.patch.dict(
+                    os.environ, {"DATA_ROOT": str(live_data_root)}, clear=False
+                ),
+                mock.patch.object(
+                    RUNNER.subprocess, "run", side_effect=simulate_import_side_effect
+                ),
+            ):
+                RUNNER.inspect_interpreter(Path(sys.executable))
+
+            self.assertEqual("preserve-me\n", live_snapshot.read_text(encoding="utf-8"))
+            self.assertIsNotNone(isolated_data_root)
+            assert isolated_data_root is not None
+            self.assertTrue(isolated_data_root.is_absolute())
+            self.assertIn("tenn-v2-import-preflight-", isolated_data_root.name)
+            self.assertNotEqual(live_data_root.resolve(), isolated_data_root)
+            self.assertFalse(isolated_data_root.exists())
+
     def test_replay_launch_environment_drops_unbound_python_startup_paths(self) -> None:
         with mock.patch.dict(
             os.environ,

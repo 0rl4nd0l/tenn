@@ -494,21 +494,23 @@ def inspect_interpreter(python_bin: Path) -> dict[str, Any]:
             "sort_keys=True))"
         ),
     ]
-    env = {
-        "PATH": os.environ.get("PATH", ""),
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONNOUSERSITE": "1",
-        "PYTHONPATH": str(BACKEND_ROOT),
-    }
-    completed = subprocess.run(
-        command,
-        cwd=REPO_ROOT,
-        env=env,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    with tempfile.TemporaryDirectory(prefix="tenn-v2-import-preflight-") as data_root:
+        env = {
+            "PATH": os.environ.get("PATH", ""),
+            "DATA_ROOT": data_root,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONPATH": str(BACKEND_ROOT),
+        }
+        completed = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env=env,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout).strip()
         raise RunnerError(f"interpreter import preflight failed: {detail}")
