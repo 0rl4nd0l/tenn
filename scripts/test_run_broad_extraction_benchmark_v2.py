@@ -299,6 +299,48 @@ class OneShotSafetyTests(unittest.TestCase):
                 },
             )
 
+    def test_total_debt_uses_benchmark_internal_observation(self) -> None:
+        document = RUNNER.CorpusDocument(
+            document_id="doc_0",
+            issuer_id="T00",
+            document_class="annual_report",
+            period_type="A",
+            period_end="2025-06-30",
+            admission_status="admitted",
+            source_path="source_0.pdf",
+            source_sha256="1" * 64,
+        )
+        replay = {
+            "results": [
+                {
+                    "document_id": "doc_0",
+                    "result": {
+                        "status": "ok",
+                        "period_type": "A",
+                        "period_end": "2025-06-30",
+                        "currency": "AUD",
+                        "benchmark_internal_metrics": {"total_debt": 25_000_000},
+                        "benchmark_internal_metric_source_scales": {
+                            "total_debt": "millions"
+                        },
+                        "benchmark_internal_provenance": {
+                            "total_debt": "balance_sheet:page_12:Borrowings"
+                        },
+                    },
+                }
+            ]
+        }
+
+        actuals = RUNNER.actuals_from_replay((document,), replay)
+        total_debt = next(row for row in actuals if row.metric == "total_debt")
+
+        self.assertEqual("accepted", total_debt.status)
+        self.assertEqual("25", total_debt.raw_value)
+        self.assertEqual("25000000", total_debt.normalized_value)
+        self.assertEqual(
+            "balance_sheet:page_12:Borrowings", total_debt.evidence_location
+        )
+
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = build_bundle(Path(directory))
@@ -536,7 +578,13 @@ class OneShotSafetyTests(unittest.TestCase):
             RUNNER.inspect_interpreter(Path(sys.executable))
 
     def _mock_run(
-        self, *, result_count: int, side_effect_pass: bool | None = True
+        self,
+        *,
+        result_count: int,
+        side_effect_pass: bool | None = True,
+        replay_status: str = "PASS",
+        replay_returncode: int = 0,
+        infrastructure_failure_count: int = 0,
     ) -> tuple[int, Path, Path, int]:
         report_parent = RUNNER.REPO_ROOT / "reports/agent_jobs"
         report_parent.mkdir(parents=True, exist_ok=True)
@@ -610,21 +658,26 @@ class OneShotSafetyTests(unittest.TestCase):
                 replay_root / "replay_results.json",
                 {
                     "artifact_type": "extraction_no_write_replay_results_v2",
-                    "status": "PASS",
+                    "status": replay_status,
                     "results": results,
                 },
             )
             validation = (
                 {}
                 if side_effect_pass is None
-                else {"side_effect_pass": side_effect_pass}
+                else {
+                    "status": replay_status,
+                    "side_effect_pass": side_effect_pass,
+                    "infrastructure_failure_count": infrastructure_failure_count,
+                    "llm_info": {},
+                }
             )
             write_json(replay_root / "validation.json", validation)
             write_json(
                 replay_root / "side_effect_audit.json",
                 {"forbidden_surface_clean": True},
             )
-            return subprocess.CompletedProcess(command, 0)
+            return subprocess.CompletedProcess(command, replay_returncode)
 
         with (
             mock.patch.object(RUNNER, "validate_bundle", return_value=bundle),
@@ -650,6 +703,36 @@ class OneShotSafetyTests(unittest.TestCase):
             "BASELINE_FROZEN_SCORED",
             json.loads((output / "RUN_OUTCOME.json").read_text())["terminal_state"],
         )
+
+    def test_complete_quality_failure_is_scored(self) -> None:
+        returncode, output, receipt, scorer_calls = self._mock_run(
+            result_count=20,
+            replay_status="FAIL",
+            replay_returncode=2,
+        )
+
+        self.assertEqual(0, returncode)
+        self.assertTrue(receipt.is_file())
+        self.assertTrue((output / "baseline_score.json").is_file())
+        self.assertEqual(1, scorer_calls)
+        outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
+        self.assertEqual("BASELINE_FROZEN_SCORED", outcome["terminal_state"])
+
+    def test_complete_infrastructure_failure_is_not_scored(self) -> None:
+        returncode, output, receipt, scorer_calls = self._mock_run(
+            result_count=20,
+            replay_status="DATA_MISSING",
+            replay_returncode=2,
+            infrastructure_failure_count=1,
+        )
+
+        self.assertEqual(2, returncode)
+        self.assertTrue(receipt.is_file())
+        self.assertFalse((output / "baseline_score.json").exists())
+        self.assertEqual(0, scorer_calls)
+        outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
+        self.assertEqual("DATA_MISSING", outcome["terminal_state"])
+        self.assertIn("infrastructure", outcome["error"])
 
     def test_missing_result_publishes_consumed_evidence_without_score(self) -> None:
         returncode, output, receipt, scorer_calls = self._mock_run(result_count=19)

@@ -669,12 +669,23 @@ def _accepted_cell(
     source_metric: str,
     payload: dict[str, Any],
 ) -> ActualCell | None:
-    values = payload.get("non_null_metrics") or {}
+    internal_metric = source_metric == "total_debt"
+    values = (
+        payload.get("benchmark_internal_metrics")
+        if internal_metric
+        else payload.get("non_null_metrics")
+    ) or {}
     if source_metric not in values:
         return None
-    raw_unit = (payload.get("metric_source_scales") or {}).get(
-        source_metric
-    ) or payload.get("scale")
+    scale_key = (
+        "benchmark_internal_metric_source_scales"
+        if internal_metric
+        else "metric_source_scales"
+    )
+    provenance_key = (
+        "benchmark_internal_provenance" if internal_metric else "provenance"
+    )
+    raw_unit = (payload.get(scale_key) or {}).get(source_metric) or payload.get("scale")
     if metric == "shares_outstanding":
         raw_unit = "units"
     multiplier = SCALE_MULTIPLIERS.get(str(raw_unit))
@@ -682,7 +693,7 @@ def _accepted_cell(
         normalized = Decimal(str(values[source_metric]))
     except (InvalidOperation, TypeError, ValueError):
         return None
-    provenance = (payload.get("provenance") or {}).get(source_metric)
+    provenance = (payload.get(provenance_key) or {}).get(source_metric)
     currency = None if metric == "shares_outstanding" else payload.get("currency")
     if (
         multiplier is None
@@ -705,6 +716,36 @@ def _accepted_cell(
         source_sha256=document.source_sha256,
         evidence_location=str(provenance),
     )
+
+
+def require_scoreable_replay(
+    validation: dict[str, Any], replay: dict[str, Any], returncode: int
+) -> None:
+    validation_status = validation.get("status")
+    replay_status = replay.get("status")
+    if validation_status not in {"PASS", "FAIL", "DATA_MISSING"}:
+        raise RunnerError("replay validation status is missing or invalid")
+    if replay_status != validation_status:
+        raise RunnerError("replay and validation status disagree")
+    infrastructure_count = validation.get("infrastructure_failure_count")
+    if (
+        isinstance(infrastructure_count, bool)
+        or not isinstance(infrastructure_count, int)
+        or infrastructure_count < 0
+    ):
+        raise RunnerError("replay infrastructure_failure_count is missing or invalid")
+    llm_info = validation.get("llm_info")
+    if not isinstance(llm_info, dict):
+        raise RunnerError("replay llm_info is missing or invalid")
+    if (
+        validation_status == "DATA_MISSING"
+        or infrastructure_count
+        or llm_info.get("status") == "DATA_MISSING"
+    ):
+        raise RunnerError("replay infrastructure evidence is incomplete")
+    expected_returncode = 0 if validation_status == "PASS" else 2
+    if returncode != expected_returncode:
+        raise RunnerError("replay process status and return code disagree")
 
 
 def actuals_from_replay(
@@ -929,21 +970,17 @@ def _run(args: argparse.Namespace) -> int:
         else:
             replay = _read_json(stage_root / "replay/replay_results.json")
             require_complete_results(bundle["cases"], replay)
-            if completed.returncode != 0 or replay.get("status") != "PASS":
-                error = "replay did not complete with PASS"
-            else:
-                actuals = actuals_from_replay(bundle["documents"], replay)
-                score = _jsonable_score(
-                    score_benchmark(
-                        bundle["documents"], bundle["expectations"], actuals
-                    )
-                )
-                _write_json(stage_root / "baseline_score.json", score)
-                _write_json(
-                    stage_root / "failure_attribution.json",
-                    _failure_attribution(score),
-                )
-                terminal = "BASELINE_FROZEN_SCORED"
+            require_scoreable_replay(validation, replay, completed.returncode)
+            actuals = actuals_from_replay(bundle["documents"], replay)
+            score = _jsonable_score(
+                score_benchmark(bundle["documents"], bundle["expectations"], actuals)
+            )
+            _write_json(stage_root / "baseline_score.json", score)
+            _write_json(
+                stage_root / "failure_attribution.json",
+                _failure_attribution(score),
+            )
+            terminal = "BASELINE_FROZEN_SCORED"
     except (
         BenchmarkContractError,
         KeyError,

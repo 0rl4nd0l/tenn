@@ -1162,9 +1162,50 @@ def _build_client(llm_url: str) -> tuple[Any, dict[str, Any]]:
     }
 
 
-def _compact_payload(result: Any) -> dict[str, Any]:
+def _benchmark_internal_metrics(
+    multipass_module: Any, debug_capture: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    observations: dict[str, dict[str, Any]] = {
+        "values": {},
+        "metric_source_scales": {},
+        "metric_scale_sources": {},
+        "provenance": {},
+    }
+    pass3a_results = debug_capture.get("pass3a_results")
+    if not isinstance(pass3a_results, list):
+        return observations
+    for candidate in pass3a_results:
+        if not isinstance(candidate, dict) or candidate.get("_source") != "balance_sheet":
+            continue
+        value = candidate.get("total_debt")
+        row_refs = candidate.get("row_refs")
+        row_ref = row_refs.get("total_debt") if isinstance(row_refs, dict) else None
+        if not multipass_module._is_strong_total_debt_evidence(row_ref, value):
+            continue
+        observations["values"]["total_debt"] = value
+        scale = str(candidate.get("_scale") or "").strip()
+        if scale and scale != "unknown":
+            observations["metric_source_scales"]["total_debt"] = scale
+            observations["metric_scale_sources"]["total_debt"] = str(
+                candidate.get("_scale_source") or "unknown"
+            )
+        page = candidate.get("_page_number")
+        page_tag = f"page_{page}" if page is not None else "page_?"
+        observations["provenance"]["total_debt"] = (
+            f"balance_sheet:{page_tag}:{row_ref}"
+        )
+        break
+    return observations
+
+
+def _compact_payload(
+    result: Any,
+    *,
+    benchmark_internal_metrics: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     payload = result.payload or {}
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    internal = benchmark_internal_metrics or {}
     return {
         "status": result.status,
         "error": result.error,
@@ -1176,6 +1217,14 @@ def _compact_payload(result: Any) -> dict[str, Any]:
         "confidence_metrics": payload.get("confidence_metrics"),
         "non_null_metric_count": len([value for value in metrics.values() if value is not None]),
         "non_null_metrics": {key: value for key, value in metrics.items() if value is not None},
+        "benchmark_internal_metrics": internal.get("values", {}),
+        "benchmark_internal_metric_source_scales": internal.get(
+            "metric_source_scales", {}
+        ),
+        "benchmark_internal_metric_scale_sources": internal.get(
+            "metric_scale_sources", {}
+        ),
+        "benchmark_internal_provenance": internal.get("provenance", {}),
         "row_refs": payload.get("row_refs"),
         "metric_source_scales": payload.get("metric_source_scales"),
         "metric_scale_sources": payload.get("metric_scale_sources"),
@@ -1237,7 +1286,12 @@ def _run_cases(
                             openability_pages=case.get("openability_pages"),
                             openability_selected_tables=bool(case.get("openability_selected_tables", False)),
                         )
-                    payload = _compact_payload(result)
+                    payload = _compact_payload(
+                        result,
+                        benchmark_internal_metrics=_benchmark_internal_metrics(
+                            mp, debug_capture
+                        ),
+                    )
                     results.append(
                         {
                             "case_id": case_id,

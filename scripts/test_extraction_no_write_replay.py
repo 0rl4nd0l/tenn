@@ -140,6 +140,53 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             with RUNNER._case_timeout(1):
                 time.sleep(2)
 
+    def test_compact_payload_preserves_strong_total_debt_for_benchmark_only(self):
+        result = mock.Mock(
+            status="ok",
+            error=None,
+            payload={
+                "metrics": {"revenue": 10_000_000},
+                "period_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+            },
+        )
+        multipass = mock.Mock()
+        multipass._is_strong_total_debt_evidence.return_value = True
+        debug_capture = {
+            "pass3a_results": [
+                {
+                    "_source": "balance_sheet",
+                    "_page_number": 12,
+                    "_scale": "millions",
+                    "_scale_source": "table",
+                    "total_debt": 25_000_000,
+                    "row_refs": {"total_debt": "Borrowings"},
+                }
+            ]
+        }
+
+        payload = RUNNER._compact_payload(
+            result,
+            benchmark_internal_metrics=RUNNER._benchmark_internal_metrics(
+                multipass, debug_capture
+            ),
+        )
+
+        self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
+        self.assertNotIn("total_debt", payload["non_null_metrics"])
+        self.assertEqual(
+            {"total_debt": 25_000_000}, payload["benchmark_internal_metrics"]
+        )
+        self.assertEqual(
+            "millions",
+            payload["benchmark_internal_metric_source_scales"]["total_debt"],
+        )
+        self.assertEqual(
+            "balance_sheet:page_12:Borrowings",
+            payload["benchmark_internal_provenance"]["total_debt"],
+        )
+
     def test_case_timeout_is_infrastructure_failure(self):
         self.assertTrue(
             RUNNER._is_infrastructure_failure(

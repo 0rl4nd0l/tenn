@@ -127,8 +127,15 @@ hash-matching receipt, so calling the lower-level script cannot bypass the
 one-shot boundary.
 
 Replay writes only to a fresh hidden staging directory. Scoring requires one
-result for each of the 20 declared case/document pairs and a passing side-effect
-audit. Missing or duplicate results produce no score. Success and post-launch
-failure evidence are sealed with `OUTPUT_MANIFEST.json` and `SHA256SUMS`, then
-published with an atomic no-replace directory rename. An existing or racing
-output is never deleted, reset, or overwritten.
+result for each of the 20 declared case/document pairs, no infrastructure
+failure, and a passing side-effect audit. A complete replay is scored even when
+its extraction expectations fail; those misses are benchmark outcomes, not
+missing execution evidence. Missing or duplicate results produce no score.
+
+The replay payload keeps strong, direct `total_debt` capture in a separate
+benchmark-only internal namespace so the frozen metric can be observed without
+promoting that internal extractor field into canonical or persisted Financial
+Truth. Weak or missing debt evidence remains an abstention. Success and
+post-launch failure evidence are sealed with `OUTPUT_MANIFEST.json` and
+`SHA256SUMS`, then published with an atomic no-replace directory rename. An
+existing or racing output is never deleted, reset, or overwritten.
