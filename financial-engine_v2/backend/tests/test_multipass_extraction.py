@@ -7311,10 +7311,370 @@ def test_shares_source_overlay_handles_parser_shape_without_header_units():
             "period_end": "2025-06-30",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 1_510_000_000
     assert payload["shares_outstanding"] == 1_510_000_000
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
+
+
+def test_shares_source_overlay_default_keeps_v1_metadata_contract():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid at 30 June 2025", "1,510"]],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+    )
+
+    assert payload["shares_outstanding"] == 1_510_000_000
+    assert payload["field_provenance"]["shares_outstanding"]["scale"] == "units"
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
+    assert "metric_scale_sources" not in payload
+
+
+def test_shares_source_overlay_keeps_v1_explicit_unit_behavior_when_capture_enabled():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid at 30 June 2025", "500k"]],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 500_000_000_000
+    assert payload["row_refs"]["shares_outstanding"] == (
+        "Issued ordinary shares fully paid at 30 June 2025"
+    )
+    assert payload["field_provenance"]["shares_outstanding"]["scale"] == "units"
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+    assert "metric_source_scales" not in payload
+
+
+def test_shares_source_overlay_captures_absolute_count_in_scaled_table():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=30,
+        caption="Number of shares millions",
+        headers=["", "31 December 2025"],
+        raw_header_rows=[["", "31 December 2025"]],
+        rows=[
+            [
+                "Issued ordinary shares fully paid at 31 December 2025",
+                "3,078,964,918",
+            ]
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 3_078_964_918
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"][
+        "raw_value"
+    ] == "3,078,964,918"
+
+
+def test_shares_source_overlay_rejects_abbreviated_conflicting_headers():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    for conflicting_header in (
+        "Jun 2024",
+        "FY24",
+        "30/06/24",
+        "31 December 2025 / FY24",
+        "31 December 2025 / 30/06/24",
+    ):
+        table = DoclingTable(
+            page_number=30,
+            caption="Number of shares millions",
+            headers=["", conflicting_header],
+            raw_header_rows=[["", conflicting_header]],
+            rows=[
+                ["Issued ordinary shares fully paid at 31 December 2025", "1,510"]
+            ],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == 1_510_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_omits_duplicate_period_columns():
+    """Duplicate exact-date columns preserve the value but cannot prove its source."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025", "30 June 2025"]],
+        rows=[
+            [
+                "Issued ordinary shares fully paid at 30 June 2025",
+                "1,510",
+                "1,502",
+            ]
+        ],
+    )
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {"shares_outstanding": None},
+        "shares_outstanding": None,
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    _apply_preferred_shares_source_payload(
+        payload,
+        [table],
+        pass1_result={
+            "report_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+        },
+        capture_benchmark_source_cell=True,
+    )
+
+    assert payload["shares_outstanding"] == 1_510_000_000
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_omits_tied_preferred_rows():
+    """A period column cannot disambiguate equally ranked share-count rows."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    for first_value, second_value in (
+        ("1,510", "1,510"),
+        ("1,510", "1,511"),
+    ):
+        table = DoclingTable(
+            page_number=32,
+            caption="Number of shares millions",
+            headers=["", "30 June 2025"],
+            raw_header_rows=[["", "30 June 2025"]],
+            rows=[
+                [
+                    "Issued ordinary shares fully paid at 30 June 2025",
+                    first_value,
+                ],
+                [
+                    "Issued ordinary shares fully paid at 30 June 2025",
+                    second_value,
+                ],
+            ],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == float(second_value.replace(",", "")) * 1_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_shares_source_overlay_rejects_conflicting_row_dates():
+    """Row dates cannot conflict with each other or an exact current column."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _apply_preferred_shares_source_payload
+
+    cases = [
+        (
+            ["", "Current"],
+            "Issued ordinary shares fully paid at 30 June 2025 and 30 June 2024",
+        ),
+        (
+            ["", "30 June 2025"],
+            "Issued ordinary shares fully paid at 30 June 2024",
+        ),
+        (
+            ["", "Current"],
+            (
+                "Issued ordinary shares fully paid at 30 June 2025; "
+                "comparative Jun 2024"
+            ),
+        ),
+    ]
+    for headers, row_label in cases:
+        table = DoclingTable(
+            page_number=32,
+            caption="Number of shares millions",
+            headers=headers,
+            raw_header_rows=[headers],
+            rows=[[row_label, "1,510"]],
+        )
+        payload = {
+            "period_type": "H",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+            "scale": "millions",
+            "metrics": {"shares_outstanding": None},
+            "shares_outstanding": None,
+            "row_refs": {},
+            "provenance": {},
+        }
+
+        _apply_preferred_shares_source_payload(
+            payload,
+            [table],
+            pass1_result={
+                "report_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+            },
+            capture_benchmark_source_cell=True,
+        )
+
+        assert payload["shares_outstanding"] == 1_510_000_000
+        assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_share_source_cell_rejects_value_mismatch():
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _period_bound_share_source_cell,
+        _RecoveredShareObservation,
+    )
+
+    table = DoclingTable(
+        page_number=32,
+        caption="Number of shares millions",
+        headers=["", "30 June 2025"],
+        raw_header_rows=[["", "30 June 2025"]],
+        rows=[["Issued ordinary shares fully paid", "1,510"]],
+    )
+    observation = _RecoveredShareObservation(
+        value=1_511_000_000,
+        row_ref="Issued ordinary shares fully paid",
+        row_index=0,
+        column_index=1,
+        raw_value="1,510",
+        source_unit="millions",
+        unique_preferred_candidate=True,
+    )
+
+    assert (
+        _period_bound_share_source_cell(
+            table,
+            observation,
+            period_end="2025-06-30",
+        )
+        is None
+    )
 
 
 def test_shares_source_overlay_handles_fmg_split_share_count_header_table():
@@ -7444,11 +7804,23 @@ def test_shares_source_overlay_handles_fmg_split_share_count_header_table():
             "period_end": "2025-12-31",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 3_078_964_918
     assert payload["shares_outstanding"] == 3_078_964_918
     assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"] == {
+        "page_number": 30,
+        "row_index": 6,
+        "column_index": 1,
+        "column_role": "period_end_row",
+        "row_label": "At 31 December 2025",
+        "raw_value": "3,078,964,918",
+        "header_cell": "At 31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
 
 
 def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance():
@@ -7491,10 +7863,22 @@ def test_shares_source_overlay_prefers_number_of_shares_note_over_equity_balance
             "period_end": "2025-12-31",
             "currency": "AUD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["shares_outstanding"] == 1_924_937_480
     assert payload["row_refs"]["shares_outstanding"] == "At 31 December 2025"
+    assert payload["metric_source_scales"]["shares_outstanding"] == "units"
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"] == {
+        "page_number": 31,
+        "row_index": 2,
+        "column_index": 7,
+        "column_role": "period_end_row",
+        "row_label": "At 31 December 2025",
+        "raw_value": "1,924,937,480",
+        "header_cell": "At 31 December 2025",
+        "requested_period_end": "2025-12-31",
+    }
 
 
 def test_shares_source_overlay_ignores_at_date_without_share_count_evidence():
@@ -9998,6 +10382,61 @@ def test_pass3a_retries_full_table_when_filtered_output_misses_key_metric():
     assert results[0]["revenue"] == 1200
 
 
+def test_pass3a_captures_failed_full_table_retry():
+    from queue import SimpleQueue
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    class ReadError(Exception):
+        pass
+
+    rows = [["Item", "Current", "Prior"]]
+    rows.extend([[f"Noise row {i}", str(i), str(i - 1)] for i in range(1, 28)])
+    rows.append(["Revenue", "1200", "1100"])
+    table = DoclingTable(
+        page_number=4,
+        caption="Income Statement",
+        rows=rows,
+        headers=["Item", "Current", "Prior"],
+        raw_header_rows=[["Item", "31 Dec 2024", "31 Dec 2023"]],
+    )
+    filtered_result = {
+        "revenue": None,
+        "ebit": 500,
+        "np_attributable": 300,
+        "period_col": "Current",
+        "pass3_confidence": 0.7,
+        "row_refs": {"ebit": "EBIT", "np_attributable": "NPAT"},
+    }
+    failures = SimpleQueue()
+
+    with patch(
+        "app.services.multipass_extraction._filter_table_rows",
+        return_value=rows[:8],
+    ), patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=[filtered_result, ReadError("full retry secret")],
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {"period_end": "2024-12-31", "currency": "AUD"},
+            "units",
+            1,
+            llm_client=None,
+            failure_capture=failures,
+        )
+
+    assert result is not None
+    captured = failures.get_nowait()
+    assert captured["table_type"] == "income_statement"
+    assert captured["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert "secret" not in str(captured)
+
+
 # ---------------------------------------------------------------------------
 # Phase 02 Hardening — net debt explicit evidence filter
 # ---------------------------------------------------------------------------
@@ -11426,3 +11865,207 @@ def test_ticket16_duplicate_equal_rows_are_ambiguous_by_source_identity():
 
     assert "operating_cf" not in recovered
     assert ambiguous == {"operating_cf"}
+
+
+def test_pass3a_double_failure_capture_is_sanitized_and_sequential():
+    from queue import SimpleQueue
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    class ReadError(Exception):
+        pass
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Income statement",
+        headers=["Metric", "2025"],
+        rows=[["Revenue", "10"]],
+    )
+    failures = SimpleQueue()
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=[ReadError("primary secret"), ReadError("retry secret")],
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {"period_end": "2025-06-30", "currency": "AUD"},
+            "units",
+            1,
+            llm_client=None,
+            failure_capture=failures,
+        )
+
+    assert result is None
+    captured = failures.get_nowait()
+    assert captured["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert captured["retry_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None},
+        {"exception_type": "ReadError", "status_code": None},
+    ]
+    assert "secret" not in str(captured)
+
+
+def test_pass1_wrapped_5xx_capture_is_sanitized_and_opt_in():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class HTTPStatusError(Exception):
+        def __init__(self):
+            super().__init__("server secret")
+            self.response = SimpleNamespace(status_code=503)
+
+    try:
+        raise HTTPStatusError()
+    except HTTPStatusError as cause:
+        wrapped = RuntimeError("llama.cpp JSON generation failed")
+        wrapped.__cause__ = cause
+
+    class FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 1
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "page": 1,
+                "text": "Appendix 4D for the half year ended 30 June 2025",
+            }
+        ]
+
+    debug_capture = {}
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        side_effect=wrapped,
+    ):
+        result = run_multipass_extraction(
+            "/fake/report.pdf",
+            {
+                "document_id": "doc",
+                "ticker": "TST",
+                "title": "Appendix 4D Half Year Report",
+            },
+            llm_client=None,
+            debug_capture=debug_capture,
+            capture_pass1_failures=True,
+        )
+
+    assert result.status == "failed"
+    assert debug_capture["pass1_failure_chain"] == [
+        {"exception_type": "RuntimeError", "status_code": None},
+        {"exception_type": "HTTPStatusError", "status_code": 503},
+    ]
+    assert "secret" not in str(debug_capture)
+
+
+def test_pass3a_parallel_worker_failure_capture_is_thread_safe(monkeypatch):
+    from queue import SimpleQueue
+
+    from app.services.docling_extract import DoclingTable
+    from app.services import multipass_extraction as multipass
+
+    class ReadError(Exception):
+        pass
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Statement",
+        headers=["Metric", "2025"],
+        rows=[["Revenue", "10"]],
+    )
+    failures = SimpleQueue()
+
+    def fail_worker(*_args, **_kwargs):
+        raise ReadError("worker secret")
+
+    monkeypatch.setenv("EXTRACTION_PARALLEL", "1")
+    monkeypatch.setattr(multipass, "_extract_single_table", fail_worker)
+    results = multipass._run_pass3a_metric_extractor(
+        {"income_statement": table, "balance_sheet": table},
+        {"scale": "units"},
+        llm_client=None,
+        failure_capture=failures,
+    )
+
+    captured = [failures.get_nowait(), failures.get_nowait()]
+    assert results == []
+    assert {row["table_type"] for row in captured} == {
+        "income_statement",
+        "balance_sheet",
+    }
+    assert all(
+        row["initial_error_chain"]
+        == [{"exception_type": "ReadError", "status_code": None}]
+        for row in captured
+    )
+    assert "secret" not in str(captured)
+
+
+def test_run_multipass_publishes_capture_when_later_pass3a_work_raises():
+    from app.services import multipass_extraction as multipass
+
+    class ReadError(Exception):
+        pass
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [{"text": "Annual report 2025", "page": 1}]
+
+    debug_capture = {}
+
+    def fail_after_capture(*_args, failure_capture=None, **_kwargs):
+        multipass._capture_pass3a_failure(
+            failure_capture,
+            table_type="income_statement",
+            initial_error=ReadError("primary secret"),
+            retry_error=ReadError("retry secret"),
+        )
+        raise ValueError("later table quality failure")
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "units",
+            "classifier_confidence": 0.99,
+        },
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=fail_after_capture,
+    ), pytest.raises(ValueError, match="later table quality failure"):
+        multipass.run_multipass_extraction(
+            "/fake/report.pdf",
+            {"document_id": "doc", "ticker": "TST", "title": "Annual report"},
+            llm_client=None,
+            skip_narrative=True,
+            debug_capture=debug_capture,
+            capture_pass3a_failures=True,
+        )
+
+    captured = debug_capture["pass3a_failures"]
+    assert len(captured) == 1
+    assert captured[0]["table_type"] == "income_statement"
+    assert captured[0]["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert "secret" not in str(captured)

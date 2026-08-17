@@ -3,7 +3,7 @@
 - Status: evaluation contract only
 - Owner: Financial Truth
 - Source of truth: `financial-engine_v2/backend/app/services/broad_extraction_benchmark.py`
-- Last verified base: `7a28721deb93dfefa3859a2d79bfca81453b54c5`
+- Last verified base: `2bd1033e6e202998be6db82858c75a8119f7ac40`
 - Stale if: the issue #554 corpus size, metric profile, identity dimensions, or
   acceptance thresholds change
 
@@ -17,6 +17,8 @@ function validates those inputs and returns an immutable deterministic score.
 
 This module is not an extractor or benchmark runner. It does not open PDFs,
 call a model, access a database, mutate gold data, or promote an observation.
+The separate `scripts/run_broad_extraction_benchmark_v2.py` adapter binds and
+scores an authorized v2 replay; it does not change this pure scorer contract.
 
 ## Frozen input contract
 
@@ -91,10 +93,98 @@ Neither gate promotes data or closes issue #554 automatically.
 
 ## Current evidence boundary
 
-This contract is tested only with synthetic in-memory fixtures. Synthetic
-fixtures prove scorer behavior; they are not extraction-quality evidence.
-The frozen source-adjudicated 20-by-10 matrix, a no-write runner adapter, and a
-real before/after corpus result remain separate work. Running that corpus or
-changing extractor behavior requires its own exact task scope and Tier-2
-approval. Until then, no broad recovery, 95% coverage, or issue-completion claim
-is supported by this contract.
+The scorer and v2 execution adapter are tested with synthetic fixtures.
+Synthetic fixtures prove contract, receipt, completeness, and publication
+behavior; they are not extraction-quality evidence. The source-adjudicated v2
+20-by-10 matrix is frozen and hash-bound, but no v2 extraction or score exists.
+Running that corpus or changing extractor behavior requires its own exact
+Tier-2 authority. Until then, no broad recovery, 95% coverage, or
+issue-completion claim is supported by this contract.
+
+## V2 execution contract
+
+The v2 adapter accepts only the frozen input identities recorded in its source
+manifest: corpus, expectations, case manifest, semantic corpus digest, and
+semantic contract digest. All 20 cases must map one-to-one to admitted corpus
+documents. Repo-relative source paths are joined once to the declared source
+root and hashed; the replay does not search fallback roots or substitute a
+different matching file. The predecessor v1 runner and replay behavior remain
+unchanged.
+
+Validation requires an explicit absolute Python interpreter. The runner starts
+with an import-only preflight for the real replay modules, records the Python
+binary hash and installed dependency-version snapshot, and creates no receipt.
+It also requires an explicit exact Git HEAD, a clean tracked worktree, no
+untracked files in the executable code roots, and records the commit tree plus
+hashes of the runner, replay, scorer, extractor, and metric-contract modules.
+The outer runner imports no backend module at startup. After identity
+inspection it opens the recorded scorer source without following symlinks,
+verifies those exact bytes against the receipt binding, compiles one private
+module from those bytes, and uses that module's contracts, metric set, and
+scorer throughout validation and scoring.
+Use the documented `financial-engine_v2/.venv` environment or another explicit
+existing repo-supported interpreter; do not install or alter dependencies as
+part of a one-shot run.
+
+The child replay starts with explicit isolated/no-bytecode interpreter flags
+and a receipt-bound allowlisted environment; inherited `PYTHONPATH`, Python
+startup hooks, and other caller variables are not passed through. At child
+startup it rehashes the running interpreter and revalidates the exact dependency
+versions/snapshot against the receipt before extraction modules are imported.
+The receipt-bound Git/code identity is revalidated immediately around those
+imports, after case execution, and again before the outer runner publishes any
+scored artifact. Any observed drift is terminal `EVIDENCE_CONFLICT`.
+For v2 only, pass-3a terminal table failures are captured as sanitized exception
+types and integer HTTP status codes. Transport failures or HTTP 5xx responses
+are infrastructure `DATA_MISSING`; messages, 4xx responses, and quality errors
+do not broaden that classification. V1 replay behavior is unchanged.
+
+The already-executing outer runner remains a trusted local bootstrap boundary:
+these in-process checks do not claim protection from adversarial replacement of
+the runner itself before process startup. The launch procedure therefore still
+requires the verified clean exact-head worktree and trusted local operator.
+
+An authorized launch requires both the output root and its sibling
+`INVOCATION_RECEIPT.json` to be absent. After every input, source, output, and
+interpreter check passes, the runner creates the receipt using
+`O_CREAT|O_EXCL` and immediately launches replay. The receipt is never removed
+or replaced. Direct non-preflight v2 replay also requires that exact
+hash-matching receipt, so calling the lower-level script cannot bypass the
+one-shot boundary. The lower-level replay also binds its actual execution
+profile and current clean Git/code identity to the receipt and rejects
+non-baseline or code-drifted v2 launches.
+
+Replay writes only to a fresh hidden staging directory. Scoring requires one
+result for each of the 20 declared case/document pairs, no infrastructure
+failure, and a passing side-effect audit. A complete replay is scored even when
+its extraction expectations fail; those misses are benchmark outcomes, not
+missing execution evidence. Raw per-case connection, protocol, read/write, and
+timeout transport exceptions are infrastructure failures even when they do not
+carry an extraction-pass prefix.
+Missing or duplicate results produce no score.
+
+The replay payload keeps strong, direct `total_debt` capture in a separate
+benchmark-only internal namespace so the frozen metric can be observed without
+promoting that internal extractor field into canonical or persisted Financial
+Truth. It admits that capture only when the debug candidate also carries an
+exact requested-period source cell; strong but period-unbound debt remains an
+abstention. The current production-shaped extractor does not emit such a bound
+debt source cell, so current debt observations truthfully abstain; changing
+extractor period binding is outside this execution-support contract. Accepted
+monetary observations preserve the bound source cell's
+raw value and explicit unit suffix instead of reconstructing them from the
+normalized value. Both `ok` and `ok_low_confidence` are scoreable successful
+observations. Shares outstanding likewise requires an exact requested-period
+source cell and preserves its scaled count identity; it does not require a
+currency. When a monetary source cell has an explicit currency prefix, that
+source currency is preserved instead of being replaced by the document-level
+currency.
+
+Immediately before extraction, every v2 source is copied through a held,
+non-symlink file descriptor into the isolated runtime root and the copy is
+re-hashed against the frozen source identity. Extraction reads that isolated
+copy, preventing a shared-root path replacement from being mislabeled with the
+frozen hash. Success and post-launch failure evidence are sealed with
+`OUTPUT_MANIFEST.json` and `SHA256SUMS`, then published with an atomic
+no-replace directory rename. An existing or racing output is never deleted,
+reset, or overwritten.
