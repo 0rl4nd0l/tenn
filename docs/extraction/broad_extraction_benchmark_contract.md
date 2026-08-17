@@ -136,8 +136,12 @@ missing execution evidence. Missing or duplicate results produce no score.
 The replay payload keeps strong, direct `total_debt` capture in a separate
 benchmark-only internal namespace so the frozen metric can be observed without
 promoting that internal extractor field into canonical or persisted Financial
-Truth. Weak or missing debt evidence remains an abstention. Both `ok` and
-`ok_low_confidence` are scoreable successful observations.
+Truth. It admits that capture only when the debug candidate also carries an
+exact requested-period source cell; strong but period-unbound debt remains an
+abstention. Accepted monetary observations preserve the bound source cell's
+raw value and explicit unit suffix instead of reconstructing them from the
+normalized value. Both `ok` and `ok_low_confidence` are scoreable successful
+observations.
 
 Immediately before extraction, every v2 source is copied through a held,
 non-symlink file descriptor into the isolated runtime root and the copy is

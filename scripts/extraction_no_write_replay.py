@@ -1218,6 +1218,7 @@ def _benchmark_internal_metrics(
         "metric_source_scales": {},
         "metric_scale_sources": {},
         "provenance": {},
+        "source_cells": {},
     }
     pass3a_results = debug_capture.get("pass3a_results")
     if not isinstance(pass3a_results, list):
@@ -1228,6 +1229,19 @@ def _benchmark_internal_metrics(
         value = candidate.get("total_debt")
         row_refs = candidate.get("row_refs")
         row_ref = row_refs.get("total_debt") if isinstance(row_refs, dict) else None
+        period_source_cells = candidate.get("_period_source_cells")
+        source_cell = (
+            period_source_cells.get("total_debt")
+            if isinstance(period_source_cells, dict)
+            else None
+        )
+        if (
+            not isinstance(source_cell, dict)
+            or not source_cell.get("raw_value")
+            or not source_cell.get("requested_period_end")
+            or source_cell.get("scaled_value") != value
+        ):
+            continue
         if not multipass_module._is_strong_total_debt_evidence(row_ref, value):
             continue
         observations["values"]["total_debt"] = value
@@ -1242,6 +1256,7 @@ def _benchmark_internal_metrics(
         observations["provenance"]["total_debt"] = (
             f"balance_sheet:{page_tag}:{row_ref}"
         )
+        observations["source_cells"]["total_debt"] = dict(source_cell)
         break
     return observations
 
@@ -1275,8 +1290,20 @@ def _compact_payload(
         "scale_validation": payload.get("scale_validation"),
     }
     if benchmark_internal_metrics is not None:
+        field_provenance = payload.get("field_provenance")
+        metric_source_cells = {
+            str(metric): dict(source_cell)
+            for metric, provenance in (
+                field_provenance.items()
+                if isinstance(field_provenance, dict)
+                else ()
+            )
+            if isinstance(provenance, dict)
+            and isinstance((source_cell := provenance.get("source_cell")), dict)
+        }
         compacted.update(
             {
+                "benchmark_metric_source_cells": metric_source_cells,
                 "benchmark_internal_metrics": benchmark_internal_metrics.get(
                     "values", {}
                 ),
@@ -1288,6 +1315,9 @@ def _compact_payload(
                 ),
                 "benchmark_internal_provenance": benchmark_internal_metrics.get(
                     "provenance", {}
+                ),
+                "benchmark_internal_source_cells": benchmark_internal_metrics.get(
+                    "source_cells", {}
                 ),
             }
         )

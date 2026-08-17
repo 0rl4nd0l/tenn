@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import sys
 import tempfile
@@ -76,7 +77,31 @@ SCALE_MULTIPLIERS = {
     "thousands": Decimal(1_000),
     "millions": Decimal(1_000_000),
     "billions": Decimal(1_000_000_000),
+    "trillions": Decimal(1_000_000_000_000),
 }
+RAW_UNIT_BY_SUFFIX = {
+    "k": "thousands",
+    "thousand": "thousands",
+    "thousands": "thousands",
+    "m": "millions",
+    "mn": "millions",
+    "million": "millions",
+    "millions": "millions",
+    "b": "billions",
+    "bn": "billions",
+    "billion": "billions",
+    "billions": "billions",
+    "t": "trillions",
+    "tn": "trillions",
+    "trillion": "trillions",
+    "trillions": "trillions",
+}
+RAW_SOURCE_VALUE_RE = re.compile(
+    r"^(?P<currency>(?:[A-Z]{1,3}\$|[A-Z]{3}|\$)\s*)?"
+    r"(?P<num>[+-]?(?:\d+(?:,\d{3})+|\d+)(?:\.\d+)?)"
+    r"\s*(?P<suffix>k|thousands?|mn|m|millions?|bn|b|billions?|tn|t|trillions?)?$",
+    re.IGNORECASE,
+)
 IMPORT_PREFLIGHT_MODULES = (
     "httpx",
     "app.services.llm",
@@ -663,6 +688,30 @@ def _decimal_text(value: Decimal) -> str:
     return "0" if text in {"", "-0"} else text
 
 
+def _raw_source_identity(
+    source_cell: dict[str, Any], fallback_unit: Any, normalized: Decimal
+) -> tuple[str, str] | None:
+    raw_text = " ".join(str(source_cell.get("raw_value") or "").split()).strip()
+    negative_parentheses = raw_text.startswith("(") and raw_text.endswith(")")
+    if negative_parentheses:
+        raw_text = raw_text[1:-1].strip()
+    match = RAW_SOURCE_VALUE_RE.fullmatch(raw_text)
+    if match is None:
+        return None
+    try:
+        raw_value = Decimal(match.group("num").replace(",", ""))
+    except InvalidOperation:
+        return None
+    if negative_parentheses:
+        raw_value = -abs(raw_value)
+    suffix = str(match.group("suffix") or "").lower()
+    raw_unit = RAW_UNIT_BY_SUFFIX.get(suffix) if suffix else str(fallback_unit or "")
+    multiplier = SCALE_MULTIPLIERS.get(raw_unit)
+    if multiplier is None or raw_value * multiplier != normalized:
+        return None
+    return _decimal_text(raw_value), raw_unit
+
+
 def _accepted_cell(
     document: CorpusDocument,
     metric: str,
@@ -685,19 +734,35 @@ def _accepted_cell(
     provenance_key = (
         "benchmark_internal_provenance" if internal_metric else "provenance"
     )
+    source_cells_key = (
+        "benchmark_internal_source_cells"
+        if internal_metric
+        else "benchmark_metric_source_cells"
+    )
     raw_unit = (payload.get(scale_key) or {}).get(source_metric) or payload.get("scale")
     if metric == "shares_outstanding":
         raw_unit = "units"
-    multiplier = SCALE_MULTIPLIERS.get(str(raw_unit))
     try:
         normalized = Decimal(str(values[source_metric]))
     except (InvalidOperation, TypeError, ValueError):
         return None
+    source_cell = (payload.get(source_cells_key) or {}).get(source_metric)
+    if metric == "shares_outstanding":
+        raw_value = _decimal_text(normalized)
+        raw_unit = "units"
+    else:
+        if not isinstance(source_cell, dict) or source_cell.get(
+            "requested_period_end"
+        ) != payload.get("period_end"):
+            return None
+        raw_identity = _raw_source_identity(source_cell, raw_unit, normalized)
+        if raw_identity is None:
+            return None
+        raw_value, raw_unit = raw_identity
     provenance = (payload.get(provenance_key) or {}).get(source_metric)
     currency = None if metric == "shares_outstanding" else payload.get("currency")
     if (
-        multiplier is None
-        or not payload.get("period_type")
+        not payload.get("period_type")
         or not payload.get("period_end")
         or not provenance
         or (metric != "shares_outstanding" and not currency)
@@ -707,7 +772,7 @@ def _accepted_cell(
         document_id=document.document_id,
         metric=metric,
         status="accepted",
-        raw_value=_decimal_text(normalized / multiplier),
+        raw_value=raw_value,
         raw_unit=str(raw_unit),
         normalized_value=_decimal_text(normalized),
         period_type=str(payload["period_type"]),

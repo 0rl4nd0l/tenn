@@ -149,6 +149,15 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 "period_type": "A",
                 "period_end": "2025-06-30",
                 "currency": "AUD",
+                "field_provenance": {
+                    "revenue": {
+                        "source_cell": {
+                            "raw_value": "10",
+                            "scaled_value": 10_000_000,
+                            "requested_period_end": "2025-06-30",
+                        }
+                    }
+                },
             },
         )
         multipass = mock.Mock()
@@ -162,6 +171,14 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                     "_scale_source": "table",
                     "total_debt": 25_000_000,
                     "row_refs": {"total_debt": "Borrowings"},
+                    "_period_source_cells": {
+                        "total_debt": {
+                            "raw_value": "25",
+                            "scaled_value": 25_000_000,
+                            "requested_period_end": "2025-06-30",
+                            "header_cell": "30 June 2025",
+                        }
+                    },
                 }
             ]
         }
@@ -176,6 +193,10 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
         self.assertNotIn("total_debt", payload["non_null_metrics"])
         self.assertEqual(
+            "10",
+            payload["benchmark_metric_source_cells"]["revenue"]["raw_value"],
+        )
+        self.assertEqual(
             {"total_debt": 25_000_000}, payload["benchmark_internal_metrics"]
         )
         self.assertEqual(
@@ -186,6 +207,29 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             "balance_sheet:page_12:Borrowings",
             payload["benchmark_internal_provenance"]["total_debt"],
         )
+        self.assertEqual(
+            "25",
+            payload["benchmark_internal_source_cells"]["total_debt"]["raw_value"],
+        )
+
+    def test_unbound_total_debt_is_not_a_benchmark_observation(self):
+        multipass = mock.Mock()
+        multipass._is_strong_total_debt_evidence.return_value = True
+        debug_capture = {
+            "pass3a_results": [
+                {
+                    "_source": "balance_sheet",
+                    "total_debt": 25_000_000,
+                    "row_refs": {"total_debt": "Borrowings"},
+                }
+            ]
+        }
+
+        observations = RUNNER._benchmark_internal_metrics(
+            multipass, debug_capture
+        )
+
+        self.assertEqual({}, observations["values"])
 
     def test_compact_payload_keeps_v1_shape_without_benchmark_internal_fields(self):
         result = mock.Mock(

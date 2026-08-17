@@ -326,6 +326,13 @@ class OneShotSafetyTests(unittest.TestCase):
                         "benchmark_internal_provenance": {
                             "total_debt": "balance_sheet:page_12:Borrowings"
                         },
+                        "benchmark_internal_source_cells": {
+                            "total_debt": {
+                                "raw_value": "25",
+                                "scaled_value": 25_000_000,
+                                "requested_period_end": "2025-06-30",
+                            }
+                        },
                     },
                 }
             ]
@@ -340,6 +347,13 @@ class OneShotSafetyTests(unittest.TestCase):
         self.assertEqual(
             "balance_sheet:page_12:Borrowings", total_debt.evidence_location
         )
+
+        replay["results"][0]["result"]["benchmark_internal_source_cells"]["total_debt"][
+            "requested_period_end"
+        ] = "2024-06-30"
+        mismatched = RUNNER.actuals_from_replay((document,), replay)
+        total_debt = next(row for row in mismatched if row.metric == "total_debt")
+        self.assertEqual("abstained", total_debt.status)
 
     def test_low_confidence_success_is_scoreable(self) -> None:
         document = RUNNER.CorpusDocument(
@@ -364,6 +378,13 @@ class OneShotSafetyTests(unittest.TestCase):
                         "non_null_metrics": {"revenue": 25_000_000},
                         "metric_source_scales": {"revenue": "millions"},
                         "provenance": {"revenue": "income:page_8:Revenue"},
+                        "benchmark_metric_source_cells": {
+                            "revenue": {
+                                "raw_value": "0.025bn",
+                                "scaled_value": 25_000_000,
+                                "requested_period_end": "2025-06-30",
+                            }
+                        },
                     },
                 }
             ]
@@ -374,6 +395,8 @@ class OneShotSafetyTests(unittest.TestCase):
 
         self.assertEqual("accepted", revenue.status)
         self.assertEqual("USD", revenue.currency)
+        self.assertEqual("0.025", revenue.raw_value)
+        self.assertEqual("billions", revenue.raw_unit)
 
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
