@@ -95,6 +95,7 @@ TRANSPORT_EXCEPTION_TYPES = frozenset(
         "readtimeout",
         "remoteprotocolerror",
         "timeoutexception",
+        "timeouterror",
         "transporterror",
         "unsupportedprotocol",
         "writeerror",
@@ -1879,33 +1880,59 @@ def _has_captured_infrastructure_failure(chain: Any) -> bool:
     return False
 
 
-def _is_runner_infrastructure_exception(exc: Exception) -> bool:
-    if isinstance(exc, ModuleNotFoundError):
-        return True
-    exception_type = type(exc).__name__.lower()
-    if any(
-        marker in exception_type
-        for marker in ("connect", "connection", "timeout", "http")
-    ):
-        return True
-    error = f"{type(exc).__name__}: {exc}".lower()
-    markers = (
-        "no module named",
-        "server_unavailable",
-        "http_",
-        "llamacpp",
-        "ollama_url",
-        "llamacpp_url",
-    )
-    return any(marker in error for marker in markers)
+def _is_runner_infrastructure_exception(
+    exc: Exception, *, exact_transport: bool = False
+) -> bool:
+    if not exact_transport:
+        if isinstance(exc, ModuleNotFoundError):
+            return True
+        exception_type = type(exc).__name__.lower()
+        if any(
+            marker in exception_type
+            for marker in ("connect", "connection", "timeout", "http")
+        ):
+            return True
+        error = f"{type(exc).__name__}: {exc}".lower()
+        markers = (
+            "no module named",
+            "server_unavailable",
+            "http_",
+            "llamacpp",
+            "ollama_url",
+            "llamacpp_url",
+        )
+        return any(marker in error for marker in markers)
+
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        exception_type = type(current).__name__.lower()
+        response = getattr(current, "response", None)
+        status_code = getattr(response, "status_code", None)
+        if exception_type == "modulenotfounderror":
+            return True
+        if exception_type in CAPTURED_TRANSPORT_EXCEPTION_TYPES:
+            return True
+        if isinstance(status_code, int) and status_code >= 500:
+            return True
+        if current.__cause__ is not None:
+            current = current.__cause__
+        elif not current.__suppress_context__:
+            current = current.__context__
+        else:
+            current = None
+    return False
 
 
 def _runner_exception_payload(
     exc: Exception,
+    *,
+    exact_transport: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     error = f"{type(exc).__name__}: {exc}"
     traceback_text = traceback.format_exc(limit=20)
-    if _is_runner_infrastructure_exception(exc):
+    if _is_runner_infrastructure_exception(exc, exact_transport=exact_transport):
         return [], {
             "status": "DATA_MISSING",
             "classification": "infrastructure",
@@ -2470,11 +2497,15 @@ def run_replay(args: argparse.Namespace) -> int:
                 )
             except CodeIdentityConflict as exc:
                 code_identity_conflict = str(exc)
-                results, llm_info = _runner_exception_payload(exc)
+                results, llm_info = _runner_exception_payload(
+                    exc, exact_transport=is_v2
+                )
                 with log_path.open("a", encoding="utf-8") as log:
                     log.write(f"code_identity_conflict {exc}\n")
             except Exception as exc:
-                results, llm_info = _runner_exception_payload(exc)
+                results, llm_info = _runner_exception_payload(
+                    exc, exact_transport=is_v2
+                )
                 with log_path.open("a", encoding="utf-8") as log:
                     log.write(
                         f"runner_exception status={llm_info.get('status')} "

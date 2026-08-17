@@ -895,6 +895,115 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual("DATA_MISSING", llm_info["status"])
         self.assertEqual("infrastructure", llm_info["classification"])
 
+    def test_runner_http_5xx_payload_stays_data_missing(self):
+        class HTTPStatusError(Exception):
+            def __init__(self, status_code):
+                super().__init__(f"HTTP {status_code}")
+                self.response = mock.Mock(status_code=status_code)
+
+        try:
+            raise HTTPStatusError(503)
+        except HTTPStatusError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(
+                exc, exact_transport=True
+            )
+
+        self.assertEqual([], results)
+        self.assertEqual("DATA_MISSING", llm_info["status"])
+        self.assertEqual("infrastructure", llm_info["classification"])
+
+    def test_runner_http_4xx_payload_is_not_infrastructure(self):
+        class HTTPStatusError(Exception):
+            def __init__(self, status_code):
+                super().__init__(f"HTTP {status_code}")
+                self.response = mock.Mock(status_code=status_code)
+
+        for status_code in (400, 401, 404, 429):
+            with self.subTest(status_code=status_code):
+                try:
+                    raise HTTPStatusError(status_code)
+                except HTTPStatusError as exc:
+                    results, llm_info = RUNNER._runner_exception_payload(
+                        exc, exact_transport=True
+                    )
+
+                self.assertEqual("exception", llm_info["status"])
+                self.assertEqual(
+                    "unexpected_runner_exception", llm_info["classification"]
+                )
+                self.assertEqual("__runner__", results[0]["case_id"])
+
+    def test_runner_http_status_uses_explicit_cause_chain(self):
+        class HTTPStatusError(Exception):
+            def __init__(self, status_code):
+                super().__init__(f"HTTP {status_code}")
+                self.response = mock.Mock(status_code=status_code)
+
+        for status_code, expected_status in ((503, "DATA_MISSING"), (404, "exception")):
+            with self.subTest(status_code=status_code):
+                try:
+                    try:
+                        raise HTTPStatusError(status_code)
+                    except HTTPStatusError as cause:
+                        raise RuntimeError("wrapped loopback probe failure") from cause
+                except RuntimeError as exc:
+                    results, llm_info = RUNNER._runner_exception_payload(
+                        exc, exact_transport=True
+                    )
+
+                self.assertEqual(expected_status, llm_info["status"])
+                if expected_status == "DATA_MISSING":
+                    self.assertEqual([], results)
+                else:
+                    self.assertEqual("__runner__", results[0]["case_id"])
+
+    def test_runner_exact_classifier_respects_suppressed_context(self):
+        ConnectError = type("ConnectError", (Exception,), {})
+        try:
+            try:
+                raise ConnectError("hidden transport context")
+            except ConnectError:
+                raise ValueError("quality failure") from None
+        except ValueError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(
+                exc, exact_transport=True
+            )
+
+        self.assertEqual("exception", llm_info["status"])
+        self.assertEqual("__runner__", results[0]["case_id"])
+
+    def test_runner_transport_type_is_infrastructure_without_message_matching(self):
+        ConnectError = type("ConnectError", (Exception,), {})
+        try:
+            raise ConnectError("configuration words must not control classification")
+        except ConnectError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(
+                exc, exact_transport=True
+            )
+
+        self.assertEqual([], results)
+        self.assertEqual("DATA_MISSING", llm_info["status"])
+
+        try:
+            raise ValueError("llamacpp_url connection timeout")
+        except ValueError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(
+                exc, exact_transport=True
+            )
+
+        self.assertEqual("exception", llm_info["status"])
+        self.assertEqual("__runner__", results[0]["case_id"])
+
+    def test_v1_runner_keeps_legacy_message_classification(self):
+        try:
+            raise ValueError("llamacpp_url connection timeout")
+        except ValueError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(exc)
+
+        self.assertEqual([], results)
+        self.assertEqual("DATA_MISSING", llm_info["status"])
+        self.assertEqual("infrastructure", llm_info["classification"])
+
     def test_surface_audit_fails_on_new_non_report_git_status_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
