@@ -52,6 +52,7 @@ V2_CORPUS_REPO_PATH = PurePosixPath(
 )
 V2_CORPUS_SHA256 = "815649beffc63946eeeb77771deb961e1f36f06ee5ec49c9cd6ac068a49323dd"
 V2_CASE_COUNT = 20
+CODE_IDENTITY_CONFLICT_EXIT_CODE = 3
 V2_EXPECTED_DEPENDENCY_VERSIONS = {
     "httpx": "0.27.2",
     "fastapi": "0.115.6",
@@ -151,6 +152,10 @@ METRIC_FIELDS = (
 
 class ReplayConfigError(RuntimeError):
     """Raised when the no-write contract cannot be proven before replay."""
+
+
+class CodeIdentityConflict(ReplayConfigError):
+    """Raised when v2 execution code no longer matches its invocation receipt."""
 
 
 class CaseTimeoutError(TimeoutError):
@@ -682,8 +687,7 @@ def validate_v2_invocation_receipt(
         and str(requested_git_head).strip() != expected_git_head
     ):
         raise ReplayConfigError("v2 invocation receipt Git HEAD argument mismatch")
-    if inspect_code_identity(expected_git_head) != code_identity:
-        raise ReplayConfigError("v2 invocation receipt code identity mismatch")
+    require_v2_code_identity(code_identity)
     command = receipt.get("command")
     if not isinstance(command, list) or not all(
         isinstance(item, str) for item in command
@@ -1174,6 +1178,20 @@ def inspect_code_identity(expected_head: str) -> dict[str, Any]:
     }
 
 
+def require_v2_code_identity(binding: Any) -> None:
+    if not isinstance(binding, dict):
+        raise CodeIdentityConflict("v2 invocation receipt code identity is invalid")
+    expected_head = str(binding.get("head_sha") or "")
+    try:
+        observed = inspect_code_identity(expected_head)
+    except (OSError, ReplayConfigError) as exc:
+        raise CodeIdentityConflict(
+            f"v2 invocation receipt code identity conflict: {exc}"
+        ) from exc
+    if observed != binding:
+        raise CodeIdentityConflict("v2 invocation receipt code identity mismatch")
+
+
 def _file_snapshot(path: Path, *, hash_file: bool = False) -> dict[str, Any]:
     if not path.exists():
         return {"path": str(path), "exists": False}
@@ -1637,11 +1655,16 @@ def _run_cases(
     *,
     case_timeout_seconds: int,
     include_benchmark_internal_metrics: bool = False,
+    expected_code_identity: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if expected_code_identity is not None:
+        require_v2_code_identity(expected_code_identity)
     sys.path.insert(0, str(BACKEND_ROOT))
     from app.services import llm as llm_module
     from app.services import multipass_extraction as mp
 
+    if expected_code_identity is not None:
+        require_v2_code_identity(expected_code_identity)
     _patch_runtime_side_effects(llm_module)
     sentinels = _install_write_sentinels()
     client = None
@@ -1729,6 +1752,8 @@ def _run_cases(
         finally:
             if client is not None:
                 client.close()
+    if expected_code_identity is not None:
+        require_v2_code_identity(expected_code_identity)
     return results, llm_info
 
 
@@ -1906,6 +1931,7 @@ def _surface_audit(
     isolated_runtime_files: list[dict[str, Any]],
     dirty_repo_before: dict[str, Any] | None = None,
     dirty_repo_after: dict[str, Any] | None = None,
+    code_identity_conflict: str | None = None,
 ) -> dict[str, Any]:
     source_tree_write = source_before != source_after
     normal_parser_cache_write = normal_cache_before != normal_cache_after
@@ -1915,7 +1941,11 @@ def _surface_audit(
     dirty_repo_file_mutations = (
         dirty_repo_before if dirty_repo_before is not None else {}
     ) != (dirty_repo_after if dirty_repo_after is not None else {})
-    repo_worktree_write = bool(unexpected_git_changes) or dirty_repo_file_mutations
+    repo_worktree_write = (
+        bool(unexpected_git_changes)
+        or dirty_repo_file_mutations
+        or code_identity_conflict is not None
+    )
     allowed_report_prefix = str(report_dir) + os.sep
     report_only_durable_writes = all(
         str(row.get("path", "")).startswith(allowed_report_prefix)
@@ -1958,6 +1988,7 @@ def _surface_audit(
         "dirty_repo_file_before": dirty_repo_before or {},
         "dirty_repo_file_after": dirty_repo_after or {},
         "dirty_repo_file_mutations": dirty_repo_file_mutations,
+        "code_identity_conflict": code_identity_conflict,
         "source_pdf_before": source_before,
         "source_pdf_after": source_after,
         "normal_cache_before": normal_cache_before,
@@ -2126,6 +2157,7 @@ def run_replay(args: argparse.Namespace) -> int:
     )
     report_dir = resolve_report_dir(args.report_dir)
     receipt: dict[str, Any] | None = None
+    code_identity_conflict: str | None = None
     if is_v2:
         cases = resolve_v2_case_source_paths(
             manifest_path,
@@ -2360,7 +2392,17 @@ def run_replay(args: argparse.Namespace) -> int:
                     log_path,
                     case_timeout_seconds=int(args.case_timeout_seconds),
                     include_benchmark_internal_metrics=is_v2,
+                    expected_code_identity=(
+                        receipt.get("code_identity")
+                        if is_v2 and receipt is not None
+                        else None
+                    ),
                 )
+            except CodeIdentityConflict as exc:
+                code_identity_conflict = str(exc)
+                results, llm_info = _runner_exception_payload(exc)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"code_identity_conflict {exc}\n")
             except Exception as exc:
                 results, llm_info = _runner_exception_payload(exc)
                 with log_path.open("a", encoding="utf-8") as log:
@@ -2372,6 +2414,14 @@ def run_replay(args: argparse.Namespace) -> int:
 
         isolated_cache_files = _list_files(Path(cache_root_text))
         isolated_runtime_files = _list_files(data_root)
+
+        if is_v2 and receipt is not None and not args.preflight_only:
+            try:
+                require_v2_code_identity(receipt.get("code_identity"))
+            except CodeIdentityConflict as exc:
+                code_identity_conflict = str(exc)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"code_identity_conflict_before_publication {exc}\n")
 
     source_after = _source_snapshot(cases)
     normal_cache_after = _normal_cache_snapshot(cases, cache_roots)
@@ -2393,6 +2443,7 @@ def run_replay(args: argparse.Namespace) -> int:
         isolated_cache_files=isolated_cache_files,
         isolated_runtime_root=data_root,
         isolated_runtime_files=isolated_runtime_files,
+        code_identity_conflict=code_identity_conflict,
     )
     extraction_exceptions = [
         row for row in results if (row.get("result") or {}).get("status") == "exception"
@@ -2549,6 +2600,16 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     try:
         return run_replay(parse_args())
+    except CodeIdentityConflict as exc:
+        print(
+            json.dumps(
+                {"status": "EVIDENCE_CONFLICT", "error": str(exc)},
+                indent=2,
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+        )
+        return CODE_IDENTITY_CONFLICT_EXIT_CODE
     except ReplayConfigError as exc:
         print(
             json.dumps({"status": "FAIL", "error": str(exc)}, indent=2, sort_keys=True),

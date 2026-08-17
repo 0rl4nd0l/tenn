@@ -53,6 +53,7 @@ DEFAULT_OUTPUT_ROOT = (
 DEFAULT_SHARED_DATA_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/data")
 RECEIPT_NAME = "INVOCATION_RECEIPT.json"
 EXPECTED_CASE_COUNT = 20
+CODE_IDENTITY_CONFLICT_EXIT_CODE = 3
 EXPECTED_INPUT_SHA256 = {
     "corpus": "815649beffc63946eeeb77771deb961e1f36f06ee5ec49c9cd6ac068a49323dd",
     "expectations": "5e8536d976255c33495a9945c7ecae448fd2f3e5ba5c4b35849457bb6425d2d9",
@@ -141,6 +142,10 @@ CODE_IDENTITY_PATHS = (
 
 class RunnerError(RuntimeError):
     """Raised when v2 execution cannot proceed without weakening the contract."""
+
+
+class CodeIdentityConflict(RunnerError):
+    """Raised after receipt creation when execution code identity changes."""
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -603,6 +608,20 @@ def inspect_code_identity(expected_head: str) -> dict[str, Any]:
         "tree_sha": tree_sha,
         "tracked_files_sha256": file_hashes,
     }
+
+
+def require_unchanged_code_identity(binding: dict[str, Any]) -> None:
+    expected_head = str(binding.get("head_sha") or "")
+    try:
+        observed = inspect_code_identity(expected_head)
+    except (OSError, RunnerError) as exc:
+        raise CodeIdentityConflict(
+            f"execution code identity changed after receipt creation: {exc}"
+        ) from exc
+    if observed != binding:
+        raise CodeIdentityConflict(
+            "execution code identity changed after receipt creation"
+        )
 
 
 def require_fresh_authority(output_root: Path, receipt_path: Path) -> None:
@@ -1152,6 +1171,11 @@ def _run(args: argparse.Namespace) -> int:
     try:
         if launch_error:
             raise RunnerError(launch_error)
+        if completed.returncode == CODE_IDENTITY_CONFLICT_EXIT_CODE:
+            raise CodeIdentityConflict(
+                "child rejected execution code identity before report creation"
+            )
+        require_unchanged_code_identity(code_identity)
         validation = _read_json(stage_root / "replay/validation.json")
         side_effect_pass = validation.get("side_effect_pass")
         if side_effect_pass is False:
@@ -1169,12 +1193,11 @@ def _run(args: argparse.Namespace) -> int:
             score = _jsonable_score(
                 score_benchmark(bundle["documents"], bundle["expectations"], actuals)
             )
-            _write_json(stage_root / "baseline_score.json", score)
-            _write_json(
-                stage_root / "failure_attribution.json",
-                _failure_attribution(score),
-            )
             terminal = "BASELINE_FROZEN_SCORED"
+    except CodeIdentityConflict as exc:
+        terminal = "EVIDENCE_CONFLICT"
+        score = None
+        error = str(exc)
     except (
         BenchmarkContractError,
         KeyError,
@@ -1184,6 +1207,18 @@ def _run(args: argparse.Namespace) -> int:
         ValueError,
     ) as exc:
         error = str(exc)
+    try:
+        require_unchanged_code_identity(code_identity)
+    except CodeIdentityConflict as exc:
+        terminal = "EVIDENCE_CONFLICT"
+        score = None
+        error = str(exc)
+    if terminal == "BASELINE_FROZEN_SCORED" and score is not None:
+        _write_json(stage_root / "baseline_score.json", score)
+        _write_json(
+            stage_root / "failure_attribution.json",
+            _failure_attribution(score),
+        )
     _write_json(
         stage_root / "RUN_OUTCOME.json",
         {

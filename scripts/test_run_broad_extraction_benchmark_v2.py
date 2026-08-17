@@ -753,6 +753,8 @@ class OneShotSafetyTests(unittest.TestCase):
         replay_status: str = "PASS",
         replay_returncode: int = 0,
         infrastructure_failure_count: int = 0,
+        code_identity_drift_after_launch: bool = False,
+        child_code_identity_conflict: bool = False,
     ) -> tuple[int, Path, Path, int]:
         report_parent = RUNNER.REPO_ROOT / "reports/agent_jobs"
         report_parent.mkdir(parents=True, exist_ok=True)
@@ -815,6 +817,10 @@ class OneShotSafetyTests(unittest.TestCase):
         def replay(command: list[str], **_kwargs: object) -> object:
             self.assertEqual(["-I", "-B", "-S"], command[1:4])
             self.assertEqual(RUNNER.replay_launch_environment(), _kwargs.get("env"))
+            if child_code_identity_conflict:
+                return subprocess.CompletedProcess(
+                    command, RUNNER.CODE_IDENTITY_CONFLICT_EXIT_CODE
+                )
             report_arg = command[command.index("--report-dir") + 1]
             replay_root = RUNNER.REPO_ROOT / report_arg
             results = [
@@ -850,18 +856,24 @@ class OneShotSafetyTests(unittest.TestCase):
             )
             return subprocess.CompletedProcess(command, replay_returncode)
 
+        code_identity = {
+            "head_sha": "a" * 40,
+            "tree_sha": "b" * 40,
+            "tracked_files_sha256": {},
+        }
+        identity_probe = mock.Mock(return_value=code_identity)
+        if code_identity_drift_after_launch:
+            changed_identity = code_identity | {"tree_sha": "c" * 40}
+            identity_probe.side_effect = [
+                code_identity,
+                changed_identity,
+                code_identity,
+            ]
+
         with (
             mock.patch.object(RUNNER, "validate_bundle", return_value=bundle),
             mock.patch.object(RUNNER, "inspect_interpreter", return_value={"ok": True}),
-            mock.patch.object(
-                RUNNER,
-                "inspect_code_identity",
-                return_value={
-                    "head_sha": "a" * 40,
-                    "tree_sha": "b" * 40,
-                    "tracked_files_sha256": {},
-                },
-            ),
+            mock.patch.object(RUNNER, "inspect_code_identity", identity_probe),
             mock.patch.object(RUNNER.subprocess, "run", side_effect=replay),
             mock.patch.object(
                 RUNNER, "score_benchmark", wraps=RUNNER.score_benchmark
@@ -883,6 +895,38 @@ class OneShotSafetyTests(unittest.TestCase):
             "BASELINE_FROZEN_SCORED",
             json.loads((output / "RUN_OUTCOME.json").read_text())["terminal_state"],
         )
+
+    def test_clean_code_identity_switch_is_evidence_conflict_before_scoring(
+        self,
+    ) -> None:
+        returncode, output, receipt, scorer_calls = self._mock_run(
+            result_count=20,
+            code_identity_drift_after_launch=True,
+        )
+
+        self.assertEqual(2, returncode)
+        self.assertTrue(receipt.is_file())
+        self.assertFalse((output / "baseline_score.json").exists())
+        self.assertEqual(0, scorer_calls)
+        outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
+        self.assertEqual("EVIDENCE_CONFLICT", outcome["terminal_state"])
+        self.assertIn("code identity changed", outcome["error"])
+
+    def test_initial_child_code_identity_conflict_survives_clean_restore(
+        self,
+    ) -> None:
+        returncode, output, receipt, scorer_calls = self._mock_run(
+            result_count=20,
+            child_code_identity_conflict=True,
+        )
+
+        self.assertEqual(2, returncode)
+        self.assertTrue(receipt.is_file())
+        self.assertFalse((output / "baseline_score.json").exists())
+        self.assertEqual(0, scorer_calls)
+        outcome = json.loads((output / "RUN_OUTCOME.json").read_text())
+        self.assertEqual("EVIDENCE_CONFLICT", outcome["terminal_state"])
+        self.assertIn("before report creation", outcome["error"])
 
     def test_complete_quality_failure_is_scored(self) -> None:
         returncode, output, receipt, scorer_calls = self._mock_run(

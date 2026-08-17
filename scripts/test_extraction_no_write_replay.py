@@ -695,6 +695,33 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         )
         self.assertFalse(RUNNER._side_effect_pass(audit))
 
+    def test_surface_audit_fails_on_transient_code_identity_conflict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            audit = RUNNER._surface_audit(
+                git_before=[],
+                git_after=[],
+                source_before={},
+                source_after={},
+                normal_cache_before={},
+                normal_cache_after={},
+                report_dir=root / "reports" / "agent_jobs" / "job" / "run",
+                report_files=[],
+                isolated_cache_root=root / "cache",
+                isolated_cache_files=[],
+                isolated_runtime_root=root / "runtime",
+                isolated_runtime_files=[],
+                code_identity_conflict="Git HEAD changed during extractor import",
+            )
+
+        self.assertFalse(audit["forbidden_surface_clean"])
+        self.assertTrue(audit["forbidden_surface_mutation"]["repo_worktree_write"])
+        self.assertEqual(
+            "Git HEAD changed during extractor import",
+            audit["code_identity_conflict"],
+        )
+        self.assertFalse(RUNNER._side_effect_pass(audit))
+
     def test_surface_audit_allows_new_report_local_git_status_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1050,6 +1077,33 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 RUNNER.ReplayConfigError, "running interpreter SHA-256 mismatch"
             ):
                 RUNNER.validate_v2_running_interpreter(binding)
+
+    def test_v2_code_identity_revalidation_rejects_clean_head_switch(self):
+        binding = {
+            "head_sha": "a" * 40,
+            "tree_sha": "b" * 40,
+            "tracked_files_sha256": {"file.py": "c" * 64},
+        }
+        with mock.patch.object(
+            RUNNER,
+            "inspect_code_identity",
+            return_value=binding | {"head_sha": "d" * 40},
+        ):
+            with self.assertRaisesRegex(
+                RUNNER.CodeIdentityConflict, "code identity mismatch"
+            ):
+                RUNNER.require_v2_code_identity(binding)
+
+    def test_initial_code_identity_conflict_has_distinct_exit_code(self):
+        with (
+            mock.patch.object(RUNNER, "parse_args", return_value=mock.Mock()),
+            mock.patch.object(
+                RUNNER,
+                "run_replay",
+                side_effect=RUNNER.CodeIdentityConflict("changed before child"),
+            ),
+        ):
+            self.assertEqual(RUNNER.CODE_IDENTITY_CONFLICT_EXIT_CODE, RUNNER.main())
 
     def test_v2_manifest_accepts_only_exact_complete_direct_sources(self):
         with tempfile.TemporaryDirectory() as directory:

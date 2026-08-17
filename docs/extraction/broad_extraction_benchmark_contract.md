@@ -126,6 +126,9 @@ and a receipt-bound allowlisted environment; inherited `PYTHONPATH`, Python
 startup hooks, and other caller variables are not passed through. At child
 startup it rehashes the running interpreter and revalidates the exact dependency
 versions/snapshot against the receipt before extraction modules are imported.
+The receipt-bound Git/code identity is revalidated immediately around those
+imports, after case execution, and again before the outer runner publishes any
+scored artifact. Any observed drift is terminal `EVIDENCE_CONFLICT`.
 
 An authorized launch requires both the output root and its sibling
 `INVOCATION_RECEIPT.json` to be absent. After every input, source, output, and
