@@ -1205,8 +1205,7 @@ def _compact_payload(
 ) -> dict[str, Any]:
     payload = result.payload or {}
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
-    internal = benchmark_internal_metrics or {}
-    return {
+    compacted = {
         "status": result.status,
         "error": result.error,
         "period_type": payload.get("period_type"),
@@ -1217,14 +1216,6 @@ def _compact_payload(
         "confidence_metrics": payload.get("confidence_metrics"),
         "non_null_metric_count": len([value for value in metrics.values() if value is not None]),
         "non_null_metrics": {key: value for key, value in metrics.items() if value is not None},
-        "benchmark_internal_metrics": internal.get("values", {}),
-        "benchmark_internal_metric_source_scales": internal.get(
-            "metric_source_scales", {}
-        ),
-        "benchmark_internal_metric_scale_sources": internal.get(
-            "metric_scale_sources", {}
-        ),
-        "benchmark_internal_provenance": internal.get("provenance", {}),
         "row_refs": payload.get("row_refs"),
         "metric_source_scales": payload.get("metric_source_scales"),
         "metric_scale_sources": payload.get("metric_scale_sources"),
@@ -1235,6 +1226,24 @@ def _compact_payload(
         "structured_extraction": payload.get("_structured_extraction"),
         "scale_validation": payload.get("scale_validation"),
     }
+    if benchmark_internal_metrics is not None:
+        compacted.update(
+            {
+                "benchmark_internal_metrics": benchmark_internal_metrics.get(
+                    "values", {}
+                ),
+                "benchmark_internal_metric_source_scales": benchmark_internal_metrics.get(
+                    "metric_source_scales", {}
+                ),
+                "benchmark_internal_metric_scale_sources": benchmark_internal_metrics.get(
+                    "metric_scale_sources", {}
+                ),
+                "benchmark_internal_provenance": benchmark_internal_metrics.get(
+                    "provenance", {}
+                ),
+            }
+        )
+    return compacted
 
 
 def _case_metadata(case: dict[str, Any]) -> dict[str, str]:
@@ -1251,6 +1260,7 @@ def _run_cases(
     log_path: Path,
     *,
     case_timeout_seconds: int,
+    include_benchmark_internal_metrics: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     sys.path.insert(0, str(BACKEND_ROOT))
     from app.services import llm as llm_module
@@ -1288,8 +1298,10 @@ def _run_cases(
                         )
                     payload = _compact_payload(
                         result,
-                        benchmark_internal_metrics=_benchmark_internal_metrics(
-                            mp, debug_capture
+                        benchmark_internal_metrics=(
+                            _benchmark_internal_metrics(mp, debug_capture)
+                            if include_benchmark_internal_metrics
+                            else None
                         ),
                     )
                     results.append(
@@ -1903,6 +1915,7 @@ def run_replay(args: argparse.Namespace) -> int:
                     llm_url,
                     log_path,
                     case_timeout_seconds=int(args.case_timeout_seconds),
+                    include_benchmark_internal_metrics=is_v2,
                 )
             except Exception as exc:
                 results, llm_info = _runner_exception_payload(exc)

@@ -187,6 +187,20 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             payload["benchmark_internal_provenance"]["total_debt"],
         )
 
+    def test_compact_payload_keeps_v1_shape_without_benchmark_internal_fields(self):
+        result = mock.Mock(
+            status="ok",
+            error=None,
+            payload={"metrics": {"revenue": 10_000_000}},
+        )
+
+        payload = RUNNER._compact_payload(result)
+
+        self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
+        self.assertFalse(
+            any(key.startswith("benchmark_internal_") for key in payload)
+        )
+
     def test_case_timeout_is_infrastructure_failure(self):
         self.assertTrue(
             RUNNER._is_infrastructure_failure(
