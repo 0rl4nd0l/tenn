@@ -1500,7 +1500,9 @@ def _run_cases(
     return results, llm_info
 
 
-def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
+def _is_infrastructure_failure(
+    row: dict[str, Any], *, include_raw_transport: bool = False
+) -> bool:
     result = row.get("result") if isinstance(row.get("result"), dict) else {}
     error = str(result.get("error") or "").lower()
     if not error:
@@ -1519,12 +1521,28 @@ def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
         "ollama_url",
         "llamacpp_url",
     )
-    if result.get("status") == "exception":
+    if include_raw_transport and result.get("status") == "exception":
         exception_type = error.partition(":")[0].strip()
-        if any(
-            marker in exception_type
-            for marker in ("connect", "connection", "timeout", "http")
-        ) or exception_type == "modulenotfounderror":
+        transport_exception_types = {
+            "closeerror",
+            "connecterror",
+            "connecttimeout",
+            "httperror",
+            "localprotocolerror",
+            "networkerror",
+            "pooltimeout",
+            "protocolerror",
+            "proxyerror",
+            "readerror",
+            "readtimeout",
+            "remoteprotocolerror",
+            "timeoutexception",
+            "transporterror",
+            "unsupportedprotocol",
+            "writeerror",
+            "writetimeout",
+        }
+        if exception_type in transport_exception_types or exception_type == "modulenotfounderror":
             return True
     return error.startswith(("pass1:", "pass3a:", "pass3b:")) and any(
         marker in error for marker in markers
@@ -2123,7 +2141,11 @@ def run_replay(args: argparse.Namespace) -> int:
     extraction_exceptions = [
         row for row in results if (row.get("result") or {}).get("status") == "exception"
     ]
-    infrastructure_failures = [row for row in results if _is_infrastructure_failure(row)]
+    infrastructure_failures = [
+        row
+        for row in results
+        if _is_infrastructure_failure(row, include_raw_transport=is_v2)
+    ]
     expectation_failures = _expectation_failures(results)
     llm_missing = llm_info.get("status") == "DATA_MISSING"
     side_effect_pass = _side_effect_pass(side_effect_audit)

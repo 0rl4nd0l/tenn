@@ -261,13 +261,25 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         for error in (
             "ConnectError: All connection attempts failed",
             "TimeoutException: timed out",
+            "ReadError: [Errno 104] Connection reset by peer",
+            "RemoteProtocolError: Server disconnected without sending a response",
         ):
             with self.subTest(error=error):
                 self.assertTrue(
                     RUNNER._is_infrastructure_failure(
-                        {"result": {"status": "exception", "error": error}}
+                        {"result": {"status": "exception", "error": error}},
+                        include_raw_transport=True,
                     )
                 )
+
+    def test_v1_raw_transport_exception_classification_remains_unchanged(self):
+        row = {
+            "result": {
+                "status": "exception",
+                "error": "ReadError: [Errno 104] Connection reset by peer",
+            }
+        }
+        self.assertFalse(RUNNER._is_infrastructure_failure(row))
 
     def test_raw_non_transport_exception_is_not_infrastructure_failure(self):
         self.assertFalse(

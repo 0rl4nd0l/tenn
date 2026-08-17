@@ -799,25 +799,19 @@ def _accepted_cell(
         else "benchmark_metric_source_cells"
     )
     raw_unit = (payload.get(scale_key) or {}).get(source_metric) or payload.get("scale")
-    if metric == "shares_outstanding":
-        raw_unit = "units"
     try:
         normalized = Decimal(str(values[source_metric]))
     except (InvalidOperation, TypeError, ValueError):
         return None
     source_cell = (payload.get(source_cells_key) or {}).get(source_metric)
-    if metric == "shares_outstanding":
-        raw_value = _decimal_text(normalized)
-        raw_unit = "units"
-    else:
-        if not isinstance(source_cell, dict) or source_cell.get(
-            "requested_period_end"
-        ) != payload.get("period_end"):
-            return None
-        raw_identity = _raw_source_identity(source_cell, raw_unit, normalized)
-        if raw_identity is None:
-            return None
-        raw_value, raw_unit = raw_identity
+    if not isinstance(source_cell, dict) or source_cell.get(
+        "requested_period_end"
+    ) != payload.get("period_end"):
+        return None
+    raw_identity = _raw_source_identity(source_cell, raw_unit, normalized)
+    if raw_identity is None:
+        return None
+    raw_value, raw_unit = raw_identity
     provenance = (payload.get(provenance_key) or {}).get(source_metric)
     currency = None if metric == "shares_outstanding" else payload.get("currency")
     if (

@@ -398,6 +398,55 @@ class OneShotSafetyTests(unittest.TestCase):
         self.assertEqual("0.025", revenue.raw_value)
         self.assertEqual("billions", revenue.raw_unit)
 
+    def test_shares_preserve_period_bound_raw_source_identity(self) -> None:
+        document = RUNNER.CorpusDocument(
+            document_id="doc_0",
+            issuer_id="T00",
+            document_class="annual_report",
+            period_type="A",
+            period_end="2025-06-30",
+            admission_status="admitted",
+            source_path="source_0.pdf",
+            source_sha256="1" * 64,
+        )
+        payload = {
+            "status": "ok",
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "non_null_metrics": {"shares_outstanding": 2_945_000_000},
+            "metric_source_scales": {"shares_outstanding": "millions"},
+            "provenance": {
+                "shares_outstanding": "share_capital:page_22:Ordinary shares"
+            },
+            "benchmark_metric_source_cells": {
+                "shares_outstanding": {
+                    "raw_value": "2,945 million",
+                    "scaled_value": 2_945_000_000,
+                    "requested_period_end": "2025-06-30",
+                }
+            },
+        }
+        replay = {"results": [{"document_id": "doc_0", "result": payload}]}
+
+        actuals = RUNNER.actuals_from_replay((document,), replay)
+        shares = next(row for row in actuals if row.metric == "shares_outstanding")
+        self.assertEqual("accepted", shares.status)
+        self.assertEqual("2945", shares.raw_value)
+        self.assertEqual("millions", shares.raw_unit)
+        self.assertEqual("2945000000", shares.normalized_value)
+
+        payload["benchmark_metric_source_cells"]["shares_outstanding"][
+            "requested_period_end"
+        ] = "2024-06-30"
+        mismatched = RUNNER.actuals_from_replay((document,), replay)
+        shares = next(row for row in mismatched if row.metric == "shares_outstanding")
+        self.assertEqual("abstained", shares.status)
+
+        payload["benchmark_metric_source_cells"] = {}
+        missing = RUNNER.actuals_from_replay((document,), replay)
+        shares = next(row for row in missing if row.metric == "shares_outstanding")
+        self.assertEqual("abstained", shares.status)
+
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = build_bundle(Path(directory))

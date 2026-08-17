@@ -135,8 +135,9 @@ Replay writes only to a fresh hidden staging directory. Scoring requires one
 result for each of the 20 declared case/document pairs, no infrastructure
 failure, and a passing side-effect audit. A complete replay is scored even when
 its extraction expectations fail; those misses are benchmark outcomes, not
-missing execution evidence. Raw per-case connection and timeout exceptions are
-infrastructure failures even when they do not carry an extraction-pass prefix.
+missing execution evidence. Raw per-case connection, protocol, read/write, and
+timeout transport exceptions are infrastructure failures even when they do not
+carry an extraction-pass prefix.
 Missing or duplicate results produce no score.
 
 The replay payload keeps strong, direct `total_debt` capture in a separate
@@ -150,7 +151,9 @@ extractor period binding is outside this execution-support contract. Accepted
 monetary observations preserve the bound source cell's
 raw value and explicit unit suffix instead of reconstructing them from the
 normalized value. Both `ok` and `ok_low_confidence` are scoreable successful
-observations.
+observations. Shares outstanding likewise requires an exact requested-period
+source cell and preserves its scaled count identity; it does not require a
+currency.
 
 Immediately before extraction, every v2 source is copied through a held,
 non-symlink file descriptor into the isolated runtime root and the copy is
