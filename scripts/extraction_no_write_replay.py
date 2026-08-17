@@ -12,6 +12,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -495,6 +496,51 @@ def resolve_v2_case_source_paths(
     return resolved_cases
 
 
+def _materialize_v2_execution_sources(
+    cases: list[dict[str, Any]], isolated_root: Path
+) -> list[dict[str, Any]]:
+    isolated_root.mkdir(parents=True, exist_ok=False)
+    materialized: list[dict[str, Any]] = []
+    for index, case in enumerate(cases):
+        source = Path(str(case["source_path"]))
+        suffix = source.suffix.lower() or ".bin"
+        target = isolated_root / f"{index:02d}-{case['case_id']}{suffix}"
+        digest = hashlib.sha256()
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            source_fd = os.open(source, flags)
+        except OSError as exc:
+            raise ReplayConfigError(
+                f"unable to open v2 source for isolated binding: {case['case_id']}:{source}"
+            ) from exc
+        try:
+            if not stat.S_ISREG(os.fstat(source_fd).st_mode):
+                raise ReplayConfigError(
+                    f"v2 source is not a regular file: {case['case_id']}:{source}"
+                )
+            with os.fdopen(source_fd, "rb", closefd=False) as source_handle:
+                with target.open("xb") as target_handle:
+                    for chunk in iter(lambda: source_handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                        target_handle.write(chunk)
+        finally:
+            os.close(source_fd)
+        observed = digest.hexdigest()
+        expected = str(case.get("source_sha256") or "")
+        if observed != expected:
+            raise ReplayConfigError(
+                f"v2 isolated source SHA-256 mismatch for {case['case_id']}: "
+                f"expected {expected}, observed {observed}"
+            )
+        target.chmod(0o400)
+        resolved = dict(case)
+        resolved["source_path_original"] = str(source)
+        resolved["source_path"] = str(target)
+        resolved["source_sha256"] = observed
+        materialized.append(resolved)
+    return materialized
+
+
 def validate_v2_invocation_receipt(
     receipt_path: Path,
     *,
@@ -504,6 +550,7 @@ def validate_v2_invocation_receipt(
     source_root: Path,
     llm_url: str,
     case_timeout_seconds: int,
+    profile: str,
 ) -> dict[str, Any]:
     if receipt_path.is_symlink() or not receipt_path.is_file():
         raise ReplayConfigError("v2 launch requires an existing non-symlink invocation receipt")
@@ -576,7 +623,8 @@ def validate_v2_invocation_receipt(
         or Path(command_option("--source-root")).resolve() != source_root.resolve()
         or assert_loopback_url(command_option("--llm-base-url")) != llm_url
         or command_option("--case-timeout-seconds") != str(case_timeout_seconds)
-        or command_option("--profile") != BASELINE_PROFILE
+        or profile != BASELINE_PROFILE
+        or command_option("--profile") != profile
         or command_option("--case") != "all"
     ):
         raise ReplayConfigError("v2 invocation receipt command binding mismatch")
@@ -1720,6 +1768,7 @@ def run_replay(args: argparse.Namespace) -> int:
                 ).expanduser(),
                 llm_url=llm_url,
                 case_timeout_seconds=int(args.case_timeout_seconds),
+                profile=profile,
             )
     else:
         cases = resolve_case_source_paths(selected_cases)
@@ -1910,8 +1959,15 @@ def run_replay(args: argparse.Namespace) -> int:
                 log.write(f"preflight_only profile={profile} case_count={len(cases)}\n")
         else:
             try:
+                execution_cases = (
+                    _materialize_v2_execution_sources(
+                        cases, data_root / "v2_bound_sources"
+                    )
+                    if is_v2
+                    else cases
+                )
                 results, llm_info = _run_cases(
-                    cases,
+                    execution_cases,
                     llm_url,
                     log_path,
                     case_timeout_seconds=int(args.case_timeout_seconds),

@@ -341,6 +341,40 @@ class OneShotSafetyTests(unittest.TestCase):
             "balance_sheet:page_12:Borrowings", total_debt.evidence_location
         )
 
+    def test_low_confidence_success_is_scoreable(self) -> None:
+        document = RUNNER.CorpusDocument(
+            document_id="doc_0",
+            issuer_id="T00",
+            document_class="annual_report",
+            period_type="A",
+            period_end="2025-06-30",
+            admission_status="admitted",
+            source_path="source_0.pdf",
+            source_sha256="1" * 64,
+        )
+        replay = {
+            "results": [
+                {
+                    "document_id": "doc_0",
+                    "result": {
+                        "status": "ok_low_confidence",
+                        "period_type": "A",
+                        "period_end": "2025-06-30",
+                        "currency": "USD",
+                        "non_null_metrics": {"revenue": 25_000_000},
+                        "metric_source_scales": {"revenue": "millions"},
+                        "provenance": {"revenue": "income:page_8:Revenue"},
+                    },
+                }
+            ]
+        }
+
+        actuals = RUNNER.actuals_from_replay((document,), replay)
+        revenue = next(row for row in actuals if row.metric == "revenue")
+
+        self.assertEqual("accepted", revenue.status)
+        self.assertEqual("USD", revenue.currency)
+
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = build_bundle(Path(directory))

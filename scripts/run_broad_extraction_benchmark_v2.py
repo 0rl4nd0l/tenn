@@ -768,7 +768,7 @@ def actuals_from_replay(
                 )
                 continue
             accepted = None
-            if payload.get("status") == "ok":
+            if payload.get("status") in {"ok", "ok_low_confidence"}:
                 accepted = _accepted_cell(document, metric, source_metric, payload)
             actuals.append(
                 accepted

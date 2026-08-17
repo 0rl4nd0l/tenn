@@ -759,7 +759,21 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                     source_root=source_root,
                     llm_url="http://127.0.0.1:8001",
                     case_timeout_seconds=900,
+                    profile=RUNNER.BASELINE_PROFILE,
                 )
+                with self.assertRaisesRegex(
+                    RUNNER.ReplayConfigError, "command binding mismatch"
+                ):
+                    RUNNER.validate_v2_invocation_receipt(
+                        receipt_path,
+                        manifest_path=manifest_path,
+                        corpus_path=corpus_path,
+                        report_dir=report_dir,
+                        source_root=source_root,
+                        llm_url="http://127.0.0.1:8001",
+                        case_timeout_seconds=900,
+                        profile=RUNNER.DOCLING_PROFILE,
+                    )
                 receipt["command"][0] = "/usr/bin/not-the-current-python"
                 receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
                 with self.assertRaisesRegex(
@@ -773,6 +787,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                         source_root=source_root,
                         llm_url="http://127.0.0.1:8001",
                         case_timeout_seconds=900,
+                        profile=RUNNER.BASELINE_PROFILE,
                     )
                 receipt["command"][0] = sys.executable
                 receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
@@ -787,6 +802,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                         source_root=source_root,
                         llm_url="http://127.0.0.1:8001",
                         case_timeout_seconds=900,
+                        profile=RUNNER.BASELINE_PROFILE,
                     )
 
                 report_dir.mkdir(parents=True)
@@ -801,6 +817,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                         source_root=source_root,
                         llm_url="http://127.0.0.1:8001",
                         case_timeout_seconds=900,
+                        profile=RUNNER.BASELINE_PROFILE,
                     )
 
                 output.mkdir()
@@ -815,6 +832,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                         source_root=source_root,
                         llm_url="http://127.0.0.1:8001",
                         case_timeout_seconds=900,
+                        profile=RUNNER.BASELINE_PROFILE,
                     )
 
             self.assertEqual(invocation_id, validated["invocation_id"])
@@ -901,6 +919,41 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             self.assertEqual(20, len(contract["document_by_id"]))
             self.assertEqual(20, len(resolved))
             self.assertNotIn("source_path_candidates", resolved[0])
+
+    def test_v2_execution_uses_hash_verified_isolated_source_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "shared" / "report.pdf"
+            source.parent.mkdir()
+            source.write_bytes(b"frozen-source-bytes")
+            cases = [
+                {
+                    "case_id": "CASE_00",
+                    "document_id": "doc_00",
+                    "source_path": str(source),
+                    "source_path_declared": "asx/docs/T00/report.pdf",
+                    "source_sha256": RUNNER._sha256(source),
+                }
+            ]
+
+            isolated = RUNNER._materialize_v2_execution_sources(
+                cases, root / "isolated"
+            )
+            isolated_source = Path(isolated[0]["source_path"])
+            source.write_bytes(b"replacement-bytes")
+
+            self.assertEqual(b"frozen-source-bytes", isolated_source.read_bytes())
+            self.assertEqual(cases[0]["source_sha256"], RUNNER._sha256(isolated_source))
+            self.assertEqual(str(source), isolated[0]["source_path_original"])
+            self.assertEqual("asx/docs/T00/report.pdf", isolated[0]["source_path_declared"])
+
+            bad_case = dict(cases[0], source_sha256="0" * 64)
+            with self.assertRaisesRegex(
+                RUNNER.ReplayConfigError, "isolated source SHA-256 mismatch"
+            ):
+                RUNNER._materialize_v2_execution_sources(
+                    [bad_case], root / "isolated-bad"
+                )
 
 
 if __name__ == "__main__":

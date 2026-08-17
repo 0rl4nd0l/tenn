@@ -124,7 +124,8 @@ interpreter check passes, the runner creates the receipt using
 `O_CREAT|O_EXCL` and immediately launches replay. The receipt is never removed
 or replaced. Direct non-preflight v2 replay also requires that exact
 hash-matching receipt, so calling the lower-level script cannot bypass the
-one-shot boundary.
+one-shot boundary. The lower-level replay also binds its actual execution
+profile to the receipt and rejects non-baseline v2 launches.
 
 Replay writes only to a fresh hidden staging directory. Scoring requires one
 result for each of the 20 declared case/document pairs, no infrastructure
@@ -135,7 +136,14 @@ missing execution evidence. Missing or duplicate results produce no score.
 The replay payload keeps strong, direct `total_debt` capture in a separate
 benchmark-only internal namespace so the frozen metric can be observed without
 promoting that internal extractor field into canonical or persisted Financial
-Truth. Weak or missing debt evidence remains an abstention. Success and
-post-launch failure evidence are sealed with `OUTPUT_MANIFEST.json` and
-`SHA256SUMS`, then published with an atomic no-replace directory rename. An
-existing or racing output is never deleted, reset, or overwritten.
+Truth. Weak or missing debt evidence remains an abstention. Both `ok` and
+`ok_low_confidence` are scoreable successful observations.
+
+Immediately before extraction, every v2 source is copied through a held,
+non-symlink file descriptor into the isolated runtime root and the copy is
+re-hashed against the frozen source identity. Extraction reads that isolated
+copy, preventing a shared-root path replacement from being mislabeled with the
+frozen hash. Success and post-launch failure evidence are sealed with
+`OUTPUT_MANIFEST.json` and `SHA256SUMS`, then published with an atomic
+no-replace directory rename. An existing or racing output is never deleted,
+reset, or overwritten.
