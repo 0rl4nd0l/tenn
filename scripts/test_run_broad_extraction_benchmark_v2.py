@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 import subprocess
@@ -162,6 +163,68 @@ class OneShotSafetyTests(unittest.TestCase):
 
             self.assertEqual("old", (output / "sentinel.json").read_text())
             self.assertTrue((stage / "new.json").is_file())
+
+    def test_atomic_publish_capability_probes_exact_output_filesystem(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_parent = Path(directory)
+            with mock.patch.object(
+                RUNNER.tempfile,
+                "TemporaryDirectory",
+                wraps=tempfile.TemporaryDirectory,
+            ) as temporary_directory:
+                RUNNER.require_atomic_publish_capability(output_parent)
+
+            self.assertEqual(output_parent, temporary_directory.call_args.kwargs["dir"])
+            self.assertEqual([], list(output_parent.iterdir()))
+
+    def test_atomic_publish_capability_creates_fresh_output_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_parent = Path(directory) / "new-job"
+
+            RUNNER.require_atomic_publish_capability(output_parent)
+
+            self.assertTrue(output_parent.is_dir())
+            self.assertEqual([], list(output_parent.iterdir()))
+
+    def test_atomic_publish_capability_rejects_symlink_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            output_parent = root / "job"
+            target.mkdir()
+            output_parent.symlink_to(target, target_is_directory=True)
+
+            with self.assertRaisesRegex(RUNNER.RunnerError, "must not be a symlink"):
+                RUNNER.require_atomic_publish_capability(output_parent)
+
+            self.assertEqual([], list(target.iterdir()))
+
+    def test_atomic_publish_capability_rejects_missing_no_replace_semantics(
+        self,
+    ) -> None:
+        def replacing_rename(
+            _old_dir_fd: int,
+            source: bytes,
+            _new_dir_fd: int,
+            destination: bytes,
+            _flags: int,
+        ) -> int:
+            os.replace(source, destination)
+            return 0
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_parent = Path(directory)
+            with (
+                mock.patch.object(
+                    RUNNER, "_renameat2_function", return_value=replacing_rename
+                ),
+                self.assertRaisesRegex(
+                    RUNNER.RunnerError, "existing directory was replaced"
+                ),
+            ):
+                RUNNER.require_atomic_publish_capability(output_parent)
+
+            self.assertEqual([], list(output_parent.iterdir()))
 
     def test_complete_results_require_all_twenty_declared_cases(self) -> None:
         cases = [
@@ -355,8 +418,32 @@ class OneShotSafetyTests(unittest.TestCase):
                     },
                 ),
                 mock.patch.object(RUNNER, "inspect_interpreter", return_value={}),
+                mock.patch.object(
+                    RUNNER, "require_atomic_publish_capability"
+                ) as atomic_capability,
             ):
                 self.assertEqual(0, RUNNER._validate_only(args))
+            atomic_capability.assert_called_once_with(job)
+            self.assertFalse(args.receipt_path.exists())
+
+    def test_validate_only_cannot_bypass_consumed_sibling_receipt(self) -> None:
+        report_parent = RUNNER.REPO_ROOT / "reports/agent_jobs"
+        report_parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=report_parent) as directory:
+            job = Path(directory)
+            required_receipt = job / RUNNER.RECEIPT_NAME
+            required_receipt.write_text("{}\n", encoding="utf-8")
+            args = mock.Mock(
+                output_root=job / "output",
+                receipt_path=job / "unbound-receipt.json",
+                llm_base_url="http://127.0.0.1:8001",
+                case_timeout_seconds=1,
+            )
+
+            with self.assertRaisesRegex(RUNNER.RunnerError, "must be exactly"):
+                RUNNER._validate_only(args)
+
+            self.assertEqual("{}\n", required_receipt.read_text(encoding="utf-8"))
             self.assertFalse(args.receipt_path.exists())
 
     def test_outer_preflight_rejects_url_and_timeout_before_receipt(self) -> None:
@@ -390,6 +477,39 @@ class OneShotSafetyTests(unittest.TestCase):
                 with self.assertRaisesRegex(RUNNER.RunnerError, message):
                     RUNNER._run(args)
                 self.assertFalse(args.receipt_path.exists())
+
+    def test_atomic_publish_capability_is_checked_before_receipt(self) -> None:
+        report_parent = RUNNER.REPO_ROOT / "reports/agent_jobs"
+        report_parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=report_parent) as directory:
+            job = Path(directory)
+            receipt = job / RUNNER.RECEIPT_NAME
+            args = argparse.Namespace(
+                output_root=job / "output",
+                receipt_path=receipt,
+                corpus=job / "corpus.json",
+                expectations=job / "expectations.json",
+                source_manifest=job / "source_manifest.json",
+                case_manifest=job / "cases.json",
+                source_root=job / "sources",
+                python_bin=Path(sys.executable),
+                llm_base_url="http://127.0.0.1:8001",
+                case_timeout_seconds=1,
+            )
+            with (
+                mock.patch.object(RUNNER, "validate_bundle", return_value={}),
+                mock.patch.object(RUNNER, "inspect_interpreter", return_value={}),
+                mock.patch.object(
+                    RUNNER,
+                    "require_atomic_publish_capability",
+                    side_effect=RUNNER.RunnerError("publication unavailable"),
+                ) as atomic_capability,
+                self.assertRaisesRegex(RUNNER.RunnerError, "publication unavailable"),
+            ):
+                RUNNER._run(args)
+
+            atomic_capability.assert_called_once_with(job)
+            self.assertFalse(receipt.exists())
 
     def test_interpreter_preflight_enforces_exact_pinned_versions(self) -> None:
         payload = {

@@ -15,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Any
 from urllib.parse import urlparse
@@ -498,6 +499,17 @@ def require_fresh_authority(output_root: Path, receipt_path: Path) -> None:
         )
 
 
+def resolve_authority_paths(
+    output_root_arg: Path, receipt_path_arg: Path
+) -> tuple[Path, Path]:
+    output_root = _normalize_report_path(output_root_arg)
+    receipt_path = Path(receipt_path_arg).resolve()
+    expected_receipt = output_root.parent / RECEIPT_NAME
+    if receipt_path != expected_receipt:
+        raise RunnerError(f"receipt path must be exactly {expected_receipt}")
+    return output_root, receipt_path
+
+
 def create_invocation_receipt(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -520,24 +532,97 @@ def create_invocation_receipt(path: Path, payload: dict[str, Any]) -> None:
         raise
 
 
-def atomic_publish(stage_root: Path, output_root: Path) -> None:
-    if not stage_root.is_dir():
-        raise RunnerError(f"staging root missing: {stage_root}")
-    libc = ctypes.CDLL(None, use_errno=True)
+def _renameat2_function() -> Any:
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+    except OSError as exc:
+        raise RunnerError(
+            "atomic no-replace directory publication is unavailable"
+        ) from exc
     renameat2 = getattr(libc, "renameat2", None)
     if renameat2 is None:
         raise RunnerError("atomic no-replace directory publication is unavailable")
-    at_fdcwd = -100
-    rename_noreplace = 1
+    return renameat2
+
+
+def _rename_noreplace(renameat2: Any, source: Path, destination: Path) -> int | None:
+    ctypes.set_errno(0)
     result = renameat2(
-        at_fdcwd,
-        os.fsencode(stage_root),
-        at_fdcwd,
-        os.fsencode(output_root),
-        rename_noreplace,
+        -100,
+        os.fsencode(source),
+        -100,
+        os.fsencode(destination),
+        1,
     )
-    if result != 0:
-        error = ctypes.get_errno()
+    return None if result == 0 else ctypes.get_errno()
+
+
+def require_atomic_publish_capability(output_parent: Path) -> None:
+    renameat2 = _renameat2_function()
+    try:
+        if output_parent.is_symlink():
+            raise RunnerError(
+                f"output path parent must not be a symlink: {output_parent}"
+            )
+        output_parent.mkdir(parents=True, exist_ok=True)
+        if output_parent.is_symlink() or not output_parent.is_dir():
+            raise RunnerError(
+                f"output path parent must be a non-symlink directory: {output_parent}"
+            )
+        with tempfile.TemporaryDirectory(
+            prefix=".atomic-publish-probe-", dir=output_parent
+        ) as directory:
+            probe_root = Path(directory)
+            source = probe_root / "source"
+            published = probe_root / "published"
+            source.mkdir()
+            error = _rename_noreplace(renameat2, source, published)
+            if error is not None or source.exists() or not published.is_dir():
+                detail = (
+                    os.strerror(error) if error is not None else "verification failed"
+                )
+                raise RunnerError(
+                    "atomic no-replace directory publication is unavailable on "
+                    f"output filesystem {output_parent}: {detail}"
+                )
+
+            collision_source = probe_root / "collision-source"
+            collision_destination = probe_root / "collision-destination"
+            collision_source.mkdir()
+            collision_destination.mkdir()
+            error = _rename_noreplace(
+                renameat2, collision_source, collision_destination
+            )
+            if error not in {errno.EEXIST, errno.ENOTEMPTY}:
+                detail = (
+                    "existing directory was replaced"
+                    if error is None
+                    else os.strerror(error)
+                )
+                raise RunnerError(
+                    "atomic no-replace directory publication is unavailable on "
+                    f"output filesystem {output_parent}: {detail}"
+                )
+            if not collision_source.is_dir() or not collision_destination.is_dir():
+                raise RunnerError(
+                    "atomic no-replace directory publication failed preservation "
+                    f"verification on output filesystem {output_parent}"
+                )
+    except RunnerError:
+        raise
+    except OSError as exc:
+        raise RunnerError(
+            "atomic no-replace directory publication probe failed on output "
+            f"filesystem {output_parent}: {exc}"
+        ) from exc
+
+
+def atomic_publish(stage_root: Path, output_root: Path) -> None:
+    if not stage_root.is_dir():
+        raise RunnerError(f"staging root missing: {stage_root}")
+    renameat2 = _renameat2_function()
+    error = _rename_noreplace(renameat2, stage_root, output_root)
+    if error is not None:
         if error in {errno.EEXIST, errno.ENOTEMPTY}:
             raise RunnerError(f"output root appeared before publication: {output_root}")
         raise RunnerError(f"atomic publication failed: {os.strerror(error)}")
@@ -757,11 +842,9 @@ def validate_launch_settings(
 
 
 def _run(args: argparse.Namespace) -> int:
-    output_root = _normalize_report_path(args.output_root)
-    receipt_path = Path(args.receipt_path).resolve()
-    expected_receipt = output_root.parent / RECEIPT_NAME
-    if receipt_path != expected_receipt:
-        raise RunnerError(f"receipt path must be exactly {expected_receipt}")
+    output_root, receipt_path = resolve_authority_paths(
+        args.output_root, args.receipt_path
+    )
     args.llm_base_url, args.case_timeout_seconds = validate_launch_settings(
         args.llm_base_url, args.case_timeout_seconds
     )
@@ -775,6 +858,7 @@ def _run(args: argparse.Namespace) -> int:
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
     require_fresh_authority(output_root, receipt_path)
+    require_atomic_publish_capability(output_root.parent)
     invocation_id = uuid.uuid4().hex
     stage_root = output_root.parent / f".{output_root.name}.staging-{invocation_id}"
     if stage_root.exists() or stage_root.is_symlink():
@@ -890,9 +974,10 @@ def _validate_only(args: argparse.Namespace) -> int:
     args.llm_base_url, args.case_timeout_seconds = validate_launch_settings(
         args.llm_base_url, args.case_timeout_seconds
     )
-    require_fresh_authority(
-        _normalize_report_path(args.output_root), Path(args.receipt_path).resolve()
+    output_root, receipt_path = resolve_authority_paths(
+        args.output_root, args.receipt_path
     )
+    require_fresh_authority(output_root, receipt_path)
     bundle = validate_bundle(
         corpus_path=Path(args.corpus).resolve(),
         expectations_path=Path(args.expectations).resolve(),
@@ -901,6 +986,7 @@ def _validate_only(args: argparse.Namespace) -> int:
         source_root=Path(args.source_root).resolve(),
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
+    require_atomic_publish_capability(output_root.parent)
     print(
         json.dumps(
             {
