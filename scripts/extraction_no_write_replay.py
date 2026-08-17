@@ -102,7 +102,7 @@ TRANSPORT_EXCEPTION_TYPES = frozenset(
     }
 )
 RAW_TRANSPORT_EXCEPTION_TYPES = TRANSPORT_EXCEPTION_TYPES | {"httperror"}
-PASS3A_TRANSPORT_EXCEPTION_TYPES = TRANSPORT_EXCEPTION_TYPES | {
+CAPTURED_TRANSPORT_EXCEPTION_TYPES = TRANSPORT_EXCEPTION_TYPES | {
     "llamacppserverunavailable"
 }
 APPROVED_VENV_RELATIVE_PYTHONS = (
@@ -1673,7 +1673,7 @@ def _case_metadata(case: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _attach_pass3a_failure_capture(
+def _attach_v2_failure_capture(
     row: dict[str, Any],
     debug_capture: dict[str, Any],
     *,
@@ -1681,6 +1681,9 @@ def _attach_pass3a_failure_capture(
 ) -> None:
     if enabled:
         row["pass3a_failures"] = debug_capture.get("pass3a_failures", [])
+        pass1_failure_chain = debug_capture.get("pass1_failure_chain")
+        if isinstance(pass1_failure_chain, list):
+            row["pass1_failure_chain"] = pass1_failure_chain
 
 
 def _run_cases(
@@ -1729,6 +1732,7 @@ def _run_cases(
                             strict_parser=bool(case.get("strict_parser", False)),
                             observer=observer,
                             debug_capture=debug_capture,
+                            capture_pass1_failures=include_benchmark_internal_metrics,
                             capture_pass3a_failures=include_benchmark_internal_metrics,
                             capture_benchmark_source_cells=(
                                 include_benchmark_internal_metrics
@@ -1764,7 +1768,7 @@ def _run_cases(
                         "case_timeout_seconds": case_timeout_seconds,
                         "result": payload,
                     }
-                    _attach_pass3a_failure_capture(
+                    _attach_v2_failure_capture(
                         case_result,
                         debug_capture,
                         enabled=include_benchmark_internal_metrics,
@@ -1789,7 +1793,7 @@ def _run_cases(
                             "traceback": traceback.format_exc(limit=20),
                         },
                     }
-                    _attach_pass3a_failure_capture(
+                    _attach_v2_failure_capture(
                         exception_result,
                         debug_capture,
                         enabled=include_benchmark_internal_metrics,
@@ -1807,7 +1811,10 @@ def _run_cases(
 def _is_infrastructure_failure(
     row: dict[str, Any], *, include_raw_transport: bool = False
 ) -> bool:
-    if include_raw_transport and _has_pass3a_infrastructure_failure(row):
+    if include_raw_transport and (
+        _has_captured_infrastructure_failure(row.get("pass1_failure_chain"))
+        or _has_pass3a_infrastructure_failure(row)
+    ):
         return True
     result = row.get("result") if isinstance(row.get("result"), dict) else {}
     error = str(result.get("error") or "").lower()
@@ -1848,17 +1855,23 @@ def _has_pass3a_infrastructure_failure(row: dict[str, Any]) -> bool:
             continue
         for key in ("initial_error_chain", "retry_error_chain"):
             chain = failure.get(key)
-            if not isinstance(chain, list):
-                continue
-            for cause in chain:
-                if not isinstance(cause, dict):
-                    continue
-                exception_type = str(cause.get("exception_type") or "").lower()
-                status_code = cause.get("status_code")
-                if exception_type in PASS3A_TRANSPORT_EXCEPTION_TYPES:
-                    return True
-                if isinstance(status_code, int) and status_code >= 500:
-                    return True
+            if _has_captured_infrastructure_failure(chain):
+                return True
+    return False
+
+
+def _has_captured_infrastructure_failure(chain: Any) -> bool:
+    if not isinstance(chain, list):
+        return False
+    for cause in chain:
+        if not isinstance(cause, dict):
+            continue
+        exception_type = str(cause.get("exception_type") or "").lower()
+        status_code = cause.get("status_code")
+        if exception_type in CAPTURED_TRANSPORT_EXCEPTION_TYPES:
+            return True
+        if isinstance(status_code, int) and status_code >= 500:
+            return True
     return False
 
 

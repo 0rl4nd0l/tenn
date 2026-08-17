@@ -261,19 +261,52 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
         self.assertFalse(any(key.startswith("benchmark_internal_") for key in payload))
 
-    def test_pass3a_failure_capture_keeps_v1_case_row_keys_unchanged(self):
+    def test_v2_failure_capture_keeps_v1_case_row_keys_unchanged(self):
         v1_row = {"case_id": "A", "result": {"status": "ok"}}
         expected_keys = set(v1_row)
-        debug_capture = {"pass3a_failures": [{"table_type": "income_statement"}]}
+        debug_capture = {
+            "pass1_failure_chain": [
+                {"exception_type": "HTTPStatusError", "status_code": 503}
+            ],
+            "pass3a_failures": [{"table_type": "income_statement"}],
+        }
 
-        RUNNER._attach_pass3a_failure_capture(v1_row, debug_capture, enabled=False)
+        RUNNER._attach_v2_failure_capture(v1_row, debug_capture, enabled=False)
 
         self.assertEqual(expected_keys, set(v1_row))
         self.assertNotIn("pass3a_failures", v1_row)
 
         v2_row = dict(v1_row)
-        RUNNER._attach_pass3a_failure_capture(v2_row, debug_capture, enabled=True)
+        RUNNER._attach_v2_failure_capture(v2_row, debug_capture, enabled=True)
         self.assertEqual(debug_capture["pass3a_failures"], v2_row["pass3a_failures"])
+        self.assertEqual(
+            debug_capture["pass1_failure_chain"], v2_row["pass1_failure_chain"]
+        )
+
+    def test_captured_wrapped_pass1_5xx_is_infrastructure_only_for_v2(self):
+        row = {
+            "result": {
+                "status": "failed",
+                "error": (
+                    "pass1:llama.cpp JSON generation failed at http://127.0.0.1:"
+                    " Server error '503 Service Unavailable'"
+                ),
+            },
+            "pass1_failure_chain": [
+                {"exception_type": "RuntimeError", "status_code": None},
+                {"exception_type": "HTTPStatusError", "status_code": 503},
+            ],
+        }
+
+        self.assertTrue(
+            RUNNER._is_infrastructure_failure(row, include_raw_transport=True)
+        )
+        self.assertFalse(RUNNER._is_infrastructure_failure(row))
+
+        row["pass1_failure_chain"][1]["status_code"] = 400
+        self.assertFalse(
+            RUNNER._is_infrastructure_failure(row, include_raw_transport=True)
+        )
 
     def test_case_timeout_is_infrastructure_failure(self):
         self.assertTrue(
@@ -382,7 +415,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 "error": "ValueError: post-processing failed",
             }
         }
-        RUNNER._attach_pass3a_failure_capture(
+        RUNNER._attach_v2_failure_capture(
             row,
             {
                 "pass3a_failures": [

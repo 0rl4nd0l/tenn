@@ -4568,6 +4568,11 @@ def _extract_single_table(
                     table_type,
                     retry_err,
                 )
+                _capture_pass3a_failure(
+                    failure_capture,
+                    table_type=table_type,
+                    initial_error=retry_err,
+                )
 
     # Compute confidence from observable results rather than relying on the
     # model's self-reported value (which is typically 0.0 regardless of quality).
@@ -9640,6 +9645,7 @@ def run_multipass_extraction(
     openability_diagnostics: bool = False,
     openability_pages: list[int] | None = None,
     openability_selected_tables: bool = False,
+    capture_pass1_failures: bool = False,
     capture_pass3a_failures: bool = False,
     capture_benchmark_source_cells: bool = False,
 ) -> MultipassResult:
@@ -9665,6 +9671,8 @@ def run_multipass_extraction(
 
     capture_benchmark_source_cells: opt-in v2 replay evidence. Defaults off so
     normal extraction and v1 replay metadata remain unchanged.
+
+    capture_pass1_failures: opt-in v2 replay transport evidence. Defaults off.
     """
     bundle = resolve(prompt_bundle_id)
 
@@ -9879,6 +9887,8 @@ def run_multipass_extraction(
         )
     except Exception as e:
         logger.error("Pass 1 failed: %s", e)
+        if capture_pass1_failures and debug_capture is not None:
+            debug_capture["pass1_failure_chain"] = _sanitized_exception_chain(e)
         if observer is not None:
             observer.emit(
                 "pass1_classifier",

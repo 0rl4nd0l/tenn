@@ -10340,6 +10340,61 @@ def test_pass3a_retries_full_table_when_filtered_output_misses_key_metric():
     assert results[0]["revenue"] == 1200
 
 
+def test_pass3a_captures_failed_full_table_retry():
+    from queue import SimpleQueue
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    class ReadError(Exception):
+        pass
+
+    rows = [["Item", "Current", "Prior"]]
+    rows.extend([[f"Noise row {i}", str(i), str(i - 1)] for i in range(1, 28)])
+    rows.append(["Revenue", "1200", "1100"])
+    table = DoclingTable(
+        page_number=4,
+        caption="Income Statement",
+        rows=rows,
+        headers=["Item", "Current", "Prior"],
+        raw_header_rows=[["Item", "31 Dec 2024", "31 Dec 2023"]],
+    )
+    filtered_result = {
+        "revenue": None,
+        "ebit": 500,
+        "np_attributable": 300,
+        "period_col": "Current",
+        "pass3_confidence": 0.7,
+        "row_refs": {"ebit": "EBIT", "np_attributable": "NPAT"},
+    }
+    failures = SimpleQueue()
+
+    with patch(
+        "app.services.multipass_extraction._filter_table_rows",
+        return_value=rows[:8],
+    ), patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=[filtered_result, ReadError("full retry secret")],
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {"period_end": "2024-12-31", "currency": "AUD"},
+            "units",
+            1,
+            llm_client=None,
+            failure_capture=failures,
+        )
+
+    assert result is not None
+    captured = failures.get_nowait()
+    assert captured["table_type"] == "income_statement"
+    assert captured["initial_error_chain"] == [
+        {"exception_type": "ReadError", "status_code": None}
+    ]
+    assert "secret" not in str(captured)
+
+
 # ---------------------------------------------------------------------------
 # Phase 02 Hardening — net debt explicit evidence filter
 # ---------------------------------------------------------------------------
@@ -11811,6 +11866,63 @@ def test_pass3a_double_failure_capture_is_sanitized_and_sequential():
         {"exception_type": "ReadError", "status_code": None},
     ]
     assert "secret" not in str(captured)
+
+
+def test_pass1_wrapped_5xx_capture_is_sanitized_and_opt_in():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class HTTPStatusError(Exception):
+        def __init__(self):
+            super().__init__("server secret")
+            self.response = SimpleNamespace(status_code=503)
+
+    try:
+        raise HTTPStatusError()
+    except HTTPStatusError as cause:
+        wrapped = RuntimeError("llama.cpp JSON generation failed")
+        wrapped.__cause__ = cause
+
+    class FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 1
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "page": 1,
+                "text": "Appendix 4D for the half year ended 30 June 2025",
+            }
+        ]
+
+    debug_capture = {}
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        side_effect=wrapped,
+    ):
+        result = run_multipass_extraction(
+            "/fake/report.pdf",
+            {
+                "document_id": "doc",
+                "ticker": "TST",
+                "title": "Appendix 4D Half Year Report",
+            },
+            llm_client=None,
+            debug_capture=debug_capture,
+            capture_pass1_failures=True,
+        )
+
+    assert result.status == "failed"
+    assert debug_capture["pass1_failure_chain"] == [
+        {"exception_type": "RuntimeError", "status_code": None},
+        {"exception_type": "HTTPStatusError", "status_code": 503},
+    ]
+    assert "secret" not in str(debug_capture)
 
 
 def test_pass3a_parallel_worker_failure_capture_is_thread_safe(monkeypatch):
