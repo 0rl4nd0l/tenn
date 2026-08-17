@@ -126,6 +126,10 @@ EXPECTED_DEPENDENCY_IMPORTS = {
     "PyMuPDF": "fitz",
 }
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+LAUNCH_ENV_PASSTHROUGH = (
+    "SSL_CERT_FILE",
+    "REQUESTS_CA_BUNDLE",
+)
 CODE_IDENTITY_PATHS = (
     "scripts/run_broad_extraction_benchmark_v2.py",
     "scripts/extraction_no_write_replay.py",
@@ -471,13 +475,15 @@ def inspect_interpreter(python_bin: Path) -> dict[str, Any]:
         str(python_bin),
         "-c",
         (
-            "import importlib, importlib.metadata, json, platform, sys; "
+            "import importlib, importlib.metadata, json, os, platform, site, sys; "
             f"mods={list(dict.fromkeys(IMPORT_PREFLIGHT_MODULES + tuple(EXPECTED_DEPENDENCY_IMPORTS.values())))!r}; "
             "[importlib.import_module(name) for name in mods]; "
             f"wanted={tuple(EXPECTED_DEPENDENCY_VERSIONS)!r}; "
             "versions={name: importlib.metadata.version(name) for name in wanted}; "
             "print(json.dumps({'executable':sys.executable,'python':platform.python_version(),"
-            "'modules':mods,'versions':versions},sort_keys=True))"
+            "'modules':mods,'versions':versions,'site_packages':[p for p in "
+            "site.getsitepackages() if os.path.isdir(p) and not os.path.islink(p)]},"
+            "sort_keys=True))"
         ),
     ]
     env = {
@@ -508,12 +514,43 @@ def inspect_interpreter(python_bin: Path) -> dict[str, Any]:
             "interpreter dependency versions mismatch: "
             f"expected {EXPECTED_DEPENDENCY_VERSIONS}, observed {versions}"
         )
+    site_packages = payload.get("site_packages")
+    if not isinstance(site_packages, list) or not site_packages:
+        raise RunnerError("interpreter site-package binding is missing")
+    for raw_path in site_packages:
+        site_path = Path(str(raw_path))
+        if (
+            not site_path.is_absolute()
+            or site_path.is_symlink()
+            or not site_path.is_dir()
+        ):
+            raise RunnerError(
+                f"interpreter site-package binding must be an absolute non-symlink directory: {site_path}"
+            )
     payload["requested_path"] = str(python_bin)
     payload["binary_sha256"] = _sha256(python_bin.resolve())
     payload["dependency_snapshot_sha256"] = hashlib.sha256(
         json.dumps(payload["versions"], sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     return payload
+
+
+def replay_launch_environment() -> dict[str, str]:
+    env = {
+        key: value for key in LAUNCH_ENV_PASSTHROUGH if (value := os.environ.get(key))
+    }
+    env.update(
+        {
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONSAFEPATH": "1",
+        }
+    )
+    return env
 
 
 def _git_output(*args: str) -> str:
@@ -749,7 +786,7 @@ def _decimal_text(value: Decimal) -> str:
 
 def _raw_source_identity(
     source_cell: dict[str, Any], fallback_unit: Any, normalized: Decimal
-) -> tuple[str, str] | None:
+) -> tuple[str, str, str | None] | None:
     raw_text = " ".join(str(source_cell.get("raw_value") or "").split()).strip()
     negative_parentheses = raw_text.startswith("(") and raw_text.endswith(")")
     if negative_parentheses:
@@ -765,10 +802,29 @@ def _raw_source_identity(
         raw_value = -abs(raw_value)
     suffix = str(match.group("suffix") or "").lower()
     raw_unit = RAW_UNIT_BY_SUFFIX.get(suffix) if suffix else str(fallback_unit or "")
+    currency_text = str(match.group("currency") or "").upper().replace(" ", "")
+    source_currency: str | None = None
+    if currency_text and currency_text != "$":
+        currency_letters = currency_text.removesuffix("$")
+        source_currency = {
+            "A": "AUD",
+            "AU": "AUD",
+            "C": "CAD",
+            "CA": "CAD",
+            "HK": "HKD",
+            "NZ": "NZD",
+            "S": "SGD",
+            "SG": "SGD",
+            "US": "USD",
+        }.get(currency_letters)
+        if source_currency is None and len(currency_letters) == 3:
+            source_currency = currency_letters
+        if source_currency is None:
+            return None
     multiplier = SCALE_MULTIPLIERS.get(raw_unit)
     if multiplier is None or raw_value * multiplier != normalized:
         return None
-    return _decimal_text(raw_value), raw_unit
+    return _decimal_text(raw_value), raw_unit, source_currency
 
 
 def _accepted_cell(
@@ -811,9 +867,13 @@ def _accepted_cell(
     raw_identity = _raw_source_identity(source_cell, raw_unit, normalized)
     if raw_identity is None:
         return None
-    raw_value, raw_unit = raw_identity
+    raw_value, raw_unit, source_currency = raw_identity
     provenance = (payload.get(provenance_key) or {}).get(source_metric)
-    currency = None if metric == "shares_outstanding" else payload.get("currency")
+    currency = (
+        None
+        if metric == "shares_outstanding"
+        else source_currency or payload.get("currency")
+    )
     if (
         not payload.get("period_type")
         or not payload.get("period_end")
@@ -958,6 +1018,9 @@ def _relative_report_path(path: Path) -> str:
 def _build_replay_command(args: argparse.Namespace, stage_root: Path) -> list[str]:
     return [
         str(args.python_bin),
+        "-I",
+        "-B",
+        "-S",
         str(REPO_ROOT / "scripts/extraction_no_write_replay.py"),
         "--case-manifest",
         str(args.case_manifest),
@@ -1019,6 +1082,7 @@ def _run(args: argparse.Namespace) -> int:
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
     code_identity = inspect_code_identity(args.expected_git_head)
+    launch_environment = replay_launch_environment()
     require_fresh_authority(output_root, receipt_path)
     require_atomic_publish_capability(output_root.parent)
     invocation_id = uuid.uuid4().hex
@@ -1042,13 +1106,19 @@ def _run(args: argparse.Namespace) -> int:
         "case_count": EXPECTED_CASE_COUNT,
         "interpreter": interpreter,
         "code_identity": code_identity,
+        "launch_environment": launch_environment,
         "command": command,
     }
     # No fallible preflight belongs between this exclusive create and launch.
     create_invocation_receipt(receipt_path, receipt_payload)
     launch_error: str | None = None
     try:
-        completed = subprocess.run(command, cwd=REPO_ROOT, check=False)
+        completed = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env=launch_environment,
+            check=False,
+        )
     except OSError as exc:
         launch_error = f"replay launch failed: {exc}"
         completed = subprocess.CompletedProcess(command, 127)
@@ -1065,6 +1135,7 @@ def _run(args: argparse.Namespace) -> int:
             "source_count": len(bundle["cases"]),
             "interpreter": interpreter,
             "code_identity": code_identity,
+            "launch_environment": launch_environment,
         },
     )
     _write_json(
@@ -1156,6 +1227,7 @@ def _validate_only(args: argparse.Namespace) -> int:
     )
     interpreter = inspect_interpreter(Path(args.python_bin))
     code_identity = inspect_code_identity(args.expected_git_head)
+    launch_environment = replay_launch_environment()
     require_atomic_publish_capability(output_root.parent)
     print(
         json.dumps(
@@ -1169,6 +1241,7 @@ def _validate_only(args: argparse.Namespace) -> int:
                 "contract_digest": bundle["contract_digest"],
                 "interpreter": interpreter,
                 "code_identity": code_identity,
+                "launch_environment": launch_environment,
             },
             indent=2,
             sort_keys=True,

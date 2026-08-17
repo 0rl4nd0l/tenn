@@ -7,6 +7,7 @@ import argparse
 from contextlib import contextmanager
 import copy
 import hashlib
+import importlib.metadata
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -25,9 +26,15 @@ from urllib.parse import urlparse
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
 DEFAULT_MANIFEST = (
-    REPO_ROOT / "financial-engine_v2" / "data" / "extraction_no_write_cases" / "guard_cases_v1.json"
+    REPO_ROOT
+    / "financial-engine_v2"
+    / "data"
+    / "extraction_no_write_cases"
+    / "guard_cases_v1.json"
 )
-CERTIFIED_MANIFEST_ROOT = REPO_ROOT / "financial-engine_v2" / "data" / "extraction_no_write_cases"
+CERTIFIED_MANIFEST_ROOT = (
+    REPO_ROOT / "financial-engine_v2" / "data" / "extraction_no_write_cases"
+)
 DEFAULT_SHARED_DATA_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/data")
 DEFAULT_REPORT_DIR = (
     "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay"
@@ -45,6 +52,26 @@ V2_CORPUS_REPO_PATH = PurePosixPath(
 )
 V2_CORPUS_SHA256 = "815649beffc63946eeeb77771deb961e1f36f06ee5ec49c9cd6ac068a49323dd"
 V2_CASE_COUNT = 20
+V2_EXPECTED_DEPENDENCY_VERSIONS = {
+    "httpx": "0.27.2",
+    "fastapi": "0.115.6",
+    "pydantic": "2.9.2",
+    "SQLAlchemy": "2.0.36",
+    "celery": "5.4.0",
+    "redis": "5.1.1",
+    "PyMuPDF": "1.24.10",
+}
+V2_LAUNCH_ENV_KEYS = {
+    "PATH",
+    "LANG",
+    "LC_ALL",
+    "SSL_CERT_FILE",
+    "REQUESTS_CA_BUNDLE",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONHASHSEED",
+    "PYTHONNOUSERSITE",
+    "PYTHONSAFEPATH",
+}
 CODE_IDENTITY_PATHS = (
     "scripts/run_broad_extraction_benchmark_v2.py",
     "scripts/extraction_no_write_replay.py",
@@ -181,7 +208,9 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _normalize_repo_path(path_text: str) -> PurePosixPath:
     path = PurePosixPath(str(path_text).strip().replace("\\", "/"))
     if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
-        raise ReplayConfigError(f"path must be repo-relative without parent segments: {path_text}")
+        raise ReplayConfigError(
+            f"path must be repo-relative without parent segments: {path_text}"
+        )
     return path
 
 
@@ -194,16 +223,24 @@ def resolve_report_dir(report_dir: str, *, repo_root: Path = REPO_ROOT) -> Path:
     try:
         resolved.relative_to(allowed_root)
     except ValueError as exc:
-        raise ReplayConfigError("resolved report dir escaped reports/agent_jobs") from exc
+        raise ReplayConfigError(
+            "resolved report dir escaped reports/agent_jobs"
+        ) from exc
     for parent in (repo_root / "reports", allowed_root, allowed_root / path.parts[2]):
         if parent.exists() and parent.is_symlink():
-            raise ReplayConfigError(f"report path parent must not be symlinked: {parent}")
+            raise ReplayConfigError(
+                f"report path parent must not be symlinked: {parent}"
+            )
     return resolved
 
 
 def resolve_manifest_path(path: Path, *, repo_root: Path = REPO_ROOT) -> Path:
     raw_path = Path(path)
-    resolved = (repo_root / raw_path).resolve() if not raw_path.is_absolute() else raw_path.resolve()
+    resolved = (
+        (repo_root / raw_path).resolve()
+        if not raw_path.is_absolute()
+        else raw_path.resolve()
+    )
     certified_root = CERTIFIED_MANIFEST_ROOT.resolve()
     try:
         resolved.relative_to(certified_root)
@@ -222,9 +259,7 @@ def resolve_manifest_path(path: Path, *, repo_root: Path = REPO_ROOT) -> Path:
     return resolved
 
 
-def load_manifest(
-    path: Path, *, v2_corpus_path: Path | None = None
-) -> dict[str, Any]:
+def load_manifest(path: Path, *, v2_corpus_path: Path | None = None) -> dict[str, Any]:
     manifest = _read_json(path)
     artifact_type = manifest.get("artifact_type")
     if artifact_type not in {
@@ -245,7 +280,9 @@ def load_manifest(
             raise ReplayConfigError(f"case[{index}] must be an object")
         missing = sorted(required - set(case))
         if missing:
-            raise ReplayConfigError(f"case[{index}] missing fields: {', '.join(missing)}")
+            raise ReplayConfigError(
+                f"case[{index}] missing fields: {', '.join(missing)}"
+            )
         case_id = str(case.get("case_id") or "").strip()
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", case_id):
             raise ReplayConfigError(f"case[{index}] has invalid case_id: {case_id!r}")
@@ -265,9 +302,7 @@ def load_manifest(
     if certification.get("loopback_llm_only") is not True:
         raise ReplayConfigError("manifest must require loopback-only LLM access")
     if artifact_type == V2_MANIFEST_ARTIFACT_TYPE:
-        _validate_v2_manifest_contract(
-            path, manifest, corpus_path=v2_corpus_path
-        )
+        _validate_v2_manifest_contract(path, manifest, corpus_path=v2_corpus_path)
     return manifest
 
 
@@ -288,17 +323,23 @@ def _validate_v2_manifest_contract(
         )
     cases = manifest["cases"]
     if len(cases) != V2_CASE_COUNT:
-        raise ReplayConfigError(f"v2 case manifest must contain exactly {V2_CASE_COUNT} cases")
+        raise ReplayConfigError(
+            f"v2 case manifest must contain exactly {V2_CASE_COUNT} cases"
+        )
     certification = manifest["certification"]
     if certification.get("source_contract") != V2_CORPUS_REPO_PATH.as_posix():
-        raise ReplayConfigError("v2 case manifest must declare the exact v2 corpus path")
+        raise ReplayConfigError(
+            "v2 case manifest must declare the exact v2 corpus path"
+        )
     corpus_path = (
         corpus_path.expanduser().resolve()
         if corpus_path is not None
         else repo_root.joinpath(*V2_CORPUS_REPO_PATH.parts)
     )
     if corpus_path.is_symlink() or not corpus_path.is_file():
-        raise ReplayConfigError(f"v2 corpus must be a non-symlink regular file: {corpus_path}")
+        raise ReplayConfigError(
+            f"v2 corpus must be a non-symlink regular file: {corpus_path}"
+        )
     observed_corpus_sha = _sha256(corpus_path)
     if observed_corpus_sha != V2_CORPUS_SHA256:
         raise ReplayConfigError(
@@ -310,7 +351,9 @@ def _validate_v2_manifest_contract(
         raise ReplayConfigError("v2 corpus artifact_type mismatch")
     documents = corpus.get("documents")
     if not isinstance(documents, list) or len(documents) != V2_CASE_COUNT:
-        raise ReplayConfigError(f"v2 corpus must contain exactly {V2_CASE_COUNT} documents")
+        raise ReplayConfigError(
+            f"v2 corpus must contain exactly {V2_CASE_COUNT} documents"
+        )
     document_by_id = {
         row.get("document_id"): row for row in documents if isinstance(row, dict)
     }
@@ -341,7 +384,9 @@ def _validate_v2_manifest_contract(
     }
 
 
-def select_cases(manifest: dict[str, Any], selectors: list[str]) -> list[dict[str, Any]]:
+def select_cases(
+    manifest: dict[str, Any], selectors: list[str]
+) -> list[dict[str, Any]]:
     cases = manifest["cases"]
     if manifest.get("artifact_type") == V2_MANIFEST_ARTIFACT_TYPE and selectors not in (
         [],
@@ -407,11 +452,15 @@ def _candidate_docs_roots() -> list[Path]:
     value = os.environ.get("DOCS_ROOT")
     if value:
         candidates.append(Path(value))
-    candidates.extend(data_root / "asx" / "docs" for data_root in _candidate_data_roots())
+    candidates.extend(
+        data_root / "asx" / "docs" for data_root in _candidate_data_roots()
+    )
     return _unique_paths(candidates)
 
 
-def _portable_source_suffixes(path_text: str) -> tuple[PurePosixPath | None, PurePosixPath | None]:
+def _portable_source_suffixes(
+    path_text: str,
+) -> tuple[PurePosixPath | None, PurePosixPath | None]:
     rel = _normalize_repo_path(path_text)
     parts = rel.parts
     if len(parts) >= 2 and parts[:2] == ("asx", "docs"):
@@ -432,9 +481,13 @@ def source_path_candidates(path_text: str) -> list[Path]:
     candidates = [(REPO_ROOT / rel)]
     data_suffix, docs_suffix = _portable_source_suffixes(path_text)
     if data_suffix is not None:
-        candidates.extend(data_root / data_suffix for data_root in _candidate_data_roots())
+        candidates.extend(
+            data_root / data_suffix for data_root in _candidate_data_roots()
+        )
     if docs_suffix is not None:
-        candidates.extend(docs_root / docs_suffix for docs_root in _candidate_docs_roots())
+        candidates.extend(
+            docs_root / docs_suffix for docs_root in _candidate_docs_roots()
+        )
     return _unique_paths(candidates)
 
 
@@ -455,7 +508,9 @@ def resolve_case_source_paths(cases: list[dict[str, Any]]) -> list[dict[str, Any
         resolved_case["source_path"] = str(resolved)
         if original_source_path != str(resolved):
             resolved_case["source_path_original"] = original_source_path
-        resolved_case["source_path_candidates"] = [str(candidate) for candidate in candidates]
+        resolved_case["source_path_candidates"] = [
+            str(candidate) for candidate in candidates
+        ]
         resolved_cases.append(resolved_case)
     return resolved_cases
 
@@ -561,7 +616,9 @@ def validate_v2_invocation_receipt(
     requested_git_head: str | None = None,
 ) -> dict[str, Any]:
     if receipt_path.is_symlink() or not receipt_path.is_file():
-        raise ReplayConfigError("v2 launch requires an existing non-symlink invocation receipt")
+        raise ReplayConfigError(
+            "v2 launch requires an existing non-symlink invocation receipt"
+        )
     receipt_path = receipt_path.resolve()
     manifest_path = manifest_path.resolve()
     corpus_path = corpus_path.resolve()
@@ -580,9 +637,13 @@ def validate_v2_invocation_receipt(
         bound_manifest = Path(str(receipt["case_manifest_path"])).resolve()
         bound_corpus = Path(str(receipt["corpus_path"])).resolve()
     except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
-        raise ReplayConfigError("v2 invocation receipt path bindings are invalid") from exc
+        raise ReplayConfigError(
+            "v2 invocation receipt path bindings are invalid"
+        ) from exc
     expected_receipt = final_output.parent / "INVOCATION_RECEIPT.json"
-    expected_stage = final_output.parent / f".{final_output.name}.staging-{invocation_id}"
+    expected_stage = (
+        final_output.parent / f".{final_output.name}.staging-{invocation_id}"
+    )
     if (
         not invocation_id
         or bound_receipt != receipt_path
@@ -593,7 +654,9 @@ def validate_v2_invocation_receipt(
         or bound_manifest != manifest_path
         or bound_corpus != corpus_path
     ):
-        raise ReplayConfigError("v2 invocation receipt output/report/input path binding mismatch")
+        raise ReplayConfigError(
+            "v2 invocation receipt output/report/input path binding mismatch"
+        )
     if final_output_path.exists() or final_output_path.is_symlink():
         raise ReplayConfigError(
             f"v2 invocation receipt final output already exists: {final_output}"
@@ -608,30 +671,42 @@ def validate_v2_invocation_receipt(
         raise ReplayConfigError("v2 invocation receipt corpus SHA-256 mismatch")
     if receipt.get("case_count") != V2_CASE_COUNT:
         raise ReplayConfigError("v2 invocation receipt case count mismatch")
+    validate_v2_launch_environment(receipt.get("launch_environment"))
+    validate_v2_running_interpreter(receipt.get("interpreter"))
     code_identity = receipt.get("code_identity")
     if not isinstance(code_identity, dict):
         raise ReplayConfigError("v2 invocation receipt code identity is invalid")
     expected_git_head = str(code_identity.get("head_sha") or "")
-    if requested_git_head is not None and str(requested_git_head).strip() != expected_git_head:
+    if (
+        requested_git_head is not None
+        and str(requested_git_head).strip() != expected_git_head
+    ):
         raise ReplayConfigError("v2 invocation receipt Git HEAD argument mismatch")
     if inspect_code_identity(expected_git_head) != code_identity:
         raise ReplayConfigError("v2 invocation receipt code identity mismatch")
     command = receipt.get("command")
-    if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+    if not isinstance(command, list) or not all(
+        isinstance(item, str) for item in command
+    ):
         raise ReplayConfigError("v2 invocation receipt command binding is invalid")
 
     def command_option(name: str) -> str:
         if command.count(name) != 1:
-            raise ReplayConfigError(f"v2 invocation receipt command must bind {name} once")
+            raise ReplayConfigError(
+                f"v2 invocation receipt command must bind {name} once"
+            )
         index = command.index(name)
         if index + 1 >= len(command):
             raise ReplayConfigError(f"v2 invocation receipt command omits {name} value")
         return command[index + 1]
 
     if (
-        len(command) < 2
+        len(command) < 5
         or not _same_python_path(Path(command[0]), Path(sys.executable))
-        or Path(command[1]).resolve() != Path(__file__).resolve()
+        or command[1] != "-I"
+        or command[2] != "-B"
+        or command[3] != "-S"
+        or Path(command[4]).resolve() != Path(__file__).resolve()
         or Path(command_option("--case-manifest")).resolve() != manifest_path
         or Path(command_option("--source-contract")).resolve() != corpus_path
         or resolve_report_dir(command_option("--report-dir")) != report_dir
@@ -646,6 +721,85 @@ def validate_v2_invocation_receipt(
     ):
         raise ReplayConfigError("v2 invocation receipt command binding mismatch")
     return receipt
+
+
+def validate_v2_launch_environment(bound_environment: Any) -> None:
+    if not isinstance(bound_environment, dict) or not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in bound_environment.items()
+    ):
+        raise ReplayConfigError("v2 invocation receipt launch environment is invalid")
+    if set(bound_environment) - V2_LAUNCH_ENV_KEYS:
+        raise ReplayConfigError(
+            "v2 invocation receipt launch environment has unsafe keys"
+        )
+    for key, value in {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONSAFEPATH": "1",
+    }.items():
+        if bound_environment.get(key) != value:
+            raise ReplayConfigError(
+                f"v2 invocation receipt launch environment must bind {key}={value}"
+            )
+    if dict(os.environ) != bound_environment:
+        raise ReplayConfigError("v2 invocation receipt launch environment mismatch")
+
+
+def validate_v2_running_interpreter(binding: Any) -> None:
+    if not isinstance(binding, dict):
+        raise ReplayConfigError("v2 invocation receipt interpreter binding is invalid")
+    expected_binary_sha = str(binding.get("binary_sha256") or "")
+    observed_binary_sha = _sha256(Path(sys.executable).resolve())
+    if (
+        re.fullmatch(r"[0-9a-f]{64}", expected_binary_sha) is None
+        or observed_binary_sha != expected_binary_sha
+    ):
+        raise ReplayConfigError(
+            "v2 invocation receipt running interpreter SHA-256 mismatch"
+        )
+    site_packages = binding.get("site_packages")
+    if not isinstance(site_packages, list) or not site_packages:
+        raise ReplayConfigError(
+            "v2 invocation receipt interpreter site-package binding is invalid"
+        )
+    for raw_path in site_packages:
+        site_path = Path(str(raw_path))
+        if (
+            not site_path.is_absolute()
+            or site_path.is_symlink()
+            or not site_path.is_dir()
+        ):
+            raise ReplayConfigError(
+                "v2 invocation receipt interpreter site-package path is invalid"
+            )
+        site_text = str(site_path)
+        if site_text not in sys.path:
+            sys.path.append(site_text)
+    expected_versions = binding.get("versions")
+    if expected_versions != V2_EXPECTED_DEPENDENCY_VERSIONS:
+        raise ReplayConfigError(
+            "v2 invocation receipt interpreter dependency binding mismatch"
+        )
+    observed_versions = {
+        name: importlib.metadata.version(name)
+        for name in V2_EXPECTED_DEPENDENCY_VERSIONS
+    }
+    if observed_versions != expected_versions:
+        raise ReplayConfigError(
+            "v2 invocation receipt running dependency versions mismatch"
+        )
+    observed_snapshot_sha = hashlib.sha256(
+        json.dumps(observed_versions, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    if binding.get("dependency_snapshot_sha256") != observed_snapshot_sha:
+        raise ReplayConfigError(
+            "v2 invocation receipt dependency snapshot SHA-256 mismatch"
+        )
 
 
 def assert_loopback_url(raw_url: str) -> str:
@@ -674,7 +828,10 @@ def _abspath_no_symlink(path: Path) -> Path:
 
 
 def approved_venv_candidates() -> list[Path]:
-    return [_abspath_no_symlink(REPO_ROOT / relative_path) for relative_path in APPROVED_VENV_RELATIVE_PYTHONS]
+    return [
+        _abspath_no_symlink(REPO_ROOT / relative_path)
+        for relative_path in APPROVED_VENV_RELATIVE_PYTHONS
+    ]
 
 
 def _resolve_path_no_symlink(path_text: str) -> Path:
@@ -700,9 +857,13 @@ def _same_python_path(left: Path, right: Path) -> bool:
     return _abspath_no_symlink(left) == _abspath_no_symlink(right)
 
 
-def _select_docling_venv_python(requested_venv_python: str) -> tuple[Path | None, dict[str, Any]]:
+def _select_docling_venv_python(
+    requested_venv_python: str,
+) -> tuple[Path | None, dict[str, Any]]:
     info: dict[str, Any] = {
-        "approved_candidates": [str(candidate) for candidate in approved_venv_candidates()],
+        "approved_candidates": [
+            str(candidate) for candidate in approved_venv_candidates()
+        ],
         "current_python": sys.executable,
         "requested_venv_python": requested_venv_python or None,
     }
@@ -724,7 +885,9 @@ def _select_docling_venv_python(requested_venv_python: str) -> tuple[Path | None
     for candidate in approved_venv_candidates():
         if candidate.exists() and os.access(candidate, os.X_OK):
             info["selected_venv_python"] = str(candidate)
-            info["current_python_is_selected"] = _same_python_path(current_python, candidate)
+            info["current_python_is_selected"] = _same_python_path(
+                current_python, candidate
+            )
             info["selected_exists"] = True
             info["selected_executable"] = True
             return candidate, info
@@ -735,7 +898,9 @@ def _select_docling_venv_python(requested_venv_python: str) -> tuple[Path | None
     return None, info
 
 
-def _reexec_for_docling_profile(selected_python: Path, args: argparse.Namespace) -> None:
+def _reexec_for_docling_profile(
+    selected_python: Path, args: argparse.Namespace
+) -> None:
     argv = [str(selected_python), str(Path(__file__).resolve())] + sys.argv[1:]
     if not args.venv_python:
         argv.extend(["--venv-python", str(selected_python)])
@@ -763,7 +928,9 @@ def _reexec_for_docling_profile(selected_python: Path, args: argparse.Namespace)
     os.execve(str(selected_python), argv, env)
 
 
-def prepare_profile_process(args: argparse.Namespace) -> tuple[str, dict[str, Any], str | None]:
+def prepare_profile_process(
+    args: argparse.Namespace,
+) -> tuple[str, dict[str, Any], str | None]:
     profile = normalize_profile(args.profile)
     profile_info: dict[str, Any] = {
         "profile": profile,
@@ -778,12 +945,24 @@ def prepare_profile_process(args: argparse.Namespace) -> tuple[str, dict[str, An
     if selected_python is None:
         return profile, profile_info, "approved_docling_venv_python_missing"
     if not selected_python.exists():
-        return profile, profile_info, f"approved_docling_venv_python_missing:{selected_python}"
+        return (
+            profile,
+            profile_info,
+            f"approved_docling_venv_python_missing:{selected_python}",
+        )
     if not os.access(selected_python, os.X_OK):
-        return profile, profile_info, f"approved_docling_venv_python_not_executable:{selected_python}"
+        return (
+            profile,
+            profile_info,
+            f"approved_docling_venv_python_not_executable:{selected_python}",
+        )
     if not _same_python_path(Path(sys.executable), selected_python):
         if args._profile_reexeced:
-            return profile, profile_info, f"docling_profile_reexec_failed:{selected_python}"
+            return (
+                profile,
+                profile_info,
+                f"docling_profile_reexec_failed:{selected_python}",
+            )
         _reexec_for_docling_profile(selected_python, args)
     return profile, profile_info, None
 
@@ -897,7 +1076,9 @@ def _repo_path_for_git_status(path_text: str) -> Path | None:
     return path
 
 
-def _dirty_repo_file_snapshot(git_rows: list[str], report_dir: Path) -> dict[str, dict[str, Any]]:
+def _dirty_repo_file_snapshot(
+    git_rows: list[str], report_dir: Path
+) -> dict[str, dict[str, Any]]:
     report_prefix = _report_dir_git_prefix(report_dir)
     snapshots: dict[str, dict[str, Any]] = {}
     for row in git_rows:
@@ -958,7 +1139,9 @@ def inspect_code_identity(expected_head: str) -> dict[str, Any]:
         raise ReplayConfigError(
             f"v2 invocation receipt Git HEAD mismatch: expected {expected}, observed {observed}"
         )
-    tracked_status = _git_code_output("status", "--porcelain=v1", "--untracked-files=no")
+    tracked_status = _git_code_output(
+        "status", "--porcelain=v1", "--untracked-files=no"
+    )
     if tracked_status:
         raise ReplayConfigError(
             f"v2 invocation receipt tracked worktree is not clean: {tracked_status}"
@@ -1054,16 +1237,29 @@ def _data_root_from_source(path_text: str) -> Path | None:
 
 def _normal_cache_roots(cases: list[dict[str, Any]]) -> list[Path]:
     roots = {
-        (REPO_ROOT / "financial-engine_v2" / "data" / "reports" / "extraction_cache" / "docling_extract").resolve()
+        (
+            REPO_ROOT
+            / "financial-engine_v2"
+            / "data"
+            / "reports"
+            / "extraction_cache"
+            / "docling_extract"
+        ).resolve()
     }
     for case in cases:
         data_root = _data_root_from_source(str(case["source_path"]))
         if data_root is not None:
-            roots.add((data_root / "reports" / "extraction_cache" / "docling_extract").resolve())
+            roots.add(
+                (
+                    data_root / "reports" / "extraction_cache" / "docling_extract"
+                ).resolve()
+            )
     return sorted(roots)
 
 
-def _normal_cache_snapshot(cases: list[dict[str, Any]], roots: list[Path]) -> dict[str, Any]:
+def _normal_cache_snapshot(
+    cases: list[dict[str, Any]], roots: list[Path]
+) -> dict[str, Any]:
     return {str(root): _list_files(root, hash_files=True) for root in roots}
 
 
@@ -1098,7 +1294,9 @@ def _reset_report_outputs(report_dir: Path) -> None:
         try:
             target.relative_to(report_root)
         except ValueError as exc:
-            raise ReplayConfigError(f"report output escaped report dir: {relative_path}") from exc
+            raise ReplayConfigError(
+                f"report output escaped report dir: {relative_path}"
+            ) from exc
         if target.exists():
             target.unlink()
 
@@ -1121,7 +1319,9 @@ def build_safe_env(data_root: Path, llm_url: str) -> dict[str, str]:
             "DATA_ROOT": str(data_root),
             "DATABASE_URL": "sqlite:///:memory:",
             "DOCS_ROOT": str(data_root / "asx" / "docs"),
-            "MARKETINDEX_ANNOUNCEMENTS_FILE": str(data_root / "raw" / "marketindex_announcements.json"),
+            "MARKETINDEX_ANNOUNCEMENTS_FILE": str(
+                data_root / "raw" / "marketindex_announcements.json"
+            ),
             "IMPORTANCE_OUTPUT_ROOT": str(data_root / "asx" / "importance"),
             "TASK_MODE": "sync",
             "AUTO_CREATE_TABLES": "false",
@@ -1137,8 +1337,17 @@ def build_safe_env(data_root: Path, llm_url: str) -> dict[str, str]:
             "REDIS_URL": "memory://tenn-no-write",
             "CELERY_BROKER_URL": "memory://tenn-no-write",
             "CELERY_RESULT_BACKEND": "cache+memory://",
-            "TENN_EXTRACTION_ACTIVE_FILE": str(data_root / "runtime" / "extraction_active.json"),
-            "MODEL_ROUTING_CONFIG": str(REPO_ROOT / "financial-engine_v2" / "backend" / "app" / "config" / "model_routing.yaml"),
+            "TENN_EXTRACTION_ACTIVE_FILE": str(
+                data_root / "runtime" / "extraction_active.json"
+            ),
+            "MODEL_ROUTING_CONFIG": str(
+                REPO_ROOT
+                / "financial-engine_v2"
+                / "backend"
+                / "app"
+                / "config"
+                / "model_routing.yaml"
+            ),
             "EXTRACTION_SKIP_NARRATIVE": "1",
             "EXTRACTION_PARALLEL": "0",
             "LLAMACPP_URL": llm_url,
@@ -1165,7 +1374,13 @@ def apply_safe_env(env: dict[str, str]) -> None:
     }
     for key in unsafe_keys:
         os.environ.pop(key, None)
-    for key in ("HOME", "TMPDIR", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME"):
+    for key in (
+        "HOME",
+        "TMPDIR",
+        "XDG_CACHE_HOME",
+        "XDG_CONFIG_HOME",
+        "XDG_STATE_HOME",
+    ):
         value = env.get(key)
         if value:
             Path(value).mkdir(parents=True, exist_ok=True)
@@ -1269,8 +1484,14 @@ def _build_client(llm_url: str) -> tuple[Any, dict[str, Any]]:
     base_url = assert_loopback_url(llm_url)
     if not base_url.endswith("/v1"):
         base_url = base_url + "/v1"
-    api_key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY") or "local-openai-key"
-    client = httpx.Client(base_url=base_url, timeout=180.0, headers={"Authorization": f"Bearer {api_key}"})
+    api_key = (
+        os.environ.get("LLM_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+        or "local-openai-key"
+    )
+    client = httpx.Client(
+        base_url=base_url, timeout=180.0, headers={"Authorization": f"Bearer {api_key}"}
+    )
     started = time.monotonic()
     response = client.get("/models")
     elapsed = time.monotonic() - started
@@ -1298,7 +1519,10 @@ def _benchmark_internal_metrics(
     if not isinstance(pass3a_results, list):
         return observations
     for candidate in pass3a_results:
-        if not isinstance(candidate, dict) or candidate.get("_source") != "balance_sheet":
+        if (
+            not isinstance(candidate, dict)
+            or candidate.get("_source") != "balance_sheet"
+        ):
             continue
         value = candidate.get("total_debt")
         row_refs = candidate.get("row_refs")
@@ -1327,9 +1551,7 @@ def _benchmark_internal_metrics(
             )
         page = candidate.get("_page_number")
         page_tag = f"page_{page}" if page is not None else "page_?"
-        observations["provenance"]["total_debt"] = (
-            f"balance_sheet:{page_tag}:{row_ref}"
-        )
+        observations["provenance"]["total_debt"] = f"balance_sheet:{page_tag}:{row_ref}"
         observations["source_cells"]["total_debt"] = dict(source_cell)
         break
     return observations
@@ -1351,8 +1573,12 @@ def _compact_payload(
         "scale": payload.get("scale"),
         "currency": payload.get("currency"),
         "confidence_metrics": payload.get("confidence_metrics"),
-        "non_null_metric_count": len([value for value in metrics.values() if value is not None]),
-        "non_null_metrics": {key: value for key, value in metrics.items() if value is not None},
+        "non_null_metric_count": len(
+            [value for value in metrics.values() if value is not None]
+        ),
+        "non_null_metrics": {
+            key: value for key, value in metrics.items() if value is not None
+        },
         "row_refs": payload.get("row_refs"),
         "metric_source_scales": payload.get("metric_source_scales"),
         "metric_scale_sources": payload.get("metric_scale_sources"),
@@ -1368,9 +1594,7 @@ def _compact_payload(
         metric_source_cells = {
             str(metric): dict(source_cell)
             for metric, provenance in (
-                field_provenance.items()
-                if isinstance(field_provenance, dict)
-                else ()
+                field_provenance.items() if isinstance(field_provenance, dict) else ()
             )
             if isinstance(provenance, dict)
             and isinstance((source_cell := provenance.get("source_cell")), dict)
@@ -1433,7 +1657,9 @@ def _run_cases(
                 debug_capture: dict[str, Any] = {}
                 started = time.monotonic()
                 case_id = str(case["case_id"])
-                log.write(f"case_start {case_id} timeout_seconds={case_timeout_seconds}\n")
+                log.write(
+                    f"case_start {case_id} timeout_seconds={case_timeout_seconds}\n"
+                )
                 try:
                     with _case_timeout(case_timeout_seconds):
                         result = mp.run_multipass_extraction(
@@ -1446,7 +1672,9 @@ def _run_cases(
                             observer=observer,
                             debug_capture=debug_capture,
                             openability_pages=case.get("openability_pages"),
-                            openability_selected_tables=bool(case.get("openability_selected_tables", False)),
+                            openability_selected_tables=bool(
+                                case.get("openability_selected_tables", False)
+                            ),
                         )
                     payload = _compact_payload(
                         result,
@@ -1469,12 +1697,16 @@ def _run_cases(
                             "elapsed_s": round(time.monotonic() - started, 3),
                             "observer_events": observer.events,
                             "debug_capture_keys": sorted(debug_capture),
-                            "pass3a_result_count": len(debug_capture.get("pass3a_results") or []),
+                            "pass3a_result_count": len(
+                                debug_capture.get("pass3a_results") or []
+                            ),
                             "case_timeout_seconds": case_timeout_seconds,
                             "result": payload,
                         }
                     )
-                    log.write(f"case_done {case_id} status={result.status} error={result.error}\n")
+                    log.write(
+                        f"case_done {case_id} status={result.status} error={result.error}\n"
+                    )
                 except Exception as exc:  # pragma: no cover - exercised by smoke runs
                     results.append(
                         {
@@ -1542,7 +1774,10 @@ def _is_infrastructure_failure(
             "writeerror",
             "writetimeout",
         }
-        if exception_type in transport_exception_types or exception_type == "modulenotfounderror":
+        if (
+            exception_type in transport_exception_types
+            or exception_type == "modulenotfounderror"
+        ):
             return True
     return error.startswith(("pass1:", "pass3a:", "pass3b:")) and any(
         marker in error for marker in markers
@@ -1553,7 +1788,10 @@ def _is_runner_infrastructure_exception(exc: Exception) -> bool:
     if isinstance(exc, ModuleNotFoundError):
         return True
     exception_type = type(exc).__name__.lower()
-    if any(marker in exception_type for marker in ("connect", "connection", "timeout", "http")):
+    if any(
+        marker in exception_type
+        for marker in ("connect", "connection", "timeout", "http")
+    ):
         return True
     error = f"{type(exc).__name__}: {exc}".lower()
     markers = (
@@ -1567,7 +1805,9 @@ def _is_runner_infrastructure_exception(exc: Exception) -> bool:
     return any(marker in error for marker in markers)
 
 
-def _runner_exception_payload(exc: Exception) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _runner_exception_payload(
+    exc: Exception,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     error = f"{type(exc).__name__}: {exc}"
     traceback_text = traceback.format_exc(limit=20)
     if _is_runner_infrastructure_exception(exc):
@@ -1607,11 +1847,20 @@ def _expectation_failures(results: list[dict[str, Any]]) -> list[dict[str, Any]]
         observed_period_end = result.get("period_end")
         mismatches: dict[str, dict[str, Any]] = {}
         if expected_status and observed_status != expected_status:
-            mismatches["status"] = {"expected": expected_status, "observed": observed_status}
+            mismatches["status"] = {
+                "expected": expected_status,
+                "observed": observed_status,
+            }
         if expected_period_type and observed_period_type != expected_period_type:
-            mismatches["period_type"] = {"expected": expected_period_type, "observed": observed_period_type}
+            mismatches["period_type"] = {
+                "expected": expected_period_type,
+                "observed": observed_period_type,
+            }
         if expected_period_end and observed_period_end != expected_period_end:
-            mismatches["period_end"] = {"expected": expected_period_end, "observed": observed_period_end}
+            mismatches["period_end"] = {
+                "expected": expected_period_end,
+                "observed": observed_period_end,
+            }
         if mismatches:
             failures.append({"case_id": row.get("case_id"), "mismatches": mismatches})
     return failures
@@ -1627,15 +1876,17 @@ def _check_cache_root(data_root: Path) -> tuple[bool, str, str | None, str]:
     except ModuleNotFoundError as exc:
         verification_mode = f"settings_fallback_missing_dependency:{exc.name}"
         cache_root = (
-            data_root
-            / "reports"
-            / "extraction_cache"
-            / "docling_extract"
+            data_root / "reports" / "extraction_cache" / "docling_extract"
         ).resolve()
     try:
         cache_root.relative_to(data_root)
     except ValueError:
-        return False, str(cache_root), f"cache root is outside isolated DATA_ROOT: {cache_root}", verification_mode
+        return (
+            False,
+            str(cache_root),
+            f"cache root is outside isolated DATA_ROOT: {cache_root}",
+            verification_mode,
+        )
     return True, str(cache_root), None, verification_mode
 
 
@@ -1658,22 +1909,27 @@ def _surface_audit(
 ) -> dict[str, Any]:
     source_tree_write = source_before != source_after
     normal_parser_cache_write = normal_cache_before != normal_cache_after
-    unexpected_git_changes = _unexpected_git_status_changes(git_before, git_after, report_dir)
+    unexpected_git_changes = _unexpected_git_status_changes(
+        git_before, git_after, report_dir
+    )
     dirty_repo_file_mutations = (
         dirty_repo_before if dirty_repo_before is not None else {}
     ) != (dirty_repo_after if dirty_repo_after is not None else {})
     repo_worktree_write = bool(unexpected_git_changes) or dirty_repo_file_mutations
     allowed_report_prefix = str(report_dir) + os.sep
     report_only_durable_writes = all(
-        str(row.get("path", "")).startswith(allowed_report_prefix) for row in report_files
+        str(row.get("path", "")).startswith(allowed_report_prefix)
+        for row in report_files
     )
     isolated_prefix = str(isolated_cache_root) + os.sep
     isolated_cache_contained = all(
-        str(row.get("path", "")).startswith(isolated_prefix) for row in isolated_cache_files
+        str(row.get("path", "")).startswith(isolated_prefix)
+        for row in isolated_cache_files
     )
     isolated_runtime_prefix = str(isolated_runtime_root) + os.sep
     isolated_runtime_contained = all(
-        str(row.get("path", "")).startswith(isolated_runtime_prefix) for row in isolated_runtime_files
+        str(row.get("path", "")).startswith(isolated_runtime_prefix)
+        for row in isolated_runtime_files
     )
     forbidden = {
         "source_pdf_write": source_tree_write,
@@ -1859,9 +2115,7 @@ def run_replay(args: argparse.Namespace) -> int:
     source_contract_path = (
         Path(raw_source_contract).expanduser() if raw_source_contract else None
     )
-    manifest = load_manifest(
-        manifest_path, v2_corpus_path=source_contract_path
-    )
+    manifest = load_manifest(manifest_path, v2_corpus_path=source_contract_path)
     selected_cases = select_cases(manifest, list(args.case))
     is_v2 = manifest.get("artifact_type") == V2_MANIFEST_ARTIFACT_TYPE
     llm_url = assert_loopback_url(
@@ -1898,9 +2152,7 @@ def run_replay(args: argparse.Namespace) -> int:
                 llm_url=llm_url,
                 case_timeout_seconds=int(args.case_timeout_seconds),
                 profile=profile,
-                requested_git_head=str(
-                    getattr(args, "expected_git_head", "") or ""
-                ),
+                requested_git_head=str(getattr(args, "expected_git_head", "") or ""),
             )
     else:
         cases = resolve_case_source_paths(selected_cases)
@@ -1947,7 +2199,9 @@ def run_replay(args: argparse.Namespace) -> int:
     cache_roots = _normal_cache_roots(cases)
     normal_cache_before = _normal_cache_snapshot(cases, cache_roots)
 
-    with tempfile.TemporaryDirectory(prefix=APPROVED_TMP_PREFIX.removeprefix("/tmp/"), dir="/tmp") as tmp_dir:
+    with tempfile.TemporaryDirectory(
+        prefix=APPROVED_TMP_PREFIX.removeprefix("/tmp/"), dir="/tmp"
+    ) as tmp_dir:
         data_root = Path(tmp_dir).resolve()
         safe_env = build_safe_env(data_root, llm_url)
         apply_safe_env(safe_env)
@@ -2044,7 +2298,9 @@ def run_replay(args: argparse.Namespace) -> int:
                 )
                 return 2
             cases = _force_docling_profile_cases(cases)
-        cache_ok, cache_root_text, cache_error, cache_verification_mode = _check_cache_root(data_root)
+        cache_ok, cache_root_text, cache_error, cache_verification_mode = (
+            _check_cache_root(data_root)
+        )
         input_manifest = {
             "manifest_path": str(manifest_path),
             "manifest_sha256": _sha256(manifest_path),
@@ -2213,7 +2469,12 @@ def run_replay(args: argparse.Namespace) -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case-manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--case", action="append", default=[], help="Certified case id/ticker/document id, or all.")
+    parser.add_argument(
+        "--case",
+        action="append",
+        default=[],
+        help="Certified case id/ticker/document id, or all.",
+    )
     parser.add_argument("--report-dir", default=DEFAULT_REPORT_DIR)
     parser.add_argument("--llm-base-url", default="")
     parser.add_argument(
@@ -2262,7 +2523,12 @@ def parse_args() -> argparse.Namespace:
             ".venv/bin/python, or .venv/bin/python3."
         ),
     )
-    parser.add_argument("--_profile-reexeced", action="store_true", dest="_profile_reexeced", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--_profile-reexeced",
+        action="store_true",
+        dest="_profile_reexeced",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument(
         "--preflight-only",
         action="store_true",
@@ -2284,7 +2550,10 @@ def main() -> int:
     try:
         return run_replay(parse_args())
     except ReplayConfigError as exc:
-        print(json.dumps({"status": "FAIL", "error": str(exc)}, indent=2, sort_keys=True), file=sys.stderr)
+        print(
+            json.dumps({"status": "FAIL", "error": str(exc)}, indent=2, sort_keys=True),
+            file=sys.stderr,
+        )
         return 2
 
 

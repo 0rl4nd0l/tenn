@@ -398,6 +398,17 @@ class OneShotSafetyTests(unittest.TestCase):
         self.assertEqual("0.025", revenue.raw_value)
         self.assertEqual("billions", revenue.raw_unit)
 
+        replay["results"][0]["result"]["currency"] = "AUD"
+        replay["results"][0]["result"]["benchmark_metric_source_cells"]["revenue"][
+            "raw_value"
+        ] = "US$25m"
+        explicit_currency = RUNNER.actuals_from_replay((document,), replay)
+        revenue = next(row for row in explicit_currency if row.metric == "revenue")
+        self.assertEqual("accepted", revenue.status)
+        self.assertEqual("USD", revenue.currency)
+        self.assertEqual("25", revenue.raw_value)
+        self.assertEqual("millions", revenue.raw_unit)
+
     def test_shares_preserve_period_bound_raw_source_identity(self) -> None:
         document = RUNNER.CorpusDocument(
             document_id="doc_0",
@@ -678,15 +689,21 @@ class OneShotSafetyTests(unittest.TestCase):
             "python": "3.12.0",
             "modules": list(RUNNER.IMPORT_PREFLIGHT_MODULES),
             "versions": dict(RUNNER.EXPECTED_DEPENDENCY_VERSIONS),
+            "site_packages": [str(Path(sys.executable).resolve().parent)],
         }
         completed = subprocess.CompletedProcess(
             [sys.executable], 0, stdout=json.dumps(payload), stderr=""
         )
-        with mock.patch.object(RUNNER.subprocess, "run", return_value=completed):
+        with mock.patch.object(
+            RUNNER.subprocess, "run", return_value=completed
+        ) as subprocess_run:
             inspected = RUNNER.inspect_interpreter(Path(sys.executable))
         self.assertEqual(RUNNER.EXPECTED_DEPENDENCY_VERSIONS, inspected["versions"])
         self.assertIn("binary_sha256", inspected)
         self.assertIn("dependency_snapshot_sha256", inspected)
+        probe_code = subprocess_run.call_args.args[0][2]
+        self.assertIn("os.path.isdir(p)", probe_code)
+        self.assertIn("not os.path.islink(p)", probe_code)
 
         payload["versions"]["httpx"] = "0.28.0"
         completed.stdout = json.dumps(payload)
@@ -695,6 +712,22 @@ class OneShotSafetyTests(unittest.TestCase):
             self.assertRaisesRegex(RUNNER.RunnerError, "dependency versions mismatch"),
         ):
             RUNNER.inspect_interpreter(Path(sys.executable))
+
+    def test_replay_launch_environment_drops_unbound_python_startup_paths(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PYTHONPATH": "/tmp/unbound-code",
+                "PYTHONSTARTUP": "/tmp/unbound-startup.py",
+            },
+            clear=False,
+        ):
+            environment = RUNNER.replay_launch_environment()
+
+        self.assertNotIn("PYTHONPATH", environment)
+        self.assertNotIn("PYTHONSTARTUP", environment)
+        self.assertEqual("1", environment["PYTHONDONTWRITEBYTECODE"])
+        self.assertEqual("1", environment["PYTHONSAFEPATH"])
 
     def test_code_identity_rejects_head_mismatch_and_tracked_dirt(self) -> None:
         expected = "a" * 40
@@ -780,6 +813,8 @@ class OneShotSafetyTests(unittest.TestCase):
         )
 
         def replay(command: list[str], **_kwargs: object) -> object:
+            self.assertEqual(["-I", "-B", "-S"], command[1:4])
+            self.assertEqual(RUNNER.replay_launch_environment(), _kwargs.get("env"))
             report_arg = command[command.index("--report-dir") + 1]
             replay_root = RUNNER.REPO_ROOT / report_arg
             results = [

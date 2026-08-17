@@ -121,6 +121,12 @@ Use the documented `financial-engine_v2/.venv` environment or another explicit
 existing repo-supported interpreter; do not install or alter dependencies as
 part of a one-shot run.
 
+The child replay starts with explicit isolated/no-bytecode interpreter flags
+and a receipt-bound allowlisted environment; inherited `PYTHONPATH`, Python
+startup hooks, and other caller variables are not passed through. At child
+startup it rehashes the running interpreter and revalidates the exact dependency
+versions/snapshot against the receipt before extraction modules are imported.
+
 An authorized launch requires both the output root and its sibling
 `INVOCATION_RECEIPT.json` to be absent. After every input, source, output, and
 interpreter check passes, the runner creates the receipt using
@@ -153,6 +159,8 @@ raw value and explicit unit suffix instead of reconstructing them from the
 normalized value. Both `ok` and `ok_low_confidence` are scoreable successful
 observations. Shares outstanding likewise requires an exact requested-period
 source cell and preserves its scaled count identity; it does not require a
+currency. When a monetary source cell has an explicit currency prefix, that
+source currency is preserved instead of being replaced by the document-level
 currency.
 
 Immediately before extraction, every v2 source is copied through a held,

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import hashlib
 import json
 import os
 import shutil
@@ -21,7 +22,9 @@ RUNNER_PATH = ROOT / "scripts" / "extraction_no_write_replay.py"
 
 
 def load_runner():
-    spec = importlib.util.spec_from_file_location("extraction_no_write_replay", RUNNER_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "extraction_no_write_replay", RUNNER_PATH
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError("unable to load extraction_no_write_replay")
     module = importlib.util.module_from_spec(spec)
@@ -84,13 +87,19 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.resolve_manifest_path(Path("/tmp/guard_cases_v1.json"))
         resolved = RUNNER.resolve_manifest_path(
-            Path("financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json")
+            Path(
+                "financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json"
+            )
         )
-        self.assertTrue(str(resolved).startswith(str(RUNNER.CERTIFIED_MANIFEST_ROOT.resolve())))
+        self.assertTrue(
+            str(resolved).startswith(str(RUNNER.CERTIFIED_MANIFEST_ROOT.resolve()))
+        )
 
     def test_whc_edu_mixed_unit_manifest_is_certified_docling_only(self):
         manifest_path = RUNNER.resolve_manifest_path(
-            Path("financial-engine_v2/data/extraction_no_write_cases/whc_edu_mixed_unit_cases_v1.json")
+            Path(
+                "financial-engine_v2/data/extraction_no_write_cases/whc_edu_mixed_unit_cases_v1.json"
+            )
         )
         manifest = RUNNER.load_manifest(manifest_path)
         self.assertFalse(manifest["certification"]["allow_production_writes"])
@@ -111,22 +120,33 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             self.assertEqual("mixed_unit_surface", case["source_bound_unit_family"])
             self.assertFalse(Path(case["source_path"]).is_absolute())
             self.assertTrue(case["source_path"].startswith("asx/docs/"))
-            self.assertTrue(case["expected_error_family"].startswith("validation_gate:"))
+            self.assertTrue(
+                case["expected_error_family"].startswith("validation_gate:")
+            )
 
     def test_llm_url_must_be_loopback(self):
-        self.assertEqual("http://127.0.0.1:8001", RUNNER.assert_loopback_url("http://127.0.0.1:8001/"))
-        self.assertEqual("http://localhost:8001", RUNNER.assert_loopback_url("http://localhost:8001"))
+        self.assertEqual(
+            "http://127.0.0.1:8001",
+            RUNNER.assert_loopback_url("http://127.0.0.1:8001/"),
+        )
+        self.assertEqual(
+            "http://localhost:8001", RUNNER.assert_loopback_url("http://localhost:8001")
+        )
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.assert_loopback_url("https://example.com/v1")
 
     def test_profile_must_be_certified(self):
         self.assertEqual(RUNNER.BASELINE_PROFILE, RUNNER.normalize_profile(""))
-        self.assertEqual(RUNNER.DOCLING_PROFILE, RUNNER.normalize_profile(RUNNER.DOCLING_PROFILE))
+        self.assertEqual(
+            RUNNER.DOCLING_PROFILE, RUNNER.normalize_profile(RUNNER.DOCLING_PROFILE)
+        )
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.normalize_profile("ad-hoc-docling")
 
     def test_docling_venv_python_must_be_approved_candidate(self):
-        approved = RUNNER.resolve_approved_venv_python("financial-engine_v2/.venv/bin/python")
+        approved = RUNNER.resolve_approved_venv_python(
+            "financial-engine_v2/.venv/bin/python"
+        )
         self.assertTrue(str(approved).endswith("financial-engine_v2/.venv/bin/python"))
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.resolve_approved_venv_python("/tmp/random-venv/bin/python")
@@ -225,9 +245,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             ]
         }
 
-        observations = RUNNER._benchmark_internal_metrics(
-            multipass, debug_capture
-        )
+        observations = RUNNER._benchmark_internal_metrics(multipass, debug_capture)
 
         self.assertEqual({}, observations["values"])
 
@@ -241,9 +259,7 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         payload = RUNNER._compact_payload(result)
 
         self.assertEqual({"revenue": 10_000_000}, payload["non_null_metrics"])
-        self.assertFalse(
-            any(key.startswith("benchmark_internal_") for key in payload)
-        )
+        self.assertFalse(any(key.startswith("benchmark_internal_") for key in payload))
 
     def test_case_timeout_is_infrastructure_failure(self):
         self.assertTrue(
@@ -299,7 +315,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             {"case_id": "WHC", "parser_backend": "pymupdf"},
         ]
         incompatible = RUNNER._docling_incompatible_cases(cases)
-        self.assertEqual([{"case_id": "WHC", "parser_backend": "pymupdf"}], incompatible)
+        self.assertEqual(
+            [{"case_id": "WHC", "parser_backend": "pymupdf"}], incompatible
+        )
 
     def test_docling_profile_forces_strict_docling_cases(self):
         cases = [
@@ -307,7 +325,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             {"case_id": "LBL"},
         ]
         strict_cases = RUNNER._force_docling_profile_cases(cases)
-        self.assertEqual(["docling", "docling"], [case["parser_backend"] for case in strict_cases])
+        self.assertEqual(
+            ["docling", "docling"], [case["parser_backend"] for case in strict_cases]
+        )
         self.assertEqual([True, True], [case["strict_parser"] for case in strict_cases])
         self.assertFalse(cases[0]["strict_parser"])
 
@@ -359,7 +379,11 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual("1", env["EXTRACTION_SKIP_NARRATIVE"])
         self.assertEqual("", env["OPENAI_API_KEY"])
         self.assertEqual("", env["ANTHROPIC_API_KEY"])
-        self.assertTrue(env["MODEL_ROUTING_CONFIG"].endswith("financial-engine_v2/backend/app/config/model_routing.yaml"))
+        self.assertTrue(
+            env["MODEL_ROUTING_CONFIG"].endswith(
+                "financial-engine_v2/backend/app/config/model_routing.yaml"
+            )
+        )
 
     def test_safe_env_report_redacts_secret_values(self):
         report = RUNNER._safe_env_report(
@@ -396,7 +420,12 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
 
     def test_run_replay_validates_case_selector_before_resetting_reports(self):
         report_rel = "reports/agent_jobs/extraction_no_write_invalid_selector_test/run"
-        report_root = ROOT / "reports" / "agent_jobs" / "extraction_no_write_invalid_selector_test"
+        report_root = (
+            ROOT
+            / "reports"
+            / "agent_jobs"
+            / "extraction_no_write_invalid_selector_test"
+        )
         report_dir = ROOT / report_rel
         stale = report_dir / "validation.json"
         stale.parent.mkdir(parents=True, exist_ok=True)
@@ -421,7 +450,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
 
     def test_run_replay_validates_llm_url_before_resetting_reports(self):
         report_rel = "reports/agent_jobs/extraction_no_write_invalid_llm_url_test/run"
-        report_root = ROOT / "reports" / "agent_jobs" / "extraction_no_write_invalid_llm_url_test"
+        report_root = (
+            ROOT / "reports" / "agent_jobs" / "extraction_no_write_invalid_llm_url_test"
+        )
         report_dir = ROOT / report_rel
         stale = report_dir / "validation.json"
         stale.parent.mkdir(parents=True, exist_ok=True)
@@ -491,15 +522,24 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 reason="docling_import_failed",
             )
 
-            validation = json.loads((report_dir / "validation.json").read_text(encoding="utf-8"))
-            audit = json.loads((report_dir / "side_effect_audit.json").read_text(encoding="utf-8"))
+            validation = json.loads(
+                (report_dir / "validation.json").read_text(encoding="utf-8")
+            )
+            audit = json.loads(
+                (report_dir / "side_effect_audit.json").read_text(encoding="utf-8")
+            )
             self.assertEqual("DATA_MISSING", validation["status"])
             self.assertEqual(RUNNER.DOCLING_PROFILE, validation["profile"])
             self.assertTrue(audit["forbidden_surface_clean"])
             self.assertFalse(any(audit["forbidden_surface_mutation"].values()))
 
     def test_infrastructure_failure_detects_runtime_config_failures(self):
-        row = {"result": {"status": "failed", "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'"}}
+        row = {
+            "result": {
+                "status": "failed",
+                "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+            }
+        }
         self.assertTrue(RUNNER._is_infrastructure_failure(row))
 
     def test_expectation_failures_compare_status_and_period(self):
@@ -569,9 +609,13 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         }
         results = [row]
         extraction_exceptions = [
-            item for item in results if (item.get("result") or {}).get("status") == "exception"
+            item
+            for item in results
+            if (item.get("result") or {}).get("status") == "exception"
         ]
-        infrastructure_failures = [item for item in results if RUNNER._is_infrastructure_failure(item)]
+        infrastructure_failures = [
+            item for item in results if RUNNER._is_infrastructure_failure(item)
+        ]
 
         self.assertEqual([row], extraction_exceptions)
         self.assertEqual([], infrastructure_failures)
@@ -713,7 +757,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
     def test_surface_audit_fails_on_source_sidecar_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            source_dir = root / "data" / "asx" / "docs" / "HUB" / "financial_performance"
+            source_dir = (
+                root / "data" / "asx" / "docs" / "HUB" / "financial_performance"
+            )
             source_dir.mkdir(parents=True)
             source_pdf = source_dir / "hub.pdf"
             source_pdf.write_bytes(b"%PDF-1.4\n")
@@ -773,8 +819,12 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
 
             loaded = RUNNER.load_manifest(path)
 
-        self.assertEqual("extraction_no_write_case_manifest_v1", loaded["artifact_type"])
-        self.assertEqual(["HUB", "LBL"], [row["case_id"] for row in RUNNER.select_cases(loaded, [])])
+        self.assertEqual(
+            "extraction_no_write_case_manifest_v1", loaded["artifact_type"]
+        )
+        self.assertEqual(
+            ["HUB", "LBL"], [row["case_id"] for row in RUNNER.select_cases(loaded, [])]
+        )
 
     def test_v2_receipt_is_bound_to_one_report_and_rejects_reuse(self):
         report_parent = ROOT / "reports" / "agent_jobs"
@@ -794,6 +844,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             corpus_sha = RUNNER._sha256(corpus_path)
             command = [
                 sys.executable,
+                "-I",
+                "-B",
+                "-S",
                 str(RUNNER_PATH),
                 "--case-manifest",
                 str(manifest_path),
@@ -819,7 +872,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             code_identity = {
                 "head_sha": "a" * 40,
                 "tree_sha": "b" * 40,
-                "tracked_files_sha256": {"scripts/extraction_no_write_replay.py": "c" * 64},
+                "tracked_files_sha256": {
+                    "scripts/extraction_no_write_replay.py": "c" * 64
+                },
             }
             receipt = {
                 "artifact_type": "broad_extraction_invocation_receipt_v2",
@@ -833,7 +888,11 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 "corpus_path": str(corpus_path),
                 "corpus_sha256": corpus_sha,
                 "case_count": 20,
+                "interpreter": {
+                    "binary_sha256": RUNNER._sha256(Path(sys.executable).resolve())
+                },
                 "code_identity": code_identity,
+                "launch_environment": {},
                 "command": command,
             }
             receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
@@ -843,6 +902,8 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 mock.patch.object(
                     RUNNER, "inspect_code_identity", return_value=code_identity
                 ),
+                mock.patch.object(RUNNER, "validate_v2_launch_environment"),
+                mock.patch.object(RUNNER, "validate_v2_running_interpreter"),
             ):
                 validated = RUNNER.validate_v2_invocation_receipt(
                     receipt_path,
@@ -945,6 +1006,51 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
 
             self.assertEqual(invocation_id, validated["invocation_id"])
 
+    def test_v2_launch_environment_rejects_unbound_startup_code(self):
+        bound = {
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONSAFEPATH": "1",
+        }
+        with mock.patch.dict(os.environ, bound, clear=True):
+            RUNNER.validate_v2_launch_environment(bound)
+            os.environ["PYTHONPATH"] = "/tmp/unbound-code"
+            with self.assertRaisesRegex(
+                RUNNER.ReplayConfigError, "launch environment mismatch"
+            ):
+                RUNNER.validate_v2_launch_environment(bound)
+
+    def test_v2_running_interpreter_revalidates_binary_and_dependencies(self):
+        versions = dict(RUNNER.V2_EXPECTED_DEPENDENCY_VERSIONS)
+        snapshot_sha = hashlib.sha256(
+            json.dumps(versions, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        binding = {
+            "binary_sha256": "a" * 64,
+            "versions": versions,
+            "dependency_snapshot_sha256": snapshot_sha,
+            "site_packages": [str(Path(sys.executable).resolve().parent)],
+        }
+        with (
+            mock.patch.object(RUNNER, "_sha256", return_value="a" * 64),
+            mock.patch.object(
+                RUNNER.importlib.metadata,
+                "version",
+                side_effect=lambda name: versions[name],
+            ),
+            mock.patch.object(RUNNER.sys, "path", list(RUNNER.sys.path)),
+        ):
+            RUNNER.validate_v2_running_interpreter(binding)
+            binding["binary_sha256"] = "b" * 64
+            with self.assertRaisesRegex(
+                RUNNER.ReplayConfigError, "running interpreter SHA-256 mismatch"
+            ):
+                RUNNER.validate_v2_running_interpreter(binding)
+
     def test_v2_manifest_accepts_only_exact_complete_direct_sources(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -996,8 +1102,12 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             manifest_path = root / "cases.json"
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
             with (
-                mock.patch.object(RUNNER, "V2_CORPUS_SHA256", RUNNER._sha256(corpus_path)),
-                mock.patch.object(RUNNER, "V2_MANIFEST_SHA256", RUNNER._sha256(manifest_path)),
+                mock.patch.object(
+                    RUNNER, "V2_CORPUS_SHA256", RUNNER._sha256(corpus_path)
+                ),
+                mock.patch.object(
+                    RUNNER, "V2_MANIFEST_SHA256", RUNNER._sha256(manifest_path)
+                ),
             ):
                 contract = RUNNER._validate_v2_manifest_contract(
                     manifest_path, manifest, repo_root=repo
@@ -1053,7 +1163,9 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             self.assertEqual(b"frozen-source-bytes", isolated_source.read_bytes())
             self.assertEqual(cases[0]["source_sha256"], RUNNER._sha256(isolated_source))
             self.assertEqual(str(source), isolated[0]["source_path_original"])
-            self.assertEqual("asx/docs/T00/report.pdf", isolated[0]["source_path_declared"])
+            self.assertEqual(
+                "asx/docs/T00/report.pdf", isolated[0]["source_path_declared"]
+            )
 
             bad_case = dict(cases[0], source_sha256="0" * 64)
             with self.assertRaisesRegex(
