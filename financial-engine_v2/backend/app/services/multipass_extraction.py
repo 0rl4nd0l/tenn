@@ -21,6 +21,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from queue import Empty, SimpleQueue
 from typing import Any, Optional, Sequence
@@ -2585,6 +2586,39 @@ def _period_bound_source_cell(
     }
 
 
+def _exact_period_source_cell_for_value(
+    table: Any,
+    row_ref: Any,
+    final_value: Any,
+    scale: str,
+    pass1_result: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Return one period-bound raw cell only when it reproduces the final value."""
+    period_binding = _bind_current_period_column(
+        table,
+        pass1_result.get("period_end"),
+        period_basis=pass1_result.get("period_basis"),
+    )
+    if period_binding.get("status") != "BOUND":
+        return None
+    source_cell = _period_bound_source_cell(
+        table,
+        row_ref,
+        period_binding["column_index"],
+        scale,
+    )
+    if source_cell is None or source_cell.get("scaled_value") != final_value:
+        return None
+    source_cell["header_cell"] = period_binding["header_cell"]
+    source_cell["requested_period_end"] = period_binding["requested_period_end"]
+    period_basis = pass1_result.get("period_basis")
+    if period_basis in {"period_only", "year_to_date"}:
+        source_cell["table_index"] = period_binding["table_index"]
+        source_cell["column_role"] = period_binding["column_role"]
+        source_cell["period_basis"] = period_basis
+    return source_cell
+
+
 def _bind_statement_metrics_to_current_period_cells(
     extracted: dict[str, Any],
     table: Any,
@@ -2973,7 +3007,7 @@ def _recover_preferred_cashflow_cash_end_from_table(
 def _recover_preferred_cashflow_cash_end_from_tables(
     tables: Any,
     scale: Any,
-) -> tuple[float, str, Any, str, str] | None:
+) -> tuple[float, str, Any, str, str, Any] | None:
     for table in tables or []:
         table_scale = _detect_scale_from_table(table)
         scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
@@ -2990,6 +3024,7 @@ def _recover_preferred_cashflow_cash_end_from_tables(
             getattr(table, "page_number", None),
             scale_for_table,
             "table" if table_scale != "unknown" else "document",
+            table,
         )
     return None
 
@@ -6425,6 +6460,106 @@ def _build_field_provenance_entry(
     return entry
 
 
+def _prune_unbound_benchmark_source_cells(payload: dict[str, Any]) -> None:
+    """Remove source cells that do not bind exactly to the final metric and period."""
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = (
+        payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    )
+    final_provenance = (
+        payload.get("provenance")
+        if isinstance(payload.get("provenance"), dict)
+        else {}
+    )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
+    metric_source_scales = (
+        payload.get("metric_source_scales")
+        if isinstance(payload.get("metric_source_scales"), dict)
+        else {}
+    )
+    period_end = str(payload.get("period_end") or "")
+
+    for metric_name, provenance in field_provenance.items():
+        if not isinstance(provenance, dict):
+            continue
+        source_cell = provenance.get("source_cell")
+        if not isinstance(source_cell, dict):
+            continue
+        raw_value = source_cell.get("raw_value")
+        scale = str(
+            metric_source_scales.get(metric_name) or provenance.get("scale") or ""
+        ).strip()
+        final_value = metrics.get(metric_name)
+        source = str(provenance.get("source") or "").strip()
+        page_number = provenance.get("page_number")
+        page_tag = str(provenance.get("page_tag") or "").strip()
+        row_ref = str(provenance.get("row_ref") or "").strip()
+        has_exact_location = (
+            source_cell.get("page_number") is not None
+            and isinstance(source_cell.get("row_index"), int)
+            and not isinstance(source_cell.get("row_index"), bool)
+            and isinstance(source_cell.get("column_index"), int)
+            and not isinstance(source_cell.get("column_index"), bool)
+            and bool(str(source_cell.get("row_label") or "").strip())
+            and bool(str(source_cell.get("header_cell") or "").strip())
+        )
+        final_producer_matches = (
+            bool(source)
+            and source != "unknown"
+            and page_number is not None
+            and page_tag == f"page_{page_number}"
+            and bool(row_ref)
+            and row_ref != "unknown"
+            and str(source_cell.get("page_number")) == str(page_number)
+            and str(source_cell.get("row_label") or "").strip() == row_ref
+            and str(row_refs.get(metric_name) or "").strip() == row_ref
+            and final_provenance.get(metric_name)
+            == f"{source}:{page_tag}:{row_ref}"
+        )
+        matches = False
+        if (
+            final_value is not None
+            and not isinstance(final_value, bool)
+            and scale in SCALE_MULTIPLIERS
+            and scale != "unknown"
+            and period_end
+            and source_cell.get("requested_period_end") == period_end
+            and has_exact_location
+            and final_producer_matches
+        ):
+            try:
+                raw_text = " ".join(str(raw_value).split()).strip()
+                neg_paren = raw_text.startswith("(") and raw_text.endswith(")")
+                if neg_paren:
+                    raw_text = raw_text[1:-1].strip()
+                raw_match = _ACCOUNTING_NUMBER_RE.match(raw_text)
+                if raw_match is None:
+                    raise InvalidOperation
+                raw_number = Decimal(raw_match.group("num").replace(",", ""))
+                if neg_paren:
+                    raw_number = -abs(raw_number)
+                suffix = str(raw_match.group("suffix") or "").lower()
+                normalized = (
+                    raw_number * _ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS[suffix]
+                    if suffix
+                    else raw_number * SCALE_MULTIPLIERS[scale]
+                )
+                final_decimal = Decimal(str(final_value))
+                matches = (
+                    normalized.is_finite()
+                    and final_decimal.is_finite()
+                    and normalized == final_decimal
+                )
+            except (InvalidOperation, TypeError, ValueError):
+                matches = False
+        if not matches:
+            provenance.pop("source_cell", None)
+
+
 def _run_pass4_reconciler(
     pass3a_results: list[dict],
     pass3b_result: dict,
@@ -7494,6 +7629,7 @@ def _apply_preferred_income_statement_source_payload(
     *,
     scale: Any,
     pass1_result: dict,
+    capture_benchmark_source_cell: bool = False,
 ) -> None:
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
     row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
@@ -7573,11 +7709,6 @@ def _apply_preferred_income_statement_source_payload(
             continue
         table_scale = _detect_scale_from_table(table)
         scale_for_table = table_scale if table_scale != "unknown" else str(scale or "unknown")
-        period_binding = _bind_current_period_column(
-            table,
-            pass1_result.get("period_end"),
-            period_basis=pass1_result.get("period_basis"),
-        )
         for metric_name, (
             recovered_value,
             recovered_row_ref,
@@ -7585,6 +7716,17 @@ def _apply_preferred_income_statement_source_payload(
             table,
             scale_for_table,
         ).items():
+            page_tag = f"page_{getattr(table, 'page_number', '?')}"
+            recovered_provenance = (
+                f"income_statement:{page_tag}:{recovered_row_ref}"
+            )
+            source_cell = _exact_period_source_cell_for_value(
+                table,
+                recovered_row_ref,
+                recovered_value,
+                scale_for_table,
+                pass1_result,
+            )
             existing_is_weak_wrapper = _appendix_wrapper_source_row_is_weak(
                 row_refs.get(metric_name)
             ) or _appendix_wrapper_source_row_is_weak(provenance.get(metric_name))
@@ -7623,34 +7765,32 @@ def _apply_preferred_income_statement_source_payload(
                 or existing_scale_conflicts_with_preferred
                 or existing_has_lower_priority
             ):
+                if (
+                    capture_benchmark_source_cell
+                    and source_cell is not None
+                    and metrics.get(metric_name) == recovered_value
+                    and provenance.get(metric_name) == recovered_provenance
+                ):
+                    field_provenance[metric_name] = _build_field_provenance_entry(
+                        metric_name=metric_name,
+                        source="income_statement",
+                        page=getattr(table, "page_number", None),
+                        row_ref=recovered_row_ref,
+                        scale=scale_for_table,
+                        scale_source=metric_scale_sources.get(metric_name),
+                        pass1_result=pass1_result,
+                        source_cell=source_cell,
+                    )
                 continue
             metrics[metric_name] = recovered_value
             payload[metric_name] = recovered_value
             row_refs[metric_name] = recovered_row_ref
-            page_tag = f"page_{getattr(table, 'page_number', '?')}"
-            provenance[metric_name] = f"income_statement:{page_tag}:{recovered_row_ref}"
+            provenance[metric_name] = recovered_provenance
             if scale_for_table and scale_for_table != "unknown":
                 metric_source_scales[metric_name] = scale_for_table
                 metric_scale_sources[metric_name] = (
                     "table" if table_scale != "unknown" else "document"
                 )
-            source_cell = None
-            if period_binding.get("status") == "BOUND":
-                candidate_source_cell = _period_bound_source_cell(
-                    table,
-                    recovered_row_ref,
-                    period_binding["column_index"],
-                    scale_for_table,
-                )
-                if (
-                    candidate_source_cell is not None
-                    and candidate_source_cell.get("scaled_value") == recovered_value
-                ):
-                    candidate_source_cell["header_cell"] = period_binding["header_cell"]
-                    candidate_source_cell["requested_period_end"] = period_binding[
-                        "requested_period_end"
-                    ]
-                    source_cell = candidate_source_cell
             field_provenance[metric_name] = _build_field_provenance_entry(
                 metric_name=metric_name,
                 source="income_statement",
@@ -8807,6 +8947,7 @@ def _apply_preferred_cash_end_source_payload(
     *,
     scale: Any,
     pass1_result: dict,
+    capture_benchmark_source_cell: bool = False,
 ) -> None:
     row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
     if (
@@ -8819,7 +8960,7 @@ def _apply_preferred_cash_end_source_payload(
     if recovered is None:
         return
 
-    value, row_ref, page, metric_scale, scale_source = recovered
+    value, row_ref, page, metric_scale, scale_source, source_table = recovered
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
     provenance = (
         payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
@@ -8848,6 +8989,15 @@ def _apply_preferred_cash_end_source_payload(
     if metric_scale and metric_scale != "unknown":
         metric_source_scales["cash_end"] = metric_scale
         metric_scale_sources["cash_end"] = scale_source
+    source_cell = None
+    if capture_benchmark_source_cell:
+        source_cell = _exact_period_source_cell_for_value(
+            source_table,
+            row_ref,
+            value,
+            metric_scale,
+            pass1_result,
+        )
     field_provenance["cash_end"] = _build_field_provenance_entry(
         metric_name="cash_end",
         source="source_table",
@@ -8856,6 +9006,7 @@ def _apply_preferred_cash_end_source_payload(
         scale=metric_scale,
         scale_source=scale_source,
         pass1_result=pass1_result,
+        source_cell=source_cell,
     )
 
     payload["metrics"] = metrics
@@ -10382,6 +10533,7 @@ def run_multipass_extraction(
             structured_tables,
             scale=payload.get("scale") or pass1.get("scale", "unknown"),
             pass1_result=pass1,
+            capture_benchmark_source_cell=capture_benchmark_source_cells,
         )
         _apply_preferred_statement_text_source_payload(
             payload,
@@ -10421,6 +10573,7 @@ def run_multipass_extraction(
             structured_tables,
             scale=payload.get("scale") or pass1.get("scale", "unknown"),
             pass1_result=pass1,
+            capture_benchmark_source_cell=capture_benchmark_source_cells,
         )
     if set(allowed_contract_metrics) & {
         "operating_cf",
@@ -10434,6 +10587,8 @@ def run_multipass_extraction(
             pass1_result=pass1,
         )
     _enforce_contract_metric_allowance(payload, allowed_contract_metrics)
+    if capture_benchmark_source_cells:
+        _prune_unbound_benchmark_source_cells(payload)
     source_bound = payload.get("source_bound")
     if not isinstance(source_bound, dict):
         source_bound = {}

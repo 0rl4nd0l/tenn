@@ -5338,6 +5338,7 @@ def test_income_source_overlay_preserves_fmg_current_period_source_cells():
             "period_end": "2025-12-31",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["revenue"] == 8_439_000_000
@@ -5395,6 +5396,7 @@ def test_income_source_overlay_does_not_claim_ambiguous_period_source_cells():
             "period_end": "2025-12-31",
             "currency": "USD",
         },
+        capture_benchmark_source_cell=True,
     )
 
     assert payload["metrics"]["revenue"] == 8_439_000_000
@@ -5444,10 +5446,347 @@ def test_income_source_overlay_does_not_claim_value_mismatched_source_cell():
                 "period_end": "2025-12-31",
                 "currency": "USD",
             },
+            capture_benchmark_source_cell=True,
         )
 
     assert payload["metrics"]["revenue"] == 50_000_000
     assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+
+def test_income_source_overlay_retains_final_existing_cell_only_when_opted_in():
+    """Benchmark capture may bind an unchanged final metric to its exact cell."""
+    from copy import deepcopy
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_income_statement_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=111,
+        caption="Consolidated Income Statement",
+        headers=["", "Note", "30 June 2025 $M", "30 June 2024 $M"],
+        raw_header_rows=[
+            ["", "", "30 June 2025", "30 June 2024"],
+            ["", "Note", "$M", "$M"],
+        ],
+        rows=[["Revenue", "2.1", "69,077", "67,922"]],
+    )
+    initial = {
+        "metrics": {"revenue": 69_077_000_000},
+        "revenue": 69_077_000_000,
+        "row_refs": {"revenue": "Revenue"},
+        "provenance": {"revenue": "income_statement:page_111:Revenue"},
+        "field_provenance": {
+            "revenue": {
+                "metric": "revenue",
+                "source": "income_statement",
+                "row_ref": "Revenue",
+            }
+        },
+        "metric_source_scales": {"revenue": "millions"},
+        "metric_scale_sources": {"revenue": "table"},
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+    }
+
+    flag_off = deepcopy(initial)
+    _apply_preferred_income_statement_source_payload(
+        flag_off,
+        [table],
+        scale="millions",
+        pass1_result=pass1,
+    )
+    assert "source_cell" not in flag_off["field_provenance"]["revenue"]
+
+    flag_on = deepcopy(initial)
+    _apply_preferred_income_statement_source_payload(
+        flag_on,
+        [table],
+        scale="millions",
+        pass1_result=pass1,
+        capture_benchmark_source_cell=True,
+    )
+
+    assert flag_on["metrics"]["revenue"] == initial["metrics"]["revenue"]
+    assert flag_on["field_provenance"]["revenue"]["source_cell"] == {
+        "page_number": 111,
+        "row_index": 0,
+        "column_index": 2,
+        "row_label": "Revenue",
+        "raw_value": "69,077",
+        "header_cell": "30 June 2025",
+        "requested_period_end": "2025-06-30",
+    }
+
+
+def test_preferred_cash_end_retains_exact_period_cell_only_when_opted_in():
+    """Cash-end recovery exposes its exact final raw cell only for benchmark capture."""
+    from copy import deepcopy
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _apply_preferred_cash_end_source_payload,
+    )
+
+    table = DoclingTable(
+        page_number=29,
+        caption="Consolidated statement of cash flows",
+        headers=["", "30 June 2025", "30 June 2024"],
+        raw_header_rows=[["", "30 June 2025", "30 June 2024"]],
+        rows=[
+            [
+                "Cash and cash equivalents at the end of the financial year",
+                "564,524",
+                "1,100,000",
+            ]
+        ],
+    )
+    initial = {
+        "metrics": {"cash_end": None},
+        "cash_end": None,
+        "row_refs": {},
+        "provenance": {},
+        "field_provenance": {},
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+    }
+
+    flag_off = deepcopy(initial)
+    _apply_preferred_cash_end_source_payload(
+        flag_off,
+        [table],
+        scale="units",
+        pass1_result=pass1,
+    )
+    assert flag_off["metrics"]["cash_end"] == 564_524
+    assert "source_cell" not in flag_off["field_provenance"]["cash_end"]
+
+    flag_on = deepcopy(initial)
+    _apply_preferred_cash_end_source_payload(
+        flag_on,
+        [table],
+        scale="units",
+        pass1_result=pass1,
+        capture_benchmark_source_cell=True,
+    )
+
+    assert flag_on["metrics"]["cash_end"] == 564_524
+    assert flag_on["field_provenance"]["cash_end"]["source_cell"] == {
+        "page_number": 29,
+        "row_index": 0,
+        "column_index": 1,
+        "row_label": "Cash and cash equivalents at the end of the financial year",
+        "raw_value": "564,524",
+        "header_cell": "30 June 2025",
+        "requested_period_end": "2025-06-30",
+    }
+
+
+def test_benchmark_source_cell_retention_drops_stale_replacement_evidence():
+    """A replaced final value cannot inherit an earlier producer's source cell."""
+    from app.services.multipass_extraction import (
+        _prune_unbound_benchmark_source_cells,
+    )
+
+    payload = {
+        "period_end": "2025-06-30",
+        "metrics": {"revenue": 100_000_000},
+        "row_refs": {"revenue": "Revenue"},
+        "provenance": {"revenue": "income_statement:page_10:Revenue"},
+        "metric_source_scales": {"revenue": "millions"},
+        "field_provenance": {
+            "revenue": {
+                "source": "income_statement",
+                "page_number": 10,
+                "page_tag": "page_10",
+                "row_ref": "Revenue",
+                "scale": "millions",
+                "source_cell": {
+                    "page_number": 10,
+                    "row_index": 2,
+                    "column_index": 1,
+                    "row_label": "Revenue",
+                    "raw_value": "90",
+                    "header_cell": "30 June 2025",
+                    "requested_period_end": "2025-06-30",
+                },
+            }
+        },
+    }
+
+    _prune_unbound_benchmark_source_cells(payload)
+
+    assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+
+def test_benchmark_source_cell_retention_drops_same_value_from_old_producer():
+    """Equal normalized values do not make an earlier producer's cell current."""
+    from app.services.multipass_extraction import (
+        _prune_unbound_benchmark_source_cells,
+    )
+
+    payload = {
+        "period_end": "2025-06-30",
+        "metrics": {"revenue": 100_000_000},
+        "row_refs": {"revenue": "Replacement revenue"},
+        "provenance": {
+            "revenue": "replacement_statement:page_12:Replacement revenue"
+        },
+        "metric_source_scales": {"revenue": "millions"},
+        "field_provenance": {
+            "revenue": {
+                "source": "income_statement",
+                "page_number": 10,
+                "page_tag": "page_10",
+                "row_ref": "Revenue",
+                "scale": "millions",
+                "source_cell": {
+                    "page_number": 10,
+                    "row_index": 2,
+                    "column_index": 1,
+                    "row_label": "Revenue",
+                    "raw_value": "100",
+                    "header_cell": "30 June 2025",
+                    "requested_period_end": "2025-06-30",
+                },
+            }
+        },
+    }
+
+    _prune_unbound_benchmark_source_cells(payload)
+
+    assert "source_cell" not in payload["field_provenance"]["revenue"]
+
+
+def test_benchmark_source_cell_retention_compares_normalized_values_exactly():
+    """Values that collapse to the same float remain distinct source identities."""
+    from app.services.multipass_extraction import (
+        _prune_unbound_benchmark_source_cells,
+    )
+
+    payload = {
+        "period_end": "2025-06-30",
+        "metrics": {"shares_outstanding": 9_007_199_254_740_993},
+        "row_refs": {"shares_outstanding": "Closing balance"},
+        "provenance": {
+            "shares_outstanding": "share_capital:page_22:Closing balance"
+        },
+        "metric_source_scales": {"shares_outstanding": "units"},
+        "field_provenance": {
+            "shares_outstanding": {
+                "source": "share_capital",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "Closing balance",
+                "scale": "units",
+                "source_cell": {
+                    "page_number": 22,
+                    "row_index": 3,
+                    "column_index": 1,
+                    "row_label": "Closing balance",
+                    "raw_value": "9007199254740992",
+                    "header_cell": "30 June 2025",
+                    "requested_period_end": "2025-06-30",
+                },
+            }
+        },
+    }
+
+    _prune_unbound_benchmark_source_cells(payload)
+
+    assert "source_cell" not in payload["field_provenance"]["shares_outstanding"]
+
+
+def test_benchmark_source_cell_retention_drops_period_mismatch():
+    """A raw cell for another period is never retained for the final metric."""
+    from app.services.multipass_extraction import (
+        _prune_unbound_benchmark_source_cells,
+    )
+
+    payload = {
+        "period_end": "2025-06-30",
+        "metrics": {"cash_end": 564_524},
+        "row_refs": {"cash_end": "Cash and cash equivalents"},
+        "provenance": {
+            "cash_end": "source_table:page_29:Cash and cash equivalents"
+        },
+        "metric_source_scales": {"cash_end": "units"},
+        "field_provenance": {
+            "cash_end": {
+                "source": "source_table",
+                "page_number": 29,
+                "page_tag": "page_29",
+                "row_ref": "Cash and cash equivalents",
+                "scale": "units",
+                "source_cell": {
+                    "page_number": 29,
+                    "row_index": 0,
+                    "column_index": 2,
+                    "row_label": "Cash and cash equivalents",
+                    "raw_value": "564,524",
+                    "header_cell": "30 June 2024",
+                    "requested_period_end": "2024-06-30",
+                },
+            }
+        },
+    }
+
+    _prune_unbound_benchmark_source_cells(payload)
+
+    assert "source_cell" not in payload["field_provenance"]["cash_end"]
+
+
+def test_benchmark_source_cell_retention_keeps_compatible_share_evidence():
+    """Existing shares capture remains valid under final-value pruning."""
+    from app.services.multipass_extraction import (
+        _prune_unbound_benchmark_source_cells,
+    )
+
+    source_cell = {
+        "page_number": 22,
+        "row_index": 0,
+        "column_index": 1,
+        "row_label": "Issued ordinary shares at 30 June 2025",
+        "raw_value": "2,945",
+        "header_cell": "30 June 2025",
+        "requested_period_end": "2025-06-30",
+    }
+    payload = {
+        "period_end": "2025-06-30",
+        "metrics": {"shares_outstanding": 2_945_000_000},
+        "row_refs": {
+            "shares_outstanding": "Issued ordinary shares at 30 June 2025"
+        },
+        "provenance": {
+            "shares_outstanding": (
+                "share_capital:page_22:Issued ordinary shares at 30 June 2025"
+            )
+        },
+        "metric_source_scales": {"shares_outstanding": "millions"},
+        "field_provenance": {
+            "shares_outstanding": {
+                "source": "share_capital",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "Issued ordinary shares at 30 June 2025",
+                "scale": "millions",
+                "source_cell": source_cell.copy(),
+            }
+        },
+    }
+
+    _prune_unbound_benchmark_source_cells(payload)
+
+    assert payload["field_provenance"]["shares_outstanding"]["source_cell"] == (
+        source_cell
+    )
 
 
 def test_income_source_overlay_prefers_bhp_shareholder_attributable_row():
@@ -9288,6 +9627,19 @@ def test_run_multipass_uses_explicit_presentation_currency_over_pass1():
     assert result.status in {"ok", "ok_low_confidence"}
     assert result.error is None
     assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_flag_off_emits_no_benchmark_source_cell_contract():
+    """Normal extraction never exposes the opt-in benchmark evidence keys."""
+    result = _run_currency_binding_fixture(
+        "The consolidated financial statements are presented in Australian "
+        "dollars (AUD).",
+        pass1_currency="AUD",
+        tables=[_currency_binding_statement_table("AUD")],
+    )
+
+    assert "benchmark_metric_source_cells" not in result.payload
+    assert "benchmark_internal_source_cells" not in result.payload
 
 
 def test_run_multipass_uses_explicit_us_dollar_reporting_currency_when_pass1_blank():
