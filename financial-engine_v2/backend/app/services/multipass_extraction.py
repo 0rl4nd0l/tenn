@@ -272,9 +272,16 @@ _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
 
 _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # AUD markers: A$, $A, AUD, Australian dollar(s)
-    (r"\b(?:A\$|\$A|AUD|AUSTRALIAN\s+DOLLARS?)\b", "AUD"),
+    (
+        r"(?:(?<!\w)(?:A\$|\$A)|\b(?:AUD|AUSTRALIAN\s+DOLLARS?)\b)",
+        "AUD",
+    ),
     # USD markers: US$, $US, USD, United States dollar(s)
-    (r"\b(?:US\$|\$US|USD|UNITED\s+STATES\s+DOLLARS?)\b", "USD"),
+    (
+        r"(?:(?<!\w)(?:US\$|\$US)|"
+        r"\b(?:USD|U\.?\s*S\.?\s+DOLLARS?|UNITED\s+STATES\s+DOLLARS?)\b)",
+        "USD",
+    ),
     # GBP markers: £ (symbol may precede scale like £'000), GBP, British pound(s), sterling.
     # (?<!\w) avoids matching mid-word; symbol alternatives don't need a trailing \b since £
     # is itself non-word and ASX column headers use e.g. "£'000" or "£M".
@@ -290,6 +297,46 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # Indonesian rupiah markers: IDR, Rp, rupiah.
     (r"(?:(?<!\w)RP\.?(?!\w)|\b(?:IDR|RUPIAH|INDONESIAN\s+RUPIAH)\b)", "IDR"),
 ]
+
+_EXPLICIT_CURRENCY_FORM_PATTERN = "|".join(
+    f"(?:{pattern})" for pattern, _currency in _CURRENCY_PATTERNS
+)
+_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN = (
+    r"(?:all\s+figures|all\s+financial\s+values?)\b\s+"
+    r"(?:(?:are\s+)?(?:presented|reported|expressed|stated)\s+in|"
+    r"are(?:\s+in)?|in)\s+"
+    rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})"
+)
+_AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS: tuple[_re.Pattern[str], ...] = (
+    _re.compile(
+        r"\b(?:reporting|presentation)\s+currency\b"
+        r"(?:\s+of\s+(?:the\s+)?(?:group|company|entity))?\s*"
+        r"(?:is|was|has\s+been|as|:)\s*(?:the\s+)?"
+        rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"\b(?:(?:the\s+)?(?:consolidated\s+)?financial\s+statements?|"
+        r"(?:the\s+)?consolidated\s+statements?|this\s+report|the\s+report)\b"
+        r"\s+(?:are|were|is|was|have\s+been|has\s+been)\s+"
+        r"(?:presented|reported|expressed|stated|prepared)\s+in\b\s*"
+        rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"\b(?:in|throughout)\s+(?:this|the)\s+(?:annual\s+)?report,?\s+"
+        rf"{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"^(?:annual|half[-\s]?year|quarterly|financial)\s+report\b"
+        r"[^.!?]{0,160}[.!?]\s+"
+        rf"{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}\s+"
+        r"(?:unless\s+(?:otherwise\s+)?(?:stated|specified)|"
+        r"unless\s+(?:stated|specified)\s+otherwise)\b",
+        _re.IGNORECASE,
+    ),
+)
 
 _ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
     "statement",
@@ -592,6 +639,23 @@ def _detect_currency_from_tables(tables) -> str | None:
             if matches:
                 hits[currency] = hits.get(currency, 0) + len(matches)
 
+    return _dominant_currency_from_hits(hits)
+
+
+def _detect_authoritative_currency_from_source_sections(
+    sections: list[dict] | None,
+) -> str | None:
+    """Return explicit document-currency declarations, abstaining on conflict."""
+    hits: dict[str, int] = {}
+    for section in sections or []:
+        source_text = " ".join(str(section.get("text") or "").split())
+        for declaration_pattern in _AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS:
+            for match in declaration_pattern.finditer(source_text):
+                declaration = match.group("currency")
+                for currency_pattern, currency in _CURRENCY_PATTERNS:
+                    if _re.search(currency_pattern, declaration, _re.IGNORECASE):
+                        hits[currency] = hits.get(currency, 0) + 1
+                        break
     return _dominant_currency_from_hits(hits)
 
 
@@ -10028,21 +10092,35 @@ def run_multipass_extraction(
     if pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
+    authoritative_currency = _detect_authoritative_currency_from_source_sections(
+        structured_doc.sections
+    )
     detected_currency = _detect_currency_from_tables(structured_tables)
-    if detected_currency is not None:
+    selected_currency = (
+        authoritative_currency
+        if authoritative_currency is not None
+        else detected_currency
+    )
+    if selected_currency is not None:
         classifier_currency = str(pass1.get("currency") or "").strip().upper()
-        if detected_currency == "":
+        source = (
+            "authoritative source declarations"
+            if authoritative_currency is not None
+            else "statement tables"
+        )
+        if selected_currency == "":
             logger.warning(
-                "conflicting explicit currency evidence in statement tables; abstaining"
+                "conflicting explicit currency evidence in %s; abstaining", source
             )
             pass1["currency"] = ""
-        elif classifier_currency != detected_currency:
+        elif classifier_currency != selected_currency:
             logger.info(
-                "currency from table headers (%s) overrides Pass 1 (%s)",
-                detected_currency,
+                "currency from %s (%s) overrides Pass 1 (%s)",
+                source,
+                selected_currency,
                 classifier_currency or "<empty>",
             )
-            pass1["currency"] = detected_currency
+            pass1["currency"] = selected_currency
 
     _currency = _normalize_currency_code(pass1.get("currency"))
     pass1["currency"] = _currency

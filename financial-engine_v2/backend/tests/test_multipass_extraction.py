@@ -9208,16 +9208,249 @@ def _pass3b_response():
     }
 
 
+def _run_currency_binding_fixture(
+    source_text,
+    *,
+    pass1_currency,
+    pdf_path="/fake/report.pdf",
+    metadata=None,
+    tables=None,
+):
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    structured_doc = _mock_structured_doc()
+    structured_doc.sections = [
+        {
+            "text": (
+                "Half-Year Report for the half-year ended 30 June 2025. "
+                f"{source_text}"
+            ),
+            "page": 3,
+        }
+    ]
+    if tables is not None:
+        structured_doc.tables = tables
+    pass1 = _pass1_response()
+    pass1["currency"] = pass1_currency
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=structured_doc,
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[_pass3a_response()],
+    ):
+        return run_multipass_extraction(
+            pdf_path,
+            metadata
+            or {
+                "document_id": "presentation-currency",
+                "ticker": "TST",
+                "title": "Half-Year Report",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+
+def _currency_binding_statement_table(currency):
+    from app.services.docling_extract import DoclingTable
+
+    return DoclingTable(
+        page_number=1,
+        caption="Income Statement",
+        headers=["", f"H1 2025 {currency} thousands"],
+        raw_header_rows=[["", f"30 Jun 2025 {currency} thousands"]],
+        rows=[
+            ["", f"H1 2025 {currency} thousands"],
+            ["Revenue", "500,000"],
+            ["EBIT", "80,000"],
+            ["Net profit", "55,000"],
+        ],
+    )
+
+
+def test_run_multipass_uses_explicit_presentation_currency_over_pass1():
+    """A same-document presentation-currency declaration is authoritative."""
+    result = _run_currency_binding_fixture(
+        "The consolidated financial statements are presented in Australian "
+        "dollars (AUD).",
+        pass1_currency="USD",
+        tables=[_currency_binding_statement_table("USD")],
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_uses_explicit_us_dollar_reporting_currency_when_pass1_blank():
+    """An explicit U.S.-dollar reporting declaration fills a blank Pass 1 value."""
+    result = _run_currency_binding_fixture(
+        "The reporting currency of the Group is the U.S. dollar.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "USD"
+
+
+def test_run_multipass_uses_document_wide_financial_value_currency():
+    """A document-wide unless-otherwise-stated declaration is authoritative."""
+    result = _run_currency_binding_fixture(
+        "All financial values are presented in US dollars unless otherwise stated.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "USD"
+
+
+def test_run_multipass_abstains_on_conflicting_authoritative_currency_declarations():
+    """Conflicting same-document reporting declarations must fail closed."""
+    result = _run_currency_binding_fixture(
+        "The presentation currency is AUD. The reporting currency is USD.",
+        pass1_currency="AUD",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_ignores_foreign_currency_debt_after_reporting_declaration():
+    """A foreign-currency debt note cannot override reporting currency."""
+    result = _run_currency_binding_fixture(
+        "The presentation currency is AUD. Debt facilities include USD borrowings.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_ignores_declaration_shaped_currency_note_text():
+    """A note-scoped figure declaration cannot conflict with document currency."""
+    result = _run_currency_binding_fixture(
+        "The presentation currency is AUD. In the debt note, all figures are in USD.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_ignores_note_scoped_financial_values_declaration():
+    """A note-scoped unless-otherwise-stated phrase cannot override AUD."""
+    result = _run_currency_binding_fixture(
+        "The presentation currency is AUD. In the debt note, all financial values "
+        "are presented in USD unless otherwise stated.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_note_scoped_financial_values_do_not_establish_currency():
+    """A note-scoped all-values phrase is not document-currency evidence."""
+    result = _run_currency_binding_fixture(
+        "In the debt note, all financial values are presented in USD unless "
+        "otherwise stated.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_does_not_treat_debt_note_as_document_currency():
+    """Nearby financial-statement prose cannot promote a debt currency."""
+    result = _run_currency_binding_fixture(
+        "The financial statements discuss liquidity. Debt is presented in USD.",
+        pass1_currency="AUD",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_does_not_promote_debt_presented_in_usd():
+    """A debt object's currency is not the financial-statements currency."""
+    result = _run_currency_binding_fixture(
+        "The financial statements include debt presented in USD.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_does_not_promote_note_presented_in_usd():
+    """A note object's currency is not the financial-statements currency."""
+    result = _run_currency_binding_fixture(
+        "The financial statements include a note presented in USD.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_rejects_currency_code_prefixes():
+    """Ordinary words that start with a currency code are not currency forms."""
+    result = _run_currency_binding_fixture(
+        "The financial statements are presented in audited form.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_preserves_explicit_table_currency_with_foreign_note_text():
+    """Existing table-local evidence remains authoritative without a declaration."""
+    result = _run_currency_binding_fixture(
+        "A debt note describes Australian dollar borrowings.",
+        pass1_currency="AUD",
+        tables=[_currency_binding_statement_table("USD")],
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "USD"
+
+
 def test_run_multipass_abstains_when_currency_has_no_explicit_evidence():
-    """A generic dollar scale and classifier null must not be rewritten to AUD."""
+    """A bare dollar table unit and classifier null must not imply AUD."""
     from app.services.multipass_extraction import run_multipass_extraction
 
     pass1 = _pass1_response()
     pass1["currency"] = "null"
+    structured_doc = _mock_structured_doc()
+    structured_doc.tables[0].headers = ["", "H1 2025 $"]
+    structured_doc.tables[0].raw_header_rows = [["", "30 Jun 2025 $"]]
+    structured_doc.tables[0].rows[0] = ["", "H1 2025 $"]
 
     with patch(
         "app.services.docling_extract.extract_structured",
-        return_value=_mock_structured_doc(),
+        return_value=structured_doc,
     ), patch(
         "app.services.multipass_extraction._run_pass1_classifier",
         return_value=pass1,
@@ -9229,11 +9462,12 @@ def test_run_multipass_abstains_when_currency_has_no_explicit_evidence():
         return_value=[_pass3a_response()],
     ):
         result = run_multipass_extraction(
-            "/fake/ambiguous-currency.pdf",
+            "/fake/AUD-USD-ASX-ambiguous-currency.pdf",
             {
                 "document_id": "ambiguous-currency",
-                "ticker": "TST",
-                "title": "Half-Year Report",
+                "ticker": "USD",
+                "exchange": "ASX",
+                "title": "AUD USD Half-Year Report",
             },
             llm_client=None,
             skip_narrative=True,
