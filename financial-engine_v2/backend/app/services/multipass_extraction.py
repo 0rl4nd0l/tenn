@@ -318,8 +318,8 @@ _AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS: tuple[_re.Pattern[str], ...] = (
     _re.compile(
         r"\b(?:(?:the\s+)?(?:consolidated\s+)?financial\s+statements?|"
         r"(?:the\s+)?consolidated\s+statements?|this\s+report|the\s+report)\b"
-        r"[^.;:\n]{0,40}?"
-        r"\b(?:presented|reported|expressed|stated|prepared)\s+in\b\s*"
+        r"\s+(?:are|were|is|was|have\s+been|has\s+been)\s+"
+        r"(?:presented|reported|expressed|stated|prepared)\s+in\b\s*"
         rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})",
         _re.IGNORECASE,
     ),
@@ -329,7 +329,9 @@ _AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS: tuple[_re.Pattern[str], ...] = (
         _re.IGNORECASE,
     ),
     _re.compile(
-        rf"\b{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}\s+"
+        r"^(?:annual|half[-\s]?year|quarterly|financial)\s+report\b"
+        r"[^.!?]{0,160}[.!?]\s+"
+        rf"{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}\s+"
         r"(?:unless\s+(?:otherwise\s+)?(?:stated|specified)|"
         r"unless\s+(?:stated|specified)\s+otherwise)\b",
         _re.IGNORECASE,

@@ -9350,6 +9350,32 @@ def test_run_multipass_ignores_declaration_shaped_currency_note_text():
     assert result.payload["currency"] == "AUD"
 
 
+def test_run_multipass_ignores_note_scoped_financial_values_declaration():
+    """A note-scoped unless-otherwise-stated phrase cannot override AUD."""
+    result = _run_currency_binding_fixture(
+        "The presentation currency is AUD. In the debt note, all financial values "
+        "are presented in USD unless otherwise stated.",
+        pass1_currency="",
+    )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_note_scoped_financial_values_do_not_establish_currency():
+    """A note-scoped all-values phrase is not document-currency evidence."""
+    result = _run_currency_binding_fixture(
+        "In the debt note, all financial values are presented in USD unless "
+        "otherwise stated.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
 def test_run_multipass_does_not_treat_debt_note_as_document_currency():
     """Nearby financial-statement prose cannot promote a debt currency."""
     result = _run_currency_binding_fixture(
@@ -9360,6 +9386,30 @@ def test_run_multipass_does_not_treat_debt_note_as_document_currency():
     assert result.status in {"ok", "ok_low_confidence"}
     assert result.error is None
     assert result.payload["currency"] == "AUD"
+
+
+def test_run_multipass_does_not_promote_debt_presented_in_usd():
+    """A debt object's currency is not the financial-statements currency."""
+    result = _run_currency_binding_fixture(
+        "The financial statements include debt presented in USD.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
+
+
+def test_run_multipass_does_not_promote_note_presented_in_usd():
+    """A note object's currency is not the financial-statements currency."""
+    result = _run_currency_binding_fixture(
+        "The financial statements include a note presented in USD.",
+        pass1_currency="",
+    )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:currency_unknown"
+    assert result.payload["currency"] == ""
 
 
 def test_run_multipass_rejects_currency_code_prefixes():
