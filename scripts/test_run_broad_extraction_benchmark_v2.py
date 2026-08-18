@@ -543,6 +543,113 @@ class OneShotSafetyTests(unittest.TestCase):
             ],
         )
 
+    def test_income_and_cash_cells_survive_compaction_without_runner_changes(
+        self,
+    ) -> None:
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import (
+            _apply_preferred_cash_end_source_payload,
+            _apply_preferred_income_statement_source_payload,
+            _prune_unbound_benchmark_source_cells,
+        )
+        from scripts import extraction_no_write_replay as REPLAY
+
+        income = DoclingTable(
+            page_number=111,
+            caption="Consolidated Income Statement",
+            headers=["", "30 June 2025 $M", "30 June 2024 $M"],
+            raw_header_rows=[["", "30 June 2025", "30 June 2024"]],
+            rows=[["Revenue", "69,077", "67,922"]],
+        )
+        cashflow = DoclingTable(
+            page_number=115,
+            caption="Consolidated statement of cash flows",
+            headers=["", "30 June 2025 $M", "30 June 2024 $M"],
+            raw_header_rows=[["", "30 June 2025", "30 June 2024"]],
+            rows=[
+                [
+                    "Cash and cash equivalents at the end of the financial year",
+                    "1,275",
+                    "1,036",
+                ]
+            ],
+        )
+        payload = {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+            "metrics": {"revenue": 69_077_000_000, "cash_end": None},
+            "revenue": 69_077_000_000,
+            "cash_end": None,
+            "row_refs": {"revenue": "Revenue"},
+            "provenance": {
+                "revenue": "income_statement:page_111:Revenue"
+            },
+            "field_provenance": {
+                "revenue": {
+                    "metric": "revenue",
+                    "source": "income_statement",
+                    "row_ref": "Revenue",
+                }
+            },
+            "metric_source_scales": {"revenue": "millions"},
+            "metric_scale_sources": {"revenue": "table"},
+        }
+        pass1 = {
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+        }
+        _apply_preferred_income_statement_source_payload(
+            payload,
+            [income],
+            scale="millions",
+            pass1_result=pass1,
+            capture_benchmark_source_cell=True,
+        )
+        _apply_preferred_cash_end_source_payload(
+            payload,
+            [cashflow],
+            scale="millions",
+            pass1_result=pass1,
+            capture_benchmark_source_cell=True,
+        )
+        _prune_unbound_benchmark_source_cells(payload)
+
+        compacted = REPLAY._compact_payload(
+            types.SimpleNamespace(status="ok", error=None, payload=payload),
+            benchmark_internal_metrics={
+                "values": {},
+                "metric_source_scales": {},
+                "metric_scale_sources": {},
+                "provenance": {},
+                "source_cells": {},
+            },
+        )
+        document = RUNNER.CorpusDocument(
+            document_id="doc_0",
+            issuer_id="T00",
+            document_class="annual_report",
+            period_type="A",
+            period_end="2025-06-30",
+            admission_status="admitted",
+            source_path="source_0.pdf",
+            source_sha256="1" * 64,
+        )
+
+        actuals = RUNNER.actuals_from_replay(
+            (document,),
+            {"results": [{"document_id": "doc_0", "result": compacted}]},
+        )
+        revenue = next(row for row in actuals if row.metric == "revenue")
+        cash = next(row for row in actuals if row.metric == "cash_and_equivalents")
+
+        self.assertEqual("accepted", revenue.status)
+        self.assertEqual("69077", revenue.raw_value)
+        self.assertEqual("accepted", cash.status)
+        self.assertEqual("1275", cash.raw_value)
+
     def test_exact_v2_bundle_accepts_all_twenty_declared_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = build_bundle(Path(directory))
