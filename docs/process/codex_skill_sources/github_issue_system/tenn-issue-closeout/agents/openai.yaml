@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenn Issue Closeout"
+  short_description: "Safely close Tenn GitHub issues"
+  default_prompt: "Use $tenn-issue-closeout as a supervisor for Tenn issue closeout, with bounded workers, reviewer gates, compact matrices, branch merge visibility, GitHub labels/milestones/Projects recommendations, PR-link discipline, and safe closure only when all follow-ups are tracked."

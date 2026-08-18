@@ -1,0 +1,143 @@
+{
+  "job_id": "extraction_scale_table_candidate_selector_v1_20260608",
+  "generated_at": "2026-06-08",
+  "state": "DONE_WITH_RISK",
+  "mode": "REPORT_ONLY",
+  "forbidden_actions_observed": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "production_repair_run": false,
+    "production_data_mutation": false,
+    "github_mutation": false
+  },
+  "evidence_inventory": [
+    {
+      "kind": "count24_summary",
+      "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/README.md",
+      "used_for": "count24 sample identity, scale_unknown count, and no-count32/no-broad-scope status"
+    },
+    {
+      "kind": "count24_failure_taxonomy",
+      "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/failed_documents.json",
+      "used_for": "failed exact document ids, titles, failure gates, source paths, and expected safe-fail classifications"
+    },
+    {
+      "kind": "scale_source_evidence",
+      "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/root_cause_classification.json",
+      "used_for": "root-cause classification for WHC, AZJ, EDU, and NIC"
+    },
+    {
+      "kind": "selected_table_diagnostic",
+      "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/provenance_summary.json",
+      "used_for": "selected table page/header/table-local scale/same-page scale evidence and persisted DATA_MISSING fields"
+    },
+    {
+      "kind": "azj_edu_exact_doc_capture",
+      "path": "/home/l4nd0/tenn-azj-edu-pass3a-provenance-v1-20260607/reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/provenance_capture.json",
+      "used_for": "exact AZJ/EDU pass3a row refs, selected pages, common scale trace, and remaining per-metric source-scale gaps"
+    },
+    {
+      "kind": "clean_control_replay",
+      "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.json",
+      "used_for": "CXO/NSR isolated-cache pass3a replay control outcomes"
+    },
+    {
+      "kind": "clean_control_scale_trace",
+      "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/common_metric_source_scale_trace.json",
+      "used_for": "clean metric_source_scales, metric_scale_sources, fallback, and output scale comparison"
+    }
+  ],
+  "ranked_candidates": [
+    {
+      "rank": 1,
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "candidate_class": "suspect_recommended",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "count24_non_null_metrics": 7,
+      "source_evidence": "Machine-readable formal statement pages carry $m scale evidence; page 9 income statement, page 11 financial position, page 13 cash flow, and page 39 share capital all had same-page millions snippets in the selected-table diagnostic.",
+      "provenance_mismatch": "Exact pass3a capture produced runtime row refs and selected statement pages, but metric_source_scales and metric_scale_sources stayed DATA_MISSING for all metrics; common_metric_source_scale saw an empty metric_source_scales map, fallback unknown, and output unknown.",
+      "data_missing": [
+        "runtime_source_scale for each extracted metric",
+        "runtime_scale_source for each extracted metric",
+        "selected value cells for cash-flow metrics",
+        "approved policy for nearest-$100k rounding"
+      ],
+      "why_ranked_here": "This is the only scale-table candidate with selected formal statement pages, concrete same-page scale evidence, runtime row refs, non-null metrics, and a remaining source-scale propagation gap.",
+      "future_replay_value": "An isolated-cache pass3a replay can confirm whether the current parser/runtime path still reproduces same-page $m evidence with empty metric_source_scales before any scale-table fix is considered."
+    },
+    {
+      "rank": 2,
+      "ticker": "WHC",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "candidate_class": "not_recommended_for_pass3a_scale_control",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "count24_non_null_metrics": 0,
+      "source_evidence": "Prior scale-source audit says visual statement tables have $'000 scale, but machine text/table path does not expose those headers.",
+      "provenance_mismatch": "Selected-table diagnostic found no selected statement tables and persisted runtime row refs, metric_source_scales, metric_scale_sources, and pass3a outputs as DATA_MISSING.",
+      "data_missing": [
+        "selected statement table",
+        "runtime row refs",
+        "runtime metric_source_scales",
+        "runtime metric_scale_sources",
+        "full pass3a outputs"
+      ],
+      "why_not_selected": "This is primarily a parser/table coverage gap with zero extracted metrics, so it is less useful than AZJ for isolating scale-source propagation."
+    },
+    {
+      "rank": 3,
+      "ticker": "EDU",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "candidate_class": "not_recommended_fail_closed",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "count24_non_null_metrics": 4,
+      "source_evidence": "Source evidence is mixed: summary tables use $'000 while main consolidated statement pages use raw-dollar $ columns.",
+      "provenance_mismatch": "Exact capture has row refs for cash-flow metrics but source-scale fields remain DATA_MISSING; selected income/highlight/share-capital surfaces are not clean formal statement evidence.",
+      "data_missing": [
+        "clean formal income-statement selection",
+        "runtime source-scale labels",
+        "runtime scale-source labels"
+      ],
+      "why_not_selected": "EDU is a mixed-scale/locator ambiguity case; using it as the next suspect risks testing document-family ambiguity rather than a clean scale-table propagation path."
+    },
+    {
+      "rank": 4,
+      "ticker": "NIC",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "candidate_class": "excluded_noncandidate_policy_gap",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "count24_non_null_metrics": 0,
+      "source_evidence": "One-page webcast-details announcement, not a financial report.",
+      "provenance_mismatch": "No scale-table repair evidence; this belongs to a separate document-family noncandidate policy task.",
+      "data_missing": [],
+      "why_not_selected": "Not a scale-table provenance suspect."
+    }
+  ],
+  "recommended_future_pass3a_replay": {
+    "suspect": {
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "replay_goal": "Confirm under an isolated parser cache whether selected formal-statement same-page $m evidence still fails to populate per-metric metric_source_scales and metric_scale_sources."
+    },
+    "clean_control": {
+      "ticker": "NSR",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "why": "Prior isolated-cache replay finished ok with row refs, table/document metric scale sources, metric_source_scales all thousands, fallback thousands, and common scale output thousands across income, balance, cash-flow, and share-capital tables."
+    }
+  },
+  "close_scale_table_path": false,
+  "decision": "KEEP_SCALE_TABLE_REPAIR_PATH_OPEN_FOR_ONE_FUTURE_AZJ_VS_NSR_ISOLATED_CACHE_REPLAY_ONLY",
+  "next_prompt": "/goal Run one approval-gated isolated-cache pass3a replay for suspect AZJ 488d6f1a-0180-4fca-8dcf-c4cdfc0f342e and clean control NSR f2240712-9dde-41e0-88fa-29c1a0080dab only. Do not run count-24, count-32, random samples, broad extraction, backfill, or production repair. Capture selected tables/pages, row_refs, metric_source_scales, metric_scale_sources, table-local/same-page/document scale evidence, and _common_metric_source_scale input/output. If AZJ no longer reproduces a concrete metric-source-scale gap against the NSR control, recommend closing the scale-table repair path."
+}

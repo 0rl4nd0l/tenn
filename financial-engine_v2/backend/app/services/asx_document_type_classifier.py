@@ -20,6 +20,7 @@ SUPPORTED_DOCUMENT_TYPES = {
     "appendix_4d",
     "appendix_4e",
     "appendix_5b",
+    "quarterly_report",
     "other_asx_announcement",
     "unknown_or_abstain",
 }
@@ -40,6 +41,7 @@ _SUPPORTED_CONTEXT_KEYS = {
     "relevant_line_anchors",
     "footer_form_labels",
 }
+_DOCUMENT_PAGES_KEY = "document_pages"
 
 _NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
 _SPACE_RE = re.compile(r"\s+")
@@ -59,6 +61,14 @@ class EvidenceItem:
     document_type: str
     anchor: str
     matched_text: str
+    page: int | None = None
+
+
+@dataclass(frozen=True)
+class _TextSource:
+    text: str
+    page: int | None
+    document_page: bool = False
 
 
 @dataclass(frozen=True)
@@ -68,8 +78,8 @@ class AsxDocumentTypeClassification:
     expected_abstain: bool
     abstain: bool
     canonical_write: bool
-    positive_evidence: list[dict[str, str]] = field(default_factory=list)
-    negative_evidence: list[dict[str, str]] = field(default_factory=list)
+    positive_evidence: list[dict[str, Any]] = field(default_factory=list)
+    negative_evidence: list[dict[str, Any]] = field(default_factory=list)
     abstain_reasons: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -152,6 +162,28 @@ _RULES: tuple[_DocumentTypeRule, ...] = (
         high_score=5,
     ),
     _DocumentTypeRule(
+        document_type="quarterly_report",
+        anchors=(
+            AnchorRule(
+                "Quarterly Report",
+                r"\bquarterly\s+(?:activities\s+)?report\b",
+                weight=3,
+                required_for_high=True,
+            ),
+            AnchorRule(
+                "quarter-ended period",
+                r"\b(?:quarter|three\s+months)\s+ended\b",
+                weight=2,
+            ),
+            AnchorRule("Quarterly highlights", r"\bquarterly\s+highlights\b"),
+            AnchorRule(
+                "Quarterly financial summary",
+                r"\bquarterly\s+financial\s+summary\b",
+            ),
+        ),
+        high_score=5,
+    ),
+    _DocumentTypeRule(
         document_type="other_asx_announcement",
         anchors=(
             AnchorRule("Investor Presentation", r"\binvestor\s+presentation\b", weight=2),
@@ -173,8 +205,8 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
     The return value is metadata-only. `canonical_write` is always false.
     """
 
-    fields = _flatten_surrogate(source_text_surrogate)
-    text = _joined_text(fields)
+    sources = _collect_text_sources(source_text_surrogate)
+    text = _joined_text([source.text for source in sources])
     warnings = _warnings_for_text(text)
 
     if not text:
@@ -183,10 +215,27 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
             warnings=warnings,
         )
 
-    evidence_by_type = {
-        rule.document_type: _match_rule(rule, text)
-        for rule in _RULES
-    }
+    report_context_sources = [
+        source
+        for source in sources
+        if not source.document_page or source.page == 1
+    ]
+    evidence_by_type: dict[str, list[EvidenceItem]] = {}
+    for rule in _RULES:
+        if rule.document_type in APPENDIX_DOCUMENT_TYPES:
+            evidence_by_type[rule.document_type] = _scope_appendix_evidence(
+                rule,
+                _match_rule(
+                    rule,
+                    sources,
+                    retain_all_page_matches=True,
+                ),
+            )
+        else:
+            evidence_by_type[rule.document_type] = _match_rule(
+                rule,
+                report_context_sources,
+            )
     form_label_evidence = _appendix_form_label_evidence(evidence_by_type)
     if len(form_label_evidence) > 1:
         return _abstain(
@@ -198,6 +247,61 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
             warnings=warnings,
         )
 
+    bundle_evidence_by_type = evidence_by_type
+    if any(
+        item.document_type == "appendix_4d" and item.page is not None
+        for item in form_label_evidence
+    ):
+        bundle_evidence_by_type = dict(evidence_by_type)
+        bundle_evidence_by_type["half_year_report"] = _match_rule(
+            _rule_for("half_year_report"),
+            sources,
+            retain_all_page_matches=True,
+        )
+
+    half_year_bundle_evidence = _half_year_bundle_precedence(
+        bundle_evidence_by_type
+    )
+    if half_year_bundle_evidence:
+        bundle_conflict_evidence_by_type = dict(evidence_by_type)
+        bundle_conflict_evidence_by_type["half_year_report"] = (
+            half_year_bundle_evidence
+        )
+        bundle_non_appendix_conflicts = _high_non_appendix_conflicts(
+            bundle_conflict_evidence_by_type
+        )
+        if bundle_non_appendix_conflicts:
+            return _abstain(
+                reasons=[
+                    "conflicting non-Appendix report anchors",
+                    "abstained instead of granting bundle precedence",
+                ],
+                negative_evidence=bundle_non_appendix_conflicts,
+                warnings=warnings,
+            )
+        return _result(
+            document_type="half_year_report",
+            confidence_band=_confidence_for(
+                _rule_for("half_year_report"),
+                half_year_bundle_evidence,
+            ),
+            positive_evidence=half_year_bundle_evidence,
+            warnings=warnings,
+        )
+
+    half_year_bundle_conflict = _half_year_bundle_conflict(
+        bundle_evidence_by_type
+    )
+    if half_year_bundle_conflict:
+        return _abstain(
+            reasons=[
+                "conflicting Appendix 4D and half-year report bundle anchors",
+                "whole-document precedence requires later-page report evidence",
+            ],
+            negative_evidence=half_year_bundle_conflict,
+            warnings=warnings,
+        )
+
     best_type, best_score = _best_scoring_type(evidence_by_type)
     if best_type is None or best_score <= 0:
         return _abstain(
@@ -206,6 +310,33 @@ def classify_asx_document_type(source_text_surrogate: Mapping[str, Any] | None) 
         )
 
     if form_label_evidence:
+        later_form_label = form_label_evidence[0]
+        high_non_appendix_evidence = _high_non_appendix_evidence(
+            evidence_by_type
+        )
+        high_non_appendix_types = {
+            item.document_type for item in high_non_appendix_evidence
+        }
+        compatible_quarterly_cashflow_bundle = (
+            later_form_label.document_type in CASHFLOW_DOCUMENT_TYPES
+            and high_non_appendix_types == {"quarterly_report"}
+        )
+        if (
+            later_form_label.page is not None
+            and later_form_label.page > 1
+            and high_non_appendix_evidence
+            and not compatible_quarterly_cashflow_bundle
+        ):
+            return _abstain(
+                reasons=[
+                    "conflicting high-confidence report and later Appendix form anchors",
+                    "abstained instead of granting late-form precedence",
+                ],
+                negative_evidence=(
+                    high_non_appendix_evidence + form_label_evidence
+                ),
+                warnings=warnings,
+            )
         appendix_type = form_label_evidence[0].document_type
         positive = evidence_by_type[appendix_type]
         rule = _rule_for(appendix_type)
@@ -261,14 +392,52 @@ def classify(source_text_surrogate: Mapping[str, Any] | None) -> AsxDocumentType
     return classify_asx_document_type(source_text_surrogate)
 
 
-def _flatten_surrogate(source_text_surrogate: Mapping[str, Any] | None) -> list[str]:
+def _collect_text_sources(
+    source_text_surrogate: Mapping[str, Any] | None,
+) -> list[_TextSource]:
     if not isinstance(source_text_surrogate, Mapping):
         return []
 
-    values: list[str] = []
-    for key in sorted(_SUPPORTED_CONTEXT_KEYS):
-        values.extend(_walk_strings(source_text_surrogate.get(key)))
-    return values
+    context_text = _joined_text(
+        [
+            value
+            for key in sorted(_SUPPORTED_CONTEXT_KEYS)
+            for value in _walk_strings(source_text_surrogate.get(key))
+        ]
+    )
+    sources = (
+        [_TextSource(text=context_text, page=None)]
+        if context_text
+        else []
+    )
+    pages = source_text_surrogate.get(_DOCUMENT_PAGES_KEY)
+    if isinstance(pages, Sequence) and not isinstance(pages, (str, bytes, bytearray)):
+        page_values: dict[int | None, list[str]] = {}
+        for item in pages:
+            if not isinstance(item, Mapping):
+                continue
+            page = item.get("page")
+            page_number = (
+                page
+                if isinstance(page, int)
+                and not isinstance(page, bool)
+                and page > 0
+                else None
+            )
+            page_values.setdefault(page_number, []).extend(
+                _walk_strings(item.get("text"))
+            )
+        for page_number, values in page_values.items():
+            page_text = _joined_text(values)
+            if page_text:
+                sources.append(
+                    _TextSource(
+                        text=page_text,
+                        page=page_number,
+                        document_page=True,
+                    )
+                )
+    return sources
 
 
 def _walk_strings(value: Any) -> list[str]:
@@ -297,28 +466,184 @@ def _normalize(value: str) -> str:
     return _SPACE_RE.sub(" ", _NORMALIZE_RE.sub(" ", lowered)).strip()
 
 
-def _match_rule(rule: _DocumentTypeRule, text: str) -> list[EvidenceItem]:
+def _match_rule(
+    rule: _DocumentTypeRule,
+    sources: Sequence[_TextSource],
+    *,
+    retain_all_page_matches: bool = False,
+) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     for anchor in rule.anchors:
-        if re.search(anchor.pattern, text):
+        matching_sources = [
+            source
+            for source in sources
+            if re.search(anchor.pattern, _normalize(source.text))
+        ]
+        if not matching_sources:
+            continue
+
+        page_matches = [
+            source
+            for source in matching_sources
+            if source.document_page and source.page is not None
+        ]
+        metadata_matches = [
+            source
+            for source in matching_sources
+            if not source.document_page
+        ]
+        if retain_all_page_matches:
+            selected_sources = metadata_matches[:1] + list(
+                {
+                    source.page: source
+                    for source in page_matches
+                }.values()
+            )
+            if not selected_sources:
+                selected_sources = [matching_sources[0]]
+        else:
+            selected_sources = [
+                page_matches[0] if page_matches else matching_sources[0]
+            ]
+
+        for matching_source in selected_sources:
             evidence.append(
                 EvidenceItem(
                     document_type=rule.document_type,
                     anchor=anchor.anchor,
                     matched_text=anchor.anchor,
+                    page=matching_source.page,
                 )
             )
     return evidence
 
 
+def _scope_appendix_evidence(
+    rule: _DocumentTypeRule,
+    evidence: list[EvidenceItem],
+) -> list[EvidenceItem]:
+    label = APPENDIX_DOCUMENT_TYPES[rule.document_type]
+    scoped = [
+        item
+        for item in evidence
+        if item.page is None or item.page == 1
+    ]
+    later_pages = sorted(
+        {
+            item.page
+            for item in evidence
+            if item.page is not None and item.page > 1
+        }
+    )
+    for page in later_pages:
+        page_evidence = [
+            item for item in evidence if item.page == page
+        ]
+        has_form_label = any(
+            item.anchor == label for item in page_evidence
+        )
+        if (
+            has_form_label
+            and _confidence_for(rule, page_evidence) == "high"
+        ):
+            scoped.extend(page_evidence)
+    return scoped
+
+
 def _appendix_form_label_evidence(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     for document_type, label in APPENDIX_DOCUMENT_TYPES.items():
-        for item in evidence_by_type.get(document_type, []):
-            if item.anchor == label:
-                evidence.append(item)
-                break
+        label_evidence = [
+            item
+            for item in evidence_by_type.get(document_type, [])
+            if item.anchor == label
+        ]
+        if label_evidence:
+            evidence.append(
+                next(
+                    (
+                        item
+                        for item in label_evidence
+                        if item.page is not None
+                    ),
+                    label_evidence[0],
+                )
+            )
     return evidence
+
+
+def _half_year_bundle_precedence(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    appendix_label = next(
+        (
+            item
+            for item in evidence_by_type.get("appendix_4d", [])
+            if item.anchor == "Appendix 4D" and item.page is not None
+        ),
+        None,
+    )
+    half_year_evidence = evidence_by_type.get("half_year_report", [])
+    if appendix_label is None:
+        return []
+
+    half_year_rule = _rule_for("half_year_report")
+    later_pages = sorted(
+        {
+            item.page
+            for item in half_year_evidence
+            if item.page is not None and item.page > appendix_label.page
+        }
+    )
+    for page in later_pages:
+        page_evidence = [
+            item for item in half_year_evidence if item.page == page
+        ]
+        has_substantive_report_evidence = any(
+            item.anchor
+            in {
+                "Interim financial report",
+                "Condensed consolidated financial statements",
+            }
+            for item in page_evidence
+        )
+        if (
+            has_substantive_report_evidence
+            and _confidence_for(half_year_rule, page_evidence) == "high"
+        ):
+            return page_evidence
+    return []
+
+
+def _half_year_bundle_conflict(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    appendix_evidence = evidence_by_type.get("appendix_4d", [])
+    appendix_label = next(
+        (
+            item
+            for item in appendix_evidence
+            if item.anchor == "Appendix 4D" and item.page is not None
+        ),
+        None,
+    )
+    half_year_evidence = evidence_by_type.get("half_year_report", [])
+    has_substantive_report_evidence = any(
+        item.anchor
+        in {
+            "Interim financial report",
+            "Condensed consolidated financial statements",
+        }
+        and item.page is not None
+        for item in half_year_evidence
+    )
+    if (
+        appendix_label is None
+        or not has_substantive_report_evidence
+        or _confidence_for(_rule_for("half_year_report"), half_year_evidence) != "high"
+    ):
+        return []
+    return appendix_evidence + half_year_evidence
 
 
 def _best_scoring_type(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> tuple[str | None, int]:
@@ -334,7 +659,10 @@ def _best_scoring_type(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> tu
 
 def _score(rule: _DocumentTypeRule, evidence: list[EvidenceItem]) -> int:
     weights = {anchor.anchor: anchor.weight for anchor in rule.anchors}
-    return sum(weights.get(item.anchor, 0) for item in evidence)
+    return sum(
+        weights.get(anchor, 0)
+        for anchor in {item.anchor for item in evidence}
+    )
 
 
 def _confidence_for(rule: _DocumentTypeRule, evidence: list[EvidenceItem]) -> str:
@@ -359,22 +687,23 @@ def _rule_for(document_type: str) -> _DocumentTypeRule:
     raise ValueError(f"unsupported document type rule: {document_type}")
 
 
-def _high_non_appendix_conflicts(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
-    high_type_evidence: list[list[EvidenceItem]] = []
-    high_types = 0
-    for document_type in ("annual_report", "half_year_report"):
+def _high_non_appendix_evidence(
+    evidence_by_type: Mapping[str, list[EvidenceItem]],
+) -> list[EvidenceItem]:
+    high_evidence: list[EvidenceItem] = []
+    for document_type in ("annual_report", "half_year_report", "quarterly_report"):
         rule = _rule_for(document_type)
         evidence = evidence_by_type.get(document_type, [])
         if _confidence_for(rule, evidence) == "high":
-            high_types += 1
-            high_type_evidence.append(evidence)
-    if high_types <= 1:
-        return []
+            high_evidence.extend(evidence)
+    return high_evidence
 
-    conflicts: list[EvidenceItem] = []
-    for evidence in high_type_evidence:
-        conflicts.extend(evidence)
-    return conflicts
+
+def _high_non_appendix_conflicts(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> list[EvidenceItem]:
+    high_evidence = _high_non_appendix_evidence(evidence_by_type)
+    if len({item.document_type for item in high_evidence}) <= 1:
+        return []
+    return high_evidence
 
 
 def _supported_report_or_appendix_anchor_exists(evidence_by_type: Mapping[str, list[EvidenceItem]]) -> bool:

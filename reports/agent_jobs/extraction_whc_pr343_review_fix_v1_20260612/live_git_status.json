@@ -1,0 +1,59 @@
+{
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "changed_paths_observed": [
+    "docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_docling_extract.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+  ],
+  "head_before_review_fix_commit": "157b9a9f1f3c21792b249cd4af91625fd3d33a06",
+  "pr_340_observed_not_touched": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "headRefName": "safe/extraction-whc-ocr-openability-probe-report-local-v1-20260610",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 340,
+    "state": "OPEN",
+    "title": "chore(extraction): add WHC OCR openability probe packet",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/340"
+  },
+  "pr_343_before_push": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "headRefName": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 343,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-06-12T05:16:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/0rl4nd0l/tenn/actions/runs/27395899952/job/80963023545",
+        "name": "lint-and-test",
+        "startedAt": "2026-06-12T05:09:21Z",
+        "status": "COMPLETED"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-06-12T05:09:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/0rl4nd0l/tenn/actions/runs/27395899947/job/80963023548",
+        "name": "scan",
+        "startedAt": "2026-06-12T05:09:21Z",
+        "status": "COMPLETED"
+      }
+    ],
+    "title": "chore(extraction): add WHC openability period binding",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/343"
+  },
+  "status_short": [
+    "M financial-engine_v2/backend/app/services/docling_extract.py",
+    " M financial-engine_v2/backend/app/services/multipass_extraction.py",
+    " M financial-engine_v2/backend/tests/test_docling_extract.py",
+    " M financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "?? docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md"
+  ],
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610"
+}

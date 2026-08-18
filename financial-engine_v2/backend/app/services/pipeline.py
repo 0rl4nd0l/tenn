@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
-from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.asx_financials import ASXRiskNote
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
@@ -33,6 +33,11 @@ from app.services.embeddings import (
 from app.services.extraction_run_observability import (
     ExtractionRunObserver,
     initialize_run_status,
+)
+from app.services.financial_metric_contract import PERSISTED_METRIC_COLUMNS
+from app.services.financial_observations import (
+    build_review_staging_payload,
+    stage_financial_observations,
 )
 from app.services.announcement_importance import (
     classify_documents_and_materialize,
@@ -1112,55 +1117,10 @@ def download_pdf_for_document(
 
 
 def _upsert_financial_rows(db, doc, structured):
-    period_type = structured.get("period_type")
-    period_end = parse_period_end(structured.get("period_end"))
-    metrics = structured.get("metrics") or {}
-    financial_rows_written = 0
-
-    if period_type in ("Q", "H", "A") and period_end:
-        row = (
-            db.query(ASXPeriodicFinancial)
-            .filter(
-                ASXPeriodicFinancial.ticker == doc.ticker,
-                ASXPeriodicFinancial.period_end == period_end,
-                ASXPeriodicFinancial.period_type == period_type,
-            )
-            .first()
-        )
-        if not row:
-            row = ASXPeriodicFinancial(
-                ticker=doc.ticker,
-                period_end=period_end,
-                period_type=period_type,
-                source_document_id=doc.document_id,
-            )
-            db.add(row)
-
-        for field in [
-            "revenue",
-            "ebit",
-            "np_attributable",
-            "operating_cf",
-            "investing_cf",
-            "financing_cf",
-            "capex",
-            "cash_end",
-            "net_debt",
-            "shares_outstanding",
-            "total_equity",
-            "interest_expense",
-        ]:
-            setattr(row, field, _coerce_float(metrics.get(field, None)))
-        row.source_document_id = doc.document_id
-        row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
-        row.period_start = parse_period_end(structured.get("period_start"))
-        row.currency = structured.get("currency") or None
-        financial_rows_written = 1
-
-    _upsert_risk_note(db, doc, structured, allow_empty=True)
+    _upsert_risk_note(db, doc, structured, allow_empty=False)
     # NOTE: caller is responsible for db.commit() — do not commit here so that
-    # ExtractionRun and financial rows are written in a single atomic transaction.
-    return financial_rows_written
+    # ExtractionRun, observations, and risk notes remain one atomic transaction.
+    return 0
 
 
 def _has_narrative_content(structured: Mapping[str, Any]) -> bool:
@@ -1682,7 +1642,26 @@ def process_document(
                 ExtractionStageStatus.OK,
                 ExtractionStageStatus.OK_LOW_CONFIDENCE,
             }:
-                financial_rows_written = _upsert_financial_rows(db, doc, structured)
+                observation_payload = (
+                    structured
+                    if isinstance(structured, dict)
+                    else dict(structured)
+                )
+                observation_payload["_observation_extraction_status"] = (
+                    extraction_stage.status.value
+                )
+                observation_payload = build_review_staging_payload(
+                    observation_payload
+                )
+                stage_financial_observations(
+                    db,
+                    document=doc,
+                    extraction_run=run,
+                    structured=observation_payload,
+                )
+                financial_rows_written = _upsert_financial_rows(
+                    db, doc, observation_payload
+                )
                 risk_note_written = int(
                     _has_narrative_content(structured)
                     if isinstance(structured, Mapping)

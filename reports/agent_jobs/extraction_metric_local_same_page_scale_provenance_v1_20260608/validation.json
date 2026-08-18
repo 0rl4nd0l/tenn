@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-06-08T00:43:00Z",
+  "job_id": "extraction_metric_local_same_page_scale_provenance_v1_20260608",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_metric_local_same_page_scale_provenance_v1_20260608.md",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "active_jobs=[]; read_only=true; lock_acquired=false"
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/capture_runner.py",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads(report artifacts) ... PY",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "case_candidate_audit.json, provenance_capture.json, repair_decision.json, and status.json parsed successfully"
+    },
+    {
+      "command": "python3 -m py_compile reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/capture_runner.py",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "ruff check reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/capture_runner.py",
+      "exit_status": null,
+      "status": "DATA_MISSING",
+      "summary": "ruff command not found"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_metric_local_same_page_scale_provenance_v1_20260608.md --repo-root .",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "Initial check passed and wrote diff-check.json"
+    },
+    {
+      "command": "code-reviewer skill review of staged report-local runner",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "No critical or warning findings; residual risk is intentional DATA_MISSING for runtime row/source-scale fields"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_metric_local_same_page_scale_provenance_v1_20260608.md --repo-root .",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "Final staged check found only allowed task-card and report files"
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads(report artifacts including validation and diff-check) ... PY",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "case_candidate_audit.json, provenance_capture.json, repair_decision.json, status.json, validation.json, and diff-check.json parsed successfully"
+    },
+    {
+      "command": "if git diff --cached --name-only | rg -i '(^|/)financial-engine_v2/data/asx/docs/|\\.pdf$'; then ...",
+      "exit_status": 0,
+      "status": "pass",
+      "summary": "source_pdf_staged=false"
+    }
+  ]
+}

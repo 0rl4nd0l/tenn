@@ -1,0 +1,38 @@
+{
+  "case_count": 2,
+  "expectation_failure_count": 0,
+  "expectation_failures": [],
+  "extraction_exception_count": 0,
+  "infrastructure_failure_count": 0,
+  "llm_info": {},
+  "loopback_llm_only": true,
+  "preflight_only": true,
+  "profile": "docling-no-write",
+  "profile_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python3"
+    ],
+    "current_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+    "current_python_is_selected": true,
+    "docling": {
+      "available": true,
+      "python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "version": "unknown"
+    },
+    "profile": "docling-no-write",
+    "reexeced": true,
+    "requested_venv_python": "financial-engine_v2/.venv/bin/python",
+    "selected_executable": true,
+    "selected_exists": true,
+    "selected_venv_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python"
+  },
+  "selected_case_ids": [
+    "WHC_2023_MIXED_UNIT",
+    "EDU_2023_MIXED_UNIT"
+  ],
+  "side_effect_pass": true,
+  "status": "PASS"
+}

@@ -1,0 +1,146 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/cockpit/core/actions.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/cockpit/core/tools.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/worker/worker_app/news_tasks.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/backfill_news.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/fetch_daily_news.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/load_news_to_qdrant.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/news_pipeline/cli_common.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_news_pipeline.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/shared/tenn_extraction_active.json",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "financial-engine_v2/cockpit/core/actions.py",
+    "financial-engine_v2/cockpit/core/tools.py",
+    "financial-engine_v2/shared/tenn_extraction_active.json",
+    "financial-engine_v2/worker/worker_app/news_tasks.py",
+    "scripts/backfill_news.py",
+    "scripts/fetch_daily_news.py",
+    "scripts/load_news_to_qdrant.py",
+    "scripts/news_pipeline/cli_common.py",
+    "scripts/run_news_pipeline.py"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/cockpit/core/actions.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/cockpit/core/tools.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/shared/tenn_extraction_active.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/worker/worker_app/news_tasks.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/backfill_news.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/fetch_daily_news.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/load_news_to_qdrant.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/news_pipeline/cli_common.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_news_pipeline.py is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/README.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/status.json",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/failure_clusters.json",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/child_task_proposals.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/pr39_merge_readiness.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/diff-check.json",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/**"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/**"
+      ],
+      "approval_required": false,
+      "forbidden": [
+        "product/backend/frontend/runtime code changes",
+        "dependency/workflow/package/lockfile changes",
+        "test rewrites or test fixes",
+        "production DB/Qdrant/news/memory",
+        "canonical financial truth",
+        "parser routing",
+        "extraction prompts",
+        "gold labels",
+        "runtime/model/GPU/service config",
+        "merging, rebasing, cherry-picking, or updating PR",
+        "closing/opening/updating GitHub issues unless explicitly approved later",
+        "broad local runtime/data suites that mutate state",
+        "unrelated dirty work"
+      ],
+      "github_mutation_allowed": false,
+      "issue_number": 105,
+      "job_id": "pr39_lint_and_test_failure_cluster_split_v1_20260526",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526",
+      "owner": "Codex",
+      "pr_number": 39,
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Reporting"
+      ],
+      "timeout_seconds": 10800
+    },
+    "ok": true
+  }
+}

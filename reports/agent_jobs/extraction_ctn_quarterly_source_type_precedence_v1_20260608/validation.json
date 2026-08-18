@@ -1,0 +1,179 @@
+{
+  "job_id": "extraction_ctn_quarterly_source_type_precedence_v1_20260608",
+  "state": "DONE",
+  "worktree": "/home/l4nd0/tenn-ctn-quarterly-source-type-current-v1-20260608",
+  "branch": "safe/extraction-ctn-quarterly-source-type-precedence-current-v1-20260608",
+  "base_ref": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "5d5e1e7b29f16ca5d07d9bfafaea8dc8e98c9368",
+  "source_audit_commit": "0d4c8925e0513d210edc3dcc8e34c6571f3acdda",
+  "preserve_commit_status": {
+    "6e8be73cf5e16f8923d33f60ad7887c70aef1bd9": {
+      "ancestor_of_origin_migration": false,
+      "containing_local_branches": [
+        "safe/extraction-confirmed-payload-scorecard-preserve-v1-20260608"
+      ],
+      "github_pr_search_result_count": 0
+    },
+    "df821df661c1218d8155d6addaf44e3b3b9e6a14": {
+      "ancestor_of_origin_migration": false,
+      "containing_local_branches": [
+        "safe/extraction-period-source-binding-repair-v1-20260608"
+      ],
+      "github_pr_search_result_count": 0
+    }
+  },
+  "registry_read_only": {
+    "ok": true,
+    "read_only": true,
+    "lock_acquired": false,
+    "active_jobs": []
+  },
+  "commands": [
+    {
+      "command": "git fetch origin migration/clean-runtime-baseline-reconstruct-v1",
+      "exit_code": 0
+    },
+    {
+      "command": "git worktree add -b safe/extraction-ctn-quarterly-source-type-precedence-current-v1-20260608 /home/l4nd0/tenn-ctn-quarterly-source-type-current-v1-20260608 origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_ctn_quarterly_source_type_precedence_v1_20260608.md",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 -m pytest financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -q",
+      "exit_code": 1,
+      "status": "DATA_MISSING",
+      "stderr_summary": "No module named pytest"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 direct unstubbed function probe",
+      "exit_code": 1,
+      "status": "DATA_MISSING",
+      "stderr_summary": "ModuleNotFoundError: No module named 'pydantic_settings'"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 stubbed direct function probe",
+      "exit_code": 0,
+      "stdout_summary": "stubbed direct probe ok"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend DATABASE_URL=sqlite:///./financial-engine_v2/data/fe_test.db TASK_MODE=sync AUTO_CREATE_TABLES=true ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false ENABLE_EXTRACTION=false uv run --with pytest --with pydantic-settings --with python-dateutil --with pymupdf python -m pytest financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -q",
+      "exit_code": 0,
+      "stdout_summary": "19 passed, 1 warning in 0.88s"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend DATABASE_URL=sqlite:///./financial-engine_v2/data/fe_test.db TASK_MODE=sync AUTO_CREATE_TABLES=true ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false ENABLE_EXTRACTION=false uv run --with pydantic-settings --with python-dateutil --with pymupdf python CTN-only saved-artifact replay",
+      "exit_code": 0,
+      "stdout_summary": "previous failed period_source_mismatch replayed as ok; observed gain +1 document / +6 metrics"
+    }
+  ],
+  "focused_tests_added": [
+    "test_source_period_evidence_ctn_quarterly_activity_report_beats_annual_reference",
+    "test_source_period_evidence_detects_appendix_5b_quarterly_source",
+    "test_source_period_evidence_keeps_true_mixed_annual_quarterly_ambiguous",
+    "test_source_document_classifier_preserves_ctn_quarterly_candidate",
+    "test_validate_gate_accepts_ctn_q_payload_with_quarterly_source_evidence",
+    "test_validate_gate_still_rejects_q_payload_against_explicit_annual_period_end"
+  ],
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "full ticker extraction",
+    "service routes",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "runtime/service/model/GPU config mutation",
+    "schema mutation",
+    "production data mutation",
+    "GitHub mutation"
+  ],
+  "expected_gain": {
+    "documents": 1,
+    "canonical_metrics": 6,
+    "scope": "CTN only, if saved-artifact replay confirms no other gates block"
+  },
+  "observed_gain": {
+    "status": "observed_saved_artifact_replay",
+    "documents": 1,
+    "blocked_non_null_canonical_metrics": 6,
+    "metric_names": [
+      "capex",
+      "cash_end",
+      "financing_cf",
+      "investing_cf",
+      "operating_cf",
+      "shares_outstanding"
+    ],
+    "previous_status": "failed",
+    "previous_error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+    "replay_status": "ok",
+    "replay_error": null,
+    "mode": "saved_artifact_scorecard_replay_only_no_extraction",
+    "inputs": {
+      "scorecard_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/agent_jobs/extraction_confirmed_payload_scorecard_v1_20260608/scorecard.json",
+      "source_audit_path": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608/reports/agent_jobs/extraction_period_source_exact_evidence_audit_v1_20260608/evidence_audit.json",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "ticker": "CTN"
+    },
+    "source_period_evidence": {
+      "period_type": "Q",
+      "reason": "quarterly_source_precedence_over_annual_report_reference"
+    },
+    "source_period_end_evidence": {
+      "period_type": "Q",
+      "period_end": "2022-03-31",
+      "reason": "quarter_ended_explicit_date"
+    }
+  },
+  "final_checks": {
+    "json_validation": {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/validation.json",
+      "exit_code": 0
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_ctn_quarterly_source_type_precedence_v1_20260608.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "disallowed_files": []
+    },
+    "forbidden_surface_audit": {
+      "status": "passed",
+      "changed_files": [
+        "docs/agent_tasks/extraction_ctn_quarterly_source_type_precedence_v1_20260608.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/README.md",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/validation.json"
+      ],
+      "note": "Report files are under ignored reports/ and require git add -f for preservation."
+    }
+  },
+  "data_missing": [
+    "/workspace/.venv/bin/python",
+    "pydantic_settings in system Python",
+    "row_refs in preserved CTN scorecard",
+    "extraction_run_id in preserved CTN scorecard"
+  ]
+}

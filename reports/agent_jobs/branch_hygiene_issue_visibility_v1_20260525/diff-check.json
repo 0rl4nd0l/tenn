@@ -1,0 +1,95 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/branch_hygiene_issue_visibility_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-closeout/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-closeout/agents/openai.yaml",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-finder/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-finder/agents/openai.yaml",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-resolution-reviewer/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/tenn-issue-resolution-reviewer/agents/openai.yaml",
+      "status": "M"
+    },
+    {
+      "path": "docs/process/github_issue_system_protocol.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/mirror_sync.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/validation.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/branch_hygiene_issue_visibility_v1_20260525.md",
+        "docs/process/github_issue_system_protocol.md",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-closeout/SKILL.md",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-closeout/agents/openai.yaml",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-finder/SKILL.md",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-finder/agents/openai.yaml",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-resolution-reviewer/SKILL.md",
+        "docs/process/codex_skill_sources/github_issue_system/tenn-issue-resolution-reviewer/agents/openai.yaml",
+        "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/README.md",
+        "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/status.json",
+        "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/validation.md",
+        "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/mirror_sync.md",
+        "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "branch_hygiene_issue_visibility_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/branch_hygiene_issue_visibility_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Evaluation"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

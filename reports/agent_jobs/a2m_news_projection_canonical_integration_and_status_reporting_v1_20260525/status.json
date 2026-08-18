@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525",
+  "status": "completed",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "6eb30d3f098849c501d2239a188374bd822d6000",
+  "head_after_integration": "226dfc4abb23deafc10e759a554283690ce65e62",
+  "head_after_child_report_commit": "1d8bd3a0",
+  "generated_at": "2026-05-25T14:03:15+10:00",
+  "integrated_commits": [
+    {
+      "source_commit": "2d1e810bcb978cc062d5de81d2c6b6198a76b8a4",
+      "canonical_commit": "a94acba7",
+      "status": "integrated"
+    },
+    {
+      "source_commit": "b47d0497d24ec8dce5bf3e75c314b5c3a758ef7c",
+      "canonical_commit": "226dfc4a",
+      "status": "integrated"
+    }
+  ],
+  "integration_status": "succeeded",
+  "child_status": "completed_report_only",
+  "registry_status": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "list_active": "active Reporting hygiene/design jobs observed on unrelated files",
+    "controller_claim": "not_claimed_because_known_external_dirty_task_cards_blocked_registry_claim",
+    "controller_check_overlap": "blocked_by_known_external_dirty_task_cards_only",
+    "child_check_overlap": "blocked_by_parent_controller_card_and_known_external_dirty_task_cards_only",
+    "active_file_overlap": false
+  },
+  "preserved_foreign_task_cards": [
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+  ],
+  "validation": {
+    "controller_task_card_validate": "pass",
+    "a2m_audit_task_card_validate": "pass",
+    "a2m_smoke_controller_task_card_validate": "pass",
+    "a2m_readonly_smoke_task_card_validate": "pass",
+    "child_task_card_validate": "pass",
+    "integrated_json_validation": "pass",
+    "child_json_validation": "pass",
+    "git_diff_check_head_2": "pass",
+    "git_diff_check_worktree": "pass",
+    "controller_check_diff": "expected_foreign_task_card_warning",
+    "child_check_diff": "expected_external_dirty_warning"
+  },
+  "changed_files": [
+    "docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+    "docs/agent_tasks/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525.md",
+    "docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md",
+    "docs/agent_tasks/a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525.md",
+    "docs/agent_tasks/a2m_news_projection_status_reporting_safe_extension_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/",
+    "reports/agent_jobs/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525/",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/",
+    "reports/agent_jobs/a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525/",
+    "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/"
+  ],
+  "health_summary": {
+    "qdrant_retrieval": "ok",
+    "canonical_sqlite_projection": "missing",
+    "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+    "cockpit_query_route": "ok_via_rag_query",
+    "cockpit_status_routes": "missing_404",
+    "chat_synthesis": "DATA_MISSING",
+    "projection_repair": "not_run"
+  },
+  "final_worktree_status": {
+    "tracked_changes": [],
+    "untracked_files": [
+      "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "classification": "preserved_foreign_task_cards_only"
+  },
+  "forbidden_mutation_performed": false,
+  "save_recommendation": "Save to Project Memory: A2M is visible through Qdrant-backed /rag/query according to the integrated read-only smoke; canonical NVMe SQLite projection files are absent; legacy /mnt/sdb2 SQLite is provenance only; Cockpit status routes are missing; chat synthesis remains DATA_MISSING; no projection repair was run."
+}

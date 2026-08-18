@@ -15,7 +15,13 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_NEWS_DB = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
+DEFAULT_NEWS_DB = DEFAULT_NEWS_CONTEXT_DB
 DEFAULT_ASX_TICKERS = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
 DEFAULT_IDENTITY_MAP = REPO_ROOT / "financial-engine_v2" / "config" / "ticker_identity_map.json"
 DEFAULT_OUT_JSON = REPO_ROOT / "reports" / "analysis" / "asx_headline_coverage_eval.json"
@@ -29,6 +35,8 @@ def _resolve_path(value: str) -> Path:
     path = Path(str(value or "").strip()).expanduser()
     if path.is_absolute():
         return path.resolve()
+    if str(path).startswith("reports/qual_context/news"):
+        return resolve_path(str(path))
     cwd = (Path.cwd() / path).resolve()
     if cwd.exists():
         return cwd

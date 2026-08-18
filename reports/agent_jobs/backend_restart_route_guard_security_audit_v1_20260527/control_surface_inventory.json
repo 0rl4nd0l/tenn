@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-05-27T14:30:25+10:00",
+  "issue": 55,
+  "surfaces": [
+    {
+      "id": "next_restart_route",
+      "route": "POST /api/cockpit/restart",
+      "files": [
+        "cockpit-ui/app/api/cockpit/restart/route.ts"
+      ],
+      "classification_before": "UNGUARDED",
+      "classification_after": "GUARDED",
+      "who_can_call_after": "loopback same-origin by default; remote only with COCKPIT_RESTART_ALLOW_REMOTE=1 and matching X-Cockpit-Restart-Token",
+      "confirmation_or_intent_after": "requires application/json, X-Cockpit-Restart-Intent: restart-backend, and JSON body confirmation RESTART BACKEND",
+      "tests": [
+        "cockpit-ui/lib/restart-route-guard.test.ts"
+      ],
+      "blast_radius": "stops first matching uvicorn app.main:app process, launches financial-engine_v2/scripts/run_local_backend.sh, waits for health",
+      "risk_before": "HIGH",
+      "risk_after": "LOW_FOR_DIRECT_ROUTE",
+      "tracker": "#55"
+    },
+    {
+      "id": "operations_restart_button",
+      "route": "client caller of POST /api/cockpit/restart",
+      "files": [
+        "cockpit-ui/components/cockpit/operations/operations-screen.tsx",
+        "cockpit-ui/lib/api-client.ts"
+      ],
+      "classification_after": "GUARDED_VIA_SHARED_HELPER",
+      "who_can_call_after": "browser user on same origin; restart route rejects non-loopback by default",
+      "confirmation_or_intent_after": "restartBackend helper sends explicit route intent; UI confirmation remains #51 scope",
+      "blast_radius": "calls guarded restart route",
+      "risk_after": "MEDIUM_UI_CONFIRMATION_STILL_ADJACENT",
+      "tracker": "#55 and #51"
+    },
+    {
+      "id": "chat_restart_slash_command",
+      "route": "client caller of POST /api/cockpit/restart",
+      "files": [
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+        "cockpit-ui/lib/api-client.ts"
+      ],
+      "classification_after": "GUARDED_VIA_SHARED_HELPER",
+      "who_can_call_after": "browser user on same origin; restart route rejects non-loopback by default",
+      "confirmation_or_intent_after": "restartBackend helper sends explicit route intent; slash-command confirmation remains adjacent UX scope",
+      "blast_radius": "calls guarded restart route",
+      "risk_after": "MEDIUM_UI_CONFIRMATION_STILL_ADJACENT",
+      "tracker": "#55 and #51"
+    },
+    {
+      "id": "cockpit_bff_action_execute",
+      "route": "POST /api/cockpit/action/execute",
+      "files": [
+        "cockpit-ui/app/api/cockpit/action/execute/route.ts"
+      ],
+      "classification": "DATA_MISSING_BROADER_AUDIT_NEEDED",
+      "who_can_call": "any caller reaching the Cockpit BFF route, subject to caller-provided headers",
+      "confirmation_or_intent": "action body exists; route-local auth/CSRF parity not proven in #55",
+      "blast_radius": "launches or polls backend action jobs",
+      "risk": "HIGH",
+      "tracker": "#121"
+    },
+    {
+      "id": "backend_action_execute",
+      "route": "POST /api/cockpit/action/execute",
+      "files": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py"
+      ],
+      "classification": "DATA_MISSING_BROADER_AUDIT_NEEDED",
+      "who_can_call": "any caller reaching backend API, depending on network exposure",
+      "confirmation_or_intent": "ActionRegistry preview validates action ids/args, but route auth parity is not proven in #55",
+      "blast_radius": "launches action subprocesses or queued jobs",
+      "risk": "HIGH",
+      "tracker": "#121"
+    },
+    {
+      "id": "backend_action_job_stop",
+      "route": "POST /api/cockpit/action/jobs/{job_id}/stop",
+      "files": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py"
+      ],
+      "classification": "DATA_MISSING_BROADER_AUDIT_NEEDED",
+      "who_can_call": "any caller reaching backend API, depending on network exposure",
+      "confirmation_or_intent": "job id/state checks exist; route auth parity is not proven in #55",
+      "blast_radius": "terminates queued action process or requests backend cancellation",
+      "risk": "HIGH",
+      "tracker": "#121"
+    },
+    {
+      "id": "backend_marketplace_action_launchers",
+      "route": "marketplace scan/calibration/sync POST routes",
+      "files": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py"
+      ],
+      "classification": "DATA_MISSING_BROADER_AUDIT_NEEDED",
+      "who_can_call": "any caller reaching backend API, depending on network exposure",
+      "confirmation_or_intent": "payload and runtime health checks exist; route auth parity is not proven in #55",
+      "blast_radius": "launches Marketplace browser/scanner jobs",
+      "risk": "HIGH",
+      "tracker": "#121"
+    },
+    {
+      "id": "local_cockpit_cli",
+      "route": "scripts/cockpit restart/kill/reboot commands",
+      "files": [
+        "scripts/cockpit"
+      ],
+      "classification": "LOCAL_SHELL_ONLY",
+      "who_can_call": "local operator shell",
+      "confirmation_or_intent": "explicit CLI command",
+      "blast_radius": "can kill/restart backend/UI/runtime processes",
+      "risk": "HIGH_LOCAL_ONLY",
+      "tracker": "not #55 HTTP route"
+    },
+    {
+      "id": "run_local_backend_script",
+      "route": "financial-engine_v2/scripts/run_local_backend.sh",
+      "files": [
+        "financial-engine_v2/scripts/run_local_backend.sh"
+      ],
+      "classification": "GUARDED_WHEN_REACHED_THROUGH_RESTART_ROUTE",
+      "who_can_call": "local shell or guarded restart route",
+      "confirmation_or_intent": "none as standalone script; route contract applies when called from Cockpit restart route",
+      "blast_radius": "starts backend on configured port/host",
+      "risk": "HIGH_LOCAL_ONLY_OR_GUARDED_ROUTE",
+      "tracker": "#55 for route use"
+    }
+  ],
+  "follow_up_issue": 121
+}

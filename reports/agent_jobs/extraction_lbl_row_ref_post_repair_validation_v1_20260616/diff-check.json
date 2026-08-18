@@ -1,0 +1,44 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_lbl_row_ref_post_repair_validation_v1_20260616.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": false,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_lbl_row_ref_post_repair_validation_v1_20260616.md",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/README.md",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/status.json",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/validation.json",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/pr_snapshot.json",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/readiness_decision.json",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/forbidden_path_audit.json",
+        "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_lbl_row_ref_post_repair_validation_v1_20260616",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Repo Hygiene",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

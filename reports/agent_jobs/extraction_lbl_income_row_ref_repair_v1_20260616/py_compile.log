@@ -1,0 +1,1 @@
+warning: Ignoring `--extra-index-url` from requirements file: `https://download.pytorch.org/whl/cu118`. Instead, use the `--extra-index-url` command-line argument, or set `extra-index-url` in a `uv.toml` or `pyproject.toml` file.`

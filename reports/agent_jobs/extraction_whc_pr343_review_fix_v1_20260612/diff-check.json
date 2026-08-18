@@ -1,0 +1,86 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/code_fixer.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/live_git_status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+        "financial-engine_v2/backend/app/services/docling_extract.py",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_docling_extract.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/README.md",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/status.json",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/live_git_status.json",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/code_fixer.json",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/validation.json",
+        "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_whc_pr343_review_fix_v1_20260612",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_whc_pr343_review_fix_v1_20260612",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

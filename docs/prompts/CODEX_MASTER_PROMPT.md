@@ -1,7 +1,14 @@
 # CODEX MASTER PROMPT — Tenn / financial-engine_v2
 
-This is the canonical prompt template for all agent work in this repository.
-All Claude, Codex, and future agents MUST use this structure.
+Reference-only status: this is a historical prompt template, not the current
+authority for all agent work. Start with `AGENTS.md`, the active task card, and
+`docs/README.md`. Use `SYSTEM_CONTRACT.md` as required policy only for product
+architecture, runtime behavior, extraction, RAG, financial truth, model routing,
+or data-integrity work.
+
+This file was originally written as a broad prompt template. It is now retained
+as reference material for older agent flows and must not override current repo
+instructions.
 
 ---
 

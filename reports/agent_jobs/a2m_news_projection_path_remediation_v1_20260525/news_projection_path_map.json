@@ -1,0 +1,125 @@
+{
+  "generated_at_utc": "2026-05-25T03:35:00Z",
+  "job_id": "a2m_news_projection_path_remediation_v1_20260525",
+  "mutation_performed": false,
+  "paths": [
+    {
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+      "purpose": "Configured/default canonical news article store for current NVMe runtime root",
+      "current_existence_status": "absent",
+      "producer_code_path": "scripts/run_news_pipeline.py; scripts/fetch_daily_news.py; scripts/news_pipeline/cli_common.py DEFAULT_NEWS_ARTICLES_DB",
+      "consumer_code_path": "scripts/load_news_to_qdrant.py build_news_projection_target; financial-engine_v2/cockpit/core/tools.py get_local_news_article",
+      "route_or_ui_dependency": "Qdrant loader source; local news article detail lookup",
+      "evidence_status": "Confirmed",
+      "notes": "Current /home/l4nd0/tenn and /home/l4nd0/tenn-runtime resolve to this NVMe root; no file found at this path."
+    },
+    {
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+      "purpose": "Configured/default canonical news context SQLite fallback/projection for current NVMe runtime root",
+      "current_existence_status": "absent",
+      "producer_code_path": "scripts/load_news_to_qdrant.py refresh_news_sqlite_fallback; scripts/build_news_context_db.py",
+      "consumer_code_path": "financial-engine_v2/config/cockpit.yaml rag.news_context.db_path; optional ToolRouter._query_news_sqlite_context only when news_context_db_path is passed",
+      "route_or_ui_dependency": "Stale/optional SQLite fallback; current backend-api news path uses /rag/query to Qdrant",
+      "evidence_status": "Confirmed",
+      "notes": "No canonical NVMe file exists. Current Cockpit backend-api wiring does not pass this db_path into ToolRouter."
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+      "purpose": "Legacy article store still containing current-ish newspaper4k article rows",
+      "current_existence_status": "exists",
+      "producer_code_path": "Legacy /mnt/sdb2 nightly_news.sh and fetch_daily_news.py runs",
+      "consumer_code_path": "Not consumed by current canonical NVMe routes unless explicitly pointed there",
+      "route_or_ui_dependency": "None confirmed for current canonical runtime",
+      "evidence_status": "Confirmed",
+      "size_bytes": 59592704,
+      "mtime": "2026-05-24 02:00:01 +1000",
+      "counts": {
+        "articles": 2983,
+        "entity_links": 17459,
+        "article_relevance": 7237,
+        "provider_runs": 142,
+        "distinct_a2m_articles": 7,
+        "primary_a2m_articles": 6
+      },
+      "notes": "Contains A2M article IDs also seen in Qdrant plus newer/extra A2M article art_f249f18234a438ab0f84e6cb not present in Qdrant."
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+      "purpose": "Legacy context chunk projection/fallback DB",
+      "current_existence_status": "exists",
+      "producer_code_path": "Legacy /mnt/sdb2 load_news_to_qdrant.py --refresh-sqlite-fallback",
+      "consumer_code_path": "Not consumed by current canonical NVMe backend-api route; would be consumed only by a local SQLite fallback explicitly pointed here",
+      "route_or_ui_dependency": "None confirmed for current canonical runtime",
+      "evidence_status": "Confirmed",
+      "size_bytes": 149790720,
+      "mtime": "2026-05-24 02:04:08 +1000",
+      "counts": {
+        "context_chunks": 24096,
+        "ticker_like_A2M": 43,
+        "title_text_like_A2M": 714,
+        "art_f249f18234a438ab0f84e6cb_chunks": 5
+      },
+      "notes": "May 24 legacy summary classified this fallback as degraded/stale; newest_published_at was 2026-05-19T16:07:14Z."
+    },
+    {
+      "path": "http://127.0.0.1:6333/collections/news_chunks",
+      "purpose": "Current Qdrant news retrieval collection",
+      "current_existence_status": "exists",
+      "producer_code_path": "scripts/load_news_to_qdrant.py sync_news_to_qdrant",
+      "consumer_code_path": "financial-engine_v2/backend/app/services/rag.py query_news_chunks; financial-engine_v2/backend/app/services/tenn_chat.py HybridRetriever('news_chunks')",
+      "route_or_ui_dependency": "/rag/query source=news; backend chat news retrieval; Cockpit backend-api news context",
+      "evidence_status": "Confirmed",
+      "counts": {
+        "points_count": 22324,
+        "indexed_vectors_count": 22346,
+        "vector_size": 768,
+        "distance": "Cosine",
+        "ticker_A2M": 16,
+        "primary_ticker_A2M": 16,
+        "tickers_contains_A2M": 24,
+        "combined_A2M": 24
+      },
+      "notes": "Qdrant has A2M evidence but is not in parity with legacy SQLite for art_f249f18234a438ab0f84e6cb."
+    },
+    {
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/ops_checks/nightly/nightly_news_2026-05-25_020001.log",
+      "purpose": "Current canonical NVMe nightly news log",
+      "current_existence_status": "exists",
+      "producer_code_path": "crontab -> /home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh",
+      "consumer_code_path": "Operator diagnostics only",
+      "route_or_ui_dependency": "Explains current projection materialization state",
+      "evidence_status": "Confirmed",
+      "notes": "Only short fetch-start log found; no corresponding NVMe summary JSON or canonical SQLite DB was found."
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/ops_checks/nightly/nightly_news_2026-05-24_020001.summary.json",
+      "purpose": "Legacy nightly summary",
+      "current_existence_status": "exists",
+      "producer_code_path": "Legacy nightly_news.sh",
+      "consumer_code_path": "Operator diagnostics only",
+      "route_or_ui_dependency": "Shows old path generated degraded SQLite fallback and no Qdrant upserts on May 24",
+      "evidence_status": "Confirmed",
+      "counts": {
+        "qdrant_articles": 0,
+        "qdrant_chunks": 0,
+        "qdrant_upserted": 0,
+        "sqlite_fallback_chunks": 24096
+      },
+      "notes": "SQLite fallback db_path in summary was the legacy /mnt/sdb2 path."
+    },
+    {
+      "path": "/home/l4nd0/.financial_engine_cockpit/state.db",
+      "purpose": "Configured Cockpit state DB from current cockpit.yaml memory.state_db default",
+      "current_existence_status": "exists",
+      "producer_code_path": "Cockpit state store",
+      "consumer_code_path": "Cockpit state screens/session data, not canonical news corpus",
+      "route_or_ui_dependency": "Not a news article/context projection",
+      "evidence_status": "Confirmed",
+      "counts": {
+        "entity_observations_a2m": 0,
+        "update_events_a2m": 0
+      },
+      "notes": "Readable in immutable mode; no A2M state rows found in the checked tables."
+    }
+  ]
+}

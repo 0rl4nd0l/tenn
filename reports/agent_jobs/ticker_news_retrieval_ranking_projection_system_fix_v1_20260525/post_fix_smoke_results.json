@@ -1,0 +1,10 @@
+{
+  "backend_serves_changed_code": false,
+  "head": "safe/ticker-news-retrieval-ranking-projection-system-fix-v1-20260525@HEAD",
+  "head_note": "Exact self-referential commit hash is intentionally reported in final closeout rather than embedded in committed report files.",
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_v1_20260525",
+  "live_smoke_ran": false,
+  "post_fix_code_level_probe_reference": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525/reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/post_fix_ticker_matrix.json",
+  "pre_fix_live_probe_reference": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525/reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/pre_fix_ticker_matrix.json",
+  "reason": "Running fe_backend container mounts /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend, not this isolated worktree. Task instructions require stopping rather than restarting backend without approval."
+}

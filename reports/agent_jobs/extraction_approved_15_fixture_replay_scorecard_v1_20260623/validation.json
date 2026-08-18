@@ -1,0 +1,699 @@
+{
+  "artifact_type": "extraction_approved_15_fixture_replay_scorecard_validation_v1",
+  "code_review": {
+    "critical": [],
+    "suggestions": [
+      "A broad page-text scale scan was tightened to unit-context fragments before final replay."
+    ],
+    "warnings": []
+  },
+  "commands": [
+    {
+      "command": "gh pr view 401 --json ...",
+      "details": "PR #401 merged into migration/clean-runtime-baseline-reconstruct-v1 at c4eab101bf749fb8d9b148390cc53b002eb1f2b9; lint-and-test and scan succeeded.",
+      "result": "PASS"
+    },
+    {
+      "command": "gh pr view 404 --json ... && gh pr checks 404",
+      "details": "PR #404 merged at a46d1018a3af0b07756d19caaa85901e7723627b; checks passed.",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md",
+      "result": "PASS"
+    },
+    {
+      "command": "15-fixture manifest/source resolution script",
+      "details": "15 fixtures discovered; 15 source PDFs resolved.",
+      "result": "PASS"
+    },
+    {
+      "command": "approved 15-fixture no-write replay before fix",
+      "details": "11 accepted payloads, 0 failed payloads, 4 fail-closed payloads; scorecard gate failed.",
+      "result": "PASS_WITH_RISK"
+    },
+    {
+      "command": "TCL one-fixture no-write replay after scale fix",
+      "details": "TCL moved to status=ok, scale=millions, scale_validation=pass, 10 non-null metrics.",
+      "result": "PASS"
+    },
+    {
+      "command": "approved 15-fixture no-write replay after tightened scale fix",
+      "details": "12 accepted payloads, 0 failed payloads, 3 fail-closed payloads; scorecard gate=fail decision=blocked.",
+      "result": "PASS_WITH_RISK"
+    },
+    {
+      "command": "UV_CACHE_DIR=/tmp/tenn-uv-cache-approved15-tests-20260623 PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with pytest ... pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "details": "220 passed, 1 pytest config warning.",
+      "result": "PASS"
+    },
+    {
+      "command": "UV_CACHE_DIR=/tmp/tenn-uv-cache-approved15-ruff-20260623 uv run --python 3.10 --with ruff==0.15.6 ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "details": "All checks passed.",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md --repo-root .",
+      "details": "No disallowed files.",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md",
+      "details": "Task card validates after direct report-local cleanup; workers are disabled for this bounded lane.",
+      "result": "PASS"
+    }
+  ],
+  "count_24_blocker": "No. Scorecard gate remains fail/blocked: ambiguous_quarantined=73, not_evaluated_no_actual_payload=16, missing_expected_metric=4, present_wrong_value=4.",
+  "count_24_justified": false,
+  "forbidden_mutation": {
+    "backfill": false,
+    "count24_or_count32_claim": false,
+    "db": false,
+    "gold_label": false,
+    "model_gpu": false,
+    "news": false,
+    "production_data": false,
+    "prompt": false,
+    "qdrant": false,
+    "redis": false,
+    "schema": false,
+    "service": false,
+    "source_pdf": false
+  },
+  "payload_generation_fail_closed": [
+    {
+      "case_id": "ANZ_H_2025-03-31",
+      "currency": "AUD",
+      "document_id": "anz_20250331_h",
+      "elapsed_s": 119.916,
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+      "non_null_metric_count": 9,
+      "payload_class": "fail_closed",
+      "period_end": "2025-03-31",
+      "period_type": "H",
+      "scale": "millions",
+      "scale_validation": "pass",
+      "status": "failed",
+      "ticker": "ANZ"
+    },
+    {
+      "case_id": "DXS_H_2025-12-31",
+      "currency": "AUD",
+      "document_id": "dxs_20251231_h",
+      "elapsed_s": 146.738,
+      "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+      "non_null_metric_count": 9,
+      "payload_class": "fail_closed",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "scale": "millions",
+      "scale_validation": "pass",
+      "status": "failed",
+      "ticker": "DXS"
+    },
+    {
+      "case_id": "SEG_H_2025-12-31",
+      "currency": "AUD",
+      "document_id": "seg_h_fy2026_appendix4d",
+      "elapsed_s": 74.414,
+      "error": "validation_gate:wrapper_missing_disclosure_evidence",
+      "non_null_metric_count": 2,
+      "payload_class": "fail_closed",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "status": "failed",
+      "ticker": "SEG"
+    }
+  ],
+  "pr_401": {
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "checks": [
+      "lint-and-test: SUCCESS",
+      "scan: SUCCESS"
+    ],
+    "merge_commit": "c4eab101bf749fb8d9b148390cc53b002eb1f2b9",
+    "state": "MERGED",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/401"
+  },
+  "risk_status": "DONE_WITH_RISK",
+  "runtime_functionality_result": "PARTIAL",
+  "scorecard": {
+    "accepted_payload_count": 12,
+    "blocking_result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_expected_metric": 4,
+      "not_evaluated_no_actual_payload": 16,
+      "present_wrong_value": 4
+    },
+    "decision": "blocked",
+    "evaluation_counts": {
+      "abstain": 0,
+      "exact": 33,
+      "missing": 4,
+      "missing_evidence": 0,
+      "not_evaluated_no_actual": 16,
+      "null": 13,
+      "quarantine": 73,
+      "tolerated": 3,
+      "unsupported": 0,
+      "wrong": 4,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    },
+    "fail_closed_payload_count": 3,
+    "failed_payload_count": 0,
+    "fixture_count": 15,
+    "gate_status": "fail",
+    "ranked_failure_classes": [
+      {
+        "count": 73,
+        "examples": [
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 11153000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "revenue",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 5222000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "ebit",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 3663000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "np_attributable",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 47507000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "operating_cf",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": -10262000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "investing_cf",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 2824000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "financing_cf",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": -242000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "capex",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-03-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 195788000000.0,
+            "fixture": "ANZ_H_2025-03-31.json",
+            "metric_name": "cash_end",
+            "reason": "Expectation requires review or has ambiguous label evidence"
+          }
+        ],
+        "result_class": "ambiguous_quarantined"
+      },
+      {
+        "count": 16,
+        "examples": [
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 360000000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "revenue",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 347600000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "ebit",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 348500000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "np_attributable",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 168500000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "operating_cf",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 83900000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "investing_cf",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": -243000000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "financing_cf",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": -27200000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "capex",
+            "reason": "No actual extracted payload supplied for this document"
+          },
+          {
+            "actual_context": {
+              "currency": null,
+              "period_end": null,
+              "period_type": null,
+              "scale": null
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 74700000.0,
+            "fixture": "DXS_H_2025-12-31.json",
+            "metric_name": "cash_end",
+            "reason": "No actual extracted payload supplied for this document"
+          }
+        ],
+        "result_class": "not_evaluated_no_actual_payload"
+      },
+      {
+        "count": 4,
+        "examples": [
+          {
+            "actual_context": {
+              "currency": "USD",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "scale": "millions"
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "USD",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "scale": "millions"
+            },
+            "expected_value": 11304000000.0,
+            "fixture": "BHP_A_2021-06-30.json",
+            "metric_name": "np_attributable",
+            "reason": "Expected metric is absent from actual payload"
+          },
+          {
+            "actual_context": {
+              "currency": "USD",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "scale": "millions"
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "USD",
+              "period_end": "2021-06-30",
+              "period_type": "A",
+              "scale": "millions"
+            },
+            "expected_value": 15246000000.0,
+            "fixture": "BHP_A_2021-06-30.json",
+            "metric_name": "cash_end",
+            "reason": "Expected metric is absent from actual payload"
+          },
+          {
+            "actual_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 1031000000.0,
+            "fixture": "MIN_H_2025-12-31.json",
+            "metric_name": "ebit",
+            "reason": "Expected metric is absent from actual payload"
+          },
+          {
+            "actual_context": {
+              "currency": "USD",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "actual_value": null,
+            "expected_context": {
+              "currency": "USD",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": -9000000.0,
+            "fixture": "QBE_H_2025-06-30.json",
+            "metric_name": "capex",
+            "reason": "Expected metric is absent from actual payload"
+          }
+        ],
+        "result_class": "missing_expected_metric"
+      },
+      {
+        "count": 4,
+        "examples": [
+          {
+            "actual_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "scale": "thousands"
+            },
+            "actual_value": -255000.0,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "Q",
+              "scale": "thousands"
+            },
+            "expected_value": -2656000.0,
+            "fixture": "EQR_Q_2025-12-31.json",
+            "metric_name": "investing_cf",
+            "reason": "Actual payload value does not match expectation within tolerance"
+          },
+          {
+            "actual_context": {
+              "currency": "AUD",
+              "period_end": "2024-12-31",
+              "period_type": "Q",
+              "scale": "thousands"
+            },
+            "actual_value": -1193000.0,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2024-12-31",
+              "period_type": "Q",
+              "scale": "thousands"
+            },
+            "expected_value": -624000.0,
+            "fixture": "GRE_Q_2024-12-31.json",
+            "metric_name": "investing_cf",
+            "reason": "Actual payload value does not match expectation within tolerance"
+          },
+          {
+            "actual_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "actual_value": 2000000.0,
+            "expected_context": {
+              "currency": "AUD",
+              "period_end": "2025-12-31",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 495000000.0,
+            "fixture": "MIN_H_2025-12-31.json",
+            "metric_name": "np_attributable",
+            "reason": "Actual payload value does not match expectation within tolerance"
+          },
+          {
+            "actual_context": {
+              "currency": "USD",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "actual_value": 8409000000.0,
+            "expected_context": {
+              "currency": "USD",
+              "period_end": "2025-06-30",
+              "period_type": "H",
+              "scale": "millions"
+            },
+            "expected_value": 1510000000.0,
+            "fixture": "QBE_H_2025-06-30.json",
+            "metric_name": "shares_outstanding",
+            "reason": "Actual payload value does not match expectation within tolerance"
+          }
+        ],
+        "result_class": "present_wrong_value"
+      }
+    ],
+    "result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 4,
+      "not_evaluated_no_actual_payload": 16,
+      "present_correct": 49,
+      "present_wrong_value": 4,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    }
+  },
+  "source_proven_fix": {
+    "description": "Recover statement-page scale only from formal unit-context fragments on pages whose extracted table captions identify canonical statements; abstain on mixed statement-page scales or prose mentions.",
+    "published_pr_404_initial_fix": {
+      "checks": [
+        "lint-and-test: SUCCESS",
+        "scan: SUCCESS"
+      ],
+      "merge_commit": "a46d1018a3af0b07756d19caaa85901e7723627b",
+      "state": "MERGED",
+      "url": "https://github.com/0rl4nd0l/tenn/pull/404"
+    },
+    "source_rows": [
+      {
+        "evidence": [
+          "page 17 statement unit fragments: $M $M",
+          "page 18 balance-sheet unit fragments: $M $M",
+          "page 20 cash-flow unit fragments: $M $M"
+        ],
+        "fixture": "TCL_H_2025-12-31",
+        "pages": [
+          17,
+          18,
+          20
+        ]
+      }
+    ]
+  },
+  "status": "PASS_WITH_RISK"
+}

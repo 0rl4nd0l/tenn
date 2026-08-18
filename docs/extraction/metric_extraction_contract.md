@@ -38,10 +38,199 @@ This intentionally treats wrong/implausible values as worse than abstention.
 
 Fixtures are marked `quarantine` when any checked context field mismatches:
 - `period_end`
+- `period_type`
 - `currency`
 - `scale`
 
 When quarantined, all metrics in that fixture are excluded from aggregate scoring.
+
+## Pre-persistence truth gates
+
+The live extractor has conservative source-bound gates before canonical row or
+Qdrant persistence. These gates fail the extraction instead of correcting values:
+
+- Advisory-only document titles such as `Quarterly Report Advisory` are blocked
+  before metric extraction.
+- `ebit` is blocked when the row evidence is explicitly EBITDA rather than EBIT.
+- Explicit source-unit values in row evidence, for example `$44.1 million`, must
+  be within tolerance of the normalized metric value; 100x or larger
+  over/under-scale mismatches are blocked.
+- Explicit source-period evidence, for example annual `year ended` wording, must
+  agree with the payload `period_type`. Ambiguous source-period evidence is
+  diagnostic only and does not infer a corrected period.
+- Short Appendix 4D/4E wrapper filings may use a two-canonical-metric minimum
+  only when wrapper identity, source-bound period/scale/currency context, and
+  required wrapper disclosure/control evidence are all present.
+
+The Appendix 4D/4E wrapper exception does not change the canonical metric
+ontology. The two required canonical metrics are `revenue` and
+`np_attributable`; NTA per security, dividends/distributions, record-date, and
+associate/JV rows remain disclosure-only control evidence and do not count
+toward the metric minimum.
+
+## Pre-persistence scorecard gate
+
+`build_pre_persistence_scorecard_gate()` turns a report-local confirmed metric
+payload scorecard into a deterministic readiness artifact. It does not run
+extraction and does not authorize canonical writes or broad backfills.
+
+The gate passes only when actual payloads were supplied and the scorecard has no
+blocking result classes. `present_correct` is accepted. The only accepted
+noncanonical abstention is `unsupported_correctly_abstained`, which keeps
+unsupported metrics out of canonical use.
+
+The gate fails on:
+
+- `missing_expected_metric`
+- `present_wrong_value`
+- `wrong_unit_currency_scale`
+- `wrong_period`
+- `missing_evidence`
+- `ambiguous_quarantined`
+- `not_evaluated_no_actual_payload`
+- missing scorecard metric rows
+
+Every gate artifact reports `canonical_write_allowed: false` and
+`broad_backfill_authorized: false`. A passing gate means the payload scorecard is
+eligible for operator review; it is not approval to run a canary or persist
+financial truth.
+
+## Source document classification
+
+Source-document classification is deterministic and source-metadata only:
+
+- `financial_report`: explicit annual, half-year, quarterly, or appendix
+  financial-report evidence is present. The document may proceed through normal
+  extraction and validation gates.
+- `advisory_only_document`: advisory-only announcements such as quarterly report
+  advisories are excluded before candidate-manifest inclusion and blocked before
+  metric extraction.
+- `meeting_or_proxy_notice`, `board_change_notice`,
+  `operational_project_update`,
+  `share_sale_or_gross_proceeds_announcement`, and
+  `pre_results_segment_re_presentation`: narrow source-title or first-page
+  false-positive classes. `director_interest_notice` applies to Appendix 3Y /
+  change-of-director-interest securities notices. `webcast_details_notice`
+  applies to webcast logistics announcements that mention financial results but
+  do not themselves provide source financial statements. These classes emit
+  `source_noncandidate:<class>` reasons and are excluded before
+  candidate-manifest inclusion and blocked before metric extraction.
+- `unknown_document`: classification evidence is insufficient. The document is
+  not automatically promoted; normal period, scale, confidence, metric, and
+  provenance gates still decide whether extraction can persist.
+
+Classification does not infer financial facts or correct payload fields.
+
+## Period Policy V1
+
+The extractor must bind canonical rows to source reporting periods, not ASX
+announcement dates. Explicit source period evidence must agree with extracted
+`period_type` and `period_end`.
+
+Half-year outputs also fail before persistence when the extracted `period_end`
+equals a leading `YYYY-MM-DD` announcement date in a half-year source
+title/filename. This is an abstain guard only: it does not infer or correct the
+period end.
+
+## Scale Policy V1
+
+Extractor payload metric values are normalized absolute values before
+persistence. The policy order is:
+
+1. Explicit scaled table units win: `$'000`, `$A'000`, `$A’000`, `$000`,
+   `thousands`, `$m`, `A$M`, `millions`, `billions`, and `trillions` map to
+   their deterministic multipliers.
+2. Plain dollar table columns such as `2025 $` map to `units`; currency remains
+   a separate context field.
+3. If table extraction misses a scale marker, early source text may supply the
+   scale only from explicit `$000` or `$A'000`/`$A’000` evidence. Prose mentions
+   such as `$44.1 million` do not establish document scale.
+4. `unknown` scale fails before persistence.
+5. Explicit row evidence such as `$44.1 million` must agree with the normalized
+   payload magnitude; 100x or larger disagreement fails.
+6. Source-explicit IDR/Rp trillion table units are accepted as native rupiah
+   values, with `currency=IDR`, `scale=trillions`, and no FX conversion.
+7. Other non-AUD or nonstandard verbal-scale cases remain conservative. They
+   are not broadly normalized unless an explicit source-bound policy and tests
+   exist.
+
+This policy never rewrites values to make them pass. It only accepts, fails, or
+marks a lower-confidence result after the hard gates pass.
+
+### Scale-table provenance artifact floor
+
+Fixed scale-table regression harnesses and future bounded sample artifacts must
+capture enough row/cell provenance to explain `scale_unknown` and selected-table
+scale failures without rerunning random samples. At minimum, each inspected
+metric row should preserve:
+
+- document identity: `document_id`, `ticker`, `source_path`, source-document
+  class, final status, and final gate/error;
+- selected surface identity: table label, selected page number, table index,
+  caption, and headers;
+- scale evidence by source: table-local scale, same-page scale,
+  document-level scale, `scale_source`, `metric_source_scales`,
+  `metric_scale_sources`, and common-scale input/output;
+- metric cell identity: canonical metric name, row label, row ref, period
+  column, value cell text, raw value, and normalized value.
+
+Missing provenance is reported as `DATA_MISSING`; it is not replaced with
+document-level inference. Same-page scale evidence can support a future repair
+only when it is metric-local and selected-surface-clean. Mixed selected
+surfaces, period/source mismatches, or noncandidate documents must fail closed.
+
+## Metric Ontology V1
+
+The canonical extractor ontology is `metric_ontology_v1`. Supported canonical
+fields are owned by the typed backend registry at
+`app.services.financial_metric_contract.CANONICAL_METRIC_FIELDS` and exposed to
+the extractor through its compatibility `METRIC_FIELDS` list:
+
+- `revenue`
+- `ebit`
+- `np_attributable`
+- `operating_cf`
+- `investing_cf`
+- `financing_cf`
+- `capex`
+- `cash_end`
+- `net_debt`
+- `shares_outstanding`
+
+Eval aliases such as `operating_cash_flow -> operating_cf` are scorecard-only
+normalizations. Unsupported, ambiguous, persisted-only, and internal-only metric
+families are reportable but are not canonical-use allowed without a separate
+policy change.
+
+### Shared metric-contract authority
+
+`app.services.financial_metric_contract` is the declarative authority for:
+
+- canonical output-field and persistence-column ordering;
+- evaluation-only aliases and production-relevance mappings;
+- metric families and their supported, persisted-only, internal-only, planned,
+  unsupported, or policy-ambiguous status;
+- allowed statement contexts and unit kinds;
+- direct-source and provenance requirements; and
+- authorized derivations.
+
+The registry authorizes only the Appendix 5B sum of explicit capex sub-items.
+An empty derivation list means the contract does not authorize a derivation.
+Evaluation aliases are explicitly not production row-matching or semantic
+substitution rules.
+
+The registry is metadata and ordering authority. It does not itself extract,
+normalize, derive, evaluate, or persist values. Existing caller exports remain
+available for compatibility, but their definitions are imported from the
+registry rather than duplicated.
+
+`ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
+populate canonical `ebit`.
+
+Appendix 4D/4E wrapper disclosures such as NTA per security,
+dividends/distributions, record date, and associates/JV details are not
+canonical fields. They may only satisfy wrapper control evidence for the narrow
+two-metric gate when supplied as source-bound disclosure evidence.
 
 ## Non-goals
 
@@ -73,6 +262,7 @@ Output is a stable JSON object with keys including:
 - `abstained_count`
 - `quarantined_count`
 - `period_correctness_summary`
+- `period_type_correctness_summary`
 - `currency_correctness_summary`
 - `scale_correctness_summary`
 - `fixture_summaries`
@@ -90,8 +280,8 @@ a trust outcome using deterministic rules:
 - `trusted`: context matches and every required metric is `correct`.
 - `abstain`: context matches and at least one required metric is `wrong`, `missing`,
   or `abstain`.
-- `quarantine`: any context mismatch (`period_end`, `currency`, or `scale`), in which case
-  every metric is marked `quarantine`.
+- `quarantine`: any context mismatch (`period_end`, `period_type`, `currency`, or
+  `scale`), in which case every metric is marked `quarantine`.
 
 For real fixtures, `missing` means a required metric in the fixture is not present in
 `metrics` in the extraction payload. It is **not** treated as `abstain`; `abstain`
@@ -197,3 +387,16 @@ Example of a clean non-contradictory interpretation:
   context mismatch.
 - Missing fixtures or missing output keys are evaluated in the same deterministic,
   non-LLM fixture flow.
+
+### Canary regression fixtures
+
+The test-only real-gold fixture directory includes source-verified CLV and CTM
+canary regression fixtures. They lock in these behaviors:
+
+- CLV `$44.1 million` revenue must not score as `$44.1 billion`, and EBITDA must
+  not score as canonical `ebit`.
+- CTM's source cash-flow table is annual and uses raw dollar units; a half-year
+  `millions` payload is quarantined by period/scale context.
+
+These fixtures do not authorize a canary, backfill, database write, Qdrant
+write, source-PDF mutation, or production gold-label mutation.

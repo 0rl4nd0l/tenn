@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_readonly_smoke_v1_20260525",
+  "status": "pass_under_controller_contract",
+  "commands": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_check_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md",
+      "result": "expected_self_overlap_with_active_controller"
+    },
+    {
+      "name": "qdrant_collection",
+      "command": "curl GET http://127.0.0.1:6333/collections/news_chunks",
+      "result": "pass"
+    },
+    {
+      "name": "qdrant_counts",
+      "command": "curl POST /collections/news_chunks/points/count with exact A2M ticker filters",
+      "result": "pass"
+    },
+    {
+      "name": "qdrant_scroll_sample",
+      "command": "curl POST /collections/news_chunks/points/scroll with with_vector=false and A2M filters",
+      "result": "pass"
+    },
+    {
+      "name": "canonical_sqlite_presence",
+      "command": "test -e canonical news_articles.sqlite and news.sqlite",
+      "result": "pass_absent"
+    },
+    {
+      "name": "legacy_sqlite_readonly",
+      "command": "sqlite3 -readonly legacy DBs with PRAGMA query_only=ON",
+      "result": "pass"
+    },
+    {
+      "name": "backend_health",
+      "command": "curl http://127.0.0.1:8000/api/health",
+      "result": "pass"
+    },
+    {
+      "name": "backend_rag_query",
+      "command": "curl POST http://127.0.0.1:8000/rag/query source=news ticker=A2M top_k=2",
+      "result": "pass_returned_a2m_results"
+    },
+    {
+      "name": "next_config",
+      "command": "curl http://127.0.0.1:3000/api/cockpit/config",
+      "result": "pass"
+    },
+    {
+      "name": "next_rag_query",
+      "command": "curl POST http://127.0.0.1:3000/rag/query source=news ticker=A2M top_k=2",
+      "result": "pass_returned_a2m_results"
+    },
+    {
+      "name": "next_news_status_route",
+      "command": "curl http://127.0.0.1:3000/api/cockpit/news/status",
+      "result": "missing_404"
+    },
+    {
+      "name": "smoke_standalone_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md --no-write-report",
+      "result": "expected_failure_controller_files_outside_smoke_allowed_files"
+    },
+    {
+      "name": "controller_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525.md",
+      "result": "pass"
+    }
+  ],
+  "no_forbidden_mutation_observed": true,
+  "notes": [
+    "No services were started, stopped, restarted, reloaded, or rebuilt.",
+    "No ingestion, backfill, reindex, resync, projection rebuild, or news refresh command was run.",
+    "No DB, Qdrant, news-store, memory, or production-data write command was run."
+  ]
+}

@@ -1,11 +1,14 @@
 import importlib
+import contextlib
 import datetime as dt
+import io
 import json
 import sys
 import tempfile
 import unittest
 import urllib.error
 import urllib.parse
+from types import SimpleNamespace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +23,51 @@ CLI_COMMON = importlib.import_module("news_pipeline.cli_common")
 
 
 class ProviderTests(unittest.TestCase):
+    def test_newspaper4k_defaults_to_bounded_daily_profile(self):
+        provider = NEWSPAPER4K.Newspaper4kProvider()
+        self.assertEqual(provider.source_profile, "daily")
+        self.assertEqual(
+            provider.sources_file.name, "sources_au_finance_rss_only.txt"
+        )
+        self.assertEqual(provider.max_articles_per_source, 15)
+        self.assertEqual(provider.max_total_articles, 60)
+        self.assertEqual(provider.request_timeout_seconds, 10)
+        self.assertTrue(provider.no_playwright)
+        settings = CLI_COMMON.provider_settings(provider)
+        self.assertEqual(settings["source_profile"], "daily")
+        self.assertEqual(settings["sources_file"], str(provider.sources_file))
+
+    def test_build_provider_can_select_broad_newspaper4k_profile(self):
+        with tempfile.TemporaryDirectory() as td:
+            provider = CLI_COMMON.build_provider(
+                provider_name="newspaper4k",
+                eodhd_api_key="",
+                eodhd_capture_dir=Path(td),
+                allow_missing_eodhd_captures=False,
+                newspaper4k_kwargs={
+                    "source_profile": "broad",
+                    "max_total_articles": 12,
+                    "request_timeout_seconds": 7,
+                },
+            )
+        self.assertEqual(provider.source_profile, "broad")
+        self.assertEqual(provider.sources_file.name, "sources_all_au_finance.txt")
+        self.assertEqual(provider.max_total_articles, 12)
+        self.assertEqual(provider.request_timeout_seconds, 7)
+        self.assertFalse(provider.no_playwright)
+
+    def test_newspaper4k_cli_kwargs_default_daily_disables_playwright(self):
+        kwargs = CLI_COMMON.newspaper4k_kwargs_from_args(SimpleNamespace())
+        self.assertEqual(kwargs["source_profile"], "daily")
+        self.assertTrue(kwargs["no_playwright"])
+
+    def test_newspaper4k_cli_kwargs_broad_keeps_playwright_available(self):
+        kwargs = CLI_COMMON.newspaper4k_kwargs_from_args(
+            SimpleNamespace(newspaper4k_source_profile="broad")
+        )
+        self.assertEqual(kwargs["source_profile"], "broad")
+        self.assertFalse(kwargs["no_playwright"])
+
     def test_newspaper4k_batches_source_rows_while_preserving_fetch_window_list(self):
         class Source:
             def __init__(self, url: str) -> None:
@@ -55,8 +103,11 @@ class ProviderTests(unittest.TestCase):
             def iso_utc(value: dt.datetime) -> str:
                 return value.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
-            @staticmethod
-            def extract_from_source(source: Source, **_kwargs: object):
+            captured_kwargs: list[dict[str, object]] = []
+
+            @classmethod
+            def extract_from_source(cls, source: Source, **kwargs: object):
+                cls.captured_kwargs.append(dict(kwargs))
                 suffix = source.url.rsplit("-", 1)[-1]
                 return [Article(suffix)], {"source_articles_seen": 1, "download_errors": 0}
 
@@ -64,22 +115,34 @@ class ProviderTests(unittest.TestCase):
         NEWSPAPER4K._collector = FakeCollector
         try:
             provider = NEWSPAPER4K.Newspaper4kProvider(sources_file=Path("unused.txt"), sleep_seconds=0)
-            batches = list(
-                provider.fetch_window_batches(
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                batches = list(
+                    provider.fetch_window_batches(
+                        window_start_utc="2026-05-07T00:00:00Z",
+                        window_end_utc="2026-05-07T23:59:59Z",
+                        tickers=["BHP"],
+                    )
+                )
+            self.assertEqual([len(batch) for batch in batches], [1, 1])
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("[newspaper4k]", stderr.getvalue())
+            self.assertTrue(FakeCollector.captured_kwargs)
+            self.assertFalse(any("playwright_domains" in item for item in FakeCollector.captured_kwargs))
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                rows = provider.fetch_window(
                     window_start_utc="2026-05-07T00:00:00Z",
                     window_end_utc="2026-05-07T23:59:59Z",
                     tickers=["BHP"],
                 )
-            )
-            self.assertEqual([len(batch) for batch in batches], [1, 1])
-
-            rows = provider.fetch_window(
-                window_start_utc="2026-05-07T00:00:00Z",
-                window_end_utc="2026-05-07T23:59:59Z",
-                tickers=["BHP"],
-            )
             self.assertIsInstance(rows, list)
             self.assertEqual(len(rows), 2)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("[newspaper4k]", stderr.getvalue())
         finally:
             NEWSPAPER4K._collector = previous
 

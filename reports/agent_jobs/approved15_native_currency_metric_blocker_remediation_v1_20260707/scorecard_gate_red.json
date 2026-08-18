@@ -1,0 +1,117 @@
+{
+  "actual_payload_document_count": 8,
+  "actual_payload_supplied": true,
+  "allowed_noncanonical_abstention_count": 0,
+  "allowed_result_classes": [
+    "present_correct",
+    "unsupported_correctly_abstained"
+  ],
+  "artifact_type": "pre_persistence_scorecard_gate_v1",
+  "blockers": [
+    {
+      "code": "missing_expected_metric",
+      "count": 4,
+      "policy": "result class blocks pre-persistence promotion"
+    },
+    {
+      "code": "present_wrong_value",
+      "count": 3,
+      "policy": "result class blocks pre-persistence promotion"
+    }
+  ],
+  "blocking_examples": [
+    {
+      "canonical_field": "np_attributable",
+      "document_id": "bhp_fy2021_preliminary_final",
+      "metric_name": "np_attributable",
+      "reason": "Actual payload value does not match expectation within tolerance",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "canonical_field": "revenue",
+      "document_id": "csl_20251231_h",
+      "metric_name": "revenue",
+      "reason": "Expected metric is absent from actual payload",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "canonical_field": "np_attributable",
+      "document_id": "csl_20251231_h",
+      "metric_name": "np_attributable",
+      "reason": "Actual payload value does not match expectation within tolerance",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "canonical_field": "net_debt",
+      "document_id": "csl_20251231_h",
+      "metric_name": "net_debt",
+      "reason": "Actual payload value does not match expectation within tolerance",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "canonical_field": "net_debt",
+      "document_id": "fmg_20251231_h",
+      "metric_name": "net_debt",
+      "reason": "Expected metric is absent from actual payload",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "canonical_field": "shares_outstanding",
+      "document_id": "fmg_20251231_h",
+      "metric_name": "shares_outstanding",
+      "reason": "Expected metric is absent from actual payload",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "canonical_field": "net_debt",
+      "document_id": "qbe_20250630_h",
+      "metric_name": "net_debt",
+      "reason": "Expected metric is absent from actual payload",
+      "result_class": "missing_expected_metric"
+    }
+  ],
+  "blocking_result_class_summary": {
+    "missing_expected_metric": 4,
+    "present_wrong_value": 3
+  },
+  "blocking_result_classes": [
+    "missing_expected_metric",
+    "present_wrong_value",
+    "wrong_unit_currency_scale",
+    "wrong_period",
+    "missing_evidence",
+    "ambiguous_quarantined",
+    "not_evaluated_no_actual_payload"
+  ],
+  "broad_backfill_authorized": false,
+  "canonical_write_allowed": false,
+  "decision": "blocked",
+  "gate_status": "fail",
+  "gate_version": "pre_persistence_scorecard_gate_v1",
+  "input_artifact_type": "confirmed_metric_payload_scorecard_v1",
+  "metric_result_count": 40,
+  "operator_approval_required_for_canary": true,
+  "passed": false,
+  "policy_assertions": {
+    "mutates_canonical_truth": false,
+    "mutates_db_qdrant_news_memory": false,
+    "mutates_gold_labels": false,
+    "runs_extraction": false,
+    "source_openability_is_correctness": false
+  },
+  "profile": "confirmed_metric_coverage",
+  "result_class_summary": {
+    "ambiguous_quarantined": 0,
+    "missing_evidence": 0,
+    "missing_expected_metric": 4,
+    "not_evaluated_no_actual_payload": 0,
+    "present_correct": 33,
+    "present_wrong_value": 3,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "scorecard_scope": "report_local_actual_payloads_only",
+  "scored_metric_expectations": 40,
+  "total_metric_expectations": 40
+}

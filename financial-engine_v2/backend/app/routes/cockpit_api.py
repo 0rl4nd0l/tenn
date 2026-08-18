@@ -26,10 +26,11 @@ from typing import IO, Any, AsyncGenerator, Literal
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.routes import require_api_key
 from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
@@ -46,9 +47,13 @@ from app.services.cockpit_service import (
     normalize_chat_routing_policy_preference,
 )
 from app.services.chat_evidence_guard import (
+    apply_local_news_only_guard,
     apply_visible_evidence_gap_labels,
     enrich_chat_metadata_with_evidence_guard,
+    evidence_categories_for_source,
+    requires_local_news_only_guard,
 )
+from app.services.chat_readiness import build_chat_readiness_status
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
     build_home_narrative_snapshot,
@@ -86,8 +91,17 @@ from app.services.marketplace_requirement_preparation import (
     prepare_requirement_driven_mission,
 )
 from app.services.marketplace_scanner import MarketplaceScanCancelled, MarketplaceScanner
+from app.services.news_health_status import build_a2m_news_health_status
 from app.services.router_state import get_extraction_activity_snapshot
 from app.services.structured_chunking import simple_chunk
+from shared.evidence_labels import (
+    SOURCE_LABEL_DEFINITIONS as SOURCE_LABEL_DEFINITIONS,
+    SOURCE_LABEL_TAXONOMY_VERSION,
+    VALID_SOURCE_LABELS as _VALID_SOURCE_LABELS,
+    normalize_source_labels as _normalize_source_labels,
+    ordered_source_labels as _ordered_source_labels,
+    primary_source_label as _primary_source_label,
+)
 from cockpit.core.config import (
     compute_effective_cockpit_config,
     effective_anthropic_api_key,
@@ -1354,40 +1368,6 @@ class IntelPulseMatrixResponse(BaseModel):
 # Helper: normalize chat sources for cockpit UI
 # ---------------------------------------------------------------------------
 
-SOURCE_LABEL_TAXONOMY_VERSION = "source_label_semantics_v1"
-
-SOURCE_LABEL_DEFINITIONS: dict[str, str] = {
-    "claim_verified": "The source directly supports a claim in the answer.",
-    "context_only": "The source was used for background/context and does not by itself verify a claim.",
-    "no_hit": "A search/tool/source path was attempted but returned no relevant evidence.",
-    "operational_trace": "The source is a tool/runtime/system trace, not financial evidence.",
-    "local_personal_data": "User/cockpit-local data such as holdings, not financial truth.",
-    "memory_context": "Company/market/thesis memory context, not canonical truth unless separately supported.",
-    "external_web_context": "External web context, not canonical financial truth.",
-    "local_news_context": "Retrieved local/news context; not claim verification unless paired with claim_verified.",
-    "financial_truth": "Canonical numeric financial truth or structured extracted metrics.",
-    "financial_truth_numeric": "Structured numeric financial truth context, not event/news verification.",
-    "degraded_runtime": "The answer was produced under runtime/tool/synthesis degradation.",
-    "missing_required_evidence": "The answer has a known evidence gap.",
-    "insufficient_for_recent_news": "Recent-news/update evidence is missing or price-only.",
-    "unknown_unclassified": "Safe fallback for unclassified sources; never treated as verified.",
-}
-_VALID_SOURCE_LABELS = frozenset(SOURCE_LABEL_DEFINITIONS)
-_SOURCE_LABEL_PRIMARY_ORDER = (
-    "missing_required_evidence",
-    "degraded_runtime",
-    "no_hit",
-    "claim_verified",
-    "financial_truth",
-    "financial_truth_numeric",
-    "local_personal_data",
-    "memory_context",
-    "external_web_context",
-    "local_news_context",
-    "operational_trace",
-    "unknown_unclassified",
-    "context_only",
-)
 _CONTEXT_SOURCE_LABELS = {
     "memory_context",
     "external_web_context",
@@ -1458,29 +1438,6 @@ def _summarize_scalar_fields(raw: dict[str, Any], *, max_items: int = 4) -> str 
     if not bits:
         return None
     return _clean_source_text("; ".join(bits))
-
-
-def _normalize_source_labels(value: Any) -> set[str]:
-    raw_items: list[Any]
-    if isinstance(value, str):
-        raw_items = [value]
-    elif isinstance(value, (list, tuple, set)):
-        raw_items = list(value)
-    else:
-        raw_items = []
-    labels: set[str] = set()
-    for item in raw_items:
-        label = str(item or "").strip()
-        if label in _VALID_SOURCE_LABELS:
-            labels.add(label)
-    return labels
-
-
-def _primary_source_label(labels: set[str]) -> str:
-    for label in _SOURCE_LABEL_PRIMARY_ORDER:
-        if label in labels:
-            return label
-    return "unknown_unclassified"
 
 
 def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
@@ -1896,6 +1853,52 @@ def _append_news_no_hit_source(
     )
 
 
+def _news_result_can_claim_verify(
+    result: dict[str, Any],
+    *,
+    require_ok: bool,
+) -> bool:
+    if require_ok and result.get("ok") is not True:
+        return False
+    if result.get("data_insufficient") is True:
+        return False
+    if _tool_result_has_runtime_failure("search_news", result):
+        return False
+    labels = _normalize_source_labels(result.get("evidence_labels"))
+    if labels & {"context_only", "no_hit", "degraded_runtime", "missing_required_evidence"}:
+        return False
+    status = str(result.get("source_coverage_status") or "").strip()
+    return status not in {
+        "context_only",
+        "no_hit",
+        "degraded_runtime",
+        "missing_required_evidence",
+    }
+
+
+def _verified_local_news_hit(raw: dict[str, Any], *, allow_auto_claim: bool) -> dict[str, Any]:
+    enriched = dict(raw)
+    labels = _normalize_source_labels(enriched.get("evidence_labels"))
+    labels.update(_normalize_source_labels(enriched.get("source_labels")))
+    labels.add("local_news_context")
+
+    blocks_claim = bool(
+        labels
+        & {
+            "context_only",
+            "no_hit",
+            "degraded_runtime",
+            "missing_required_evidence",
+        }
+    )
+    if allow_auto_claim and not blocks_claim:
+        labels.add("claim_verified")
+        enriched["claim_verified"] = True
+
+    enriched["evidence_labels"] = sorted(labels)
+    return enriched
+
+
 def _source_id_slug(value: Any, *, fallback: str = "unknown") -> str:
     text = str(value or "").strip().lower()
     text = re.sub(r"[^a-z0-9._:-]+", "-", text).strip("-")
@@ -2262,12 +2265,16 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 )
 
         elif ev_type == "news_search":
+            can_claim_verify = _news_result_can_claim_verify(details, require_ok=False)
             for row in details.get("hits", []) if isinstance(details.get("hits"), list) else []:
                 if isinstance(row, dict):
                     _append_source_item(
                         items,
                         seen,
-                        row,
+                        _verified_local_news_hit(
+                            row,
+                            allow_auto_claim=can_claim_verify,
+                        ),
                         default_title="News source",
                         kind="news",
                     )
@@ -2439,12 +2446,19 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 result = _decode_truncated_tool_result(result)
                 if tool_name == "search_news":
                     hits = _dict_rows(result.get("hits"))
+                    can_claim_verify = _news_result_can_claim_verify(
+                        result,
+                        require_ok=True,
+                    )
                     for hit in hits:
                         if isinstance(hit, dict):
                             _append_source_item(
                                 items,
                                 seen,
-                                hit,
+                                _verified_local_news_hit(
+                                    hit,
+                                    allow_auto_claim=can_claim_verify,
+                                ),
                                 default_title="News article",
                                 kind="news",
                             )
@@ -3067,6 +3081,11 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
     r"revenue|profit|loss|EBIT|EBITDA|dividend|buyback|placement)\b",
     re.IGNORECASE,
 )
+_NUMERIC_SUPPRESSION_PROTECTED_LABELS = {
+    "degraded_runtime",
+    "local_personal_data",
+    "no_hit",
+}
 _PURE_OPERATIONAL_NO_HIT_RE = re.compile(
     r"^\s*(?:"
     r"(?:data_missing:?\s*)?(?:no|zero) (?:[\w-]+\s+){0,3}(?:canonical )?"
@@ -3337,12 +3356,53 @@ def _json_safe_mapping(value: Any) -> dict[str, Any]:
         return {str(key): str(item) for key, item in value.items()}
 
 
+def _raw_string_set(value: Any) -> set[str]:
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, (list, tuple, set)):
+        values = list(value)
+    else:
+        values = []
+    return {str(item).strip() for item in values if str(item).strip()}
+
+
 def _source_label_counts(sources: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for source in sources:
         for label in _normalize_source_labels(source.get("evidence_labels")):
             counts[label] = counts.get(label, 0) + 1
     return counts
+
+
+def _claim_verified_source_count_for_claims(
+    sources: list[dict[str, Any]],
+    metadata: dict[str, Any],
+) -> int:
+    requirements = metadata.get("claim_evidence_requirements")
+    required_sets: list[set[str]] = []
+    if isinstance(requirements, list):
+        for row in requirements:
+            if not isinstance(row, dict):
+                continue
+            required_any = row.get("required_any")
+            if not isinstance(required_any, list):
+                continue
+            required = {str(item).strip() for item in required_any if str(item).strip()}
+            if required:
+                required_sets.append(required)
+
+    if not required_sets:
+        return _source_label_counts(sources).get("claim_verified", 0)
+
+    verified_count = 0
+    for source in sources:
+        labels = _normalize_source_labels(source.get("evidence_labels"))
+        if "claim_verified" not in labels or "context_only" in labels:
+            continue
+        categories = evidence_categories_for_source(source)
+        if any(categories.intersection(required) for required in required_sets):
+            verified_count += 1
+    return verified_count
 
 
 def _evidence_payload_labels(response: Any) -> set[str]:
@@ -3447,14 +3507,95 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
     metadata["source_label_taxonomy_version"] = SOURCE_LABEL_TAXONOMY_VERSION
     metadata["source_label_counts"] = source_label_counts
     metadata["evidence_labels"] = sorted(evidence_labels)
-    metadata["claim_verified_source_count"] = source_label_counts.get("claim_verified", 0)
     metadata["source_coverage_status"] = _source_coverage_status(evidence_labels, sources)
     metadata = enrich_chat_metadata_with_evidence_guard(
         metadata,
         answer_text=str(getattr(response, "text", "") or ""),
         sources=sources,
     )
+    metadata["claim_verified_source_count"] = _claim_verified_source_count_for_claims(
+        sources,
+        metadata,
+    )
     return _json_safe_mapping(metadata)
+
+
+def _suppress_unverified_data_missing_claims(
+    text: str,
+    metadata: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    """Remove unsafe numeric body text from DATA_MISSING answers without verified sources."""
+    answer_text = str(text or "")
+    if not answer_text.lstrip().upper().startswith("DATA_MISSING"):
+        return answer_text, metadata
+
+    safe_metadata = _json_safe_mapping(metadata)
+    try:
+        verified_count = int(safe_metadata.get("claim_verified_source_count") or 0)
+    except (TypeError, ValueError):
+        verified_count = 0
+    if verified_count > 0:
+        return answer_text, safe_metadata
+    if not _CONTAINS_FINANCIAL_CLAIM_RE.search(answer_text):
+        return answer_text, safe_metadata
+    raw_labels = _raw_string_set(safe_metadata.get("evidence_labels"))
+    raw_labels.update(_raw_string_set(safe_metadata.get("evidence_requirement_labels")))
+    raw_labels.update(_raw_string_set(safe_metadata.get("source_labels")))
+    if "financial_truth_numeric" not in raw_labels:
+        return answer_text, safe_metadata
+    source_status = str(safe_metadata.get("source_coverage_status") or "").strip()
+    if source_status in _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
+        return answer_text, safe_metadata
+    if raw_labels & _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
+        return answer_text, safe_metadata
+    local_news_guard = safe_metadata.get("local_news_only_guard")
+    if isinstance(local_news_guard, dict) and local_news_guard.get("applied") is True:
+        return answer_text, safe_metadata
+    if (
+        str(safe_metadata.get("data_scope") or "").strip() == "local_personal_holdings"
+        or str(safe_metadata.get("canonical_intent") or "").strip() == "holdings"
+    ):
+        return answer_text, safe_metadata
+
+    gap_lines: list[str] = []
+    for line in answer_text.splitlines():
+        if not line.strip() and gap_lines:
+            break
+        gap_lines.append(line.rstrip())
+    if not gap_lines:
+        gap_lines = ["DATA_MISSING / evidence gaps:"]
+    if not gap_lines[0].lstrip().upper().startswith("DATA_MISSING"):
+        gap_lines.insert(0, "DATA_MISSING / evidence gaps:")
+    suppression_line = (
+        "- unverified_numeric_claims_suppressed: numeric/context-only claims were hidden "
+        "because no claim_verified source is visible."
+    )
+    if suppression_line not in gap_lines:
+        gap_lines.append(suppression_line)
+
+    safe_metadata["unsafe_numeric_claims_suppressed"] = True
+    safe_metadata["sufficient_for_analysis"] = False
+    safe_metadata["grounding_guard"] = "data_missing_unverified_numeric_claims"
+    safe_metadata["source_coverage_status"] = "missing_required_evidence"
+    evidence_labels = _normalize_source_labels(safe_metadata.get("evidence_labels"))
+    evidence_labels.add("missing_required_evidence")
+    safe_metadata["evidence_labels"] = _ordered_source_labels(evidence_labels)
+    recovery_categories = [
+        str(item)
+        for item in safe_metadata.get("missing_categories_after_recovery", [])
+        if str(item).strip()
+    ]
+    if "unverified_numeric_claims" not in recovery_categories:
+        recovery_categories.append("unverified_numeric_claims")
+    safe_metadata["missing_categories_after_recovery"] = recovery_categories
+
+    sanitized = (
+        "\n".join(gap_lines).strip()
+        + "\n\n"
+        + "Answer suppressed: normal financial analysis is blocked until the relevant "
+        + "readiness capability has claim-verified evidence."
+    )
+    return sanitized, _json_safe_mapping(safe_metadata)
 
 
 def _legacy_chat_record_metadata(role: str) -> dict[str, Any]:
@@ -4001,6 +4142,30 @@ def cockpit_metrics_host() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# GET /api/cockpit/news/status
+# ---------------------------------------------------------------------------
+
+
+@router.get("/news/status")
+def cockpit_news_status() -> dict[str, Any]:
+    """Return the read-only A2M/news status contract without probing or repair."""
+
+    return build_a2m_news_health_status()
+
+
+@router.get("/chat/readiness")
+def cockpit_chat_readiness(ticker: str | None = None) -> dict[str, Any]:
+    """Return read-only, capability-scoped readiness for Cockpit chat answers."""
+
+    normalized_ticker = str(ticker or "").strip().upper() or None
+    return build_chat_readiness_status(
+        ticker=normalized_ticker,
+        settings_obj=settings,
+        http_probe=_probe_http,
+    )
+
+
+# ---------------------------------------------------------------------------
 # GET /api/cockpit/config
 # ---------------------------------------------------------------------------
 
@@ -4022,7 +4187,11 @@ def _git_branch() -> str | None:
     return None
 
 
-@router.get("/config", response_model=CockpitConfigResponse)
+@router.get(
+    "/config",
+    response_model=CockpitConfigResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_config() -> CockpitConfigResponse:
     """Return system configuration for the cockpit settings screen."""
     from app.services.llamacpp_runtime import resolve_llm_runtime_config
@@ -4506,7 +4675,11 @@ def _find_matching_runtime_model(
     return preferred_match
 
 
-@router.get("/models", response_model=AvailableModelsResponse)
+@router.get(
+    "/models",
+    response_model=AvailableModelsResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_available_models() -> AvailableModelsResponse:
     """Return all discoverable GGUF models grouped by storage location.
 
@@ -4754,7 +4927,11 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/queue", response_model=QueueStatusResponse)
+@router.get(
+    "/queue",
+    response_model=QueueStatusResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_queue_status() -> QueueStatusResponse:
     """Return queue statistics in the shape the cockpit UI expects.
 
@@ -4811,7 +4988,7 @@ def cockpit_queue_status() -> QueueStatusResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/docs")
+@router.get("/docs", dependencies=[Depends(require_api_key)])
 def cockpit_docs():
     """Return recent documents across all tickers for the cockpit history screen.
 
@@ -5466,6 +5643,7 @@ def cockpit_remove_holding(holding_id: str) -> CockpitHoldingMutationResponse:
 @router.post(
     "/chat/attachments/upload",
     response_model=CockpitChatAttachmentUploadResponse,
+    dependencies=[Depends(require_api_key)],
 )
 def cockpit_upload_chat_attachment(
     payload: CockpitChatAttachmentUploadRequest,
@@ -5602,7 +5780,11 @@ def cockpit_upload_chat_attachment(
     )
 
 
-@router.get("/pulse", response_model=IntelPulseResponse)
+@router.get(
+    "/pulse",
+    response_model=IntelPulseResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
     """Return system population and quality metrics for Intel Pulse."""
     try:
@@ -5613,7 +5795,11 @@ def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/matrix", response_model=IntelPulseMatrixResponse)
+@router.get(
+    "/matrix",
+    response_model=IntelPulseMatrixResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def cockpit_intel_matrix(
     stage: str, ticker: str | None = None
 ) -> IntelPulseMatrixResponse:
@@ -7559,6 +7745,43 @@ def _read_chart_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _build_candlestick_no_data_html(ticker: str, timeframe: str) -> str:
+    safe_ticker = html.escape(ticker)
+    safe_timeframe = html.escape(timeframe)
+    return (
+        '<section data-state="DATA_MISSING" '
+        'style="font-family: Inter, system-ui, sans-serif; padding: 24px; '
+        'border: 1px solid #d1d5db; border-radius: 8px; color: #111827;">'
+        f'<h2 style="margin: 0 0 8px; font-size: 18px;">{safe_ticker} '
+        "candlestick chart unavailable</h2>"
+        f'<p style="margin: 0;">No OHLC data available for {safe_ticker}. '
+        "Candlestick chart cannot be rendered from current OHLC evidence for "
+        f"{safe_timeframe}.</p>"
+        "</section>"
+    )
+
+
+def _build_candlestick_no_ohlc_response(
+    action_id: str,
+    ticker: str,
+    timeframe: str,
+) -> CockpitActionExecuteResponse:
+    return CockpitActionExecuteResponse(
+        ok=True,
+        action_id=action_id,
+        result=(
+            f"DATA_MISSING: No OHLC data available for {ticker}. "
+            "Candlestick chart cannot be rendered from current OHLC evidence."
+        ),
+        exit_code=0,
+        status="data_missing",
+        chart={
+            "title": f"{ticker} candlestick chart unavailable",
+            "html": _build_candlestick_no_data_html(ticker, timeframe),
+        },
+    )
+
+
 def _build_candlestick_chart_response(
     service: CockpitService,
     action_id: str,
@@ -7614,8 +7837,10 @@ def _build_candlestick_chart_response(
         if not recent_history:
             if csv_error is not None:
                 raise csv_error
-            raise HTTPException(
-                status_code=404, detail=f"No OHLC data available for {ticker}"
+            return _build_candlestick_no_ohlc_response(
+                action_id,
+                ticker,
+                timeframe,
             )
         price_state = (
             bundle.get("price_state")
@@ -8379,6 +8604,7 @@ async def cockpit_marketplace_browser_health():
 @router.get(
     "/marketplace/missions",
     response_model=MarketplaceMissionListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_missions(status: str | None = None):
     try:
@@ -8409,6 +8635,7 @@ async def cockpit_list_marketplace_missions(status: str | None = None):
 @router.post(
     "/marketplace/missions",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRequest):
     try:
@@ -8509,6 +8736,7 @@ def _warm_up_marketplace_mission(
 @router.get(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_get_marketplace_mission(mission_id: str):
     try:
@@ -8536,6 +8764,7 @@ async def cockpit_get_marketplace_mission(mission_id: str):
 @router.patch(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_mission(
     mission_id: str,
@@ -8585,6 +8814,7 @@ async def cockpit_update_marketplace_mission(
 @router.post(
     "/marketplace/missions/{mission_id}/link-product",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_link_marketplace_mission_product(
     mission_id: str,
@@ -8632,6 +8862,7 @@ async def cockpit_link_marketplace_mission_product(
 @router.delete(
     "/marketplace/missions/{mission_id}/link-product",
     response_model=MarketplaceMissionRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_unlink_marketplace_mission_product(mission_id: str):
     try:
@@ -8662,6 +8893,7 @@ async def cockpit_unlink_marketplace_mission_product(mission_id: str):
 @router.delete(
     "/marketplace/missions/{mission_id}",
     response_model=MarketplaceMissionDeleteResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_delete_marketplace_mission(mission_id: str):
     try:
@@ -8813,6 +9045,7 @@ async def cockpit_get_marketplace_scan_job(job_id: str, tail: int = 0):
 @router.get(
     "/marketplace/matches",
     response_model=MarketplaceMatchListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_matches(
     mission_id: str | None = None,
@@ -8879,6 +9112,7 @@ async def cockpit_list_marketplace_matches(
 @router.get(
     "/marketplace/matches/{match_id}",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_get_marketplace_match(match_id: str):
     try:
@@ -8920,6 +9154,7 @@ async def cockpit_get_marketplace_match(match_id: str):
 @router.patch(
     "/marketplace/matches/{match_id}",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_match(
     match_id: str,
@@ -8971,6 +9206,7 @@ async def cockpit_update_marketplace_match(
 @router.patch(
     "/marketplace/matches/{match_id}/feedback",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_match_feedback(
     match_id: str,
@@ -9115,6 +9351,7 @@ async def cockpit_sync_marketplace_ebay_sold_data(tracked_product_id: str):
 @router.patch(
     "/marketplace/matches/{match_id}/benchmark-review",
     response_model=MarketplaceMatchRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_benchmark_review(
     match_id: str,
@@ -9176,6 +9413,7 @@ async def cockpit_update_marketplace_benchmark_review(
 @router.get(
     "/marketplace/alerts",
     response_model=MarketplaceAlertListResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_list_marketplace_alerts(
     mission_id: str | None = None,
@@ -9203,6 +9441,7 @@ async def cockpit_list_marketplace_alerts(
 @router.patch(
     "/marketplace/alerts/{alert_id}",
     response_model=MarketplaceAlertRecord,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_update_marketplace_alert(
     alert_id: str,
@@ -9229,7 +9468,11 @@ async def cockpit_update_marketplace_alert(
     return MarketplaceAlertRecord(**alert)
 
 
-@router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)
+@router.post(
+    "/feedback/flag",
+    response_model=CockpitFeedbackFlagResponse,
+    dependencies=[Depends(require_api_key)],
+)
 async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
     """Persist a flagged cockpit chat turn with relevant backend diagnostics."""
     try:
@@ -9319,6 +9562,7 @@ async def cockpit_get_flagged_feedback(report_id: str):
 @router.post(
     "/feedback/flags/{report_id}/resolve",
     response_model=CockpitFlagResolutionResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def cockpit_resolve_flagged_feedback(
     report_id: str,
@@ -9914,7 +10158,21 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             if stateless_smoke:
                 ui_metadata["stateless_smoke"] = True
                 ui_metadata["chat_persistence"] = "disabled"
+            response.text, ui_metadata = apply_local_news_only_guard(
+                str(response.text or ""),
+                sources,
+                ui_metadata,
+                user_message=payload.message,
+            )
+            response.text, ui_metadata = _suppress_unverified_data_missing_claims(
+                str(response.text or ""),
+                ui_metadata,
+            )
             response.text = apply_visible_evidence_gap_labels(
+                str(response.text or ""),
+                ui_metadata,
+            )
+            response.text, ui_metadata = _suppress_unverified_data_missing_claims(
                 str(response.text or ""),
                 ui_metadata,
             )
@@ -9979,8 +10237,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
         queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
+        suppress_stream_chunks = requires_local_news_only_guard(payload.message)
+
         def on_chunk(chunk: str):
             # This runs in the LLM thread (from ChatController)
+            if suppress_stream_chunks:
+                return
             loop.call_soon_threadsafe(
                 queue.put_nowait, {"type": "chunk", "data": {"text": chunk}}
             )
@@ -10023,7 +10285,21 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 if stateless_smoke:
                     ui_metadata["stateless_smoke"] = True
                     ui_metadata["chat_persistence"] = "disabled"
+                response.text, ui_metadata = apply_local_news_only_guard(
+                    str(response.text or ""),
+                    sources,
+                    ui_metadata,
+                    user_message=payload.message,
+                )
+                response.text, ui_metadata = _suppress_unverified_data_missing_claims(
+                    str(response.text or ""),
+                    ui_metadata,
+                )
                 response.text = apply_visible_evidence_gap_labels(
+                    str(response.text or ""),
+                    ui_metadata,
+                )
+                response.text, ui_metadata = _suppress_unverified_data_missing_claims(
                     str(response.text or ""),
                     ui_metadata,
                 )
@@ -10152,6 +10428,7 @@ class TvAlertPayload(BaseModel):
     price: float | None = None
     message: str | None = None
     timestamp: str | None = None
+    webhook_token: str | None = None
 
 
 _TV_ALERTS_LOCK = threading.Lock()
@@ -10180,21 +10457,41 @@ def _save_tv_alerts(alerts: list[dict]) -> None:
     tmp.replace(p)
 
 
+def _tv_webhook_token() -> str:
+    return str(
+        os.environ.get("TV_WEBHOOK_TOKEN")
+        or getattr(settings, "tv_webhook_token", "")
+        or ""
+    ).strip()
+
+
+def _incoming_tv_webhook_token(payload: TvAlertPayload, request: Request) -> str:
+    return str(
+        request.headers.get("X-TradingView-Webhook-Token")
+        or payload.webhook_token
+        or ""
+    ).strip()
+
+
 @router.post("/tv/alert", tags=["tradingview"])
 async def receive_tv_alert(
     payload: TvAlertPayload,
     request: Request,
 ) -> dict:
     """Receive a Pine Script webhook alert from TradingView."""
-    token = os.environ.get("TV_WEBHOOK_TOKEN", "")
-    if token:
-        incoming = request.headers.get("X-TradingView-Webhook-Token", "")
-        if incoming != token:
-            raise HTTPException(status_code=403, detail="Invalid webhook token")
+    token = _tv_webhook_token()
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail="TradingView webhook token is not configured",
+        )
+    incoming = _incoming_tv_webhook_token(payload, request)
+    if incoming != token:
+        raise HTTPException(status_code=403, detail="Invalid webhook token")
 
     entry: dict = {
         "received_at": datetime.now(timezone.utc).isoformat(),
-        **payload.model_dump(),
+        **payload.model_dump(exclude={"webhook_token"}),
     }
     with _TV_ALERTS_LOCK:
         alerts = _load_tv_alerts()
@@ -10207,7 +10504,11 @@ async def receive_tv_alert(
     return {"ok": True, "received": entry}
 
 
-@router.get("/tv/alerts", tags=["tradingview"])
+@router.get(
+    "/tv/alerts",
+    tags=["tradingview"],
+    dependencies=[Depends(require_api_key)],
+)
 async def get_tv_alerts(limit: int = 50) -> dict:
     """Return recent TradingView Pine Script alerts."""
     limit = max(1, min(limit, 200))

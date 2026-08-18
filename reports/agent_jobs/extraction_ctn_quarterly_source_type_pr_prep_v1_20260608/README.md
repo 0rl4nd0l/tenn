@@ -1,0 +1,61 @@
+# CTN Quarterly Source-Type PR Prep
+
+State: `DONE`
+
+## Objective
+
+Prepare and publish a draft PR for the CTN-only quarterly source-type
+precedence safe extension.
+
+## Current Evidence
+
+- Worktree:
+  `/home/l4nd0/tenn-ctn-quarterly-source-type-pr-v1-20260608`
+- Branch:
+  `safe/extraction-ctn-quarterly-source-type-precedence-pr-v1-20260608`
+- Base:
+  `origin/migration/clean-runtime-baseline-reconstruct-v1`
+- Base HEAD:
+  `d97b3a2a1e9c755b536bb862ce3b47b9e28266db`
+- CTN safe-extension commit cherry-picked cleanly from `c7a80b8c` to
+  `25a0f7b25e72fff541aea6ba6f8d8505c4f624f5`.
+
+## Scope
+
+Draft PR only. No merge, no ready-for-review transition, no issue edits, no
+labels, no broad extraction, no count runs, no service routes, and no data-store
+mutation.
+
+## Validation
+
+- Task card validate: passed.
+- Registry read-only: passed; no active jobs.
+- Duplicate PR check: no existing PR found for the PR branch or CTN commits.
+- Focused pytest: passed via isolated `uv` environment:
+  `19 passed, 1 warning`.
+- CI follow-up: GitHub `lint-and-test` initially failed one pre-existing
+  classifier expectation because mixed `Quarterly activities report and Appendix
+  5B` text reported `appendix_5b_source_phrase` instead of the legacy
+  `quarterly_source_phrase`. The follow-up preserves the legacy classifier
+  reason ordering while keeping Appendix 5B evidence in the hit list for CTN
+  precedence.
+- Post-fix local validation:
+  - targeted classifier + CTN guard tests: `10 passed, 1 warning`;
+  - expanded extraction slice
+    `test_multipass_extraction.py test_extraction_pre_canary_truth_gates.py`:
+    `203 passed, 1 warning`.
+- CTN-only saved-artifact scorecard replay: passed; previous
+  `period_source_mismatch` replayed as `ok`, observed gain `+1` document and
+  `+6` non-null canonical metrics.
+- No extraction, count run, backfill, service route, or data-store mutation was
+  run.
+
+## PR
+
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/331
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `safe/extraction-ctn-quarterly-source-type-precedence-pr-v1-20260608`
+
+The PR is intentionally draft. It should remain CTN-only and should not be used
+to authorize HUB/LBL repairs, count runs, broad extraction, backfill, runtime
+service routes, or production-data mutation.

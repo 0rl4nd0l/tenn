@@ -1,0 +1,20 @@
+{
+  "job_id": "research_synthesis_route_guard_v1_20260626",
+  "issue": 244,
+  "status": "DONE_WITH_RISK",
+  "functionality_result": "PARTIAL",
+  "issue_comment_url": "https://github.com/0rl4nd0l/tenn/issues/244#issuecomment-4809097952",
+  "published_pr": {
+    "number": 417,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/417",
+    "draft": true,
+    "published_commit": "e978d53ce6fcbce92af480b99cd9c6b7e8fc9ea0",
+    "published_at": "2026-06-26T12:29:05Z",
+    "issue_comment_url": "https://github.com/0rl4nd0l/tenn/issues/244#issuecomment-4809567622"
+  },
+  "notes": [
+    "Local research synthesis route guard implemented and backend validation passed.",
+    "Registry claim released and final active-job snapshot saved.",
+    "Draft PR #417 opened; issue remains open until the branch is merged."
+  ]
+}

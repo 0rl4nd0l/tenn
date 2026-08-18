@@ -1,0 +1,58 @@
+{
+  "actual_flags": [
+    "all_checked_metrics_below_minimum",
+    "mixed_metric_source_scales",
+    "payload_scale_differs_from_metric_source_scale",
+    "metric_source_scale_missing",
+    "metric_revenue_ratio_high"
+  ],
+  "assertions": [
+    "accepted_output risk payload is present",
+    "risk_level is review",
+    "expected positive risk flags are present",
+    "risk flag count matches flag arrays",
+    "summary risk_flag_distribution counts each expected flag",
+    "summary risk_flagged_documents equals 1",
+    "provenance_missing is empty for the synthetic fixture"
+  ],
+  "expected_flags": [
+    "all_checked_metrics_below_minimum",
+    "metric_revenue_ratio_high",
+    "metric_source_scale_missing",
+    "mixed_metric_source_scales",
+    "payload_scale_differs_from_metric_source_scale"
+  ],
+  "fixture_id": "synthetic_positive_scale_magnitude_risk_v1",
+  "forbidden_actions_avoided": [
+    "run_multipass_extraction",
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "broad backfill",
+    "runtime service start",
+    "canonical writes",
+    "DB/Qdrant/Redis/news/memory mutation",
+    "GitHub mutation"
+  ],
+  "mode": "exact_synthetic_no_extraction",
+  "non_null_metrics": 5,
+  "ok": true,
+  "provenance_available": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "cash_end"
+  ],
+  "provenance_missing": [],
+  "risk_level": "review",
+  "status": "ok",
+  "summary_risk_flag_distribution": {
+    "all_checked_metrics_below_minimum": 1,
+    "metric_revenue_ratio_high": 1,
+    "metric_source_scale_missing": 1,
+    "mixed_metric_source_scales": 1,
+    "payload_scale_differs_from_metric_source_scale": 1
+  },
+  "summary_risk_flagged_documents": 1
+}

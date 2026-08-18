@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_count16_validation_v1_20260607",
+  "status": "passed_with_risk",
+  "risk_notes": [
+    "The bounded count-16 sample completed, but LBL remained accepted and is carried forward as suspicious accepted-output evidence for Milestone 4.",
+    "Docling import failed for sampled documents because transformers is unavailable; the existing PyMuPDF fallback was used.",
+    "Reliable GPU memory telemetry is DATA_MISSING because nvidia-smi failed."
+  ],
+  "scope_guard": {
+    "count16_runs": 1,
+    "count24_or_count32_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "full_ticker_universe_extraction_run": false,
+    "source_pdfs_staged": false
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr301_count16_validation_v1_20260607.md",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_bounded_count16.py",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/ruff check reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_bounded_count16.py",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_bounded_count16.py > reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stdout.txt 2> reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stderr.txt",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads generated Milestone 3 JSON artifacts ... PY",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr301_count16_validation_v1_20260607.md --repo-root .",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --cached --name-only | rg '\\.pdf$' || true",
+      "exit_code": 0,
+      "result": "no staged source PDFs"
+    },
+    {
+      "command": "find /mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active -mindepth 1 -maxdepth 2 -type f -print 2>/dev/null | head -c 4000; true",
+      "exit_code": 0,
+      "result": "no active registry files printed"
+    }
+  ],
+  "sample_summary": {
+    "seed": 20260602,
+    "requested_count": 16,
+    "actual_count": 16,
+    "candidate_pool_count": 28633,
+    "candidate_pool_ordered_sha256": "3d99f44885fd056ac3f112d56abe95d14dd1ac9affdcd7315f860f690cdeb63f",
+    "candidate_pool_sorted_sha256": "e4d57b2cdb3e8583a3aeaf33fba5a2d959383500733473349771f80531629e7a",
+    "ok_count": 7,
+    "ok_low_confidence_count": 0,
+    "failed_count": 9,
+    "exception_count": 0,
+    "failure_taxonomy": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 1,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 2
+    },
+    "accepted_output_risk_notes": [
+      "DXC failed closed with validation_gate:metric_label_mismatch:ebit:net_operating_income.",
+      "LBL accepted and remains suspicious because PR #301 identified selected-table/period mismatch plus scale-binding risk."
+    ]
+  },
+  "side_effect_summary": {
+    "db_files_changed": false,
+    "qdrant_changed": false,
+    "queues_clean_after_run": true,
+    "news_route_used": false,
+    "memory_mutated": false,
+    "source_pdfs_changed": false
+  },
+  "data_missing": [
+    "Reliable GPU memory telemetry: nvidia-smi failed."
+  ],
+  "next_phase": "Proceed to Milestone 4 failure and accepted-output taxonomy; do not run another sample."
+}

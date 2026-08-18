@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.api.routes import require_api_key
 from app.services.research_synthesis import synthesize_research
 
 router = APIRouter()
@@ -29,7 +30,11 @@ class SynthesisBrief(BaseModel):
     data_gaps: list[str] = []
 
 
-@router.post("/synthesize", response_model=SynthesisBrief)
+@router.post(
+    "/synthesize",
+    response_model=SynthesisBrief,
+    dependencies=[Depends(require_api_key)],
+)
 def synthesize(payload: SynthesizeRequest) -> dict[str, Any]:
     """Synthesize gathered research sources into a structured brief.
 

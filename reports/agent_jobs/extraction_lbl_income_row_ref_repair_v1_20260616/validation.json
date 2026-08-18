@@ -1,0 +1,114 @@
+{
+  "job_id": "extraction_lbl_income_row_ref_repair_v1_20260616",
+  "validation_status": "passed",
+  "checks": [
+    {
+      "name": "task_card_validate_initial",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "red_test_path_probe",
+      "command": "PYTHONPATH=financial-engine_v2/backend pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_lbl_income_combined_metric_name_row_refs",
+      "exit_status": 127,
+      "status": "pytest_not_on_path"
+    },
+    {
+      "name": "red_test",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_lbl_income_combined_metric_name_row_refs",
+      "exit_status": 1,
+      "status": "failed_as_expected_missing_per_metric_row_refs",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/red_test.log"
+    },
+    {
+      "name": "green_test",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_lbl_income_combined_metric_name_row_refs",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/green_test.log"
+    },
+    {
+      "name": "py_compile",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/py_compile.log"
+    },
+    {
+      "name": "single_document_lbl_bounded_replay",
+      "command": "DATA_ROOT=/tmp/tenn-lbl-income-row-ref-repair-v1-20260616 PYTHONPATH=\"$PWD/financial-engine_v2/backend\" EXTRACTION_PARALLEL=0 EXTRACTION_SKIP_NARRATIVE=1 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:11434 EXTRACT_MODEL=qwen2.5:32b LBL_REPLAY_SUMMARY_PATH=\"$PWD/reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json\" timeout 1800 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /home/l4nd0/tenn-lbl-bounded-runtime-execution-v1-20260616/reports/agent_jobs/extraction_lbl_bounded_runtime_execution_v1_20260616/runner_source.py",
+      "exit_status": 0,
+      "status": "passed_runtime_status_ok",
+      "raw_stdout": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stdout.log",
+      "raw_stderr": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stderr.log",
+      "summary": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json"
+    },
+    {
+      "name": "ruff",
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/ruff.log"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "task_card_check_diff_initial",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md --repo-root .",
+      "exit_status": 0,
+      "status": "passed"
+    }
+  ],
+  "bounded_replay_result": {
+    "runtime_status": "ok",
+    "runtime_error": null,
+    "period_end": "2025-12-31",
+    "period_type": "H",
+    "scale": "thousands",
+    "currency": "AUD",
+    "non_null_metrics": 7,
+    "scale_validation": "pass",
+    "target_metrics": {
+      "revenue": 230089000.0,
+      "ebit": 213677000.0,
+      "np_attributable": 22159000.0
+    },
+    "target_row_refs": {
+      "revenue": "Sales Revenue",
+      "ebit": "EBIT",
+      "np_attributable": "NPAT For"
+    }
+  },
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "full ticker extraction",
+    "canonical financial truth write",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "schema mutation",
+    "runtime/service/model/GPU config mutation",
+    "GitHub write"
+  ],
+  "data_missing": [
+    "Live task ledger file missing at registry_root/task-ledger.jsonl.",
+    "Committed task ledger docs/agent_registry/task_ledger/LEDGER.jsonl missing."
+  ],
+  "warnings": [
+    "Replay stderr contains existing pydantic protected-namespace warnings and one cashflow pass3a timeout followed by built-in truncated-table retry; final runtime status was ok."
+  ]
+}

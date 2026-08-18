@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+_EXCLUDED_RETRIEVAL_PRECISION_SOURCE_KINDS = frozenset({"concat", "ephemeral"})
 
 
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
@@ -23,13 +26,43 @@ def _cosine_similarity(left: list[float], right: list[float]) -> float:
 
 def compute_retrieval_precision(chunks: list[dict[str, Any]]) -> float:
     """Average final_score of retrieved chunks (0-1 scale)."""
-    if not chunks:
-        return 0.0
-    scores = [
-        float(chunk.get("final_score") or chunk.get("relevance_score") or 0.0)
-        for chunk in chunks
+    scored_chunks = [
+        chunk for chunk in chunks if _counts_toward_retrieval_precision(chunk)
     ]
+    if not scored_chunks:
+        return 0.0
+    scores = [_retrieval_precision_score(chunk) for chunk in scored_chunks]
     return sum(scores) / len(scores)
+
+
+def _counts_toward_retrieval_precision(chunk: dict[str, Any]) -> bool:
+    source_kind = str(chunk.get("source_kind") or "").strip().casefold()
+    return source_kind not in _EXCLUDED_RETRIEVAL_PRECISION_SOURCE_KINDS
+
+
+def _retrieval_precision_score(chunk: dict[str, Any]) -> float:
+    final_score = _coerce_score(chunk.get("final_score"))
+    if final_score is not None:
+        return final_score
+
+    relevance_score = _coerce_score(chunk.get("relevance_score"))
+    if relevance_score is not None:
+        return relevance_score
+    return 0.0
+
+
+def _coerce_score(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and not value.strip():
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(score):
+        return None
+    return score
 
 
 def compute_session_coherence(
@@ -57,7 +90,7 @@ def compute_session_coherence(
         similarity = _cosine_similarity(embeddings[0], embeddings[1])
         # High similarity = low coherence (user is repeating)
         # Invert: coherence = 1 - similarity
-        return max(0.0, 1.0 - similarity)
+        return max(0.0, min(1.0, 1.0 - similarity))
     except Exception as exc:
         logger.warning("compute_session_coherence failed: %s", exc)
         return 1.0  # neutral on error

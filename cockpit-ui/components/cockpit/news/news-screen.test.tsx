@@ -2,11 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { NewsScreen } from './news-screen'
+import { NewsScreen, resolveNewsLookbackDateFrom } from './news-screen'
 
 describe('NewsScreen actionability', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('shows DATA_MISSING before any news query is submitted', async () => {
@@ -17,6 +18,14 @@ describe('NewsScreen actionability', () => {
     })
     expect(screen.getByText('DATA_MISSING')).toBeInTheDocument()
     expect(screen.getByText(/no query has been submitted/i)).toBeInTheDocument()
+  })
+
+  it('exposes search filters with durable accessible names', async () => {
+    render(<NewsScreen />)
+
+    expect(await screen.findByRole('textbox', { name: /news search query/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /ticker filter/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /news lookback/i })).toBeInTheDocument()
   })
 
   it('surfaces missing published_at instead of presenting the result as fresh', async () => {
@@ -44,7 +53,7 @@ describe('NewsScreen actionability', () => {
 
     render(<NewsScreen />)
 
-    await userEvent.type(await screen.findByPlaceholderText(/search news articles/i), 'CSL price trend')
+    await userEvent.type(await screen.findByRole('textbox', { name: /news search query/i }), 'CSL price trend')
     await userEvent.click(screen.getByRole('button', { name: /^search$/i }))
 
     await waitFor(() => {
@@ -53,5 +62,94 @@ describe('NewsScreen actionability', () => {
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0)
     expect(screen.getByText('DATE MISSING')).toBeInTheDocument()
     expect(screen.getByText(/freshness cannot be proven/i)).toBeInTheDocument()
+    expect(screen.getByText('DATA_MISSING evidence envelope')).toBeInTheDocument()
+  })
+
+  it('renders supplied backend evidence-envelope fields for news results', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          results: [
+            {
+              score: 0.91,
+              payload: {
+                title: 'A2M recall article',
+                text: 'Local news context with inspectable source.',
+                url: 'https://example.com/a2m-recall',
+                ticker: 'A2M',
+                provider: 'news',
+                published_at: '2026-05-23T00:00:00.000Z',
+                chunk_id: 'chunk-a2m-recall',
+                source_label: 'local_news_context',
+                evidence_labels: ['local_news_context', 'context_only'],
+                source_coverage_status: 'context_only',
+                source_label_taxonomy_version: 'source_label_semantics_v1',
+                claim_verified_source_count: 0,
+              },
+            },
+          ],
+        }),
+      }),
+    )
+
+    render(<NewsScreen />)
+
+    await userEvent.type(await screen.findByPlaceholderText(/search news articles/i), 'A2M recall')
+    await userEvent.click(screen.getByRole('button', { name: /^search$/i }))
+
+    const headline = await screen.findByText('A2M recall article')
+    expect(screen.getByText('coverage: context only')).toBeInTheDocument()
+
+    await userEvent.click(headline)
+
+    expect(screen.getByLabelText('Evidence envelope')).toBeInTheDocument()
+    expect(screen.getByText('source: local news context')).toBeInTheDocument()
+    expect(screen.getAllByText('local news context').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('context only').length).toBeGreaterThan(0)
+    expect(screen.getByText('taxonomy: source label semantics v1')).toBeInTheDocument()
+    expect(screen.getByText('claim verified sources: 0')).toBeInTheDocument()
+  })
+
+  it('translates lookback selections into backend date filters', () => {
+    const now = new Date('2026-05-31T12:00:00.000Z')
+
+    expect(resolveNewsLookbackDateFrom('24h', now)).toBe('2026-05-30T12:00:00.000Z')
+    expect(resolveNewsLookbackDateFrom('7d', now)).toBe('2026-05-24T12:00:00.000Z')
+    expect(resolveNewsLookbackDateFrom('30d', now)).toBe('2026-05-01T12:00:00.000Z')
+    expect(resolveNewsLookbackDateFrom('all', now)).toBeUndefined()
+  })
+
+  it('includes the selected lookback in the news search request payload', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [],
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<NewsScreen />)
+
+    await userEvent.type(await screen.findByPlaceholderText(/search news articles/i), 'BHP lithium')
+    await userEvent.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/rag/query',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      )
+    })
+    const [, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(String(init?.body))
+    expect(body).toMatchObject({
+      query: 'BHP lithium',
+      source: 'news',
+      top_k: 20,
+    })
+    expect(body.date_from).toEqual(expect.any(String))
   })
 })

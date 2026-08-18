@@ -30,6 +30,10 @@ from app.api.routes import (
 )
 from app.core.config import LOADED_ENV_FILES, PROJECT_ROOT, settings
 from app.core.db import SessionLocal, engine
+from app.core.startup_diagnostics import (
+    build_runtime_startup_summary,
+    should_warn_direct_startup,
+)
 from app.models.base import Base
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
@@ -44,8 +48,8 @@ from app.routes.marketplace_price_intelligence import (
 
 try:
     from app.routes.cockpit_api import router as cockpit_api_router
-except ImportError:
-    cockpit_api_router = None
+except ImportError as exc:
+    raise RuntimeError("Required Cockpit API router failed to import") from exc
 try:
     from app.routes.cockpit_claims import router as cockpit_claims_router
 except ImportError:
@@ -74,6 +78,12 @@ from app.services.llamacpp_runtime import (
     resolve_embedding_runtime_config,
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
+)
+from app.services.asx_holdout_confidentiality import (
+    CorpusClassification,
+    DevelopmentAggregateResult,
+    ProtectedAccessMode,
+    serialize_evaluation_output,
 )
 from app.services.extraction_eval import FixtureContext
 from app.services.extraction_gold_eval import (
@@ -110,8 +120,7 @@ app.include_router(
     prefix="/api/extraction-review",
     tags=["extraction_review"],
 )
-if cockpit_api_router is not None:
-    app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
+app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
 if cockpit_claims_router is not None:
     app.include_router(cockpit_claims_router, prefix="/api/cockpit", tags=["cockpit"])
 if cockpit_feedback_router is not None:
@@ -124,7 +133,7 @@ if ops_api_router is not None:
 
 class RagQueryRequest(BaseModel):
     query: str
-    source: Literal["asx_docs", "news", "commentary", "hybrid"] = "asx_docs"
+    source: Literal["asx_docs", "news"] = "asx_docs"
     ticker: Optional[str] = None
     top_k: int = 8
     debug: bool = False
@@ -179,6 +188,16 @@ class RealGoldEvalRequest(BaseModel):
     # (e.g. "qwen2.5-14b-instruct" vs "qwen3-30b-a3b-instruct"). When None,
     # the configured extraction default is used.
     model_override: str | None = None
+    corpus_classification: CorpusClassification
+    access_mode: ProtectedAccessMode
+    development_aggregate: dict[str, Any] | None = None
+
+
+def _is_development_holdout(body: RealGoldEvalRequest) -> bool:
+    return (
+        body.corpus_classification == CorpusClassification.HOLDOUT
+        and body.access_mode == ProtectedAccessMode.DEVELOPMENT
+    )
 
 
 def _normalize_optional_text(value: Any) -> str | None:
@@ -252,8 +271,7 @@ def _fixture_provenance_non_canonical_reasons(
     fixture_dirty = fixture_manifest.get("fixture_git_dirty")
     if fixture_dirty is not False:
         reasons.append(
-            "fixture_provenance:fixture_git_dirty_not_false:"
-            f"{fixture_dirty!r}"
+            f"fixture_provenance:fixture_git_dirty_not_false:{fixture_dirty!r}"
         )
     return reasons
 
@@ -524,6 +542,7 @@ def _evaluate_real_gold_document(
     tolerance: float,
     method: str,
     strict_method: bool,
+    allow_review_session: bool,
     prompt_variant_id: str | None = None,
     model_override: str | None = None,
 ) -> dict[str, Any]:
@@ -625,8 +644,10 @@ def _evaluate_real_gold_document(
     review_session_id: str | None = None
     review_item_count = 0
     review_reason: str | None = None
-    if payload and (
-        failed_metric_count > 0 or str(extraction_status or "") == "parser_error"
+    if (
+        allow_review_session
+        and payload
+        and (failed_metric_count > 0 or str(extraction_status or "") == "parser_error")
     ):
         try:
             review_session = create_review_session_from_payload(
@@ -642,13 +663,13 @@ def _evaluate_real_gold_document(
                     "expected_trust": doc.expected_trust,
                 },
             )
-            review_session_id = str(review_session.get("session_id") or "").strip() or None
+            review_session_id = (
+                str(review_session.get("session_id") or "").strip() or None
+            )
             review_item_count = len(review_session.get("items") or [])
             documents = review_session.get("documents")
             if isinstance(documents, list) and documents:
-                review_reason = (
-                    str(documents[0].get("reason") or "").strip() or None
-                )
+                review_reason = str(documents[0].get("reason") or "").strip() or None
         except Exception as exc:  # noqa: BLE001
             review_reason = f"review_session_failed:{exc}"
 
@@ -818,6 +839,7 @@ def _run_real_gold_eval_sync(
                 tolerance=tolerance,
                 method=method,
                 strict_method=body.strict_method,
+                allow_review_session=not _is_development_holdout(body),
                 prompt_variant_id=body.prompt_variant_id,
                 model_override=body.model_override,
             )
@@ -858,7 +880,7 @@ def _run_real_gold_eval_sync(
                     "context_accuracy": summary.get("context_accuracy"),
                 }
             )
-        return {
+        result = {
             "dataset_dir": str(REAL_GOLD_DATASET_DIR),
             "requested_method": method,
             "strict_method": body.strict_method,
@@ -869,18 +891,30 @@ def _run_real_gold_eval_sync(
             "summary": summary,
             "documents": results,
         }
+        return serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
     except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
+        detail = (
+            "holdout evaluation failed" if _is_development_holdout(body) else str(exc)
+        )
+        raise HTTPException(status_code=400, detail=detail) from exc
+    except Exception as exc:
+        detail = (
+            "holdout evaluation failed"
+            if _is_development_holdout(body)
+            else f"real gold eval failed: {exc}"
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"real gold eval failed: {exc}",
+            detail=detail,
         ) from exc
 
 
-def _run_real_gold_eval_background(
-    task_id: str, body: RealGoldEvalRequest
-) -> None:
+def _run_real_gold_eval_background(task_id: str, body: RealGoldEvalRequest) -> None:
     """Execute a real-gold eval run and funnel its outcome into the task registry.
 
     This is the worker body for the background-thread path. Both HTTPException
@@ -890,39 +924,60 @@ def _run_real_gold_eval_background(
     """
     registry = get_eval_task_registry()
     registry.set_running(task_id)
-    registry.record_progress(
-        task_id,
-        {"stage": "task", "status": "running", "message": "Real-Gold eval task started"},
-    )
 
     def record_progress(event: dict[str, Any]) -> None:
-        registry.record_progress(task_id, event)
+        registry.record_progress(
+            task_id,
+            serialize_evaluation_output(
+                event,
+                corpus_classification=body.corpus_classification,
+                access_mode=body.access_mode,
+                development_aggregate=body.development_aggregate,
+            ),
+        )
+
+    record_progress(
+        {"stage": "task", "status": "running", "message": "Real-Gold eval task started"}
+    )
 
     try:
         result = _run_real_gold_eval_sync(body, progress_callback=record_progress)
     except HTTPException as exc:
-        registry.record_progress(
-            task_id,
+        record_progress(
             {
                 "stage": "task",
                 "status": "failed",
                 "message": f"Real-Gold eval task failed: HTTP {exc.status_code}",
             },
         )
-        registry.set_failed(task_id, f"HTTP {exc.status_code}: {exc.detail}")
+        error = (
+            "holdout evaluation failed"
+            if _is_development_holdout(body)
+            else f"HTTP {exc.status_code}: {exc.detail}"
+        )
+        registry.set_failed(task_id, error)
     except Exception as exc:  # noqa: BLE001 — surface every failure to the poller
-        registry.record_progress(
-            task_id,
+        record_progress(
             {
                 "stage": "task",
                 "status": "failed",
                 "message": f"Real-Gold eval task failed: {type(exc).__name__}",
             },
         )
-        registry.set_failed(task_id, f"{type(exc).__name__}: {exc}")
+        error = (
+            "holdout evaluation failed"
+            if _is_development_holdout(body)
+            else f"{type(exc).__name__}: {exc}"
+        )
+        registry.set_failed(task_id, error)
     else:
-        registry.record_progress(
-            task_id,
+        result = serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
+        record_progress(
             {
                 "stage": "task",
                 "status": "completed",
@@ -946,13 +1001,30 @@ def run_real_gold_eval(
         ),
     ),
 ):
+    try:
+        serialize_evaluation_output(
+            {},
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail="invalid evaluation confidentiality contract"
+        ) from exc
     # Sync handler: FastAPI offloads this to the anyio threadpool so the event
     # loop stays responsive (e.g. /api/health) during a full-corpus run.
     # Docling timeouts are enforced by a spawn ProcessPoolExecutor in
     # docling_extract._run_docling_with_timeout, so main-thread signal state
     # is no longer required here.
     if not background:
-        return _run_real_gold_eval_sync(body)
+        result = _run_real_gold_eval_sync(body)
+        return serialize_evaluation_output(
+            result,
+            corpus_classification=body.corpus_classification,
+            access_mode=body.access_mode,
+            development_aggregate=body.development_aggregate,
+        )
 
     registry = get_eval_task_registry()
     record = registry.register()
@@ -981,7 +1053,16 @@ def get_real_gold_eval_task(task_id: str) -> dict[str, Any]:
     record = get_eval_task_registry().get(task_id)
     if record is None:
         raise HTTPException(status_code=404, detail=f"unknown task_id: {task_id}")
-    return record.to_dict()
+    payload = record.to_dict()
+    payload["progress"] = [
+        (
+            {field: event[field] for field in DevelopmentAggregateResult.ALLOWED_FIELDS}
+            if DevelopmentAggregateResult.ALLOWED_FIELDS.issubset(event)
+            else event
+        )
+        for event in payload["progress"]
+    ]
+    return payload
 
 
 @app.get(
@@ -1021,10 +1102,8 @@ def get_confirmed_metric_coverage_source(
     """Serve an allowlisted confirmed metric coverage source PDF for review."""
 
     try:
-        resolved_path = (
-            confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
-                source_path
-            )
+        resolved_path = confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
+            source_path
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1085,16 +1164,6 @@ def rag_query(body: RagQueryRequest):
                 date_from=body.date_from,
                 date_to=body.date_to,
                 top_k=body.top_k,
-            )
-        elif body.source == "commentary":
-            raise HTTPException(
-                status_code=501,
-                detail="commentary source not yet implemented via /rag/query — use /chat",
-            )
-        elif body.source == "hybrid":
-            raise HTTPException(
-                status_code=501,
-                detail="hybrid source not yet implemented via /rag/query — use /chat",
             )
         else:
             raise HTTPException(
@@ -1202,13 +1271,40 @@ def _log_resolved_models() -> None:
 
 
 def _log_runtime_config() -> None:
+    startup_summary = build_runtime_startup_summary(settings, env=os.environ)
     logger.info(
-        "Runtime config -> TASK_MODE=%s, ENABLE_EMBEDDINGS=%s, QDRANT_URL=%s, CELERY_BROKER_URL=%s",
-        settings.task_mode,
-        str(settings.enable_embeddings).lower(),
+        (
+            "Runtime config -> ENTRYPOINT=%s, TASK_MODE=%s, DB_CLASS=%s, "
+            "AUTO_CREATE_TABLES=%s, ENABLE_EMBEDDINGS=%s, ENABLE_QDRANT=%s, "
+            "ENABLE_EXTRACTION=%s, QDRANT_URL=%s, CELERY_BROKER_URL=%s"
+        ),
+        startup_summary["entrypoint"],
+        startup_summary["task_mode"],
+        startup_summary["database_url_class"],
+        str(startup_summary["auto_create_tables"]).lower(),
+        str(startup_summary["enable_embeddings"]).lower(),
+        str(startup_summary["enable_qdrant"]).lower(),
+        str(startup_summary["enable_extraction"]).lower(),
         settings.qdrant_url,
         settings.celery_broker_url,
     )
+    if should_warn_direct_startup(startup_summary):
+        logger.warning(
+            (
+                "Direct or unknown backend startup is using production-like runtime settings; "
+                "prefer `LOCAL_BACKEND_PROFILE=isolated bash "
+                "financial-engine_v2/scripts/run_local_backend.sh` for local agent mode, "
+                "or verify Redis/Qdrant/embedding/extraction dependencies are intended. "
+                "entrypoint=%s task_mode=%s db_class=%s enable_embeddings=%s "
+                "enable_qdrant=%s enable_extraction=%s"
+            ),
+            startup_summary["entrypoint"],
+            startup_summary["task_mode"],
+            startup_summary["database_url_class"],
+            str(startup_summary["enable_embeddings"]).lower(),
+            str(startup_summary["enable_qdrant"]).lower(),
+            str(startup_summary["enable_extraction"]).lower(),
+        )
     if LOADED_ENV_FILES:
         logger.debug("Loaded env files: %s", ", ".join(LOADED_ENV_FILES))
 
@@ -2182,4 +2278,6 @@ def _init_ops_tracker() -> None:
         tracker = init_tracker(store)
         logger.info("Ops tracker initialized: %s", ops_db_path)
     except Exception:
-        logger.warning("Ops tracker initialization failed — job tracking disabled", exc_info=True)
+        logger.warning(
+            "Ops tracker initialization failed — job tracking disabled", exc_info=True
+        )

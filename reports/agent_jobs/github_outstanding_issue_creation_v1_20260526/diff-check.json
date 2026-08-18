@@ -1,0 +1,73 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+    "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/README.md",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/status.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/duplicate_search_matrix.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/created_issues.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/skipped_items.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/diff-check.json"
+      ],
+      "allowed_github_mutation": [
+        "create missing GitHub issues only after duplicate search",
+        "apply existing labels/milestones only if available and unambiguous",
+        "optionally add a short comment to an existing issue only if needed to document why no duplicate was created"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/**"
+      ],
+      "approval_required": false,
+      "job_id": "github_outstanding_issue_creation_v1_20260526",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "github_issue_creation",
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Reporting",
+        "Evaluation",
+        "Provenance",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

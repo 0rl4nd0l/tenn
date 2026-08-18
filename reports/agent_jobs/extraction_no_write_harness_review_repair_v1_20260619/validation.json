@@ -1,0 +1,59 @@
+{
+  "artifact_type": "extraction_no_write_harness_review_repair_validation_v1",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "observed": "Ran 17 tests in 0.004s; OK",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile scripts/extraction_no_write_replay.py scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/extraction_no_write_replay.py --profile docling-no-write --case HUB --preflight-only --case-manifest financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json --report-dir reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight",
+      "exit_code": 2,
+      "observed": {
+        "reason": "approved_docling_venv_python_missing",
+        "side_effect_pass": true,
+        "status": "DATA_MISSING"
+      },
+      "status": "DATA_MISSING_EXPECTED"
+    },
+    {
+      "command": "custom secret scan over affected report artifacts",
+      "exit_code": 0,
+      "observed": "SECRET_SCAN_PASS",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md --repo-root .",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md --repo-root .",
+      "exit_code": 0,
+      "status": "PASS"
+    }
+  ],
+  "job_id": "extraction_no_write_harness_review_repair_v1_20260619",
+  "remaining_risk": [
+    "Full six-case extraction replay was not rerun for this code-review repair.",
+    "WHC remains extraction-red in the saved replay.",
+    "Docling-backed replay remains DATA_MISSING until an approved venv exists."
+  ],
+  "state": "DONE_WITH_RISK"
+}

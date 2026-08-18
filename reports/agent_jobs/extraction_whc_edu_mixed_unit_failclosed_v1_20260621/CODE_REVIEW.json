@@ -1,0 +1,38 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scope is limited to the current branch diff for the WHC/EDU mixed-unit fail-closed lane.",
+      "The accepted-output scale magnitude risk family is intentionally aligned with the existing broad saved-artifact harness."
+    ],
+    "sources_used": [
+      "git diff",
+      "financial-engine_v2/scripts/broad_extraction_test.py",
+      "reports/agent_jobs/extraction_whc_edu_mixed_unit_failclosed_v1_20260621/exact_replay/validation.json",
+      "reports/agent_jobs/extraction_whc_edu_mixed_unit_failclosed_v1_20260621/exact_replay/replay_results.json"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "docs/agent_tasks/extraction_whc_edu_mixed_unit_failclosed_v1_20260621.md"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "docs/agent_tasks/extraction_whc_edu_mixed_unit_failclosed_v1_20260621.md"
+    ],
+    "validation_checks": [
+      "Focused red tests failed before product fix",
+      "Focused gate tests passed after product fix",
+      "Validation-gate subset passed: 13 tests",
+      "Full tests/test_multipass_extraction.py passed: 204 tests",
+      "scripts/test_extraction_no_write_replay.py passed: 32 tests",
+      "Exact WHC/EDU docling-no-write replay passed with side_effect_pass=true"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

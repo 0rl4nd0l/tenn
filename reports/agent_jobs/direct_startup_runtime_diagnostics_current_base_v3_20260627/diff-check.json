@@ -1,0 +1,87 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/main.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_run_local_backend_script.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/direct_startup_runtime_diagnostics_current_base_v3_20260627.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/core/startup_diagnostics.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_startup_diagnostics.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/direct_startup_runtime_diagnostics_current_base_v3_20260627.md",
+        "financial-engine_v2/backend/app/core/startup_diagnostics.py",
+        "financial-engine_v2/backend/app/main.py",
+        "financial-engine_v2/backend/tests/test_startup_diagnostics.py",
+        "financial-engine_v2/scripts/run_local_backend.sh",
+        "scripts/test_run_local_backend_script.py",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/README.md",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/STATE.md",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/VALIDATION.md",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/REVIEW.md",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/PR_BODY.md",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/status.json",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/validation.json",
+        "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/dev_flow/REPO_PATH_OWNERSHIP_AND_WORK_PRESERVATION.md",
+        "docs/entrypoints.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "NONE",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "direct_startup_runtime_diagnostics_current_base_v3_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/direct_startup_runtime_diagnostics_current_base_v3_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #280 asks for startup diagnostics only; no service start, runtime mutation, or default behavior change.",
+      "recommended_model": "standard coding model",
+      "related_issue": 280,
+      "supporting_lanes": [
+        "Evaluation",
+        "Runtime",
+        "Repo Hygiene"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "why_this_model": "Focused backend startup diagnostics/reporting change with unit tests.",
+      "worker_decision_limit": "No workers used; scope is narrow and source-local.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

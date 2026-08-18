@@ -1,0 +1,16 @@
+{
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "commit_before": "a7da52d2d3f7",
+  "completed_at": "2026-05-26T18:20:40+10:00",
+  "issues": {
+    "112": "fixed locally; close after commit/update",
+    "114": "fixed locally; close after commit/update",
+    "115": "report artifacts produced; closeout policy depends on operator preference"
+  },
+  "job_id": "nightly_news_ingest_and_lockup_repair_v1_20260526",
+  "production_data_access": false,
+  "status": "complete_pending_commit",
+  "unrelated_dirty_preserved": [
+    "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+  ]
+}

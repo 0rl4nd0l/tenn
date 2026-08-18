@@ -1,0 +1,136 @@
+{
+  "job_id": "extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+  "validation_state": "DONE_WITH_RISK",
+  "replay_state": "DONE",
+  "risk_reason": "Task-card check-diff exits 1 because two pre-existing untracked sibling task cards are outside this task card's allowed_files. Replay-critical predicates passed.",
+  "worktree": {
+    "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608",
+    "branch": "safe/extraction-cxo-runtime-provenance-capture-v1-20260608",
+    "head": "1a1b1c2a7d7fec23d420a509b44dc5d18b59e0fb"
+  },
+  "baseline_context": {
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "tmp/sloppy-fix-demo",
+    "head": "dfa313aaa6c1b34696f4bf9a8bd430636e5792ce",
+    "why_not_used_for_replay": "Baseline checkout has a stubbed run_multipass_extraction and lacks the matching docling_extract.py source file needed for the pass3a debug-capture replay."
+  },
+  "replay_decision": {
+    "decision": "DO_NOT_FIX_FROM_THIS_REPLAY",
+    "close_scale_table_path": true,
+    "azj_gap_reproduced": false,
+    "nsr_control_clean": true,
+    "production_repair_implemented": false,
+    "data_missing": [],
+    "errors": []
+  },
+  "exact_docs_used": [
+    {
+      "case_id": "suspect_AZJ_488d6f1a",
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "observed_status": "ok",
+      "observed_payload_scale": "millions",
+      "observed_metric_source_scales": "all captured as millions",
+      "observed_metric_scale_sources": "all captured as table"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "ticker": "NSR",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "observed_status": "ok",
+      "observed_payload_scale": "thousands",
+      "observed_metric_source_scales": "all captured as thousands",
+      "observed_metric_scale_sources": "table for financial metrics and document for shares_outstanding"
+    }
+  ],
+  "isolation": {
+    "data_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212",
+    "cache_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212/reports/extraction_cache/docling_extract",
+    "isolated_cache_used": true,
+    "isolated_cache_before_count": 0,
+    "isolated_cache_after_count": 2,
+    "isolated_run_root_only_docling_json": true,
+    "source_pdfs_unchanged": true,
+    "normal_parser_caches_unchanged": true
+  },
+  "pass3a_field_capture": {
+    "common_metric_source_scale_trace": true,
+    "metric_scale_sources": true,
+    "metric_source_scales": true,
+    "pass3a_outputs": true,
+    "row_refs": true,
+    "selected_table_page": true,
+    "table_same_page_document_scale_evidence": true
+  },
+  "command_statuses": [
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "purpose": "Read-only active registry check in sibling worktree."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608.md",
+      "exit_status": 0,
+      "purpose": "Task-card contract validation."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 DATA_ROOT=<tmp-run-root> DATABASE_URL=sqlite:///:memory: TASK_MODE=sync AUTO_CREATE_TABLES=false ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false PYTHONPATH=financial-engine_v2/backend <venv-python> reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/pass3a_debug_replay.py",
+      "exit_status": 0,
+      "purpose": "Successful isolated AZJ/NSR pass3a replay."
+    },
+    {
+      "command": "json_and_replay_predicates",
+      "exit_status": 0,
+      "purpose": "JSON parse, replay decision, isolated-cache, source/cache unchanged, selected-table, scale-capture, and no-production-repair predicates."
+    },
+    {
+      "command": "runner_syntax_compile_no_bytecode",
+      "exit_status": 0,
+      "purpose": "Compile runner source without writing bytecode."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "purpose": "Whitespace/conflict-marker check."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608.md",
+      "exit_status": 1,
+      "purpose": "Allowed-files diff check.",
+      "expected_risk": "Fails on preserved pre-existing untracked sibling task cards outside this task card's allowed_files."
+    },
+    {
+      "command": "git status --short --ignored --untracked-files=all reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+      "exit_status": 0,
+      "purpose": "Show ignored report artifacts."
+    }
+  ],
+  "raw_logs": [
+    "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/task_card_validate.log",
+    "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/pass3a_debug_replay.log",
+    "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/validation.log"
+  ],
+  "unsafe_actions_avoided": [
+    "normal_parser_cache_write",
+    "db_write",
+    "qdrant_write",
+    "redis_write",
+    "news_write",
+    "memory_write",
+    "source_pdf_write",
+    "prompt_write",
+    "gold_label_write",
+    "runtime_config_write",
+    "service_start",
+    "broad_extraction",
+    "count_24",
+    "count_32",
+    "random_sample",
+    "backfill",
+    "github_mutation",
+    "production_repair"
+  ],
+  "next_recommended_prompt": "Review reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608 and close the AZJ/NSR scale-table repair path as DO_NOT_FIX_FROM_THIS_REPLAY. Do not run count-24, count-32, random sampling, broad extraction, or backfill from this evidence."
+}

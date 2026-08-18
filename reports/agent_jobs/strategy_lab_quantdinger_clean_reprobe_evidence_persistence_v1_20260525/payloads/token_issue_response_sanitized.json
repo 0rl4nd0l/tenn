@@ -1,0 +1,48 @@
+{
+  "duration_seconds": 0.005,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": {
+      "expires_in_days": 1,
+      "instruments": "BTC/USDT",
+      "markets": "Crypto",
+      "name": "tenn-clean-reprobe-rb-v1-20260525",
+      "paper_only": true,
+      "rate_limit_per_min": 60,
+      "scopes": "R,B"
+    },
+    "method": "POST",
+    "params": {},
+    "path": "/api/agent/v1/admin/tokens",
+    "url": "http://127.0.0.1:15080/api/agent/v1/admin/tokens"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": {
+        "created_at": "2026-05-24T17:53:38Z",
+        "expires_at": "2026-05-26T01:53:38Z",
+        "id": 2,
+        "instruments": [
+          "BTC/USDT"
+        ],
+        "markets": [
+          "Crypto"
+        ],
+        "name": "tenn-clean-reprobe-rb-v1-20260525",
+        "paper_only": true,
+        "rate_limit_per_min": 60,
+        "scopes": [
+          "B",
+          "R"
+        ],
+        "token": "REDACTED",
+        "token_prefix": "qd_agent_w4CaJS0J"
+      },
+      "message": "issued"
+    },
+    "http_status": 200
+  }
+}

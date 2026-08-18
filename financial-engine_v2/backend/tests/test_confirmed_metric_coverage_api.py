@@ -54,10 +54,10 @@ def test_confirmed_metric_coverage_summary_returns_profile_counts(
     assert summary["profile"] == "confirmed_metric_coverage"
     assert summary["fixture_count"] == 15
     assert summary["total_expectations"] == 146
-    assert summary["scored_count"] == 73
-    assert summary["candidate_review_required_count"] == 70
-    assert summary["ambiguous_count"] == 3
-    assert summary["unsupported_count"] == 0
+    assert summary["scored_count"] == 144
+    assert summary["candidate_review_required_count"] == 0
+    assert summary["ambiguous_count"] == 0
+    assert summary["unsupported_count"] == 2
     assert summary["canonical_labels_mutated"] is False
     assert "git_available" in summary
     assert "git_unavailable_reason" in summary

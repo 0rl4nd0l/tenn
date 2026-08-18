@@ -1,0 +1,62 @@
+{
+  "job_id": "pr39_c01_reconciliation_preservation_v1_20260527",
+  "artifact_groups": [
+    {
+      "group": "task_cards",
+      "paths": [
+        "docs/agent_tasks/pr39_backend_architecture_invariant_reconciliation_v1_20260527.md",
+        "docs/agent_tasks/pr39_c01_reconciliation_preservation_v1_20260527.md"
+      ]
+    },
+    {
+      "group": "architecture_contract_docs",
+      "paths": [
+        "docs/architecture/06_embeddings_and_vector_store.md",
+        "docs/architecture/22_memory_ownership_map.md"
+      ]
+    },
+    {
+      "group": "focused_tests",
+      "paths": [
+        "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+        "financial-engine_v2/backend/tests/test_cursor_rule_compliance.py"
+      ]
+    },
+    {
+      "group": "c01_report_bundle",
+      "paths": [
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/README.md",
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/c01_decision_record.md",
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/diff-check.json",
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/invariant_matrix.json",
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/status.json",
+        "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/validation_summary.md"
+      ]
+    },
+    {
+      "group": "preservation_report_bundle",
+      "paths": [
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/README.md",
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/artifact_inventory.json",
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/diff-check.json",
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/dirty_work_blockers.md",
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/next_child_task_recommendation.md",
+        "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/status.json"
+      ]
+    }
+  ],
+  "excluded_from_preservation": [
+    {
+      "path": "production data stores",
+      "reason": "forbidden by task card"
+    },
+    {
+      "path": "GitHub PR or issue state",
+      "reason": "github_mutation_allowed is false"
+    },
+    {
+      "path": "C02-C13 remediation",
+      "reason": "outside C01 preservation scope"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "83b9950d46c100a0653d7a85b2181d07abfaa118",
+  "branch": "safe/extraction-accounting-number-parse-v1-20260616",
+  "current_state": "DONE_WITH_RISK",
+  "issue": 286,
+  "job_id": "extraction_accounting_number_parse_v1_20260616",
+  "pr": null,
+  "selected_class": "accounting_number_parsing",
+  "unsafe_actions_avoided": [
+    "no count-24 or count-32",
+    "no broad extraction or random sample",
+    "no backfill",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory mutation",
+    "no source PDF/gold label/prompt/schema/runtime/model/GPU changes"
+  ],
+  "validation": "focused_passed"
+}

@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_bff_proxy_module_deepening_v1_20260623.md",
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm --dir cockpit-ui exec vitest run lib/watchlist-routes.test.ts",
+      "status": "PASS",
+      "notes": "Baseline before implementation: 4 tests passed."
+    },
+    {
+      "command": "pnpm --dir cockpit-ui exec vitest run lib/proxy.test.ts lib/watchlist-routes.test.ts",
+      "status": "PASS",
+      "notes": "Post-implementation: 2 files, 9 tests passed."
+    },
+    {
+      "command": "pnpm --dir cockpit-ui exec tsc --noEmit",
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm exec eslint lib/proxy.ts lib/proxy.test.ts lib/watchlist-routes.test.ts app/api/cockpit/watchlist/route.ts 'app/api/cockpit/watchlist/[ticker]/route.ts'",
+      "cwd": "cockpit-ui",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_bff_proxy_module_deepening_v1_20260623.md --no-write-report",
+      "status": "PASS"
+    }
+  ],
+  "scoped_diff_allowed": true
+}

@@ -137,3 +137,29 @@ def test_update_preferences_skips_task_type_below_min_samples():
         min_sample_count=5,
     )
     assert "catalyst_detection" not in result.get("retrieval_preferences", {})
+
+
+def test_update_preferences_does_not_learn_from_runtime_shaped_quality_turns():
+    """Runtime session records currently lack updater grouping fields."""
+    turns = [
+        {
+            "session_id": f"session-{index}",
+            "query": "What changed in the result?",
+            "answer": "The available evidence is partial.",
+            "quality_metrics": {
+                "composite_metric": 0.92,
+                "retrieval_precision": 0.87,
+                "session_coherence": 0.75,
+            },
+        }
+        for index in range(12)
+    ]
+
+    result = update_preferences(
+        quality_turns=turns,
+        current_prefs=None,
+        min_sample_count=2,
+    )
+
+    assert result["retrieval_preferences"] == {}
+    assert result["router_preferences"] == {}

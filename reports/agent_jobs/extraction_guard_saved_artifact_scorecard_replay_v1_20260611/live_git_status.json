@@ -1,0 +1,31 @@
+{
+  "base_checkout_note": "Base checkout /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 was not used because it is on an unrelated Cockpit branch with an untracked count24 task card.",
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "git_status_short_before_report_commit": [
+    "?? docs/agent_tasks/extraction_guard_saved_artifact_scorecard_replay_v1_20260611.md"
+  ],
+  "github_mutation_allowed": false,
+  "head": "c97ca6025323dcecebf01fa08bcef920f3ecda93",
+  "job_id": "extraction_guard_saved_artifact_scorecard_replay_v1_20260611",
+  "production_data_access": false,
+  "recent_commits": [
+    "c97ca602 chore(extraction): bind WHC openability period evidence",
+    "0537859e chore(extraction): record WHC runtime endpoint replay",
+    "9fb5cf60 chore(extraction): record WHC openability exact replay blocker",
+    "106073c6 chore(extraction): add WHC openability selected-table bridge",
+    "9da84026 chore(extraction): improve WHC openability row candidates",
+    "f6e1ea41 chore(extraction): prove WHC openability diagnostics on source"
+  ],
+  "registry_read_only": {
+    "active_jobs": [],
+    "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+    "lock_acquired": false,
+    "ok": true,
+    "read_only": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "repo_root": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+    "warnings": []
+  },
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610"
+}

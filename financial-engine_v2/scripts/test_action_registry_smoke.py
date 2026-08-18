@@ -45,7 +45,9 @@ class TestActionRegistrySmoke(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             workspace_root = Path(temp_dir)
             scripts_root = workspace_root / "scripts"
+            news_root = workspace_root / "reports" / "qual_context"
             scripts_root.mkdir(parents=True)
+            news_root.mkdir(parents=True)
             for script_name in (
                 "fetch_daily_news.py",
                 "backfill_news.py",
@@ -55,8 +57,10 @@ class TestActionRegistrySmoke(unittest.TestCase):
 
             prev = os.environ.get("COCKPIT_SHARED_SCRIPTS_ROOT")
             prev_workspace = os.environ.get("COCKPIT_WORKSPACE_ROOT")
+            prev_news_root = os.environ.get("TENN_NEWS_ARTIFACT_ROOT")
             os.environ["COCKPIT_SHARED_SCRIPTS_ROOT"] = str(scripts_root)
             os.environ["COCKPIT_WORKSPACE_ROOT"] = str(workspace_root)
+            os.environ["TENN_NEWS_ARTIFACT_ROOT"] = str(news_root)
             try:
                 reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
             finally:
@@ -68,6 +72,10 @@ class TestActionRegistrySmoke(unittest.TestCase):
                     os.environ.pop("COCKPIT_WORKSPACE_ROOT", None)
                 else:
                     os.environ["COCKPIT_WORKSPACE_ROOT"] = prev_workspace
+                if prev_news_root is None:
+                    os.environ.pop("TENN_NEWS_ARTIFACT_ROOT", None)
+                else:
+                    os.environ["TENN_NEWS_ARTIFACT_ROOT"] = prev_news_root
 
             for action_id, script_name in (
                 ("daily_news_ingest", "fetch_daily_news.py"),
@@ -80,10 +88,17 @@ class TestActionRegistrySmoke(unittest.TestCase):
                 )
 
             preview = reg.preview("daily_news_ingest", {})
+            self.assertIn("--news-articles-db", preview.command)
+            self.assertIn(str(news_root / "news_articles.sqlite"), preview.command)
             self.assertIn(
-                str(workspace_root / "reports" / "qual_context" / "news_runs"),
+                str(news_root / "news_runs"),
                 preview.command,
             )
+            sync_preview = reg.preview("load_news_to_qdrant", {})
+            self.assertIn("--db-path", sync_preview.command)
+            self.assertIn(str(news_root / "news_articles.sqlite"), sync_preview.command)
+            self.assertIn("--news-context-db", sync_preview.command)
+            self.assertIn(str(news_root / "news.sqlite"), sync_preview.command)
 
     def test_daily_news_ingest_defaults_to_newspaper4k(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
@@ -92,6 +107,22 @@ class TestActionRegistrySmoke(unittest.TestCase):
         self.assertNotIn("eodhd,gdelt", preview.command)
         idx = preview.command.index("--since-hours")
         self.assertEqual(preview.command[idx + 1], "24")
+        profile_idx = preview.command.index("--newspaper4k-source-profile")
+        self.assertEqual(preview.command[profile_idx + 1], "daily")
+        total_idx = preview.command.index("--newspaper4k-max-total-articles")
+        self.assertEqual(preview.command[total_idx + 1], "60")
+        timeout_idx = preview.command.index("--newspaper4k-request-timeout-seconds")
+        self.assertEqual(preview.command[timeout_idx + 1], "10")
+        self.assertIn("--newspaper4k-no-playwright", preview.command)
+
+    def test_daily_news_ingest_broad_profile_keeps_browser_crawl_explicit(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview(
+            "daily_news_ingest", {"newspaper4k_source_profile": "broad"}
+        )
+        profile_idx = preview.command.index("--newspaper4k-source-profile")
+        self.assertEqual(preview.command[profile_idx + 1], "broad")
+        self.assertNotIn("--newspaper4k-no-playwright", preview.command)
 
     def test_build_preview_does_not_crash(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)

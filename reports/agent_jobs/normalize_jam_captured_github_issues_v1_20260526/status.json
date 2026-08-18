@@ -1,0 +1,61 @@
+{
+  "job_id": "normalize_jam_captured_github_issues_v1_20260526",
+  "generated_at": "2026-05-27T13:49:32+10:00",
+  "released_at": "2026-05-27T03:53:20.564922Z",
+  "mode": "audit_first/safe_extension",
+  "status": "complete",
+  "repo": {
+    "root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_start": "60db8e068f6c8f6d30ed4cbaaac1f9c8260379f9",
+    "head_after_moved": "82e62c3f86c395d69190a511eacb92648081ed73",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "initial_status": "clean"
+  },
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "active_record_removed": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/normalize_jam_captured_github_issues_v1_20260526.json",
+    "collision": false
+  },
+  "github": {
+    "repo": "0rl4nd0l/tenn",
+    "mutated_issues": [
+      40,
+      41,
+      53,
+      55,
+      61,
+      106
+    ],
+    "unrelated_issue_mutation": false,
+    "pr_mutation": false,
+    "project_mutation": false
+  },
+  "target_results": {
+    "normalized_in_place": [
+      53,
+      55,
+      61
+    ],
+    "linked_data_missing": [
+      40,
+      41
+    ],
+    "duplicates": [],
+    "superseded": [],
+    "left_unclassified": []
+  },
+  "issue_106": {
+    "state": "CLOSED",
+    "closeout_comment": "https://github.com/0rl4nd0l/tenn/issues/106#issuecomment-4551047417",
+    "closeout_gate": "COMPLETED_WITH_EVIDENCE"
+  },
+  "data_missing": [
+    "#40 Jam console/network payloads were unavailable; console fetch returned HTTP 404.",
+    "#41 Jam had no processed console/network payloads.",
+    "GitHub Project fields were not inspected or mutated.",
+    "Runtime reproduction for #40/#41 was not run in this issue-normalization task."
+  ],
+  "forbidden_surfaces_mutated": false
+}

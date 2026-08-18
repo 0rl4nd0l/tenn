@@ -1,7 +1,39 @@
 {
-  "_source": "FMG H1 FY26 Half-Year Financial Report + Appendix 4D. All values USD millions applied.",
-  "_verification": "claude-opus",
-  "_verification_confidence": "high — extracted directly from audited consolidated financial statements (p21-30).",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from FMG H1 FY26 Half-Year Financial Report + Appendix 4D. All values USD millions applied.",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "ebit",
+      "financing_cf",
+      "investing_cf",
+      "net_debt",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "capex"
+    ],
+    "row_ids": {
+      "revenue": "AQ032",
+      "ebit": "AQ033",
+      "np_attributable": "AQ034",
+      "operating_cf": "AQ035",
+      "investing_cf": "AQ036",
+      "financing_cf": "AQ037",
+      "capex": "AQ038",
+      "cash_end": "AQ039",
+      "net_debt": "AQ040",
+      "shares_outstanding": "AQ041"
+    }
+  },
   "_notes": {
     "revenue": "p21 income stmt: 'Operating sales revenue' = 8,439. Confirmed by 4D 'Revenue from ordinary activities' = 8,439.",
     "ebit": "p21 income stmt: 'Operating profit' = 2,908. This is revenue - cost of sales - other expenses + other income = EBIT equivalent.",
@@ -39,6 +71,6 @@
     "net_debt": 0.05
   },
   "config": {
-    "min_accuracy_overall": 0.60
+    "min_accuracy_overall": 0.6
   }
 }

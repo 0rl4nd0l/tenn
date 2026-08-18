@@ -1,0 +1,20 @@
+{
+  "job_id": "extraction_lbl_income_row_ref_repair_v1_20260616",
+  "status": "DONE_WITH_RISK",
+  "base_head": "85250db58bc4ebd5b3e46790311afc7ec7e5b910",
+  "task_card_validated": true,
+  "duplicate_work_classification": "pass",
+  "ledger_status": "DATA_MISSING",
+  "implementation_complete": true,
+  "focused_test_status": "passed",
+  "bounded_lbl_replay_status": "ok",
+  "strict_target_row_refs_repaired": true,
+  "target_row_refs": {
+    "revenue": "Sales Revenue",
+    "ebit": "EBIT",
+    "np_attributable": "NPAT For"
+  },
+  "forbidden_mutation": false,
+  "github_write": false,
+  "canonical_write": false
+}

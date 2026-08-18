@@ -1,0 +1,43 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/README.md",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/status.json",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_pdf_resolution_matrix.json",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_path_gap_register.json",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/next_task_recommendation.md",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/recommended_child_task_card.md",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/validation.json",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+      "owner": "Codex",
+      "primary_lane": "Evaluation",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance"
+      ],
+      "timeout_seconds": 14400,
+      "title": "Confirmed Metric Source PDF Resolution Audit v1"
+    },
+    "ok": true
+  }
+}

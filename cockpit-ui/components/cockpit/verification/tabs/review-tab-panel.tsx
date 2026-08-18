@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle, Maximize2, Minimize2, Brain, Code, TrendingUp, HelpCircle } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +32,9 @@ import {
   summarizeSessionDocuments,
 } from '../utils'
 
+const NO_RECENT_RUN_SELECTED = '__no_recent_run_selected__'
+const NO_REVIEW_SESSION_SELECTED = '__no_review_session_selected__'
+
 type ReviewTabPanelProps = {
   documents: ContextDocument[]
   documentsLoading: boolean
@@ -59,6 +61,7 @@ type ReviewTabPanelProps = {
   matchedEvidenceText: string | null
   currentSnippetPath: string | null
   currentSnippetUrl: string | null
+  currentSnippetImageSrc: string | null
   currentSnippetRenderKey: string
   currentRowRef: string | null
   reviewItems: ExtractionReviewItem[]
@@ -113,6 +116,7 @@ export function ReviewTabPanel({
   matchedEvidenceText,
   currentSnippetPath,
   currentSnippetUrl,
+  currentSnippetImageSrc,
   currentSnippetRenderKey,
   reviewItems,
   evidenceSuspendMessage,
@@ -156,6 +160,8 @@ export function ReviewTabPanel({
     const itemCount = session.item_count ?? session.summary?.total ?? 0
     return `${(session.updated_at || session.created_at || '').slice(0, 16)} | ${tickerLabel} | ${itemCount} items | ${title}`
   }
+  const recentRunsSelectLabel = recentRunsLoading ? 'Loading runs...' : 'Select a past run'
+  const reviewSessionsSelectLabel = recentReviewSessionsLoading ? 'Loading saved reviews...' : 'Select a saved review'
 
   return (
     <div className="space-y-6">
@@ -219,11 +225,17 @@ export function ReviewTabPanel({
           <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[200px_1fr_auto]">
             <Field>
               <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Recent runs</FieldLabel>
-              <Select value={selectedRunId || undefined} onValueChange={onSelectedRunIdChange}>
+              <Select
+                value={selectedRunId || NO_RECENT_RUN_SELECTED}
+                onValueChange={(value) => onSelectedRunIdChange(value === NO_RECENT_RUN_SELECTED ? '' : value)}
+              >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={recentRunsLoading ? 'Loading runs...' : 'Select a past run'} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_RECENT_RUN_SELECTED} className="text-xs">
+                    {recentRunsSelectLabel}
+                  </SelectItem>
                   {recentRuns.map((run) => (
                     <SelectItem key={run.run_id} value={run.run_id} className="text-xs">
                       {`${run.created_at.slice(0, 16)} | ${run.status} | ${run.metrics_count ?? 0}m | ${reviewStateLabel(run)}`}
@@ -263,11 +275,17 @@ export function ReviewTabPanel({
           <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[minmax(220px,1fr)_auto]">
             <Field>
               <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Saved review sessions</FieldLabel>
-              <Select value={selectedReviewSessionId || undefined} onValueChange={onSelectedReviewSessionIdChange}>
+              <Select
+                value={selectedReviewSessionId || NO_REVIEW_SESSION_SELECTED}
+                onValueChange={(value) => onSelectedReviewSessionIdChange(value === NO_REVIEW_SESSION_SELECTED ? '' : value)}
+              >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={recentReviewSessionsLoading ? 'Loading saved reviews...' : 'Select a saved review'} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_REVIEW_SESSION_SELECTED} className="text-xs">
+                    {reviewSessionsSelectLabel}
+                  </SelectItem>
                   {recentReviewSessions.map((session) => (
                     <SelectItem key={session.session_id} value={session.session_id} className="text-xs">
                       {sessionLabel(session)}
@@ -592,19 +610,21 @@ export function ReviewTabPanel({
                         </div>
                       ) : currentSnippetUrl ? (
                         <div className="space-y-3">
-                          <div className={`relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
+                          <div className={`relative min-h-[360px] overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
                               onClick={() => setIsZoomed(!isZoomed)}>
-                            <Image
-                              key={currentSnippetRenderKey}
-                              src={currentSnippetUrl}
-                              alt={`Evidence for ${currentReviewItem.metric_name}`}
-                              width={1200}
-                              height={1600}
-                              unoptimized
-                              onLoad={onSnippetImageLoad}
-                              onError={onSnippetImageError}
-                              className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
-                            />
+                            {currentSnippetImageSrc ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={currentSnippetRenderKey}
+                                src={currentSnippetImageSrc}
+                                alt={`Evidence for ${currentReviewItem.metric_name}`}
+                                onLoad={onSnippetImageLoad}
+                                onError={onSnippetImageError}
+                                className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                              />
+                            ) : (
+                              <div aria-hidden="true" className="min-h-[360px]" />
+                            )}
                             
                             <div className="absolute right-4 top-4 z-10">
                               <Button

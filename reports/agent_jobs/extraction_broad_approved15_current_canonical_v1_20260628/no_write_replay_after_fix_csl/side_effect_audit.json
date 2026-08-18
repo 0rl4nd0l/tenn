@@ -1,0 +1,2014 @@
+{
+  "dirty_repo_file_after": {
+    "docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md": {
+      "exists": true,
+      "mtime_ns": 1782631520636947721,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md",
+      "sha256": "8026cadfa7abaaf516ad44eb4c8acb4fb5d72e73a14de8ed1c00dc0c59062be1",
+      "size": 10767
+    },
+    "financial-engine_v2/backend/app/services/multipass_extraction.py": {
+      "exists": true,
+      "mtime_ns": 1782631450102818575,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "sha256": "51b777eac755a0fec57441664295967060e0334b062cbf3a0d7574722f348abd",
+      "size": 301353
+    },
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py": {
+      "exists": true,
+      "mtime_ns": 1782631495324899091,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "sha256": "919d19c1290045ecbdb93d1b71ba7e9f7196b7e6ea77f1d9568ff3a92042c8e3",
+      "size": 299429
+    }
+  },
+  "dirty_repo_file_before": {
+    "docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md": {
+      "exists": true,
+      "mtime_ns": 1782631520636947721,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md",
+      "sha256": "8026cadfa7abaaf516ad44eb4c8acb4fb5d72e73a14de8ed1c00dc0c59062be1",
+      "size": 10767
+    },
+    "financial-engine_v2/backend/app/services/multipass_extraction.py": {
+      "exists": true,
+      "mtime_ns": 1782631450102818575,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "sha256": "51b777eac755a0fec57441664295967060e0334b062cbf3a0d7574722f348abd",
+      "size": 301353
+    },
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py": {
+      "exists": true,
+      "mtime_ns": 1782631495324899091,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "sha256": "919d19c1290045ecbdb93d1b71ba7e9f7196b7e6ea77f1d9568ff3a92042c8e3",
+      "size": 299429
+    }
+  },
+  "dirty_repo_file_mutations": false,
+  "forbidden_surface_clean": true,
+  "forbidden_surface_mutation": {
+    "backfill": false,
+    "broad_extraction": false,
+    "count_sample": false,
+    "db_write": false,
+    "github_mutation": false,
+    "gold_label_write": false,
+    "memory_write": false,
+    "news_write": false,
+    "normal_parser_cache_write": false,
+    "prompt_write": false,
+    "qdrant_write": false,
+    "redis_write": false,
+    "registry_write": false,
+    "repo_worktree_write": false,
+    "runtime_config_write": false,
+    "service_start": false,
+    "source_pdf_write": false,
+    "source_tree_write": false
+  },
+  "git_status_after": [
+    " M financial-engine_v2/backend/app/services/multipass_extraction.py",
+    " M financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "?? docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md"
+  ],
+  "git_status_before": [
+    " M financial-engine_v2/backend/app/services/multipass_extraction.py",
+    " M financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "?? docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md"
+  ],
+  "isolated_cache_contained": true,
+  "isolated_cache_files": [
+    {
+      "mtime_ns": 1782631632038188747,
+      "path": "/tmp/tenn-extraction-no-write-replay-dll90g01/reports/extraction_cache/docling_extract/a4c45ee5c083701fcb8c16ac697fd99e63aa063381c898e1811b5450972d2030-2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08.pymupdf.json",
+      "relative_path": "a4c45ee5c083701fcb8c16ac697fd99e63aa063381c898e1811b5450972d2030-2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08.pymupdf.json",
+      "size": 228247
+    }
+  ],
+  "isolated_cache_root": "/tmp/tenn-extraction-no-write-replay-dll90g01/reports/extraction_cache/docling_extract",
+  "isolated_runtime_contained": true,
+  "isolated_runtime_files": [
+    {
+      "mtime_ns": 1782631632038188747,
+      "path": "/tmp/tenn-extraction-no-write-replay-dll90g01/reports/extraction_cache/docling_extract/a4c45ee5c083701fcb8c16ac697fd99e63aa063381c898e1811b5450972d2030-2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08.pymupdf.json",
+      "relative_path": "reports/extraction_cache/docling_extract/a4c45ee5c083701fcb8c16ac697fd99e63aa063381c898e1811b5450972d2030-2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08.pymupdf.json",
+      "size": 228247
+    },
+    {
+      "mtime_ns": 1782631632492189812,
+      "path": "/tmp/tenn-extraction-no-write-replay-dll90g01/runtime/extraction_active.lock",
+      "relative_path": "runtime/extraction_active.lock",
+      "size": 0
+    }
+  ],
+  "isolated_runtime_root": "/tmp/tenn-extraction-no-write-replay-dll90g01",
+  "normal_cache_after": {
+    "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/data/reports/extraction_cache/docling_extract": [],
+    "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": [
+      {
+        "mtime_ns": 1780307500623995088,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "relative_path": "0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "sha256": "ef27c2f313dd668ea477b773b962959723ac9222202094894299be5612dc69b3",
+        "size": 172791
+      },
+      {
+        "mtime_ns": 1780307052332078533,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "relative_path": "0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "sha256": "62ef25c446eabd7618fa3940881ac906bb692a8321a78c9124e58587966ce2fc",
+        "size": 44198
+      },
+      {
+        "mtime_ns": 1780221444263726766,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "relative_path": "163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "sha256": "9e7e59892c7d79daaad46b88d8e523a5049074c518632eedd6d620bb52ab7580",
+        "size": 947986
+      },
+      {
+        "mtime_ns": 1780219707470838652,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "relative_path": "22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "sha256": "3549c84cbfa2b78038e0c6392e7ae1a7c4f2956f90287da7745fbb829b5a97e2",
+        "size": 222873
+      },
+      {
+        "mtime_ns": 1780221792681478664,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "relative_path": "23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "sha256": "4db6db869539144efbb7f876764dbaa8d1a0de6f02905c750852aa61dac6f52a",
+        "size": 79970
+      },
+      {
+        "mtime_ns": 1780305690165276483,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "relative_path": "2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "sha256": "191048d3197fe6073b096da6be2a98b3985016b0c939fe73f23793f5eab41829",
+        "size": 15177
+      },
+      {
+        "mtime_ns": 1780308031601292572,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "relative_path": "3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "sha256": "915927261b3aadf3c7991f9968c56d04b93d9ac99ec414b0c5c880e22773c508",
+        "size": 209231
+      },
+      {
+        "mtime_ns": 1780306293336595203,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "relative_path": "30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "sha256": "eab7c97c0a856ecfe25b5ec29006ff3bbcf8c881f0c846d8122059d9e66b4e7d",
+        "size": 366202
+      },
+      {
+        "mtime_ns": 1780307837704560904,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "relative_path": "58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "sha256": "5176805e52df4ef183ac0dcab54c53fbcada39a305cd4db4b494fb09c2c07eeb",
+        "size": 111028
+      },
+      {
+        "mtime_ns": 1780224786293698295,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "relative_path": "613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "sha256": "5bf00a4bbe46041cfcb2fdf248125dcbfca5cf731c89f60ced7b3a058a0b1772",
+        "size": 227634
+      },
+      {
+        "mtime_ns": 1780306992638795588,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "relative_path": "6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "sha256": "38446bd4d5b7d7f144e9feaee9cb438c30aed67a661b7f6d0310abc4be1ed2a8",
+        "size": 57793
+      },
+      {
+        "mtime_ns": 1780305632613102566,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "relative_path": "731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "sha256": "eb9961262dafa6b8676a055d74c3d29f4b33c8493ca8792e6e95ecc27e2101bd",
+        "size": 46301
+      },
+      {
+        "mtime_ns": 1780307350596503296,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "relative_path": "7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "sha256": "439f8798011feacfcdf2789a7e3bbfda6c8bd98d4c3362c8cf8affd1526eadfc",
+        "size": 121131
+      },
+      {
+        "mtime_ns": 1780306841717084750,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "relative_path": "86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "sha256": "234ddf93cdb20c9c08cf13c43e3501d4518a5546ba57cf3ace40ceb1a992430a",
+        "size": 1700157
+      },
+      {
+        "mtime_ns": 1780307194641756329,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "relative_path": "aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "sha256": "c03eb480a540dc3e55731d7618fa51be2c3282a14dbf6c1e4412e384863a0b3e",
+        "size": 161307
+      },
+      {
+        "mtime_ns": 1780221611148094544,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "relative_path": "ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "sha256": "741d79d76a869a026cd25bf293ffaa31c6c9342814190a7adcec5f03f186a285",
+        "size": 89638
+      },
+      {
+        "mtime_ns": 1780306075982682244,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "relative_path": "b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "sha256": "39e7371eb2a3538792bc0f0dd6131235591613508ecc68ec3cfeeba7dc0d8ae7",
+        "size": 76259
+      },
+      {
+        "mtime_ns": 1780221950640619849,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "relative_path": "b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "sha256": "4a9b28188db91563c0c01c3ce8180e186ba4091829fe3d271d6be2c0748e62da",
+        "size": 63148
+      },
+      {
+        "mtime_ns": 1780222143861959245,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "relative_path": "ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "sha256": "e3989da562c9405a4e19e27f138f3763c35b1ee524a3adbb7f8875c47d0ffa8f",
+        "size": 11412
+      },
+      {
+        "mtime_ns": 1780307675049062186,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "relative_path": "e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "sha256": "ad435af3b52a682e629671f3410d2c3079f0c848c8a3dad560d382e4fde31bdf",
+        "size": 174752
+      },
+      {
+        "mtime_ns": 1780305919707071362,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "relative_path": "f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "sha256": "fb79be53c40d96ba49de61771dc9dd022b2d57dd416ab5a65e125f44a71c6532",
+        "size": 539376
+      },
+      {
+        "mtime_ns": 1780307114209372724,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "relative_path": "f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "sha256": "4b61504c4f8326e6e59679bc018491b377f2031021a06555ecb139da05debb8a",
+        "size": 51325
+      }
+    ]
+  },
+  "normal_cache_before": {
+    "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/financial-engine_v2/data/reports/extraction_cache/docling_extract": [],
+    "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": [
+      {
+        "mtime_ns": 1780307500623995088,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "relative_path": "0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "sha256": "ef27c2f313dd668ea477b773b962959723ac9222202094894299be5612dc69b3",
+        "size": 172791
+      },
+      {
+        "mtime_ns": 1780307052332078533,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "relative_path": "0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "sha256": "62ef25c446eabd7618fa3940881ac906bb692a8321a78c9124e58587966ce2fc",
+        "size": 44198
+      },
+      {
+        "mtime_ns": 1780221444263726766,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "relative_path": "163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "sha256": "9e7e59892c7d79daaad46b88d8e523a5049074c518632eedd6d620bb52ab7580",
+        "size": 947986
+      },
+      {
+        "mtime_ns": 1780219707470838652,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "relative_path": "22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "sha256": "3549c84cbfa2b78038e0c6392e7ae1a7c4f2956f90287da7745fbb829b5a97e2",
+        "size": 222873
+      },
+      {
+        "mtime_ns": 1780221792681478664,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "relative_path": "23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "sha256": "4db6db869539144efbb7f876764dbaa8d1a0de6f02905c750852aa61dac6f52a",
+        "size": 79970
+      },
+      {
+        "mtime_ns": 1780305690165276483,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "relative_path": "2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "sha256": "191048d3197fe6073b096da6be2a98b3985016b0c939fe73f23793f5eab41829",
+        "size": 15177
+      },
+      {
+        "mtime_ns": 1780308031601292572,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "relative_path": "3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "sha256": "915927261b3aadf3c7991f9968c56d04b93d9ac99ec414b0c5c880e22773c508",
+        "size": 209231
+      },
+      {
+        "mtime_ns": 1780306293336595203,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "relative_path": "30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "sha256": "eab7c97c0a856ecfe25b5ec29006ff3bbcf8c881f0c846d8122059d9e66b4e7d",
+        "size": 366202
+      },
+      {
+        "mtime_ns": 1780307837704560904,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "relative_path": "58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "sha256": "5176805e52df4ef183ac0dcab54c53fbcada39a305cd4db4b494fb09c2c07eeb",
+        "size": 111028
+      },
+      {
+        "mtime_ns": 1780224786293698295,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "relative_path": "613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "sha256": "5bf00a4bbe46041cfcb2fdf248125dcbfca5cf731c89f60ced7b3a058a0b1772",
+        "size": 227634
+      },
+      {
+        "mtime_ns": 1780306992638795588,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "relative_path": "6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "sha256": "38446bd4d5b7d7f144e9feaee9cb438c30aed67a661b7f6d0310abc4be1ed2a8",
+        "size": 57793
+      },
+      {
+        "mtime_ns": 1780305632613102566,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "relative_path": "731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "sha256": "eb9961262dafa6b8676a055d74c3d29f4b33c8493ca8792e6e95ecc27e2101bd",
+        "size": 46301
+      },
+      {
+        "mtime_ns": 1780307350596503296,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "relative_path": "7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "sha256": "439f8798011feacfcdf2789a7e3bbfda6c8bd98d4c3362c8cf8affd1526eadfc",
+        "size": 121131
+      },
+      {
+        "mtime_ns": 1780306841717084750,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "relative_path": "86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "sha256": "234ddf93cdb20c9c08cf13c43e3501d4518a5546ba57cf3ace40ceb1a992430a",
+        "size": 1700157
+      },
+      {
+        "mtime_ns": 1780307194641756329,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "relative_path": "aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "sha256": "c03eb480a540dc3e55731d7618fa51be2c3282a14dbf6c1e4412e384863a0b3e",
+        "size": 161307
+      },
+      {
+        "mtime_ns": 1780221611148094544,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "relative_path": "ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "sha256": "741d79d76a869a026cd25bf293ffaa31c6c9342814190a7adcec5f03f186a285",
+        "size": 89638
+      },
+      {
+        "mtime_ns": 1780306075982682244,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "relative_path": "b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "sha256": "39e7371eb2a3538792bc0f0dd6131235591613508ecc68ec3cfeeba7dc0d8ae7",
+        "size": 76259
+      },
+      {
+        "mtime_ns": 1780221950640619849,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "relative_path": "b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "sha256": "4a9b28188db91563c0c01c3ce8180e186ba4091829fe3d271d6be2c0748e62da",
+        "size": 63148
+      },
+      {
+        "mtime_ns": 1780222143861959245,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "relative_path": "ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "sha256": "e3989da562c9405a4e19e27f138f3763c35b1ee524a3adbb7f8875c47d0ffa8f",
+        "size": 11412
+      },
+      {
+        "mtime_ns": 1780307675049062186,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "relative_path": "e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "sha256": "ad435af3b52a682e629671f3410d2c3079f0c848c8a3dad560d382e4fde31bdf",
+        "size": 174752
+      },
+      {
+        "mtime_ns": 1780305919707071362,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "relative_path": "f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "sha256": "fb79be53c40d96ba49de61771dc9dd022b2d57dd416ab5a65e125f44a71c6532",
+        "size": 539376
+      },
+      {
+        "mtime_ns": 1780307114209372724,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "relative_path": "f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "sha256": "4b61504c4f8326e6e59679bc018491b377f2031021a06555ecb139da05debb8a",
+        "size": 51325
+      }
+    ]
+  },
+  "report_dir": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl",
+  "report_files": [
+    {
+      "mtime_ns": 1782631623100167915,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 3548
+    },
+    {
+      "mtime_ns": 1782631751617489033,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 1600
+    }
+  ],
+  "report_files_after_artifact_write": [
+    {
+      "mtime_ns": 1782631623100167915,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 3548
+    },
+    {
+      "mtime_ns": 1782631751617489033,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 1600
+    },
+    {
+      "mtime_ns": 1782631751803489529,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/replay_results.json",
+      "relative_path": "replay_results.json",
+      "size": 18646
+    },
+    {
+      "mtime_ns": 1782631751805489534,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/side_effect_audit.json",
+      "relative_path": "side_effect_audit.json",
+      "size": 143259
+    },
+    {
+      "mtime_ns": 1782631751806489537,
+      "path": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628/reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/validation.json",
+      "relative_path": "validation.json",
+      "size": 1982
+    }
+  ],
+  "report_files_snapshot_note": "report_files is the safety snapshot used for status; report_files_after_artifact_write records final report-local artifacts.",
+  "report_only_durable_writes": true,
+  "source_pdf_after": {
+    "CSL_H_2025-12-31": {
+      "source_dir": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance",
+      "source_dir_files": [
+        {
+          "mtime_ns": 1772340693040855604,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-announcement_8a381434-acaa-4596-a924-b626783bd791.pdf",
+          "relative_path": "2021-08-18_csl-results-announcement_8a381434-acaa-4596-a924-b626783bd791.pdf",
+          "sha256": "dc3c3715b061f95196b37b54dc636e5a4141799b7629463a8d12d0ec50f6ff79",
+          "size": 422514
+        },
+        {
+          "mtime_ns": 1771457362412138628,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-announcement_c5278051-3830-44cf-8fc2-bfa4c2f4960f.pdf",
+          "relative_path": "2021-08-18_csl-results-announcement_c5278051-3830-44cf-8fc2-bfa4c2f4960f.pdf",
+          "sha256": "dc3c3715b061f95196b37b54dc636e5a4141799b7629463a8d12d0ec50f6ff79",
+          "size": 422514
+        },
+        {
+          "mtime_ns": 1771457360440176181,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-presentation_3f437e11-78a7-4443-8525-8baf8ad06687.pdf",
+          "relative_path": "2021-08-18_csl-results-presentation_3f437e11-78a7-4443-8525-8baf8ad06687.pdf",
+          "sha256": "025f8f7f375234a05350ea8187184a6a538fc35cbd8519cce4d842f557a4cef6",
+          "size": 2670846
+        },
+        {
+          "mtime_ns": 1772340692805858945,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-presentation_b7771595-81cb-496d-99d1-e2251c232dea.pdf",
+          "relative_path": "2021-08-18_csl-results-presentation_b7771595-81cb-496d-99d1-e2251c232dea.pdf",
+          "sha256": "025f8f7f375234a05350ea8187184a6a538fc35cbd8519cce4d842f557a4cef6",
+          "size": 2670846
+        },
+        {
+          "mtime_ns": 1771457366430062184,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_13c4b70f-db08-45ca-831d-cdbdaa587562.pdf",
+          "relative_path": "2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_13c4b70f-db08-45ca-831d-cdbdaa587562.pdf",
+          "sha256": "c19bec88be6a70615bb2356705393bbb5905bf8b0bea97e33b17c3ffa01e0927",
+          "size": 2928129
+        },
+        {
+          "mtime_ns": 1772340693625847288,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_73d2d9df-649e-4c5b-835a-3b8ddd05e738.pdf",
+          "relative_path": "2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_73d2d9df-649e-4c5b-835a-3b8ddd05e738.pdf",
+          "sha256": "c19bec88be6a70615bb2356705393bbb5905bf8b0bea97e33b17c3ffa01e0927",
+          "size": 2928129
+        },
+        {
+          "mtime_ns": 1771457352382329859,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-09-03_csl-annual-report_0c0be0f3-8698-4e7f-b049-0a511129c9a6.pdf",
+          "relative_path": "2021-09-03_csl-annual-report_0c0be0f3-8698-4e7f-b049-0a511129c9a6.pdf",
+          "sha256": "149f7d729148a0e445c88e52006913d599f405fc8e38bdff0742f58300df4e0b",
+          "size": 7150713
+        },
+        {
+          "mtime_ns": 1772340690540891144,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-09-03_csl-annual-report_f9898cc1-8c64-4675-8d8a-456031592917.pdf",
+          "relative_path": "2021-09-03_csl-annual-report_f9898cc1-8c64-4675-8d8a-456031592917.pdf",
+          "sha256": "149f7d729148a0e445c88e52006913d599f405fc8e38bdff0742f58300df4e0b",
+          "size": 7150713
+        },
+        {
+          "mtime_ns": 1771457329350771225,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_csl-2021-annual-general-meeting-speeches_6e88ad86-ea1d-4cf3-adfa-268bd728633b.pdf",
+          "relative_path": "2021-10-12_csl-2021-annual-general-meeting-speeches_6e88ad86-ea1d-4cf3-adfa-268bd728633b.pdf",
+          "sha256": "0330dab14a6159c285b4a9c6e61b56809fa1c8e8d2302d53e397b9de1389a091",
+          "size": 1781458
+        },
+        {
+          "mtime_ns": 1772340685092968596,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_csl-2021-annual-general-meeting-speeches_c24f864a-48be-47f1-81bb-0029f58e8c72.pdf",
+          "relative_path": "2021-10-12_csl-2021-annual-general-meeting-speeches_c24f864a-48be-47f1-81bb-0029f58e8c72.pdf",
+          "sha256": "0330dab14a6159c285b4a9c6e61b56809fa1c8e8d2302d53e397b9de1389a091",
+          "size": 1781458
+        },
+        {
+          "mtime_ns": 1771457328775782288,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_results-of-meeting_3af7e3f0-6d5a-4718-aba9-5ac6abf9124d.pdf",
+          "relative_path": "2021-10-12_results-of-meeting_3af7e3f0-6d5a-4718-aba9-5ac6abf9124d.pdf",
+          "sha256": "d6dd52b84c5c79fda87abcf9b1c7739bd8e649bb04649e71c259c0c836abeb04",
+          "size": 258623
+        },
+        {
+          "mtime_ns": 1772340684755973387,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_results-of-meeting_94389bfd-bacd-4912-80a4-01cd40500273.pdf",
+          "relative_path": "2021-10-12_results-of-meeting_94389bfd-bacd-4912-80a4-01cd40500273.pdf",
+          "sha256": "d6dd52b84c5c79fda87abcf9b1c7739bd8e649bb04649e71c259c0c836abeb04",
+          "size": 258623
+        },
+        {
+          "mtime_ns": 1772340683855986182,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-19_2021-annual-r-d-day_6b379290-954f-4042-8363-5f823e2270cc.pdf",
+          "relative_path": "2021-10-19_2021-annual-r-d-day_6b379290-954f-4042-8363-5f823e2270cc.pdf",
+          "sha256": "9d74f021f54f96f142068e929eeab893e054e7a66c6738e2802a950930d48d5b",
+          "size": 8086153
+        },
+        {
+          "mtime_ns": 1771457322509902935,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-19_2021-annual-r-d-day_ddcfa76d-dece-45fd-87e6-03fd05834a59.pdf",
+          "relative_path": "2021-10-19_2021-annual-r-d-day_ddcfa76d-dece-45fd-87e6-03fd05834a59.pdf",
+          "sha256": "9d74f021f54f96f142068e929eeab893e054e7a66c6738e2802a950930d48d5b",
+          "size": 8086153
+        },
+        {
+          "mtime_ns": 1771457311557114419,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_c544a01a-0eb6-41c1-afb5-e72c2b67f1f6.pdf",
+          "relative_path": "2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_c544a01a-0eb6-41c1-afb5-e72c2b67f1f6.pdf",
+          "sha256": "0e01b0ee6e43520f22fb977ebf2487632385832142c8dbbd771086377ab0aa9a",
+          "size": 596376
+        },
+        {
+          "mtime_ns": 1772340680564032987,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_cefc6bc3-0f99-4d87-aab2-c992833d28f9.pdf",
+          "relative_path": "2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_cefc6bc3-0f99-4d87-aab2-c992833d28f9.pdf",
+          "sha256": "0e01b0ee6e43520f22fb977ebf2487632385832142c8dbbd771086377ab0aa9a",
+          "size": 596376
+        },
+        {
+          "mtime_ns": 1771457474829032090,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-announcement_18170b2a-bd0a-42a4-8a6a-091f2b76b3ec.pdf",
+          "relative_path": "2022-02-16_half-year-results-announcement_18170b2a-bd0a-42a4-8a6a-091f2b76b3ec.pdf",
+          "sha256": "395adf87cacc3a41212acaf6295855733887bf046ea6b5f394fe7b31de53cb36",
+          "size": 463657
+        },
+        {
+          "mtime_ns": 1772340716960515621,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-announcement_d6f4e1f5-7a5c-4ac5-a2fd-8ad92e542bdf.pdf",
+          "relative_path": "2022-02-16_half-year-results-announcement_d6f4e1f5-7a5c-4ac5-a2fd-8ad92e542bdf.pdf",
+          "sha256": "395adf87cacc3a41212acaf6295855733887bf046ea6b5f394fe7b31de53cb36",
+          "size": 463657
+        },
+        {
+          "mtime_ns": 1771457473339059602,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-investor-presentation_92300903-c343-4d56-a7f7-4d5c67e4d06a.pdf",
+          "relative_path": "2022-02-16_half-year-results-investor-presentation_92300903-c343-4d56-a7f7-4d5c67e4d06a.pdf",
+          "sha256": "dab7695a0611a38db44d26184718fceb26ea6c329d9dead9a5bdd9cca9eeb4ea",
+          "size": 2649863
+        },
+        {
+          "mtime_ns": 1772340716695519387,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-investor-presentation_9ef3fb19-ffcc-48d6-938a-71022843c0a4.pdf",
+          "relative_path": "2022-02-16_half-year-results-investor-presentation_9ef3fb19-ffcc-48d6-938a-71022843c0a4.pdf",
+          "sha256": "dab7695a0611a38db44d26184718fceb26ea6c329d9dead9a5bdd9cca9eeb4ea",
+          "size": 2649863
+        },
+        {
+          "mtime_ns": 1771457476033009867,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_2648685d-366e-49ec-a7c2-50ff92093a8d.pdf",
+          "relative_path": "2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_2648685d-366e-49ec-a7c2-50ff92093a8d.pdf",
+          "sha256": "b3fb03a2247452a959f7ed059af54e88272ac0b350b5b0f6836664b40af4f6a3",
+          "size": 552484
+        },
+        {
+          "mtime_ns": 1772340717216511983,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_a88ab3d7-2b3e-40ae-ab79-51efdfb707a5.pdf",
+          "relative_path": "2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_a88ab3d7-2b3e-40ae-ab79-51efdfb707a5.pdf",
+          "sha256": "b3fb03a2247452a959f7ed059af54e88272ac0b350b5b0f6836664b40af4f6a3",
+          "size": 552484
+        },
+        {
+          "mtime_ns": 1771457448827513681,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_4fce66e4-b34b-482c-b05c-7c1b0d601e05.pdf",
+          "relative_path": "2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_4fce66e4-b34b-482c-b05c-7c1b0d601e05.pdf",
+          "sha256": "a43a20f3f69b0d97a643ddf8cf85211381857e9371b4fafffcf45034a37d8a8e",
+          "size": 91033
+        },
+        {
+          "mtime_ns": 1772340710576606349,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_c3964306-4618-4043-8ffd-75d2da446d52.pdf",
+          "relative_path": "2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_c3964306-4618-4043-8ffd-75d2da446d52.pdf",
+          "sha256": "a43a20f3f69b0d97a643ddf8cf85211381857e9371b4fafffcf45034a37d8a8e",
+          "size": 91033
+        },
+        {
+          "mtime_ns": 1771457445495575622,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-announcement_3b65f787-b242-4c53-9b6d-627626268245.pdf",
+          "relative_path": "2022-08-17_csl-results-announcement_3b65f787-b242-4c53-9b6d-627626268245.pdf",
+          "sha256": "0755f8e544a281289133e89939dcc808d608d1d894cbce871365fcde3a616946",
+          "size": 175477
+        },
+        {
+          "mtime_ns": 1772340709892616070,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-announcement_4658c854-29d5-46d5-aa7b-661ebc061d1c.pdf",
+          "relative_path": "2022-08-17_csl-results-announcement_4658c854-29d5-46d5-aa7b-661ebc061d1c.pdf",
+          "sha256": "0755f8e544a281289133e89939dcc808d608d1d894cbce871365fcde3a616946",
+          "size": 175477
+        },
+        {
+          "mtime_ns": 1771457444580592637,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-presentation_ead9c237-d04a-4f78-8fc0-167355fd8852.pdf",
+          "relative_path": "2022-08-17_csl-results-presentation_ead9c237-d04a-4f78-8fc0-167355fd8852.pdf",
+          "sha256": "7351ac673f0b7f70142e061c6b6dd5bbcff18a96e3e1614efe18e404ed8708a7",
+          "size": 2163578
+        },
+        {
+          "mtime_ns": 1772340709399623077,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-presentation_f42d2583-ffd3-4fac-8c20-2bef2f7a533b.pdf",
+          "relative_path": "2022-08-17_csl-results-presentation_f42d2583-ffd3-4fac-8c20-2bef2f7a533b.pdf",
+          "sha256": "7351ac673f0b7f70142e061c6b6dd5bbcff18a96e3e1614efe18e404ed8708a7",
+          "size": 2163578
+        },
+        {
+          "mtime_ns": 1772340710239611138,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_59be4911-0ba8-4fac-9954-d38cf11f32f1.pdf",
+          "relative_path": "2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_59be4911-0ba8-4fac-9954-d38cf11f32f1.pdf",
+          "sha256": "a9c4f87f3cacacd5f745b156d3902f9af103848f4092e117f65b9dbd1d3fb5b9",
+          "size": 3291300
+        },
+        {
+          "mtime_ns": 1771457446999547655,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_d9b00b8d-3d07-4f8f-a192-bdf9d7d94e7a.pdf",
+          "relative_path": "2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_d9b00b8d-3d07-4f8f-a192-bdf9d7d94e7a.pdf",
+          "sha256": "a9c4f87f3cacacd5f745b156d3902f9af103848f4092e117f65b9dbd1d3fb5b9",
+          "size": 3291300
+        },
+        {
+          "mtime_ns": 1772340707227653946,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-09-02_csl-annual-report-2022_78fd5c8b-6c32-4969-81f5-19e30d34ae05.pdf",
+          "relative_path": "2022-09-02_csl-annual-report-2022_78fd5c8b-6c32-4969-81f5-19e30d34ae05.pdf",
+          "sha256": "e78b94b7481916f7fe2350a31e421cc4a1eb255d7358865ec4e7ffec68e2b5d5",
+          "size": 6056104
+        },
+        {
+          "mtime_ns": 1771457432766812765,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-09-02_csl-annual-report-2022_ed243e50-a2ed-4cf9-b4b8-3c175acb3737.pdf",
+          "relative_path": "2022-09-02_csl-annual-report-2022_ed243e50-a2ed-4cf9-b4b8-3c175acb3737.pdf",
+          "sha256": "e78b94b7481916f7fe2350a31e421cc4a1eb255d7358865ec4e7ffec68e2b5d5",
+          "size": 6056104
+        },
+        {
+          "mtime_ns": 1771457415919127892,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-10-12_csl-2022-agm-results_15181873-a2f4-4c97-a55f-49846fb7dc5c.pdf",
+          "relative_path": "2022-10-12_csl-2022-agm-results_15181873-a2f4-4c97-a55f-49846fb7dc5c.pdf",
+          "sha256": "58f4578c6152144ae3bd5e4566f24eafc4f5dc9e50f133a17f9ee4e2ca4af1a4",
+          "size": 158512
+        },
+        {
+          "mtime_ns": 1772340703132712149,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-10-12_csl-2022-agm-results_1fb167b6-841f-4875-bd83-ba493476cc95.pdf",
+          "relative_path": "2022-10-12_csl-2022-agm-results_1fb167b6-841f-4875-bd83-ba493476cc95.pdf",
+          "sha256": "58f4578c6152144ae3bd5e4566f24eafc4f5dc9e50f133a17f9ee4e2ca4af1a4",
+          "size": 158512
+        },
+        {
+          "mtime_ns": 1771457543174780613,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_4b4c0928-7981-47d9-9319-83f4f870dcde.pdf",
+          "relative_path": "2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_4b4c0928-7981-47d9-9319-83f4f870dcde.pdf",
+          "sha256": "eeea563696231099672ded506a43def6dfa4cfd46b39c960b73549b999f4d9b2",
+          "size": 470170
+        },
+        {
+          "mtime_ns": 1772340737560222907,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_b6c43a92-78dd-4823-be16-2b38e612b59c.pdf",
+          "relative_path": "2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_b6c43a92-78dd-4823-be16-2b38e612b59c.pdf",
+          "sha256": "eeea563696231099672ded506a43def6dfa4cfd46b39c960b73549b999f4d9b2",
+          "size": 470170
+        },
+        {
+          "mtime_ns": 1772340737014230664,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-06_new-segment-note-historical-financial-detail_b7ad42aa-814e-4b63-800f-ccff354a2354.pdf",
+          "relative_path": "2023-02-06_new-segment-note-historical-financial-detail_b7ad42aa-814e-4b63-800f-ccff354a2354.pdf",
+          "sha256": "e6d6fde9838814ae7d03c2deab861bac70ac2a836e75725c7d640e2a7a2a654a",
+          "size": 108424
+        },
+        {
+          "mtime_ns": 1771457538769860678,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-06_new-segment-note-historical-financial-detail_e36dde3f-973b-44d4-8109-3f18186ad369.pdf",
+          "relative_path": "2023-02-06_new-segment-note-historical-financial-detail_e36dde3f-973b-44d4-8109-3f18186ad369.pdf",
+          "sha256": "e6d6fde9838814ae7d03c2deab861bac70ac2a836e75725c7d640e2a7a2a654a",
+          "size": 108424
+        },
+        {
+          "mtime_ns": 1771457532466975381,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-half-year-results-announcement-investor-presentation_176b67b2-3182-4b4b-af4a-096c78876c9e.pdf",
+          "relative_path": "2023-02-14_csl-half-year-results-announcement-investor-presentation_176b67b2-3182-4b4b-af4a-096c78876c9e.pdf",
+          "sha256": "4bed66c9f9497606ebe995d9bbacd9f6770b374b7886385a57a5f0488584a9be",
+          "size": 2302210
+        },
+        {
+          "mtime_ns": 1772340736195242300,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-half-year-results-announcement-investor-presentation_482758da-cb03-4755-b43c-e6088d5855e8.pdf",
+          "relative_path": "2023-02-14_csl-half-year-results-announcement-investor-presentation_482758da-cb03-4755-b43c-e6088d5855e8.pdf",
+          "sha256": "4bed66c9f9497606ebe995d9bbacd9f6770b374b7886385a57a5f0488584a9be",
+          "size": 2302210
+        },
+        {
+          "mtime_ns": 1772340736500237967,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_1996ddf2-d07d-47d9-8b23-1c722cc2b8ca.pdf",
+          "relative_path": "2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_1996ddf2-d07d-47d9-8b23-1c722cc2b8ca.pdf",
+          "sha256": "0b25fd7f85b8a112db488e3cd76044fba6ca361dca49ce0b56f48763f70a2901",
+          "size": 919893
+        },
+        {
+          "mtime_ns": 1771457534394940277,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_caa2282c-2763-4e7c-b475-8bf37f76568e.pdf",
+          "relative_path": "2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_caa2282c-2763-4e7c-b475-8bf37f76568e.pdf",
+          "sha256": "0b25fd7f85b8a112db488e3cd76044fba6ca361dca49ce0b56f48763f70a2901",
+          "size": 919893
+        },
+        {
+          "mtime_ns": 1774403481831018443,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-06-14_market-update_73c5f68c-c340-4676-a645-84377a421688.pdf",
+          "relative_path": "2023-06-14_market-update_73c5f68c-c340-4676-a645-84377a421688.pdf",
+          "sha256": "21e305fc4982f9380ea53ffdc05dc415b551e25245e0dbe96bf08c9f69ab1eac",
+          "size": 208196
+        },
+        {
+          "mtime_ns": 1771457519139218459,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-06-14_market-update_fe98a8f7-2e33-4c73-b9ba-d432cda60b1f.pdf",
+          "relative_path": "2023-06-14_market-update_fe98a8f7-2e33-4c73-b9ba-d432cda60b1f.pdf",
+          "sha256": "21e305fc4982f9380ea53ffdc05dc415b551e25245e0dbe96bf08c9f69ab1eac",
+          "size": 208196
+        },
+        {
+          "mtime_ns": 1774403481461023893,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_3dc65e98-f10f-49df-83f7-bf76f7e6d126.pdf",
+          "relative_path": "2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_3dc65e98-f10f-49df-83f7-bf76f7e6d126.pdf",
+          "sha256": "c766189e734f39de6c13e6f5e7cd668d471209fbafedab388bdcbdf5b923f719",
+          "size": 130929
+        },
+        {
+          "mtime_ns": 1771457518379232343,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_d7b546d1-548e-4ea9-b361-45376335222f.pdf",
+          "relative_path": "2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_d7b546d1-548e-4ea9-b361-45376335222f.pdf",
+          "sha256": "c766189e734f39de6c13e6f5e7cd668d471209fbafedab388bdcbdf5b923f719",
+          "size": 130929
+        },
+        {
+          "mtime_ns": 1771457515783279783,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-announcement_5cff7e61-370f-4e21-86d2-53a3d6590a01.pdf",
+          "relative_path": "2023-08-15_csl-results-announcement_5cff7e61-370f-4e21-86d2-53a3d6590a01.pdf",
+          "sha256": "a3bac78b762705dc8093fc1e3eb6eb91920371a7ad5814fffb4ed6a14864c5e2",
+          "size": 247404
+        },
+        {
+          "mtime_ns": 1774403480515037827,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-announcement_d2ee50c7-f4d7-4273-a609-ed27a6d6f392.pdf",
+          "relative_path": "2023-08-15_csl-results-announcement_d2ee50c7-f4d7-4273-a609-ed27a6d6f392.pdf",
+          "sha256": "a3bac78b762705dc8093fc1e3eb6eb91920371a7ad5814fffb4ed6a14864c5e2",
+          "size": 247404
+        },
+        {
+          "mtime_ns": 1774403479948046178,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-presentation_35e07c17-4f08-4c42-b1c8-e19996c7f53a.pdf",
+          "relative_path": "2023-08-15_csl-results-presentation_35e07c17-4f08-4c42-b1c8-e19996c7f53a.pdf",
+          "sha256": "6b5a0cacd6f27a451d69c11c419c9d80fc739dc4a7e1d876eb7d336e70e855d2",
+          "size": 3034823
+        },
+        {
+          "mtime_ns": 1771457514740298852,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-presentation_7c227a9a-8d48-4843-8d02-0d8dd41d92c5.pdf",
+          "relative_path": "2023-08-15_csl-results-presentation_7c227a9a-8d48-4843-8d02-0d8dd41d92c5.pdf",
+          "sha256": "6b5a0cacd6f27a451d69c11c419c9d80fc739dc4a7e1d876eb7d336e70e855d2",
+          "size": 3034823
+        },
+        {
+          "mtime_ns": 1774403481046030005,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_0c68a5d8-b3c2-4f34-99fd-436db6863ca1.pdf",
+          "relative_path": "2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_0c68a5d8-b3c2-4f34-99fd-436db6863ca1.pdf",
+          "sha256": "0daa082d6e85043720919c4affa0698a254f1fdf4f67b1c5ba74a171b8639442",
+          "size": 7657084
+        },
+        {
+          "mtime_ns": 1771457516410268322,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_12da978d-44a2-4d43-a667-381afc36c6b7.pdf",
+          "relative_path": "2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_12da978d-44a2-4d43-a667-381afc36c6b7.pdf",
+          "sha256": "0daa082d6e85043720919c4affa0698a254f1fdf4f67b1c5ba74a171b8639442",
+          "size": 7657084
+        },
+        {
+          "mtime_ns": 1774403476541096365,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-10-11_csl-2023-agm-results_a9204501-4433-41f1-b894-3016ba158944.pdf",
+          "relative_path": "2023-10-11_csl-2023-agm-results_a9204501-4433-41f1-b894-3016ba158944.pdf",
+          "sha256": "f58235c61559f85649599bc86f93049f670ac4e4490c4311bd4d77e2f934fb5a",
+          "size": 217967
+        },
+        {
+          "mtime_ns": 1771457499397579896,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-10-11_csl-2023-agm-results_d4a31f8b-12c5-4644-9c74-5ab0005ea204.pdf",
+          "relative_path": "2023-10-11_csl-2023-agm-results_d4a31f8b-12c5-4644-9c74-5ab0005ea204.pdf",
+          "sha256": "f58235c61559f85649599bc86f93049f670ac4e4490c4311bd4d77e2f934fb5a",
+          "size": 217967
+        },
+        {
+          "mtime_ns": 1771457619758400471,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_7bdb1739-c48d-47a9-904a-6ca5eec575e4.pdf",
+          "relative_path": "2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_7bdb1739-c48d-47a9-904a-6ca5eec575e4.pdf",
+          "sha256": "5e4b143fd4be1217a643f94597b5ccc21103c18ea0499289ca02fedd99bc17ee",
+          "size": 131448
+        },
+        {
+          "mtime_ns": 1774403496495802470,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_fab25d71-4dc8-4061-bf7c-8120a080b3b2.pdf",
+          "relative_path": "2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_fab25d71-4dc8-4061-bf7c-8120a080b3b2.pdf",
+          "sha256": "5e4b143fd4be1217a643f94597b5ccc21103c18ea0499289ca02fedd99bc17ee",
+          "size": 131448
+        },
+        {
+          "mtime_ns": 1771457616649456082,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_cf1779e7-d06b-4aa9-ae64-6c4e9b2e4abb.pdf",
+          "relative_path": "2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_cf1779e7-d06b-4aa9-ae64-6c4e9b2e4abb.pdf",
+          "sha256": "01e1f7ee156ac880ac43fec1e97b89ae44443465b5c1b69b9f8d3bd072f5444f",
+          "size": 154192
+        },
+        {
+          "mtime_ns": 1774403496218806548,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_d2671f4d-cb2f-489a-ab40-c0e9dba3fe14.pdf",
+          "relative_path": "2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_d2671f4d-cb2f-489a-ab40-c0e9dba3fe14.pdf",
+          "sha256": "01e1f7ee156ac880ac43fec1e97b89ae44443465b5c1b69b9f8d3bd072f5444f",
+          "size": 154192
+        },
+        {
+          "mtime_ns": 1771457615417478128,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf",
+          "sha256": "dce17ff8505406f417ecef1695a637e62fe794743b2fa930195748428a815b67",
+          "size": 286102
+        },
+        {
+          "mtime_ns": 1774750723663943891,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.docling.json",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.docling.json",
+          "sha256": "ef515fbfbf7b9555b7c8198fc2dfc101095177eb351a61e86fd14a9cbeb183ba",
+          "size": 18869
+        },
+        {
+          "mtime_ns": 1774961212530250026,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.pymupdf.json",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.pymupdf.json",
+          "sha256": "5d7c922a623375361abf9d9bd09ef00ac4d3a450772ab9f954e0ba00005646e3",
+          "size": 53989
+        },
+        {
+          "mtime_ns": 1774403495855811894,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_f80bbec2-8dba-4dae-8fcd-ea1d512bb1fe.pdf",
+          "relative_path": "2024-02-13_half-year-results-announcement_f80bbec2-8dba-4dae-8fcd-ea1d512bb1fe.pdf",
+          "sha256": "dce17ff8505406f417ecef1695a637e62fe794743b2fa930195748428a815b67",
+          "size": 286102
+        },
+        {
+          "mtime_ns": 1774403495550816385,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-investor-presentation_143cf568-8ede-4866-9785-e5edd6ed56d7.pdf",
+          "relative_path": "2024-02-13_half-year-results-investor-presentation_143cf568-8ede-4866-9785-e5edd6ed56d7.pdf",
+          "sha256": "c294afc3e941c162bade3aafc08de655999d5f37cfac23542192129ea6364038",
+          "size": 2594665
+        },
+        {
+          "mtime_ns": 1771457611373550533,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-investor-presentation_29851893-a9b0-4a7a-815f-4ed013e957ac.pdf",
+          "relative_path": "2024-02-13_half-year-results-investor-presentation_29851893-a9b0-4a7a-815f-4ed013e957ac.pdf",
+          "sha256": "c294afc3e941c162bade3aafc08de655999d5f37cfac23542192129ea6364038",
+          "size": 2594665
+        },
+        {
+          "mtime_ns": 1771457616165464742,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_215d865e-3b7e-4d8d-8086-7ee7a2d30d98.pdf",
+          "relative_path": "2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_215d865e-3b7e-4d8d-8086-7ee7a2d30d98.pdf",
+          "sha256": "274d7475638847f8afa6c4f8f040201589cd0dd3a7dcb5380b507985b27d4a8a",
+          "size": 1754755
+        },
+        {
+          "mtime_ns": 1774403496061808860,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_c7e1e7b1-e5ac-46b4-9468-4d4c4193f3c7.pdf",
+          "relative_path": "2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_c7e1e7b1-e5ac-46b4-9468-4d4c4193f3c7.pdf",
+          "sha256": "274d7475638847f8afa6c4f8f040201589cd0dd3a7dcb5380b507985b27d4a8a",
+          "size": 1754755
+        },
+        {
+          "mtime_ns": 1774403491506875937,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_30583ab0-e21d-479c-93f6-702c5ce12a81.pdf",
+          "relative_path": "2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_30583ab0-e21d-479c-93f6-702c5ce12a81.pdf",
+          "sha256": "84fa20faee2dee1c103566175b62eb19022a6312342e98521ec08c1448fdd51a",
+          "size": 138946
+        },
+        {
+          "mtime_ns": 1771457596931809573,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_8816d94d-2bfd-40f4-8325-a82258635337.pdf",
+          "relative_path": "2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_8816d94d-2bfd-40f4-8325-a82258635337.pdf",
+          "sha256": "84fa20faee2dee1c103566175b62eb19022a6312342e98521ec08c1448fdd51a",
+          "size": 138946
+        },
+        {
+          "mtime_ns": 1774403491251879692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_full-year-statutory-accounts-for-30-june-2024_271cea51-32e2-44d0-8c5d-0b13742c00bc.pdf",
+          "relative_path": "2024-08-13_full-year-statutory-accounts-for-30-june-2024_271cea51-32e2-44d0-8c5d-0b13742c00bc.pdf",
+          "sha256": "2b0cfee49ccef6ea11d468d97101e2dbdb0c45925029fbf055de86fd28a67304",
+          "size": 10626013
+        },
+        {
+          "mtime_ns": 1771457595011844072,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_full-year-statutory-accounts-for-30-june-2024_cd933384-b071-4375-9c84-c98020454724.pdf",
+          "relative_path": "2024-08-13_full-year-statutory-accounts-for-30-june-2024_cd933384-b071-4375-9c84-c98020454724.pdf",
+          "sha256": "2b0cfee49ccef6ea11d468d97101e2dbdb0c45925029fbf055de86fd28a67304",
+          "size": 10626013
+        },
+        {
+          "mtime_ns": 1774403490761886908,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-announcement_794f5ae2-e98f-4af4-b140-cbfa31dfd5b2.pdf",
+          "relative_path": "2024-08-13_results-announcement_794f5ae2-e98f-4af4-b140-cbfa31dfd5b2.pdf",
+          "sha256": "55e0997ce0d19c9fb6fa887535b5e43f100b185f48a0c264920c1fcf01519ce1",
+          "size": 261491
+        },
+        {
+          "mtime_ns": 1771457592566888019,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-announcement_de03e99d-85f0-47e5-8e00-4777a6039094.pdf",
+          "relative_path": "2024-08-13_results-announcement_de03e99d-85f0-47e5-8e00-4777a6039094.pdf",
+          "sha256": "55e0997ce0d19c9fb6fa887535b5e43f100b185f48a0c264920c1fcf01519ce1",
+          "size": 261491
+        },
+        {
+          "mtime_ns": 1774403490575889647,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-presentation_0c3a3a06-c9f5-445e-86ce-84c51095868f.pdf",
+          "relative_path": "2024-08-13_results-presentation_0c3a3a06-c9f5-445e-86ce-84c51095868f.pdf",
+          "sha256": "c0b3dfb88857c3b7ebdf01e6a40e877950713541896f7f426924a71aa0366f25",
+          "size": 2326103
+        },
+        {
+          "mtime_ns": 1771457591332910207,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-presentation_8f479c5f-1975-4410-a794-1fc360f3285a.pdf",
+          "relative_path": "2024-08-13_results-presentation_8f479c5f-1975-4410-a794-1fc360f3285a.pdf",
+          "sha256": "c0b3dfb88857c3b7ebdf01e6a40e877950713541896f7f426924a71aa0366f25",
+          "size": 2326103
+        },
+        {
+          "mtime_ns": 1774403487403936361,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-09-18_notice-of-annual-general-meeting-proxy-form_66618c65-7168-45a6-918f-23ec048e1f57.pdf",
+          "relative_path": "2024-09-18_notice-of-annual-general-meeting-proxy-form_66618c65-7168-45a6-918f-23ec048e1f57.pdf",
+          "sha256": "0ba455dadbbb1f8944f558fce5a487f0537c2b2ddc99c6ea4d4e5b8ca9276e6d",
+          "size": 2924581
+        },
+        {
+          "mtime_ns": 1771457569802298254,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-09-18_notice-of-annual-general-meeting-proxy-form_e75d1f1a-df62-49a4-b309-59c35bcb30b9.pdf",
+          "relative_path": "2024-09-18_notice-of-annual-general-meeting-proxy-form_e75d1f1a-df62-49a4-b309-59c35bcb30b9.pdf",
+          "sha256": "0ba455dadbbb1f8944f558fce5a487f0537c2b2ddc99c6ea4d4e5b8ca9276e6d",
+          "size": 2924581
+        },
+        {
+          "mtime_ns": 1771457558243507302,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-10-29_csl-2024-agm-results_b2b4c166-45c8-4885-9107-ba03efc77606.pdf",
+          "relative_path": "2024-10-29_csl-2024-agm-results_b2b4c166-45c8-4885-9107-ba03efc77606.pdf",
+          "sha256": "fec133a08656cdd06d33348e66b1c6def67d43d22dbde9e90292306339429b0f",
+          "size": 211868
+        },
+        {
+          "mtime_ns": 1774403485425965493,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-10-29_csl-2024-agm-results_f6efbfa0-d7a3-43cf-9d6a-a6fde0d457bc.pdf",
+          "relative_path": "2024-10-29_csl-2024-agm-results_f6efbfa0-d7a3-43cf-9d6a-a6fde0d457bc.pdf",
+          "sha256": "fec133a08656cdd06d33348e66b1c6def67d43d22dbde9e90292306339429b0f",
+          "size": 211868
+        },
+        {
+          "mtime_ns": 1774403515006529942,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_904df90c-561f-46bf-86c2-19eef3e2fece.pdf",
+          "relative_path": "2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_904df90c-561f-46bf-86c2-19eef3e2fece.pdf",
+          "sha256": "ff11cc00397952ec0d3ac9f090294ba949428e63763775e7ec5d123ae2bf2d4b",
+          "size": 121455
+        },
+        {
+          "mtime_ns": 1771457720439616478,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_e0c5673d-e587-4510-8ae8-634fbd80290e.pdf",
+          "relative_path": "2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_e0c5673d-e587-4510-8ae8-634fbd80290e.pdf",
+          "sha256": "ff11cc00397952ec0d3ac9f090294ba949428e63763775e7ec5d123ae2bf2d4b",
+          "size": 121455
+        },
+        {
+          "mtime_ns": 1774403514631535461,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-announcement_08bd0710-02d3-4ffb-b9d1-9d947877d320.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-announcement_08bd0710-02d3-4ffb-b9d1-9d947877d320.pdf",
+          "sha256": "de3e58c3604e4c91ade70548b0bc18df72ed78ee75ef93afeb13fda8d50ee0db",
+          "size": 369088
+        },
+        {
+          "mtime_ns": 1771457719307636365,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-announcement_2049384b-9588-478c-8f09-75f4aefa540b.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-announcement_2049384b-9588-478c-8f09-75f4aefa540b.pdf",
+          "sha256": "de3e58c3604e4c91ade70548b0bc18df72ed78ee75ef93afeb13fda8d50ee0db",
+          "size": 369088
+        },
+        {
+          "mtime_ns": 1774403514475537758,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-investor-presentation_f2862c22-04ad-42aa-a2dd-c1627f514bce.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-investor-presentation_f2862c22-04ad-42aa-a2dd-c1627f514bce.pdf",
+          "sha256": "e2369f3b755cd6930985846759efcffa291e4115c379a0dd0d131a6eab48dd90",
+          "size": 2330789
+        },
+        {
+          "mtime_ns": 1771457718640648084,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-investor-presentation_f9335ff7-600a-41c6-be83-2e36c533b9c7.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-investor-presentation_f9335ff7-600a-41c6-be83-2e36c533b9c7.pdf",
+          "sha256": "e2369f3b755cd6930985846759efcffa291e4115c379a0dd0d131a6eab48dd90",
+          "size": 2330789
+        },
+        {
+          "mtime_ns": 1774403514825532606,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_3ac7cad8-d0c3-40e3-85d1-5018d8d0aaac.pdf",
+          "relative_path": "2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_3ac7cad8-d0c3-40e3-85d1-5018d8d0aaac.pdf",
+          "sha256": "5f98edc9839c0fa38998cefb42ce1268687ee8d57e9b099efb3cc551e5df60fb",
+          "size": 1694944
+        },
+        {
+          "mtime_ns": 1771457719917625648,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_6bcdc6c2-16d3-4f53-8453-04fb9a2ce45b.pdf",
+          "relative_path": "2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_6bcdc6c2-16d3-4f53-8453-04fb9a2ce45b.pdf",
+          "sha256": "5f98edc9839c0fa38998cefb42ce1268687ee8d57e9b099efb3cc551e5df60fb",
+          "size": 1694944
+        },
+        {
+          "mtime_ns": 1771457704049904774,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_5e12c25b-291a-49f0-9d38-51f4081f97b1.pdf",
+          "relative_path": "2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_5e12c25b-291a-49f0-9d38-51f4081f97b1.pdf",
+          "sha256": "ba5611776cdaea0d911f94d47a544b3726cf84c414ccd728c6287bab1b5b8960",
+          "size": 155961
+        },
+        {
+          "mtime_ns": 1774403510951589632,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_c05993f2-cac4-4ede-8853-062f9d812da3.pdf",
+          "relative_path": "2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_c05993f2-cac4-4ede-8853-062f9d812da3.pdf",
+          "sha256": "ba5611776cdaea0d911f94d47a544b3726cf84c414ccd728c6287bab1b5b8960",
+          "size": 155961
+        },
+        {
+          "mtime_ns": 1771457702087939338,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-fy25-results-and-major-strategic-initiatives_6bc46f68-5352-48b7-bdf0-6cb1c2c23fea.pdf",
+          "relative_path": "2025-08-19_csl-fy25-results-and-major-strategic-initiatives_6bc46f68-5352-48b7-bdf0-6cb1c2c23fea.pdf",
+          "sha256": "010be50e8002a526d83a25b1556317176d61f593ad6516828713ffebea5bb538",
+          "size": 328732
+        },
+        {
+          "mtime_ns": 1774403510346598538,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-fy25-results-and-major-strategic-initiatives_e105034f-f6de-40e1-9bf2-8d2e68e93b76.pdf",
+          "relative_path": "2025-08-19_csl-fy25-results-and-major-strategic-initiatives_e105034f-f6de-40e1-9bf2-8d2e68e93b76.pdf",
+          "sha256": "010be50e8002a526d83a25b1556317176d61f593ad6516828713ffebea5bb538",
+          "size": 328732
+        },
+        {
+          "mtime_ns": 1771457701151955830,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-results-presentation_81ba8a35-3bbd-4384-a1b1-2d969cda1dc6.pdf",
+          "relative_path": "2025-08-19_csl-results-presentation_81ba8a35-3bbd-4384-a1b1-2d969cda1dc6.pdf",
+          "sha256": "776f740ee585a0c5b01b24842d25660cdb4d1e74b2362af0328685c1cb2beaaa",
+          "size": 2976517
+        },
+        {
+          "mtime_ns": 1774403510082602425,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-results-presentation_b6fe9fdf-4b92-4d4c-a199-fa4c5c24ebbf.pdf",
+          "relative_path": "2025-08-19_csl-results-presentation_b6fe9fdf-4b92-4d4c-a199-fa4c5c24ebbf.pdf",
+          "sha256": "776f740ee585a0c5b01b24842d25660cdb4d1e74b2362af0328685c1cb2beaaa",
+          "size": 2976517
+        },
+        {
+          "mtime_ns": 1771457702832926212,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-statutory-accounts-for-fy2025_4312a304-1eac-473a-9326-a7ca63a069d6.pdf",
+          "relative_path": "2025-08-19_csl-statutory-accounts-for-fy2025_4312a304-1eac-473a-9326-a7ca63a069d6.pdf",
+          "sha256": "ab6a8032fadf7e19a91dffef9e4edf89243ac0980f1e272932ff68d003a59865",
+          "size": 15396727
+        },
+        {
+          "mtime_ns": 1774403510742592709,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-statutory-accounts-for-fy2025_8b876ab4-8788-4124-8f09-289c8f48b5f6.pdf",
+          "relative_path": "2025-08-19_csl-statutory-accounts-for-fy2025_8b876ab4-8788-4124-8f09-289c8f48b5f6.pdf",
+          "sha256": "ab6a8032fadf7e19a91dffef9e4edf89243ac0980f1e272932ff68d003a59865",
+          "size": 15396727
+        },
+        {
+          "mtime_ns": 1774403504059691095,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-10-28_results-of-meeting_38ed4496-64e9-438e-8176-6dcfdf503b0e.pdf",
+          "relative_path": "2025-10-28_results-of-meeting_38ed4496-64e9-438e-8176-6dcfdf503b0e.pdf",
+          "sha256": "ee5928576e65919ce5dc1b15a8fe0d45d3bef0c7031e13ac425872483735e047",
+          "size": 376641
+        },
+        {
+          "mtime_ns": 1771457660668671718,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-10-28_results-of-meeting_55e3ea22-fadd-42fa-9ef0-872eb5249983.pdf",
+          "relative_path": "2025-10-28_results-of-meeting_55e3ea22-fadd-42fa-9ef0-872eb5249983.pdf",
+          "sha256": "ee5928576e65919ce5dc1b15a8fe0d45d3bef0c7031e13ac425872483735e047",
+          "size": 376641
+        },
+        {
+          "mtime_ns": 1774403522429420685,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-02_notice-of-hy26-results-release-and-briefing_980de10d-8f97-4ed4-8628-11a965b9c27b.pdf",
+          "relative_path": "2026-02-02_notice-of-hy26-results-release-and-briefing_980de10d-8f97-4ed4-8628-11a965b9c27b.pdf",
+          "sha256": "3204720d66dda974605f766d96c6357dee4d71e0a1f32abca087347a3405fee8",
+          "size": 137217
+        },
+        {
+          "mtime_ns": 1771457729004466126,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-02_notice-of-hy26-results-release-and-briefing_e0c56dd7-9d2c-4d65-939c-786a4c8421ae.pdf",
+          "relative_path": "2026-02-02_notice-of-hy26-results-release-and-briefing_e0c56dd7-9d2c-4d65-939c-786a4c8421ae.pdf",
+          "sha256": "3204720d66dda974605f766d96c6357dee4d71e0a1f32abca087347a3405fee8",
+          "size": 137217
+        },
+        {
+          "mtime_ns": 1774403522125425159,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_019e04b1-b550-44b1-93c0-878a485f4972.pdf",
+          "relative_path": "2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_019e04b1-b550-44b1-93c0-878a485f4972.pdf",
+          "sha256": "9a80dcad7c2ddcf2e7531328d789f074517b135f41bd0280f3560535f6e3a6fa",
+          "size": 173224
+        },
+        {
+          "mtime_ns": 1771457728096482055,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_1109b48e-507d-40f5-86dd-15a8b7d590a7.pdf",
+          "relative_path": "2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_1109b48e-507d-40f5-86dd-15a8b7d590a7.pdf",
+          "sha256": "9a80dcad7c2ddcf2e7531328d789f074517b135f41bd0280f3560535f6e3a6fa",
+          "size": 173224
+        },
+        {
+          "mtime_ns": 1774403521692431531,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-announcement_6548876c-cd47-406d-96fd-a15feeb7ca95.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-announcement_6548876c-cd47-406d-96fd-a15feeb7ca95.pdf",
+          "sha256": "76707846d52cbd919a64ccf6fa7677a28341b754b58164a5e912e4db625637dd",
+          "size": 365848
+        },
+        {
+          "mtime_ns": 1771457726828504304,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-announcement_6c99dd24-f1d5-419a-9ebb-b21219086ef0.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-announcement_6c99dd24-f1d5-419a-9ebb-b21219086ef0.pdf",
+          "sha256": "76707846d52cbd919a64ccf6fa7677a28341b754b58164a5e912e4db625637dd",
+          "size": 365848
+        },
+        {
+          "mtime_ns": 1771457725239532192,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-investor-presentation_8c5f7dae-69eb-43a7-a766-220c76704bb5.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-investor-presentation_8c5f7dae-69eb-43a7-a766-220c76704bb5.pdf",
+          "sha256": "c66b7defd763266ca0908e797c36d9a2d7b71445b592f3b14b43443a0d212a87",
+          "size": 2710323
+        },
+        {
+          "mtime_ns": 1774403521442435211,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-investor-presentation_d33b4039-58da-4bea-bd40-36329b17457f.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-investor-presentation_d33b4039-58da-4bea-bd40-36329b17457f.pdf",
+          "sha256": "c66b7defd763266ca0908e797c36d9a2d7b71445b592f3b14b43443a0d212a87",
+          "size": 2710323
+        },
+        {
+          "mtime_ns": 1771457727473492987,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_0e72750d-d5e9-4de8-b9d8-9be30d39d9c1.pdf",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_0e72750d-d5e9-4de8-b9d8-9be30d39d9c1.pdf",
+          "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+          "size": 6003726
+        },
+        {
+          "mtime_ns": 1774403521949427749,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+          "size": 6003726
+        },
+        {
+          "mtime_ns": 1776059081853497685,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.docling.json",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.docling.json",
+          "sha256": "33db097459df27a7cbead1c8a06ef09d33b82b60bd3314b16fa9d6df9aaa2d8c",
+          "size": 87887
+        },
+        {
+          "mtime_ns": 1774525453915157988,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.pymupdf.json",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.pymupdf.json",
+          "sha256": "ef569623d156d0f5f6a42f0a48e9a1b40c1d7bf1b23115d234e75fd86ec4c4d2",
+          "size": 177205
+        }
+      ],
+      "source_file": {
+        "exists": true,
+        "mtime_ns": 1774403521949427749,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+        "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+        "size": 6003726
+      }
+    }
+  },
+  "source_pdf_before": {
+    "CSL_H_2025-12-31": {
+      "source_dir": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance",
+      "source_dir_files": [
+        {
+          "mtime_ns": 1772340693040855604,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-announcement_8a381434-acaa-4596-a924-b626783bd791.pdf",
+          "relative_path": "2021-08-18_csl-results-announcement_8a381434-acaa-4596-a924-b626783bd791.pdf",
+          "sha256": "dc3c3715b061f95196b37b54dc636e5a4141799b7629463a8d12d0ec50f6ff79",
+          "size": 422514
+        },
+        {
+          "mtime_ns": 1771457362412138628,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-announcement_c5278051-3830-44cf-8fc2-bfa4c2f4960f.pdf",
+          "relative_path": "2021-08-18_csl-results-announcement_c5278051-3830-44cf-8fc2-bfa4c2f4960f.pdf",
+          "sha256": "dc3c3715b061f95196b37b54dc636e5a4141799b7629463a8d12d0ec50f6ff79",
+          "size": 422514
+        },
+        {
+          "mtime_ns": 1771457360440176181,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-presentation_3f437e11-78a7-4443-8525-8baf8ad06687.pdf",
+          "relative_path": "2021-08-18_csl-results-presentation_3f437e11-78a7-4443-8525-8baf8ad06687.pdf",
+          "sha256": "025f8f7f375234a05350ea8187184a6a538fc35cbd8519cce4d842f557a4cef6",
+          "size": 2670846
+        },
+        {
+          "mtime_ns": 1772340692805858945,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-results-presentation_b7771595-81cb-496d-99d1-e2251c232dea.pdf",
+          "relative_path": "2021-08-18_csl-results-presentation_b7771595-81cb-496d-99d1-e2251c232dea.pdf",
+          "sha256": "025f8f7f375234a05350ea8187184a6a538fc35cbd8519cce4d842f557a4cef6",
+          "size": 2670846
+        },
+        {
+          "mtime_ns": 1771457366430062184,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_13c4b70f-db08-45ca-831d-cdbdaa587562.pdf",
+          "relative_path": "2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_13c4b70f-db08-45ca-831d-cdbdaa587562.pdf",
+          "sha256": "c19bec88be6a70615bb2356705393bbb5905bf8b0bea97e33b17c3ffa01e0927",
+          "size": 2928129
+        },
+        {
+          "mtime_ns": 1772340693625847288,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_73d2d9df-649e-4c5b-835a-3b8ddd05e738.pdf",
+          "relative_path": "2021-08-18_csl-statutory-accounts-for-the-full-year-ended-30-june-2021_73d2d9df-649e-4c5b-835a-3b8ddd05e738.pdf",
+          "sha256": "c19bec88be6a70615bb2356705393bbb5905bf8b0bea97e33b17c3ffa01e0927",
+          "size": 2928129
+        },
+        {
+          "mtime_ns": 1771457352382329859,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-09-03_csl-annual-report_0c0be0f3-8698-4e7f-b049-0a511129c9a6.pdf",
+          "relative_path": "2021-09-03_csl-annual-report_0c0be0f3-8698-4e7f-b049-0a511129c9a6.pdf",
+          "sha256": "149f7d729148a0e445c88e52006913d599f405fc8e38bdff0742f58300df4e0b",
+          "size": 7150713
+        },
+        {
+          "mtime_ns": 1772340690540891144,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-09-03_csl-annual-report_f9898cc1-8c64-4675-8d8a-456031592917.pdf",
+          "relative_path": "2021-09-03_csl-annual-report_f9898cc1-8c64-4675-8d8a-456031592917.pdf",
+          "sha256": "149f7d729148a0e445c88e52006913d599f405fc8e38bdff0742f58300df4e0b",
+          "size": 7150713
+        },
+        {
+          "mtime_ns": 1771457329350771225,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_csl-2021-annual-general-meeting-speeches_6e88ad86-ea1d-4cf3-adfa-268bd728633b.pdf",
+          "relative_path": "2021-10-12_csl-2021-annual-general-meeting-speeches_6e88ad86-ea1d-4cf3-adfa-268bd728633b.pdf",
+          "sha256": "0330dab14a6159c285b4a9c6e61b56809fa1c8e8d2302d53e397b9de1389a091",
+          "size": 1781458
+        },
+        {
+          "mtime_ns": 1772340685092968596,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_csl-2021-annual-general-meeting-speeches_c24f864a-48be-47f1-81bb-0029f58e8c72.pdf",
+          "relative_path": "2021-10-12_csl-2021-annual-general-meeting-speeches_c24f864a-48be-47f1-81bb-0029f58e8c72.pdf",
+          "sha256": "0330dab14a6159c285b4a9c6e61b56809fa1c8e8d2302d53e397b9de1389a091",
+          "size": 1781458
+        },
+        {
+          "mtime_ns": 1771457328775782288,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_results-of-meeting_3af7e3f0-6d5a-4718-aba9-5ac6abf9124d.pdf",
+          "relative_path": "2021-10-12_results-of-meeting_3af7e3f0-6d5a-4718-aba9-5ac6abf9124d.pdf",
+          "sha256": "d6dd52b84c5c79fda87abcf9b1c7739bd8e649bb04649e71c259c0c836abeb04",
+          "size": 258623
+        },
+        {
+          "mtime_ns": 1772340684755973387,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-12_results-of-meeting_94389bfd-bacd-4912-80a4-01cd40500273.pdf",
+          "relative_path": "2021-10-12_results-of-meeting_94389bfd-bacd-4912-80a4-01cd40500273.pdf",
+          "sha256": "d6dd52b84c5c79fda87abcf9b1c7739bd8e649bb04649e71c259c0c836abeb04",
+          "size": 258623
+        },
+        {
+          "mtime_ns": 1772340683855986182,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-19_2021-annual-r-d-day_6b379290-954f-4042-8363-5f823e2270cc.pdf",
+          "relative_path": "2021-10-19_2021-annual-r-d-day_6b379290-954f-4042-8363-5f823e2270cc.pdf",
+          "sha256": "9d74f021f54f96f142068e929eeab893e054e7a66c6738e2802a950930d48d5b",
+          "size": 8086153
+        },
+        {
+          "mtime_ns": 1771457322509902935,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-10-19_2021-annual-r-d-day_ddcfa76d-dece-45fd-87e6-03fd05834a59.pdf",
+          "relative_path": "2021-10-19_2021-annual-r-d-day_ddcfa76d-dece-45fd-87e6-03fd05834a59.pdf",
+          "sha256": "9d74f021f54f96f142068e929eeab893e054e7a66c6738e2802a950930d48d5b",
+          "size": 8086153
+        },
+        {
+          "mtime_ns": 1771457311557114419,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_c544a01a-0eb6-41c1-afb5-e72c2b67f1f6.pdf",
+          "relative_path": "2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_c544a01a-0eb6-41c1-afb5-e72c2b67f1f6.pdf",
+          "sha256": "0e01b0ee6e43520f22fb977ebf2487632385832142c8dbbd771086377ab0aa9a",
+          "size": 596376
+        },
+        {
+          "mtime_ns": 1772340680564032987,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_cefc6bc3-0f99-4d87-aab2-c992833d28f9.pdf",
+          "relative_path": "2021-12-14_swiss-tender-offer-to-acquire-100-of-vifor-pharma-ltd_cefc6bc3-0f99-4d87-aab2-c992833d28f9.pdf",
+          "sha256": "0e01b0ee6e43520f22fb977ebf2487632385832142c8dbbd771086377ab0aa9a",
+          "size": 596376
+        },
+        {
+          "mtime_ns": 1771457474829032090,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-announcement_18170b2a-bd0a-42a4-8a6a-091f2b76b3ec.pdf",
+          "relative_path": "2022-02-16_half-year-results-announcement_18170b2a-bd0a-42a4-8a6a-091f2b76b3ec.pdf",
+          "sha256": "395adf87cacc3a41212acaf6295855733887bf046ea6b5f394fe7b31de53cb36",
+          "size": 463657
+        },
+        {
+          "mtime_ns": 1772340716960515621,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-announcement_d6f4e1f5-7a5c-4ac5-a2fd-8ad92e542bdf.pdf",
+          "relative_path": "2022-02-16_half-year-results-announcement_d6f4e1f5-7a5c-4ac5-a2fd-8ad92e542bdf.pdf",
+          "sha256": "395adf87cacc3a41212acaf6295855733887bf046ea6b5f394fe7b31de53cb36",
+          "size": 463657
+        },
+        {
+          "mtime_ns": 1771457473339059602,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-investor-presentation_92300903-c343-4d56-a7f7-4d5c67e4d06a.pdf",
+          "relative_path": "2022-02-16_half-year-results-investor-presentation_92300903-c343-4d56-a7f7-4d5c67e4d06a.pdf",
+          "sha256": "dab7695a0611a38db44d26184718fceb26ea6c329d9dead9a5bdd9cca9eeb4ea",
+          "size": 2649863
+        },
+        {
+          "mtime_ns": 1772340716695519387,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_half-year-results-investor-presentation_9ef3fb19-ffcc-48d6-938a-71022843c0a4.pdf",
+          "relative_path": "2022-02-16_half-year-results-investor-presentation_9ef3fb19-ffcc-48d6-938a-71022843c0a4.pdf",
+          "sha256": "dab7695a0611a38db44d26184718fceb26ea6c329d9dead9a5bdd9cca9eeb4ea",
+          "size": 2649863
+        },
+        {
+          "mtime_ns": 1771457476033009867,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_2648685d-366e-49ec-a7c2-50ff92093a8d.pdf",
+          "relative_path": "2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_2648685d-366e-49ec-a7c2-50ff92093a8d.pdf",
+          "sha256": "b3fb03a2247452a959f7ed059af54e88272ac0b350b5b0f6836664b40af4f6a3",
+          "size": 552484
+        },
+        {
+          "mtime_ns": 1772340717216511983,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_a88ab3d7-2b3e-40ae-ab79-51efdfb707a5.pdf",
+          "relative_path": "2022-02-16_statutory-accounts-for-half-year-ended-31-december-2021_a88ab3d7-2b3e-40ae-ab79-51efdfb707a5.pdf",
+          "sha256": "b3fb03a2247452a959f7ed059af54e88272ac0b350b5b0f6836664b40af4f6a3",
+          "size": 552484
+        },
+        {
+          "mtime_ns": 1771457448827513681,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_4fce66e4-b34b-482c-b05c-7c1b0d601e05.pdf",
+          "relative_path": "2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_4fce66e4-b34b-482c-b05c-7c1b0d601e05.pdf",
+          "sha256": "a43a20f3f69b0d97a643ddf8cf85211381857e9371b4fafffcf45034a37d8a8e",
+          "size": 91033
+        },
+        {
+          "mtime_ns": 1772340710576606349,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_c3964306-4618-4043-8ffd-75d2da446d52.pdf",
+          "relative_path": "2022-08-16_notice-of-investor-analyst-briefing-2022-full-year-result_c3964306-4618-4043-8ffd-75d2da446d52.pdf",
+          "sha256": "a43a20f3f69b0d97a643ddf8cf85211381857e9371b4fafffcf45034a37d8a8e",
+          "size": 91033
+        },
+        {
+          "mtime_ns": 1771457445495575622,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-announcement_3b65f787-b242-4c53-9b6d-627626268245.pdf",
+          "relative_path": "2022-08-17_csl-results-announcement_3b65f787-b242-4c53-9b6d-627626268245.pdf",
+          "sha256": "0755f8e544a281289133e89939dcc808d608d1d894cbce871365fcde3a616946",
+          "size": 175477
+        },
+        {
+          "mtime_ns": 1772340709892616070,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-announcement_4658c854-29d5-46d5-aa7b-661ebc061d1c.pdf",
+          "relative_path": "2022-08-17_csl-results-announcement_4658c854-29d5-46d5-aa7b-661ebc061d1c.pdf",
+          "sha256": "0755f8e544a281289133e89939dcc808d608d1d894cbce871365fcde3a616946",
+          "size": 175477
+        },
+        {
+          "mtime_ns": 1771457444580592637,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-presentation_ead9c237-d04a-4f78-8fc0-167355fd8852.pdf",
+          "relative_path": "2022-08-17_csl-results-presentation_ead9c237-d04a-4f78-8fc0-167355fd8852.pdf",
+          "sha256": "7351ac673f0b7f70142e061c6b6dd5bbcff18a96e3e1614efe18e404ed8708a7",
+          "size": 2163578
+        },
+        {
+          "mtime_ns": 1772340709399623077,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-results-presentation_f42d2583-ffd3-4fac-8c20-2bef2f7a533b.pdf",
+          "relative_path": "2022-08-17_csl-results-presentation_f42d2583-ffd3-4fac-8c20-2bef2f7a533b.pdf",
+          "sha256": "7351ac673f0b7f70142e061c6b6dd5bbcff18a96e3e1614efe18e404ed8708a7",
+          "size": 2163578
+        },
+        {
+          "mtime_ns": 1772340710239611138,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_59be4911-0ba8-4fac-9954-d38cf11f32f1.pdf",
+          "relative_path": "2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_59be4911-0ba8-4fac-9954-d38cf11f32f1.pdf",
+          "sha256": "a9c4f87f3cacacd5f745b156d3902f9af103848f4092e117f65b9dbd1d3fb5b9",
+          "size": 3291300
+        },
+        {
+          "mtime_ns": 1771457446999547655,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_d9b00b8d-3d07-4f8f-a192-bdf9d7d94e7a.pdf",
+          "relative_path": "2022-08-17_csl-statutory-accounts-for-the-full-year-ended-30-june-202_d9b00b8d-3d07-4f8f-a192-bdf9d7d94e7a.pdf",
+          "sha256": "a9c4f87f3cacacd5f745b156d3902f9af103848f4092e117f65b9dbd1d3fb5b9",
+          "size": 3291300
+        },
+        {
+          "mtime_ns": 1772340707227653946,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-09-02_csl-annual-report-2022_78fd5c8b-6c32-4969-81f5-19e30d34ae05.pdf",
+          "relative_path": "2022-09-02_csl-annual-report-2022_78fd5c8b-6c32-4969-81f5-19e30d34ae05.pdf",
+          "sha256": "e78b94b7481916f7fe2350a31e421cc4a1eb255d7358865ec4e7ffec68e2b5d5",
+          "size": 6056104
+        },
+        {
+          "mtime_ns": 1771457432766812765,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-09-02_csl-annual-report-2022_ed243e50-a2ed-4cf9-b4b8-3c175acb3737.pdf",
+          "relative_path": "2022-09-02_csl-annual-report-2022_ed243e50-a2ed-4cf9-b4b8-3c175acb3737.pdf",
+          "sha256": "e78b94b7481916f7fe2350a31e421cc4a1eb255d7358865ec4e7ffec68e2b5d5",
+          "size": 6056104
+        },
+        {
+          "mtime_ns": 1771457415919127892,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-10-12_csl-2022-agm-results_15181873-a2f4-4c97-a55f-49846fb7dc5c.pdf",
+          "relative_path": "2022-10-12_csl-2022-agm-results_15181873-a2f4-4c97-a55f-49846fb7dc5c.pdf",
+          "sha256": "58f4578c6152144ae3bd5e4566f24eafc4f5dc9e50f133a17f9ee4e2ca4af1a4",
+          "size": 158512
+        },
+        {
+          "mtime_ns": 1772340703132712149,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2022-10-12_csl-2022-agm-results_1fb167b6-841f-4875-bd83-ba493476cc95.pdf",
+          "relative_path": "2022-10-12_csl-2022-agm-results_1fb167b6-841f-4875-bd83-ba493476cc95.pdf",
+          "sha256": "58f4578c6152144ae3bd5e4566f24eafc4f5dc9e50f133a17f9ee4e2ca4af1a4",
+          "size": 158512
+        },
+        {
+          "mtime_ns": 1771457543174780613,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_4b4c0928-7981-47d9-9319-83f4f870dcde.pdf",
+          "relative_path": "2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_4b4c0928-7981-47d9-9319-83f4f870dcde.pdf",
+          "sha256": "eeea563696231099672ded506a43def6dfa4cfd46b39c960b73549b999f4d9b2",
+          "size": 470170
+        },
+        {
+          "mtime_ns": 1772340737560222907,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_b6c43a92-78dd-4823-be16-2b38e612b59c.pdf",
+          "relative_path": "2023-01-09_notice-of-investor-analyst-briefing-2023-half-year-result_b6c43a92-78dd-4823-be16-2b38e612b59c.pdf",
+          "sha256": "eeea563696231099672ded506a43def6dfa4cfd46b39c960b73549b999f4d9b2",
+          "size": 470170
+        },
+        {
+          "mtime_ns": 1772340737014230664,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-06_new-segment-note-historical-financial-detail_b7ad42aa-814e-4b63-800f-ccff354a2354.pdf",
+          "relative_path": "2023-02-06_new-segment-note-historical-financial-detail_b7ad42aa-814e-4b63-800f-ccff354a2354.pdf",
+          "sha256": "e6d6fde9838814ae7d03c2deab861bac70ac2a836e75725c7d640e2a7a2a654a",
+          "size": 108424
+        },
+        {
+          "mtime_ns": 1771457538769860678,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-06_new-segment-note-historical-financial-detail_e36dde3f-973b-44d4-8109-3f18186ad369.pdf",
+          "relative_path": "2023-02-06_new-segment-note-historical-financial-detail_e36dde3f-973b-44d4-8109-3f18186ad369.pdf",
+          "sha256": "e6d6fde9838814ae7d03c2deab861bac70ac2a836e75725c7d640e2a7a2a654a",
+          "size": 108424
+        },
+        {
+          "mtime_ns": 1771457532466975381,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-half-year-results-announcement-investor-presentation_176b67b2-3182-4b4b-af4a-096c78876c9e.pdf",
+          "relative_path": "2023-02-14_csl-half-year-results-announcement-investor-presentation_176b67b2-3182-4b4b-af4a-096c78876c9e.pdf",
+          "sha256": "4bed66c9f9497606ebe995d9bbacd9f6770b374b7886385a57a5f0488584a9be",
+          "size": 2302210
+        },
+        {
+          "mtime_ns": 1772340736195242300,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-half-year-results-announcement-investor-presentation_482758da-cb03-4755-b43c-e6088d5855e8.pdf",
+          "relative_path": "2023-02-14_csl-half-year-results-announcement-investor-presentation_482758da-cb03-4755-b43c-e6088d5855e8.pdf",
+          "sha256": "4bed66c9f9497606ebe995d9bbacd9f6770b374b7886385a57a5f0488584a9be",
+          "size": 2302210
+        },
+        {
+          "mtime_ns": 1772340736500237967,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_1996ddf2-d07d-47d9-8b23-1c722cc2b8ca.pdf",
+          "relative_path": "2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_1996ddf2-d07d-47d9-8b23-1c722cc2b8ca.pdf",
+          "sha256": "0b25fd7f85b8a112db488e3cd76044fba6ca361dca49ce0b56f48763f70a2901",
+          "size": 919893
+        },
+        {
+          "mtime_ns": 1771457534394940277,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_caa2282c-2763-4e7c-b475-8bf37f76568e.pdf",
+          "relative_path": "2023-02-14_csl-statutory-accounts-for-the-half-year-ended-31-dec-2022_caa2282c-2763-4e7c-b475-8bf37f76568e.pdf",
+          "sha256": "0b25fd7f85b8a112db488e3cd76044fba6ca361dca49ce0b56f48763f70a2901",
+          "size": 919893
+        },
+        {
+          "mtime_ns": 1774403481831018443,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-06-14_market-update_73c5f68c-c340-4676-a645-84377a421688.pdf",
+          "relative_path": "2023-06-14_market-update_73c5f68c-c340-4676-a645-84377a421688.pdf",
+          "sha256": "21e305fc4982f9380ea53ffdc05dc415b551e25245e0dbe96bf08c9f69ab1eac",
+          "size": 208196
+        },
+        {
+          "mtime_ns": 1771457519139218459,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-06-14_market-update_fe98a8f7-2e33-4c73-b9ba-d432cda60b1f.pdf",
+          "relative_path": "2023-06-14_market-update_fe98a8f7-2e33-4c73-b9ba-d432cda60b1f.pdf",
+          "sha256": "21e305fc4982f9380ea53ffdc05dc415b551e25245e0dbe96bf08c9f69ab1eac",
+          "size": 208196
+        },
+        {
+          "mtime_ns": 1774403481461023893,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_3dc65e98-f10f-49df-83f7-bf76f7e6d126.pdf",
+          "relative_path": "2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_3dc65e98-f10f-49df-83f7-bf76f7e6d126.pdf",
+          "sha256": "c766189e734f39de6c13e6f5e7cd668d471209fbafedab388bdcbdf5b923f719",
+          "size": 130929
+        },
+        {
+          "mtime_ns": 1771457518379232343,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_d7b546d1-548e-4ea9-b361-45376335222f.pdf",
+          "relative_path": "2023-08-04_notice-of-investor-and-analyst-briefing-2023-fy-results_d7b546d1-548e-4ea9-b361-45376335222f.pdf",
+          "sha256": "c766189e734f39de6c13e6f5e7cd668d471209fbafedab388bdcbdf5b923f719",
+          "size": 130929
+        },
+        {
+          "mtime_ns": 1771457515783279783,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-announcement_5cff7e61-370f-4e21-86d2-53a3d6590a01.pdf",
+          "relative_path": "2023-08-15_csl-results-announcement_5cff7e61-370f-4e21-86d2-53a3d6590a01.pdf",
+          "sha256": "a3bac78b762705dc8093fc1e3eb6eb91920371a7ad5814fffb4ed6a14864c5e2",
+          "size": 247404
+        },
+        {
+          "mtime_ns": 1774403480515037827,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-announcement_d2ee50c7-f4d7-4273-a609-ed27a6d6f392.pdf",
+          "relative_path": "2023-08-15_csl-results-announcement_d2ee50c7-f4d7-4273-a609-ed27a6d6f392.pdf",
+          "sha256": "a3bac78b762705dc8093fc1e3eb6eb91920371a7ad5814fffb4ed6a14864c5e2",
+          "size": 247404
+        },
+        {
+          "mtime_ns": 1774403479948046178,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-presentation_35e07c17-4f08-4c42-b1c8-e19996c7f53a.pdf",
+          "relative_path": "2023-08-15_csl-results-presentation_35e07c17-4f08-4c42-b1c8-e19996c7f53a.pdf",
+          "sha256": "6b5a0cacd6f27a451d69c11c419c9d80fc739dc4a7e1d876eb7d336e70e855d2",
+          "size": 3034823
+        },
+        {
+          "mtime_ns": 1771457514740298852,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-results-presentation_7c227a9a-8d48-4843-8d02-0d8dd41d92c5.pdf",
+          "relative_path": "2023-08-15_csl-results-presentation_7c227a9a-8d48-4843-8d02-0d8dd41d92c5.pdf",
+          "sha256": "6b5a0cacd6f27a451d69c11c419c9d80fc739dc4a7e1d876eb7d336e70e855d2",
+          "size": 3034823
+        },
+        {
+          "mtime_ns": 1774403481046030005,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_0c68a5d8-b3c2-4f34-99fd-436db6863ca1.pdf",
+          "relative_path": "2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_0c68a5d8-b3c2-4f34-99fd-436db6863ca1.pdf",
+          "sha256": "0daa082d6e85043720919c4affa0698a254f1fdf4f67b1c5ba74a171b8639442",
+          "size": 7657084
+        },
+        {
+          "mtime_ns": 1771457516410268322,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_12da978d-44a2-4d43-a667-381afc36c6b7.pdf",
+          "relative_path": "2023-08-15_csl-statutory-accounts-for-the-full-year-ended-30-june-202_12da978d-44a2-4d43-a667-381afc36c6b7.pdf",
+          "sha256": "0daa082d6e85043720919c4affa0698a254f1fdf4f67b1c5ba74a171b8639442",
+          "size": 7657084
+        },
+        {
+          "mtime_ns": 1774403476541096365,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-10-11_csl-2023-agm-results_a9204501-4433-41f1-b894-3016ba158944.pdf",
+          "relative_path": "2023-10-11_csl-2023-agm-results_a9204501-4433-41f1-b894-3016ba158944.pdf",
+          "sha256": "f58235c61559f85649599bc86f93049f670ac4e4490c4311bd4d77e2f934fb5a",
+          "size": 217967
+        },
+        {
+          "mtime_ns": 1771457499397579896,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2023-10-11_csl-2023-agm-results_d4a31f8b-12c5-4644-9c74-5ab0005ea204.pdf",
+          "relative_path": "2023-10-11_csl-2023-agm-results_d4a31f8b-12c5-4644-9c74-5ab0005ea204.pdf",
+          "sha256": "f58235c61559f85649599bc86f93049f670ac4e4490c4311bd4d77e2f934fb5a",
+          "size": 217967
+        },
+        {
+          "mtime_ns": 1771457619758400471,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_7bdb1739-c48d-47a9-904a-6ca5eec575e4.pdf",
+          "relative_path": "2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_7bdb1739-c48d-47a9-904a-6ca5eec575e4.pdf",
+          "sha256": "5e4b143fd4be1217a643f94597b5ccc21103c18ea0499289ca02fedd99bc17ee",
+          "size": 131448
+        },
+        {
+          "mtime_ns": 1774403496495802470,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_fab25d71-4dc8-4061-bf7c-8120a080b3b2.pdf",
+          "relative_path": "2024-01-30_notice-of-investor-analyst-briefing-2024-half-year-results_fab25d71-4dc8-4061-bf7c-8120a080b3b2.pdf",
+          "sha256": "5e4b143fd4be1217a643f94597b5ccc21103c18ea0499289ca02fedd99bc17ee",
+          "size": 131448
+        },
+        {
+          "mtime_ns": 1771457616649456082,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_cf1779e7-d06b-4aa9-ae64-6c4e9b2e4abb.pdf",
+          "relative_path": "2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_cf1779e7-d06b-4aa9-ae64-6c4e9b2e4abb.pdf",
+          "sha256": "01e1f7ee156ac880ac43fec1e97b89ae44443465b5c1b69b9f8d3bd072f5444f",
+          "size": 154192
+        },
+        {
+          "mtime_ns": 1774403496218806548,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_d2671f4d-cb2f-489a-ab40-c0e9dba3fe14.pdf",
+          "relative_path": "2024-02-12_top-line-results-from-the-phase-3-aegis-ii-trial_d2671f4d-cb2f-489a-ab40-c0e9dba3fe14.pdf",
+          "sha256": "01e1f7ee156ac880ac43fec1e97b89ae44443465b5c1b69b9f8d3bd072f5444f",
+          "size": 154192
+        },
+        {
+          "mtime_ns": 1771457615417478128,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf",
+          "sha256": "dce17ff8505406f417ecef1695a637e62fe794743b2fa930195748428a815b67",
+          "size": 286102
+        },
+        {
+          "mtime_ns": 1774750723663943891,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.docling.json",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.docling.json",
+          "sha256": "ef515fbfbf7b9555b7c8198fc2dfc101095177eb351a61e86fd14a9cbeb183ba",
+          "size": 18869
+        },
+        {
+          "mtime_ns": 1774961212530250026,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.pymupdf.json",
+          "relative_path": "2024-02-13_half-year-results-announcement_ccff9eaa-24fa-440d-930e-83d43387f171.pdf.pymupdf.json",
+          "sha256": "5d7c922a623375361abf9d9bd09ef00ac4d3a450772ab9f954e0ba00005646e3",
+          "size": 53989
+        },
+        {
+          "mtime_ns": 1774403495855811894,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-announcement_f80bbec2-8dba-4dae-8fcd-ea1d512bb1fe.pdf",
+          "relative_path": "2024-02-13_half-year-results-announcement_f80bbec2-8dba-4dae-8fcd-ea1d512bb1fe.pdf",
+          "sha256": "dce17ff8505406f417ecef1695a637e62fe794743b2fa930195748428a815b67",
+          "size": 286102
+        },
+        {
+          "mtime_ns": 1774403495550816385,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-investor-presentation_143cf568-8ede-4866-9785-e5edd6ed56d7.pdf",
+          "relative_path": "2024-02-13_half-year-results-investor-presentation_143cf568-8ede-4866-9785-e5edd6ed56d7.pdf",
+          "sha256": "c294afc3e941c162bade3aafc08de655999d5f37cfac23542192129ea6364038",
+          "size": 2594665
+        },
+        {
+          "mtime_ns": 1771457611373550533,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_half-year-results-investor-presentation_29851893-a9b0-4a7a-815f-4ed013e957ac.pdf",
+          "relative_path": "2024-02-13_half-year-results-investor-presentation_29851893-a9b0-4a7a-815f-4ed013e957ac.pdf",
+          "sha256": "c294afc3e941c162bade3aafc08de655999d5f37cfac23542192129ea6364038",
+          "size": 2594665
+        },
+        {
+          "mtime_ns": 1771457616165464742,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_215d865e-3b7e-4d8d-8086-7ee7a2d30d98.pdf",
+          "relative_path": "2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_215d865e-3b7e-4d8d-8086-7ee7a2d30d98.pdf",
+          "sha256": "274d7475638847f8afa6c4f8f040201589cd0dd3a7dcb5380b507985b27d4a8a",
+          "size": 1754755
+        },
+        {
+          "mtime_ns": 1774403496061808860,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_c7e1e7b1-e5ac-46b4-9468-4d4c4193f3c7.pdf",
+          "relative_path": "2024-02-13_statutory-accounts-for-the-half-year-ended-31-december-2023_c7e1e7b1-e5ac-46b4-9468-4d4c4193f3c7.pdf",
+          "sha256": "274d7475638847f8afa6c4f8f040201589cd0dd3a7dcb5380b507985b27d4a8a",
+          "size": 1754755
+        },
+        {
+          "mtime_ns": 1774403491506875937,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_30583ab0-e21d-479c-93f6-702c5ce12a81.pdf",
+          "relative_path": "2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_30583ab0-e21d-479c-93f6-702c5ce12a81.pdf",
+          "sha256": "84fa20faee2dee1c103566175b62eb19022a6312342e98521ec08c1448fdd51a",
+          "size": 138946
+        },
+        {
+          "mtime_ns": 1771457596931809573,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_8816d94d-2bfd-40f4-8325-a82258635337.pdf",
+          "relative_path": "2024-08-12_notice-of-investor-analyst-briefing-2024-full-year-result_8816d94d-2bfd-40f4-8325-a82258635337.pdf",
+          "sha256": "84fa20faee2dee1c103566175b62eb19022a6312342e98521ec08c1448fdd51a",
+          "size": 138946
+        },
+        {
+          "mtime_ns": 1774403491251879692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_full-year-statutory-accounts-for-30-june-2024_271cea51-32e2-44d0-8c5d-0b13742c00bc.pdf",
+          "relative_path": "2024-08-13_full-year-statutory-accounts-for-30-june-2024_271cea51-32e2-44d0-8c5d-0b13742c00bc.pdf",
+          "sha256": "2b0cfee49ccef6ea11d468d97101e2dbdb0c45925029fbf055de86fd28a67304",
+          "size": 10626013
+        },
+        {
+          "mtime_ns": 1771457595011844072,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_full-year-statutory-accounts-for-30-june-2024_cd933384-b071-4375-9c84-c98020454724.pdf",
+          "relative_path": "2024-08-13_full-year-statutory-accounts-for-30-june-2024_cd933384-b071-4375-9c84-c98020454724.pdf",
+          "sha256": "2b0cfee49ccef6ea11d468d97101e2dbdb0c45925029fbf055de86fd28a67304",
+          "size": 10626013
+        },
+        {
+          "mtime_ns": 1774403490761886908,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-announcement_794f5ae2-e98f-4af4-b140-cbfa31dfd5b2.pdf",
+          "relative_path": "2024-08-13_results-announcement_794f5ae2-e98f-4af4-b140-cbfa31dfd5b2.pdf",
+          "sha256": "55e0997ce0d19c9fb6fa887535b5e43f100b185f48a0c264920c1fcf01519ce1",
+          "size": 261491
+        },
+        {
+          "mtime_ns": 1771457592566888019,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-announcement_de03e99d-85f0-47e5-8e00-4777a6039094.pdf",
+          "relative_path": "2024-08-13_results-announcement_de03e99d-85f0-47e5-8e00-4777a6039094.pdf",
+          "sha256": "55e0997ce0d19c9fb6fa887535b5e43f100b185f48a0c264920c1fcf01519ce1",
+          "size": 261491
+        },
+        {
+          "mtime_ns": 1774403490575889647,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-presentation_0c3a3a06-c9f5-445e-86ce-84c51095868f.pdf",
+          "relative_path": "2024-08-13_results-presentation_0c3a3a06-c9f5-445e-86ce-84c51095868f.pdf",
+          "sha256": "c0b3dfb88857c3b7ebdf01e6a40e877950713541896f7f426924a71aa0366f25",
+          "size": 2326103
+        },
+        {
+          "mtime_ns": 1771457591332910207,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-08-13_results-presentation_8f479c5f-1975-4410-a794-1fc360f3285a.pdf",
+          "relative_path": "2024-08-13_results-presentation_8f479c5f-1975-4410-a794-1fc360f3285a.pdf",
+          "sha256": "c0b3dfb88857c3b7ebdf01e6a40e877950713541896f7f426924a71aa0366f25",
+          "size": 2326103
+        },
+        {
+          "mtime_ns": 1774403487403936361,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-09-18_notice-of-annual-general-meeting-proxy-form_66618c65-7168-45a6-918f-23ec048e1f57.pdf",
+          "relative_path": "2024-09-18_notice-of-annual-general-meeting-proxy-form_66618c65-7168-45a6-918f-23ec048e1f57.pdf",
+          "sha256": "0ba455dadbbb1f8944f558fce5a487f0537c2b2ddc99c6ea4d4e5b8ca9276e6d",
+          "size": 2924581
+        },
+        {
+          "mtime_ns": 1771457569802298254,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-09-18_notice-of-annual-general-meeting-proxy-form_e75d1f1a-df62-49a4-b309-59c35bcb30b9.pdf",
+          "relative_path": "2024-09-18_notice-of-annual-general-meeting-proxy-form_e75d1f1a-df62-49a4-b309-59c35bcb30b9.pdf",
+          "sha256": "0ba455dadbbb1f8944f558fce5a487f0537c2b2ddc99c6ea4d4e5b8ca9276e6d",
+          "size": 2924581
+        },
+        {
+          "mtime_ns": 1771457558243507302,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-10-29_csl-2024-agm-results_b2b4c166-45c8-4885-9107-ba03efc77606.pdf",
+          "relative_path": "2024-10-29_csl-2024-agm-results_b2b4c166-45c8-4885-9107-ba03efc77606.pdf",
+          "sha256": "fec133a08656cdd06d33348e66b1c6def67d43d22dbde9e90292306339429b0f",
+          "size": 211868
+        },
+        {
+          "mtime_ns": 1774403485425965493,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2024-10-29_csl-2024-agm-results_f6efbfa0-d7a3-43cf-9d6a-a6fde0d457bc.pdf",
+          "relative_path": "2024-10-29_csl-2024-agm-results_f6efbfa0-d7a3-43cf-9d6a-a6fde0d457bc.pdf",
+          "sha256": "fec133a08656cdd06d33348e66b1c6def67d43d22dbde9e90292306339429b0f",
+          "size": 211868
+        },
+        {
+          "mtime_ns": 1774403515006529942,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_904df90c-561f-46bf-86c2-19eef3e2fece.pdf",
+          "relative_path": "2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_904df90c-561f-46bf-86c2-19eef3e2fece.pdf",
+          "sha256": "ff11cc00397952ec0d3ac9f090294ba949428e63763775e7ec5d123ae2bf2d4b",
+          "size": 121455
+        },
+        {
+          "mtime_ns": 1771457720439616478,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_e0c5673d-e587-4510-8ae8-634fbd80290e.pdf",
+          "relative_path": "2025-02-07_notice-of-investor-analyst-briefing-2025-half-year-result_e0c5673d-e587-4510-8ae8-634fbd80290e.pdf",
+          "sha256": "ff11cc00397952ec0d3ac9f090294ba949428e63763775e7ec5d123ae2bf2d4b",
+          "size": 121455
+        },
+        {
+          "mtime_ns": 1774403514631535461,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-announcement_08bd0710-02d3-4ffb-b9d1-9d947877d320.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-announcement_08bd0710-02d3-4ffb-b9d1-9d947877d320.pdf",
+          "sha256": "de3e58c3604e4c91ade70548b0bc18df72ed78ee75ef93afeb13fda8d50ee0db",
+          "size": 369088
+        },
+        {
+          "mtime_ns": 1771457719307636365,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-announcement_2049384b-9588-478c-8f09-75f4aefa540b.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-announcement_2049384b-9588-478c-8f09-75f4aefa540b.pdf",
+          "sha256": "de3e58c3604e4c91ade70548b0bc18df72ed78ee75ef93afeb13fda8d50ee0db",
+          "size": 369088
+        },
+        {
+          "mtime_ns": 1774403514475537758,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-investor-presentation_f2862c22-04ad-42aa-a2dd-c1627f514bce.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-investor-presentation_f2862c22-04ad-42aa-a2dd-c1627f514bce.pdf",
+          "sha256": "e2369f3b755cd6930985846759efcffa291e4115c379a0dd0d131a6eab48dd90",
+          "size": 2330789
+        },
+        {
+          "mtime_ns": 1771457718640648084,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-half-year-results-investor-presentation_f9335ff7-600a-41c6-be83-2e36c533b9c7.pdf",
+          "relative_path": "2025-02-11_csl-half-year-results-investor-presentation_f9335ff7-600a-41c6-be83-2e36c533b9c7.pdf",
+          "sha256": "e2369f3b755cd6930985846759efcffa291e4115c379a0dd0d131a6eab48dd90",
+          "size": 2330789
+        },
+        {
+          "mtime_ns": 1774403514825532606,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_3ac7cad8-d0c3-40e3-85d1-5018d8d0aaac.pdf",
+          "relative_path": "2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_3ac7cad8-d0c3-40e3-85d1-5018d8d0aaac.pdf",
+          "sha256": "5f98edc9839c0fa38998cefb42ce1268687ee8d57e9b099efb3cc551e5df60fb",
+          "size": 1694944
+        },
+        {
+          "mtime_ns": 1771457719917625648,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_6bcdc6c2-16d3-4f53-8453-04fb9a2ce45b.pdf",
+          "relative_path": "2025-02-11_csl-statutory-accounts-for-the-half-year-ended-31-dec-2024_6bcdc6c2-16d3-4f53-8453-04fb9a2ce45b.pdf",
+          "sha256": "5f98edc9839c0fa38998cefb42ce1268687ee8d57e9b099efb3cc551e5df60fb",
+          "size": 1694944
+        },
+        {
+          "mtime_ns": 1771457704049904774,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_5e12c25b-291a-49f0-9d38-51f4081f97b1.pdf",
+          "relative_path": "2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_5e12c25b-291a-49f0-9d38-51f4081f97b1.pdf",
+          "sha256": "ba5611776cdaea0d911f94d47a544b3726cf84c414ccd728c6287bab1b5b8960",
+          "size": 155961
+        },
+        {
+          "mtime_ns": 1774403510951589632,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_c05993f2-cac4-4ede-8853-062f9d812da3.pdf",
+          "relative_path": "2025-08-18_notice-of-investor-analyst-briefing-2025-full-year-result_c05993f2-cac4-4ede-8853-062f9d812da3.pdf",
+          "sha256": "ba5611776cdaea0d911f94d47a544b3726cf84c414ccd728c6287bab1b5b8960",
+          "size": 155961
+        },
+        {
+          "mtime_ns": 1771457702087939338,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-fy25-results-and-major-strategic-initiatives_6bc46f68-5352-48b7-bdf0-6cb1c2c23fea.pdf",
+          "relative_path": "2025-08-19_csl-fy25-results-and-major-strategic-initiatives_6bc46f68-5352-48b7-bdf0-6cb1c2c23fea.pdf",
+          "sha256": "010be50e8002a526d83a25b1556317176d61f593ad6516828713ffebea5bb538",
+          "size": 328732
+        },
+        {
+          "mtime_ns": 1774403510346598538,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-fy25-results-and-major-strategic-initiatives_e105034f-f6de-40e1-9bf2-8d2e68e93b76.pdf",
+          "relative_path": "2025-08-19_csl-fy25-results-and-major-strategic-initiatives_e105034f-f6de-40e1-9bf2-8d2e68e93b76.pdf",
+          "sha256": "010be50e8002a526d83a25b1556317176d61f593ad6516828713ffebea5bb538",
+          "size": 328732
+        },
+        {
+          "mtime_ns": 1771457701151955830,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-results-presentation_81ba8a35-3bbd-4384-a1b1-2d969cda1dc6.pdf",
+          "relative_path": "2025-08-19_csl-results-presentation_81ba8a35-3bbd-4384-a1b1-2d969cda1dc6.pdf",
+          "sha256": "776f740ee585a0c5b01b24842d25660cdb4d1e74b2362af0328685c1cb2beaaa",
+          "size": 2976517
+        },
+        {
+          "mtime_ns": 1774403510082602425,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-results-presentation_b6fe9fdf-4b92-4d4c-a199-fa4c5c24ebbf.pdf",
+          "relative_path": "2025-08-19_csl-results-presentation_b6fe9fdf-4b92-4d4c-a199-fa4c5c24ebbf.pdf",
+          "sha256": "776f740ee585a0c5b01b24842d25660cdb4d1e74b2362af0328685c1cb2beaaa",
+          "size": 2976517
+        },
+        {
+          "mtime_ns": 1771457702832926212,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-statutory-accounts-for-fy2025_4312a304-1eac-473a-9326-a7ca63a069d6.pdf",
+          "relative_path": "2025-08-19_csl-statutory-accounts-for-fy2025_4312a304-1eac-473a-9326-a7ca63a069d6.pdf",
+          "sha256": "ab6a8032fadf7e19a91dffef9e4edf89243ac0980f1e272932ff68d003a59865",
+          "size": 15396727
+        },
+        {
+          "mtime_ns": 1774403510742592709,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-08-19_csl-statutory-accounts-for-fy2025_8b876ab4-8788-4124-8f09-289c8f48b5f6.pdf",
+          "relative_path": "2025-08-19_csl-statutory-accounts-for-fy2025_8b876ab4-8788-4124-8f09-289c8f48b5f6.pdf",
+          "sha256": "ab6a8032fadf7e19a91dffef9e4edf89243ac0980f1e272932ff68d003a59865",
+          "size": 15396727
+        },
+        {
+          "mtime_ns": 1774403504059691095,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-10-28_results-of-meeting_38ed4496-64e9-438e-8176-6dcfdf503b0e.pdf",
+          "relative_path": "2025-10-28_results-of-meeting_38ed4496-64e9-438e-8176-6dcfdf503b0e.pdf",
+          "sha256": "ee5928576e65919ce5dc1b15a8fe0d45d3bef0c7031e13ac425872483735e047",
+          "size": 376641
+        },
+        {
+          "mtime_ns": 1771457660668671718,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2025-10-28_results-of-meeting_55e3ea22-fadd-42fa-9ef0-872eb5249983.pdf",
+          "relative_path": "2025-10-28_results-of-meeting_55e3ea22-fadd-42fa-9ef0-872eb5249983.pdf",
+          "sha256": "ee5928576e65919ce5dc1b15a8fe0d45d3bef0c7031e13ac425872483735e047",
+          "size": 376641
+        },
+        {
+          "mtime_ns": 1774403522429420685,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-02_notice-of-hy26-results-release-and-briefing_980de10d-8f97-4ed4-8628-11a965b9c27b.pdf",
+          "relative_path": "2026-02-02_notice-of-hy26-results-release-and-briefing_980de10d-8f97-4ed4-8628-11a965b9c27b.pdf",
+          "sha256": "3204720d66dda974605f766d96c6357dee4d71e0a1f32abca087347a3405fee8",
+          "size": 137217
+        },
+        {
+          "mtime_ns": 1771457729004466126,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-02_notice-of-hy26-results-release-and-briefing_e0c56dd7-9d2c-4d65-939c-786a4c8421ae.pdf",
+          "relative_path": "2026-02-02_notice-of-hy26-results-release-and-briefing_e0c56dd7-9d2c-4d65-939c-786a4c8421ae.pdf",
+          "sha256": "3204720d66dda974605f766d96c6357dee4d71e0a1f32abca087347a3405fee8",
+          "size": 137217
+        },
+        {
+          "mtime_ns": 1774403522125425159,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_019e04b1-b550-44b1-93c0-878a485f4972.pdf",
+          "relative_path": "2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_019e04b1-b550-44b1-93c0-878a485f4972.pdf",
+          "sha256": "9a80dcad7c2ddcf2e7531328d789f074517b135f41bd0280f3560535f6e3a6fa",
+          "size": 173224
+        },
+        {
+          "mtime_ns": 1771457728096482055,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_1109b48e-507d-40f5-86dd-15a8b7d590a7.pdf",
+          "relative_path": "2026-02-10_paul-mckenzie-retires-gordon-naylor-appointed-interim-ceo_1109b48e-507d-40f5-86dd-15a8b7d590a7.pdf",
+          "sha256": "9a80dcad7c2ddcf2e7531328d789f074517b135f41bd0280f3560535f6e3a6fa",
+          "size": 173224
+        },
+        {
+          "mtime_ns": 1774403521692431531,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-announcement_6548876c-cd47-406d-96fd-a15feeb7ca95.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-announcement_6548876c-cd47-406d-96fd-a15feeb7ca95.pdf",
+          "sha256": "76707846d52cbd919a64ccf6fa7677a28341b754b58164a5e912e4db625637dd",
+          "size": 365848
+        },
+        {
+          "mtime_ns": 1771457726828504304,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-announcement_6c99dd24-f1d5-419a-9ebb-b21219086ef0.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-announcement_6c99dd24-f1d5-419a-9ebb-b21219086ef0.pdf",
+          "sha256": "76707846d52cbd919a64ccf6fa7677a28341b754b58164a5e912e4db625637dd",
+          "size": 365848
+        },
+        {
+          "mtime_ns": 1771457725239532192,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-investor-presentation_8c5f7dae-69eb-43a7-a766-220c76704bb5.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-investor-presentation_8c5f7dae-69eb-43a7-a766-220c76704bb5.pdf",
+          "sha256": "c66b7defd763266ca0908e797c36d9a2d7b71445b592f3b14b43443a0d212a87",
+          "size": 2710323
+        },
+        {
+          "mtime_ns": 1774403521442435211,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-half-year-results-investor-presentation_d33b4039-58da-4bea-bd40-36329b17457f.pdf",
+          "relative_path": "2026-02-11_csl-half-year-results-investor-presentation_d33b4039-58da-4bea-bd40-36329b17457f.pdf",
+          "sha256": "c66b7defd763266ca0908e797c36d9a2d7b71445b592f3b14b43443a0d212a87",
+          "size": 2710323
+        },
+        {
+          "mtime_ns": 1771457727473492987,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_0e72750d-d5e9-4de8-b9d8-9be30d39d9c1.pdf",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_0e72750d-d5e9-4de8-b9d8-9be30d39d9c1.pdf",
+          "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+          "size": 6003726
+        },
+        {
+          "mtime_ns": 1774403521949427749,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+          "size": 6003726
+        },
+        {
+          "mtime_ns": 1776059081853497685,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.docling.json",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.docling.json",
+          "sha256": "33db097459df27a7cbead1c8a06ef09d33b82b60bd3314b16fa9d6df9aaa2d8c",
+          "size": 87887
+        },
+        {
+          "mtime_ns": 1774525453915157988,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.pymupdf.json",
+          "relative_path": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf.pymupdf.json",
+          "sha256": "ef569623d156d0f5f6a42f0a48e9a1b40c1d7bf1b23115d234e75fd86ec4c4d2",
+          "size": 177205
+        }
+      ],
+      "source_file": {
+        "exists": true,
+        "mtime_ns": 1774403521949427749,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+        "sha256": "fae5b57f14b33d166fc565095a1e23ec9f3394e885afa13b917762758d281e59",
+        "size": 6003726
+      }
+    }
+  },
+  "unexpected_git_status_changes": []
+}

@@ -1,0 +1,36 @@
+{
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "clean_reprobe_evidence_dir": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "collision_risk": "MEDIUM",
+  "current_sidecar_available": false,
+  "done": true,
+  "execution_mode": "SAFE_EXTENSION",
+  "generated_at": "2026-05-25T02:49:48Z",
+  "job_id": "strategy_lab_quantdinger_verified_readonly_status_v1_20260525",
+  "lane": "Reporting",
+  "no_canonical_financial_truth": true,
+  "no_live_trading": true,
+  "no_paper_orders": true,
+  "no_real_transport": true,
+  "no_store_writes": true,
+  "production_data_access": false,
+  "registry_claim_released": true,
+  "results_review_status": "PENDING_REVIEW",
+  "schema_version": 1,
+  "status_wording_added": [
+    "Verified read-only sandbox proof available",
+    "VERIFIED READ-ONLY SANDBOX PROOF",
+    "VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY",
+    "current_sidecar_available: false",
+    "NO PAPER ORDERS",
+    "QuantDinger verified read-only sandbox proof",
+    "verified read-only sandbox proof"
+  ],
+  "supporting_lanes": [
+    "Provenance",
+    "Query Orchestration"
+  ],
+  "verdict_visible": "VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY",
+  "target_commit_subject": "milestone(strategy-lab): surface verified readonly proof",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

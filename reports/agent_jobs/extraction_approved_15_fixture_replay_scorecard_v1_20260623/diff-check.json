@@ -1,0 +1,76 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": null,
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/README.md",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/STATE.md",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/guard_preflight.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/registry_active_jobs.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/fixture_manifest.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/source_resolution.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/replay_results_before_fix.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/replay_results.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard_before_fix.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard_gate_before_fix.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/scorecard_gate.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/failure_classes_before_fix.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/failure_classes.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/validation.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/diff-check.json",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/logs/replay.log",
+        "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623/logs/tcl_after_fix_replay.log"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/agent_tasks/extraction_approved_15_fixture_replay_scorecard_v1_20260623.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_approved_15_fixture_replay_scorecard_v1_20260623",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_approved_15_fixture_replay_scorecard_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Approved current 15-fixture no-write replay and #97 scorecard after PR #401 landed; report-local artifacts only, with at most one narrow source-proven extraction fix if the top failure class is proven. Merge-gate GitHub mutation approved by the owner on 2026-06-23 with 'merge if safe'.",
+      "recommended_model": "high reasoning",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "task_scope": "safe_execution",
+      "task_tier": "critical",
+      "timeout_seconds": 21600,
+      "why_this_model": "The job must preserve Financial Truth boundaries while running bounded no-write extraction replay, evaluating payload scorecards, ranking failure classes, and possibly making one source-proven fix.",
+      "worker_decision_limit": "No workers used; replay, source inspection, code change, and validation were handled directly in this bounded task.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

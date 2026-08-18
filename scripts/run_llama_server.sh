@@ -52,17 +52,29 @@ if [[ "${ALLOW_LLAMA_DURING_GPU_EXCLUSIVE:-0}" != "1" ]]; then
   fi
 fi
 
-BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
-if [[ ! -x "${BIN_PATH}" && -x "/home/l4nd0/.local/bin/llama-server" ]]; then
-  BIN_PATH="/home/l4nd0/.local/bin/llama-server"
-fi
-if [[ ! -x "${BIN_PATH}" ]]; then
-  BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
-  if [[ -x "${BIN_PATH_FALLBACK}" ]]; then
-    BIN_PATH="${BIN_PATH_FALLBACK}"
+if [[ -n "${LLAMA_SERVER_BIN:-}" ]]; then
+  BIN_PATH="${LLAMA_SERVER_BIN}"
+else
+  BIN_PATH="${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server"
+  if [[ ! -x "${BIN_PATH}" && -x "/home/l4nd0/.local/bin/llama-server" ]]; then
+    BIN_PATH="/home/l4nd0/.local/bin/llama-server"
+  fi
+  if [[ ! -x "${BIN_PATH}" ]]; then
+    BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
+    if [[ -x "${BIN_PATH_FALLBACK}" ]]; then
+      BIN_PATH="${BIN_PATH_FALLBACK}"
+    fi
   fi
 fi
-BIN_DIR="$(cd "$(dirname "${BIN_PATH}")" && pwd)"
+if ! RESOLVED_BIN_PATH="$(realpath -e -- "${BIN_PATH}" 2>/dev/null)"; then
+  echo "ERROR: Unable to resolve llama-server binary target at ${BIN_PATH}" >&2
+  exit 1
+fi
+if [[ ! -x "${RESOLVED_BIN_PATH}" ]]; then
+  echo "ERROR: llama-server binary target is not executable at ${RESOLVED_BIN_PATH}" >&2
+  exit 1
+fi
+BIN_DIR="$(dirname "${RESOLVED_BIN_PATH}")"
 if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
   export LD_LIBRARY_PATH="${BIN_DIR}:${LD_LIBRARY_PATH}"
 else
@@ -89,11 +101,6 @@ if [[ -n "${LLAMA_SERVER_CUDA_VISIBLE_DEVICES:-}" ]]; then
 fi
 if [[ "${LLAMA_SERVER_DISABLE_CUDA_GRAPHS:-0}" == "1" ]]; then
   export GGML_CUDA_DISABLE_GRAPHS=1
-fi
-
-if [[ ! -x "${BIN_PATH}" ]]; then
-  echo "llama-server binary not found at ${BIN_PATH}" >&2
-  exit 1
 fi
 
 if [[ -n "${HF_MODEL}" ]]; then
@@ -130,7 +137,7 @@ case "${PROFILE}" in
 esac
 
 cmd=(
-  "${BIN_PATH}"
+  "${RESOLVED_BIN_PATH}"
   --main-gpu "${LLAMA_SERVER_MAIN_GPU:-0}"
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
@@ -153,6 +160,14 @@ DEFAULT_MODELS_DIR="/mnt/tenn-nvme2/tenn/models"
 MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${DEFAULT_MODELS_DIR}}"
 PRESET_PATH="${LLAMA_SERVER_PRESET:-${HOME}/.config/tenn/llamacpp-presets.ini}"
 
+case "${ROUTER_MODE}" in
+  0|1) ;;
+  *)
+    echo "[llama-server] ERROR: LLAMA_SERVER_ROUTER_MODE must be 0 or 1 (got '${ROUTER_MODE}')" >&2
+    exit 1
+    ;;
+esac
+
 echo "[llama-server] ROUTER_MODE_REQUESTED=${ROUTER_MODE}"
 
 if [[ "${ROUTER_MODE}" == "1" ]]; then
@@ -161,18 +176,21 @@ if [[ "${ROUTER_MODE}" == "1" ]]; then
     echo "[llama-server] Set LLAMA_SERVER_MODELS_DIR to an existing NVMe-backed GGUF directory." >&2
     exit 1
   fi
-  # Verify the binary supports --models-dir.
-  if "${BIN_PATH}" --help 2>&1 | grep -q 'models-dir'; then
-    cmd+=(--models-dir "${MODELS_DIR}" --models-max 1)
-    if [[ -f "${PRESET_PATH}" ]]; then
-      cmd+=(--models-preset "${PRESET_PATH}")
-    fi
-    echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
-  else
-    echo "[llama-server] WARNING: binary does not support --models-dir, falling back to single-model mode" >&2
-    echo "[llama-server] ROUTER_MODE=disabled (unsupported binary)"
-    ROUTER_MODE=0
+  # Capture help before inspecting it so pipefail cannot turn grep's early exit
+  # into a false capability failure.
+  if ! ROUTER_HELP="$("${RESOLVED_BIN_PATH}" --help 2>&1)"; then
+    echo "[llama-server] ERROR: router mode was requested but binary capability inspection failed" >&2
+    exit 1
   fi
+  if ! grep -Eq '^[[:space:]]*(-[^[:space:],]+,[[:space:]]*)?--models-dir([[:space:]=]|$)' <<<"${ROUTER_HELP}"; then
+    echo "[llama-server] ERROR: router mode was requested but binary does not support --models-dir" >&2
+    exit 1
+  fi
+  cmd+=(--models-dir "${MODELS_DIR}" --models-max 1)
+  if [[ -f "${PRESET_PATH}" ]]; then
+    cmd+=(--models-preset "${PRESET_PATH}")
+  fi
+  echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
 fi
 
 if [[ "${ROUTER_MODE}" != "1" ]]; then

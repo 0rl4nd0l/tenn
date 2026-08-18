@@ -1,0 +1,6 @@
+
+Generated 2026-06-23T07:54:28.496693Z
+Command basis: Python report builder using app.services.extraction_gold_eval_scorecard.build_confirmed_metric_payload_scorecard.
+Production extraction run for fixture set: no.
+Actual payload overlap count: 0.
+Result class summary: {"ambiguous_quarantined": 73, "missing_evidence": 0, "missing_expected_metric": 0, "not_evaluated_no_actual_payload": 73, "present_correct": 0, "present_wrong_value": 0, "unsupported_correctly_abstained": 0, "wrong_period": 0, "wrong_unit_currency_scale": 0}

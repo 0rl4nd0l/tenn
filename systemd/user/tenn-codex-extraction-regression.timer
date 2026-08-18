@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex extraction regression scout daily
+
+[Timer]
+OnCalendar=*-*-* 08:30:00
+Persistent=false
+Unit=tenn-codex-extraction-regression.service
+
+[Install]
+WantedBy=timers.target

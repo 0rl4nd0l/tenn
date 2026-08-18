@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getNewsEvidenceEnvelopeLabels,
   getNewsReadiness,
   getNewsResultReadiness,
+  hasNewsEvidenceEnvelope,
   type NewsActionabilityResult,
 } from './cockpit-news-actionability'
 
@@ -93,6 +95,29 @@ describe('Cockpit News actionability helpers', () => {
       label: 'DATE MISSING',
       duplicateCount: 2,
     })
+  })
+
+  it('exposes evidence envelope labels or DATA_MISSING when absent', () => {
+    const withEnvelope = newsResult({
+      sourceLabel: 'local_news_context',
+      evidenceLabels: ['local_news_context', 'context_only'],
+      sourceCoverageStatus: 'context_only',
+      sourceLabelTaxonomyVersion: 'source_label_semantics_v1',
+      claimVerifiedSourceCount: 0,
+    })
+    const withoutEnvelope = newsResult({ id: 'missing-envelope' })
+
+    expect(hasNewsEvidenceEnvelope(withEnvelope)).toBe(true)
+    expect(getNewsEvidenceEnvelopeLabels(withEnvelope)).toEqual([
+      'coverage:context_only',
+      'source:local_news_context',
+      'local_news_context',
+      'context_only',
+      'taxonomy:source_label_semantics_v1',
+      'claim_verified_sources:0',
+    ])
+    expect(hasNewsEvidenceEnvelope(withoutEnvelope)).toBe(false)
+    expect(getNewsEvidenceEnvelopeLabels(withoutEnvelope)).toEqual(['DATA_MISSING:evidence_envelope'])
   })
 })
 

@@ -1,0 +1,38 @@
+{
+  "job_id": "a2m_news_projection_path_discovery_v1_20260524",
+  "commands": [
+    {
+      "command": "stat/read checks over configured news SQLite candidate paths",
+      "result": "PASS_ABSENT_CONFIRMED",
+      "purpose": "Classify canonical news_articles.sqlite/news.sqlite presence without creating files."
+    },
+    {
+      "command": "sqlite3 via python mode=ro&immutable=1 PRAGMA query_only=ON against cockpit state.db",
+      "result": "PASS_READ_ONLY",
+      "purpose": "Check Cockpit projection tables and A2M counts without writes."
+    },
+    {
+      "command": "curl GET /collections/news_chunks and Qdrant count/scroll with_vectors=false",
+      "result": "PASS_READ_ONLY",
+      "purpose": "Verify A2M payload presence in Qdrant without vectors or writes."
+    },
+    {
+      "command": "static inspection of cli_common.py, load_news_to_qdrant.py, nightly_news.sh, cockpit.yaml, docs/architecture/15_news_substrate.md, hybrid_retriever.py, tenn_chat.py, rag.py",
+      "result": "PASS",
+      "purpose": "Identify configured paths and retrieval filter keys."
+    }
+  ],
+  "artifact_validation_pending_in_controller": [
+    "python3 -m json.tool reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.json",
+    "python3 -m json.tool reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/read_only_checks.json",
+    "python3 -m json.tool reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/status.json"
+  ],
+  "no_write_checks": {
+    "qdrant_writes": false,
+    "news_sqlite_writes": false,
+    "cockpit_sqlite_writes": false,
+    "reindex_or_resync": false,
+    "runtime_config_changes": false,
+    "live_chat_call": false
+  }
+}

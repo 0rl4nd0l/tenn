@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-05-26T06:53:06Z",
+  "job_id": "untracked_task_card_artifact_preservation_commit_v1_20260526",
+  "status": "PASS_COMMITTED_AND_RELEASED",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "ok": true,
+      "active_jobs_before_claim": []
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+      "ok": true
+    },
+    {
+      "command": "jq empty <report json files>",
+      "ok": true
+    },
+    {
+      "command": "git diff --check",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+      "ok": true,
+      "disallowed_files": [],
+      "changed_files": [
+        "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+        "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+        "docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+        "docs/agent_tasks/untracked_task_card_preservation_classification_v1_20260526.md"
+      ]
+    },
+    {
+      "command": "git diff --cached --name-status",
+      "ok": true,
+      "staged_file_count": 26,
+      "dirty_context_only_excluded_from_stage": true
+    },
+    {
+      "command": "git diff --cached --check",
+      "ok": true
+    },
+    {
+      "command": "git commit -m \"milestone(repo-hygiene): preserve untracked task-card artifacts\"",
+      "ok": true,
+      "subject": "milestone(repo-hygiene): preserve untracked task-card artifacts"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md --no-write-report",
+      "ok": true,
+      "changed_files": [
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+      ],
+      "disallowed_files": []
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release untracked_task_card_artifact_preservation_commit_v1_20260526",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "ok": true,
+      "active_jobs": []
+    }
+  ],
+  "notes": [
+    "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md is allowed only as dirty context and is not staged or committed by this task."
+  ]
+}

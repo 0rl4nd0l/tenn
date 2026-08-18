@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-05-26T06:41:24Z",
+  "github_repo": {
+    "owner": "0rl4nd0l",
+    "name": "tenn",
+    "url": "https://github.com/0rl4nd0l/tenn",
+    "viewer_permission": "ADMIN"
+  },
+  "search_tooling": {
+    "primary": "gh issue list --search / gh pr list --search",
+    "note": "The installed gh CLI did not provide gh search, so issue and PR list search flags were used."
+  },
+  "searches": [
+    {
+      "term": "a2m_backend_reload_news_status_activation_smoke",
+      "issues": [],
+      "prs": [],
+      "conclusion": "no exact artifact tracker found"
+    },
+    {
+      "term": "automation_audit_issue_preservation",
+      "issues": [],
+      "prs": [],
+      "conclusion": "no exact artifact tracker found"
+    },
+    {
+      "term": "Automation topology reconciliation",
+      "issues": [
+        {
+          "number": 79,
+          "state": "OPEN",
+          "title": "[Ops] Automation topology reconciliation audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/79"
+        }
+      ],
+      "prs": [],
+      "conclusion": "underlying automation finding already tracked"
+    },
+    {
+      "term": "Registry read-only no-lock list-active",
+      "issues": [
+        {
+          "number": 85,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Integrate registry read-only no-lock list-active fix",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/85"
+        },
+        {
+          "number": 80,
+          "state": "CLOSED",
+          "title": "[Repo Hygiene] Registry read-only no-lock list-active mode v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/80"
+        }
+      ],
+      "prs": [],
+      "conclusion": "underlying registry finding already tracked or remediated"
+    },
+    {
+      "term": "nightly_news observability systemd migration",
+      "issues": [
+        {
+          "number": 81,
+          "state": "OPEN",
+          "title": "[Ops/News] Nightly news cron observability and systemd migration audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/81"
+        }
+      ],
+      "prs": [],
+      "conclusion": "underlying nightly news finding already tracked"
+    },
+    {
+      "term": "llama-server 8001 ownership provenance",
+      "issues": [
+        {
+          "number": 82,
+          "state": "OPEN",
+          "title": "[Runtime] llama-server :8001 ownership/provenance audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/82"
+        }
+      ],
+      "prs": [],
+      "conclusion": "underlying runtime ownership finding already tracked"
+    },
+    {
+      "term": "untracked task cards",
+      "issues": [
+        {
+          "number": 94,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/94"
+        },
+        {
+          "number": 64,
+          "state": "CLOSED",
+          "title": "[Repo Hygiene] Worktree and loose task-card hygiene audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/64"
+        },
+        {
+          "number": 69,
+          "state": "CLOSED",
+          "title": "[Reporting] Review and integrate repo-native goal schema slice",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/69"
+        },
+        {
+          "number": 75,
+          "state": "CLOSED",
+          "title": "[Repo Hygiene] Integrate parked branch hygiene issue visibility slice",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/75"
+        }
+      ],
+      "prs": [],
+      "conclusion": "issue 94 is the exact live tracker; closed issues 64, 69, and 75 are adjacent but not duplicates for preserving these exact files"
+    }
+  ],
+  "issue_views_checked": [
+    64,
+    69,
+    75,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    87,
+    94
+  ],
+  "github_mutation_performed": false
+}

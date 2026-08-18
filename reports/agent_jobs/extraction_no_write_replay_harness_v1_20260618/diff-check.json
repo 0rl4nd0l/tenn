@@ -1,0 +1,111 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/case_corpus_WORKER_RESULT.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/review_WORKER_RESULT.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/safety_contract_WORKER_RESULT.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/extraction_no_write_replay.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_extraction_no_write_replay.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/README.md",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/status.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/validation.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/diff-check.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/safety_contract_WORKER_RESULT.md",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/case_corpus_WORKER_RESULT.md",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/subagents/review_WORKER_RESULT.md",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/input_manifest.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/replay_results.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/side_effect_audit.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/validation.json",
+        "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/logs/replay.log"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_no_write_replay_harness_v1_20260618",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

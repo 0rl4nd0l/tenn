@@ -1,0 +1,5 @@
+candidate_id,source,source_id,company_count,entry_count,company_ids,entry_ids,candidate_action,confidence,false_positive_risk,mutation_allowed
+source_fanout_cluster_001,news:newspaper4k,news:art_e4faef3c4644fe5bb3b66e32,3,4,CSL;EZZ;RESMED,1273;1301;1310;1341,review_source_then_exact_entry_read_path_suppression_if_confirmed,medium,medium,false
+source_fanout_cluster_002,news:newspaper4k,news:art_5cf586d2c6303f73e9f52219,4,4,BHP;EVN;RIO;XRO,2340;2341;2342;2343,review_source_then_exact_entry_read_path_suppression_if_confirmed,medium,medium,false
+source_fanout_cluster_003,news:newspaper4k,news:art_9fe432dbf4898336703316b3,4,4,C1X;CBE;KAO;SLB,2364;2365;2366;2367,review_source_then_exact_entry_read_path_suppression_if_confirmed,medium,medium,false
+source_fanout_cluster_004,news:newspaper4k,news:art_c0195feddb42ee1a1f11268d,4,5,CBA;MIN;MP1;XRO,2359;2360;2361;2362;2363,review_source_then_exact_entry_read_path_suppression_if_confirmed,medium,medium,false

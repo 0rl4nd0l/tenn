@@ -1,6 +1,18 @@
-## Startup (Full Stack)
+## Startup (Full-Stack Cockpit Mode)
 
-This repo’s **full system mode** is Docker Compose. The backend must run **only in Docker**.
+This document covers **Full-Stack Cockpit Mode**: Docker Compose infrastructure
+plus the Next.js Cockpit UI.
+
+Documentation status: full-stack Docker/user-launcher runbook. This file does
+not override **Agent-Local Backend Mode** from `docs/entrypoints.md`, which
+remains the runtime entrypoint context for agent tasks. During the 2026-06-23
+docs audit, `README.md` and `docs/entrypoints.md` identified
+`financial-engine_v2/scripts/run_local_backend.sh` as the canonical agent
+backend bootstrap path.
+
+This repo's **full system mode** is Docker Compose. In Full-Stack Cockpit Mode,
+the backend runs only in Docker for this mode. Do not use this document to infer
+that ordinary agent-local backend checks must start Docker.
 
 ### CLI usage
 
@@ -8,7 +20,7 @@ Install (one-time, optional):
 
 ```bash
 mkdir -p ~/.local/bin
-ln -sf /home/l4nd0/tenn/scripts/cockpit ~/.local/bin/cockpit
+ln -sf "$(pwd)/scripts/cockpit" ~/.local/bin/cockpit
 ```
 
 Commands:
@@ -26,6 +38,19 @@ Recommended user entrypoint:
 - `cockpit start new`
 - Served on `http://127.0.0.1:8081`
 - Starts the full stack, then launches the browser UI
+
+Runtime contract:
+- Mode name: `full_stack_cockpit`
+- Machine status: `canonical_for_operator_full_stack`
+- Entrypoint: `scripts/cockpit`
+- Command: `cockpit start new`
+- Machine-readable contract: `agent_contract.json`
+- Contract validator: `python3 scripts/runtime_entrypoint_contract.py --check`
+- Healthcheck URL: `http://127.0.0.1:8000/api/health`
+- UI URL: `http://127.0.0.1:8081`
+- Host runtime dependency: Full-Stack Cockpit Mode may start host llama.cpp
+  runtimes through `scripts/cockpit` when configuration permits. This is an
+  operator full-stack side effect, not proof that runtime functionality changed.
 
 ### Configuration
 

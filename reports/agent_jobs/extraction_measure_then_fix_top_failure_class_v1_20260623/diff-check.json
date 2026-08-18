@@ -1,0 +1,215 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_measure_then_fix_top_failure_class_v1_20260623.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/CODE_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/DECISIONS.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/NEXT_GOAL.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/TASK_CARD.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/extracted_payload_scorecard.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/failure_class_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/guard_preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/implementation_decision.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/ledger_entry.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/logs/scorecard.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/scorecard.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_denominator.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/coverage.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/logs/coverage.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/DXC.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/WHC.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/proof.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_measure_then_fix_top_failure_class_v1_20260623.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/TASK_CARD.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/STATE.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/DECISIONS.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/CODE_REVIEW.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/status.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/validation.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/diff-check.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/guard_preflight.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/ledger_entry.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_denominator.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/extracted_payload_scorecard.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/failure_class_matrix.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/implementation_decision.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/README.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/coverage.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/runtime_coverage_issue96/logs/coverage.log",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/README.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/scorecard.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/payload_scorecard_issue97/logs/scorecard.log",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/DXC.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/WHC.md",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/source_row_proof/proof.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/input_manifest.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/replay_results.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/side_effect_audit.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/validation.json",
+        "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623/affected_replay/logs/replay.log"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "reports/agent_jobs/extraction_accuracy_explain_v1_20260623/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_accuracy_explain_v1_20260623/BOARD_DECISION.json",
+        "docs/agent_tasks/extraction_measure_then_fix_top_failure_class_v1_20260623.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_measure_then_fix_top_failure_class_v1_20260623",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_measure_then_fix_top_failure_class_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Measurement-first extraction sprint creates the missing current denominator and implements at most one narrow source-proven fix.",
+      "recommended_model": "high reasoning",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "task_scope": "safe_validation_then_safe_extension",
+      "task_tier": "critical",
+      "timeout_seconds": 10800,
+      "why_this_model": "Broad financial extraction accuracy requires current runtime coverage, extracted-payload scoring, source-row proof, and fail-closed implementation discipline.",
+      "worker_decision_limit": "Workers may gather read-only coverage, scorecard, and source-row evidence; orchestrator owns any implementation decision.",
+      "worker_model_allowed": true
+    },
+    "ok": true
+  }
+}

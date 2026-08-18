@@ -1,0 +1,45 @@
+{
+  "commands": [
+    {
+      "cmd": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_no_write_harness_git_status_audit_repair_v1_20260619.md",
+      "status": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/test_extraction_no_write_replay.py",
+      "phase": "red_before_runner_fix",
+      "status": "FAIL_EXPECTED",
+      "summary": "19 tests ran; new regression produced 1 failure and 1 error before the runner fix."
+    },
+    {
+      "cmd": "python3 scripts/test_extraction_no_write_replay.py",
+      "phase": "green_after_runner_fix",
+      "status": "PASS",
+      "summary": "19 tests OK."
+    },
+    {
+      "cmd": "python3 -m py_compile scripts/extraction_no_write_replay.py scripts/test_extraction_no_write_replay.py",
+      "status": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_no_write_harness_git_status_audit_repair_v1_20260619.md --repo-root . --no-write-report",
+      "status": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_no_write_harness_git_status_audit_repair_v1_20260619.md --repo-root .",
+      "status": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_no_write_harness_git_status_audit_repair_v1_20260619.md --repo-root .",
+      "status": "PASS"
+    },
+    {
+      "cmd": "git diff --check",
+      "status": "PASS"
+    }
+  ],
+  "notes": [
+    "No extraction replay, broad count, backfill, dependency install, service start, source PDF, prompt, gold label, DB, Qdrant, Redis, news, memory, runtime, model, GPU, or production-data mutation was performed.",
+    "GitHub mutation is limited to pushing this repair commit to the existing PR #379 branch."
+  ],
+  "status": "PASS"
+}

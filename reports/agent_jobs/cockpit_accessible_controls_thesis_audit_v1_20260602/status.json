@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_accessible_controls_thesis_audit_v1_20260602.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_accessible_controls_thesis_audit_v1_20260602.md",
+    "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/README.md",
+    "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/status.json",
+    "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/validation.json",
+    "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/diff-check.json",
+    "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx",
+    "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.test.tsx"
+  ],
+  "branch": "safe/cockpit-accessible-controls-thesis-audit-v1-20260602",
+  "claimed_at": "2026-06-02T07:33:30.492495Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-02T07:33:30.492495Z",
+  "job_id": "cockpit_accessible_controls_thesis_audit_v1_20260602",
+  "lane": "Reporting",
+  "last_seen_at": "2026-06-02T07:39:02.468165Z",
+  "output_dir": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-02T07:39:02.468165Z",
+  "repo_root": "/home/l4nd0/tenn-cockpit-accessible-controls-thesis-audit-v1-20260602",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3756163:cockpit_accessible_controls_thesis_audit_v1_20260602",
+  "started_at": "2026-06-02T07:33:30.492495Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_accessible_controls_thesis_audit_v1_20260602.md",
+  "updated_at": "2026-06-02T07:39:02.468165Z",
+  "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-thesis-audit-v1-20260602"
+}

@@ -1,0 +1,175 @@
+---
+name: tenn-review-board
+description: Tenn multi-perspective and contrarian review wrapper for issues, PRs, branches, reports, plans, and risky decisions. Produces BOARD.md, BOARD_DECISION.json, and conditional continuation guidance.
+---
+
+# Tenn Review Board
+
+Use `tenn-review-board` before risky implementation, merge, parking, supersede,
+or architecture decisions.
+
+The board is not a discussion loop. It must end with one actionable decision.
+Do not run a board for trivial edits.
+Do not use a board as the default path for `FAST_PROGRESS` work. If a small
+fix has a clean worktree, exact files, no stale/dirty/duplicate blocker, and no
+runtime/data/extraction/GitHub/destructive or owner-boundary decision, route it
+through `tenn-fix` action-first mode instead.
+
+## Preflight
+
+Run `tenn-git-guard` first for branch, PR, diff, dirty-state, and registry
+context. Keep GitHub reads read-only unless explicit owner approval exists.
+Review the guard's Task Ledger evidence and duplicate-work classification before
+recommending action.
+
+The board must not recommend new implementation when an open PR or merged
+canonical implementation already solves the request. In those cases, choose
+`park`, `supersede`, `ask_owner`, or a review/merge-oriented next goal instead
+of `proceed`.
+The board must not recommend another board or report as the next step unless
+the next meaningful action is genuinely blocked on owner input or unavailable
+evidence.
+
+When the topic is a resurfacing bug or the user says or implies "we fixed this
+already", "broken again", "regressed", "same bug", or equivalent, the board must
+use `docs/dev_flow/REGRESSION_ADJUDICATION.md`. It must either consume an
+existing adjudication packet or produce one before deciding. The chair must
+classify the case as `STALE_BRANCH`, `FIX_NOT_IN_CANONICAL`,
+`NARROW_FIX_ONLY`, `RUNTIME_NOT_PROVEN`, `TEST_GAP`, `NEW_FAILURE_CLASS`,
+`TRUE_REGRESSION`, or `DATA_MISSING`; a `proceed` decision is valid only when
+the classification's required next action is implementation and the permanent
+gate or runtime proof path is explicit.
+
+## Model And Risk Routing
+
+Use the board when model/subagent routing shows that final decision authority
+requires high reasoning or owner review:
+
+- `small`: grep/search, JSON parse, file listing, report summarization, simple
+  docs update, focused test run. Recommended model: mini/low-cost.
+- `medium`: small bug fix, one/two-file code change, targeted regression, PR
+  comment fix. Recommended model: standard coding model.
+- `large`: multi-file correctness, schema/persistence, architecture change, or
+  tricky debugging. Recommended model: high reasoning.
+- `critical`: DB/runtime mutation, destructive Git, financial truth, merge
+  conflict, high-risk cleanup, or owner-boundary decision. Recommended model:
+  high reasoning plus review-board.
+
+Small workers may contribute evidence or strategy bids, but they must not make
+final decisions on high-risk work. For hard tasks, the board may request short
+strategy bids and select the plan based on testability, blast radius, value, and
+cost.
+
+`BOARD_DECISION.json` should record:
+
+- `task_tier`
+- `recommended_model`
+- `actual_model`
+- `why_this_model`
+- `worker_model_allowed`
+- `worker_decision_limit`
+- `escalation_needed`
+
+## Required Perspectives
+
+Run independent perspectives and preserve disagreements:
+
+- architect
+- skeptic/red-team
+- product/value
+- validation/test
+- repo hygiene/git guard
+- domain expert when the topic needs domain context
+- chair
+
+Each perspective must state evidence inspected, finding, uncertainty, risk, and
+recommended action.
+
+The board must actively search for credible objections. `BOARD_DECISION.json`
+must include a `minority_objection` field: record the objection clearly when one
+exists, or set it to `none_found` and explain the checks performed when none is
+credible. Never invent dissent just to satisfy the template. Truthfulness beats
+forced role-play.
+
+For metric, evaluation, daemon-status, pass-rate, or surprising-count decisions,
+the validation/test and domain perspectives must challenge denominator,
+freshness, filters, exclusions, and pipeline stage before the chair decides.
+
+For daemon, runtime, extraction, ingestion, automation, collector, scheduler,
+service, or pipeline decisions, the board must require the
+`Runtime Functionality Proof` table from `AGENTS.md`. If intended-output proof is
+missing, stale, zero, or unverified, the board must block promotion, merge,
+complete, or `DONE` recommendations and choose `block`, `revise_plan`, or
+`ask_owner`.
+
+## Zoom-Out / Contrarian Mode
+
+Use this mode for risky continuation decisions, broad repair sequencing, stale
+handoffs, extraction follow-through, or any situation where a narrow fix may be
+optimizing the wrong target.
+
+The board must explicitly answer:
+
+- Are we solving the real root problem?
+- Are we overfitting to one file, document, bug, screenshot, report, or worker
+  result?
+- Are we trapped in report-only loops?
+- Are we making broad system progress?
+- Would a failure-class, document-class, route-class, or workflow-class approach
+  be better than another narrow fix?
+- What is the best next action by production-readiness value?
+
+For financial extraction work, prefer failure classes, document classes,
+source-bound provenance, confidence scoring, breadth, and regression coverage
+over one-off PDF fixes. The chair must justify any one-document repair as the
+highest production-readiness value before choosing `proceed`.
+
+## Outputs
+
+Write:
+
+- `BOARD.md`
+- `BOARD_DECISION.json`
+- `NEXT_GOAL.md` for V1 boards and for V2 `ADVANCED` outcomes only when the
+  target transition is materially different
+
+V2 terminal/no-progress boards must use `tenn_review_board_decision_v2`, set
+`next_goal_permitted=false`, leave `next_goal` and
+`next_goal_target_transition` empty, and state an exact `resume_only_if`.
+They must not create `NEXT_GOAL.md`.
+
+`BOARD_DECISION.json` must choose exactly one:
+
+- `proceed`
+- `revise_plan`
+- `block`
+- `ask_owner`
+- `supersede`
+- `park`
+
+The safe default is `ask_owner`, not `proceed`. The chair owns the final
+decision and must convert opinions into `BOARD_DECISION.json`.
+`BOARD_DECISION.json` must include ledger fields: `ledger_sources_checked`,
+`duplicate_work_classification`, `matching_candidates`, and
+`duplicate_work_decision`.
+For runtime-like functionality decisions, `BOARD_DECISION.json` must also record
+whether functionality proof was required, the proof status, and the remaining
+blocker.
+For zoom-out / contrarian mode, it must also include root-problem,
+overfitting, report-loop, broad-progress, class-based approach, and
+production-readiness-value fields.
+For resurfacing bug decisions, it must also include
+`regression_adjudication_classification`, `alleged_old_fix`,
+`canonical_lineage`, `current_repro`, `permanent_gate`, and
+`regression_next_action`.
+
+For `large` and `critical` decisions, `BOARD_DECISION.json` must also identify
+final decision authority and explain why lower-tier decision making was
+insufficient.
+
+## Boundaries
+
+Do not mutate code, data, GitHub, registry state, branches, or worktrees. Do not
+turn a board into another report-only loop. When V2 permits a next goal, it
+must be executable and target a materially different transition. Otherwise
+stop on the recorded decision, evidence, and reopen condition.

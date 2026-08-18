@@ -1,0 +1,81 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": false,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/research_synthesis_route_guard_publish_pr_v1_20260626.md",
+        "docs/agent_tasks/research_synthesis_route_guard_v1_20260626.md",
+        "docs/architecture/19_backend_api_surface.md",
+        "financial-engine_v2/backend/app/routes/research.py",
+        "financial-engine_v2/backend/tests/test_research_route_auth.py",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/README.md",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/status.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/validation.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/diff-check.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/CODE_REVIEW.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/NEXT_GOAL.md",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/issue_comment.md",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/guard_preflight.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_initial.json",
+        "reports/agent_jobs/research_synthesis_route_guard_v1_20260626/registry_active_jobs_final.json",
+        "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/README.md",
+        "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/status.json",
+        "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/PR_BODY.md",
+        "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/REVIEW.md",
+        "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626/diff-check.json"
+      ],
+      "approval_required": false,
+      "forbidden_actions": [
+        "merge PR",
+        "close issue 244",
+        "change labels, milestones, projects, assignees, or issue title",
+        "mutate DB, Qdrant, Redis, news stores, memory, source PDFs, extraction prompts, gold labels, runtime state, model/GPU/service config, or production data",
+        "dependency install or dependency file edits",
+        "destructive git operations"
+      ],
+      "github_writes_allowed": [
+        "push branch safe/issue244-research-synthesis-route-guard-v1-20260626 to origin",
+        "open one draft PR targeting migration/clean-runtime-baseline-reconstruct-v1",
+        "post one issue status comment on issue 244"
+      ],
+      "issue": 244,
+      "job_id": "research_synthesis_route_guard_publish_pr_v1_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/research_synthesis_route_guard_publish_pr_v1_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Runtime",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

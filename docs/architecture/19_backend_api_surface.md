@@ -24,10 +24,37 @@ The FastAPI app mounts routes in these groups:
 
 - Read-only routes such as `/api/health`, `/api/docs`, `/api/financials`, and `/api/price`
   do not require an API key by default.
+- Context diagnostic reads under `/api/context/verification*` require `X-API-Key`
+  when `settings.local_api_key` is configured. `/api/context/ticker` remains a
+  backend-owned context read, but unauthenticated configured-key responses
+  redact operator diagnostics such as source paths/hashes, extraction failures,
+  announcement excerpts/source paths, low-confidence rows, and internal error details.
 - Mutating routes such as `/ingest/*`, `/backfill/*`, `/process/*`, and `/api/analysis/{ticker}`
   do require the dependency where declared.
 - Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
   also require the dependency where declared.
+- Memory/thesis read routes under `/api/context/memory`,
+  `/api/context/memory/index`, `/api/context/thesis`, and
+  `/api/context/company_dump` require `X-API-Key` when
+  `settings.local_api_key` is configured.
+- Cockpit runtime-topology read routes under `/api/cockpit/config`,
+  `/api/cockpit/models`, and `/api/cockpit/queue` require the dependency where
+  declared because they expose operator runtime state.
+- Operational job-state reads and streams under `/api/ops/*` require the
+  dependency where declared because they expose run metadata and artifact paths.
+- Intel Pulse diagnostic routes under `/api/cockpit/pulse` and
+  `/api/cockpit/matrix` require the dependency where declared because they
+  expose extraction-health, population, and failure-density diagnostics.
+- TradingView webhook writes under `/api/cockpit/tv/alert` require a
+  `webhook_token` JSON field or `X-TradingView-Webhook-Token` header matching
+  `TV_WEBHOOK_TOKEN` / `settings.tv_webhook_token` and fail closed when no token
+  is configured. The token is not persisted in alert history. TradingView alert
+  history reads use `X-API-Key` when `settings.local_api_key` is configured.
+- Extraction-review read routes under `/api/extraction-review/*` expose
+  operator review state, run diagnostics, and snippet images; they require the
+  dependency where declared.
+- Financial-observation review reads and decisions under
+  `/api/financials/reviews*` require the dependency where declared.
 
 ## Route inventory
 
@@ -39,24 +66,43 @@ The FastAPI app mounts routes in these groups:
   - document inventory for one ticker
 - `GET /api/financials?ticker=...`
   - structured financial rows for one ticker
+- `GET /api/financials/reviews?ticker=...`
+  - authenticated pending observation-review queue with source evidence
+- `POST /api/financials/reviews/{review_id}/decision`
+  - authenticated approve/reject decision requiring a non-empty actor and
+    unique, non-empty machine-readable reason codes; an optional note is
+    supplemental
+  - both decisions persist an automatic UTC timestamp; approval alone can
+    promote a fully evidenced value, while rejection never promotes
+  - PostgreSQL constrains lifecycle consistency and a non-empty JSONB array of
+    non-blank strings; normalized uniqueness is service-validated
 - `GET /api/risk?document_id=...`
   - stored risk/guidance note for one document
 - `GET /api/context/verification?ticker=...`
   - verification context bundle for extraction failures and low-confidence financial rows
   - ticker is optional; empty scope returns cross-ticker queue state
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 
 ### Context and memory routes (`/api/context/*`)
 
 - `GET /api/context/ticker?ticker=...`
   - ticker context bundle: docs, financials, latest snapshot, announcement context,
     extraction failures, low-confidence financial rows
+  - when `settings.local_api_key` is configured and no matching `X-API-Key` is
+    supplied, diagnostic/path fields and announcement excerpts are redacted while
+    ordinary context fields remain available
 - `GET /api/context/company_dump?ticker=...`
   - expanded ticker dump including context + risk notes + price history + memory surfaces
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/context/memory?ticker=...`
   - combined memory view for one ticker:
     - company memory
     - market memory
     - user thesis memory
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/context/memory/index`
+  - cross-ticker index for company, market, and user thesis memory
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/context/memory/company/add`
   - manual qualitative company-memory insert
 - `POST /api/context/memory/company/expire`
@@ -67,6 +113,7 @@ The FastAPI app mounts routes in these groups:
   - manual market-memory soft-expire
 - `GET /api/context/thesis?ticker=...`
   - user thesis memory view for one ticker (entries + proposals)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/context/thesis/proposals`
   - create user thesis proposal (`create_thesis`, `add_evidence`, `invalidate`)
 - `POST /api/context/thesis/proposals/{proposal_id}/confirm`
@@ -77,19 +124,23 @@ The FastAPI app mounts routes in these groups:
   - apply a confirmed proposal into durable thesis entries
 - `GET /api/context/verification?ticker=...`
   - extraction verification queue context (ticker-scoped or global)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/context/verification/runs?limit=...`
   - latest verification run history snapshots
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 
 ### Retrieval and chat
 
 - `POST /rag/query`
   - unified retrieval endpoint
-  - current implemented sources:
+  - accepted sources:
     - `asx_docs`
     - `news`
-  - current not-yet-implemented sources return `501`:
+  - unsupported sources are rejected by request validation:
     - `commentary`
     - `hybrid`
+  - commentary and hybrid retrieval remain owned by `/chat` until backend
+    retrieval support is implemented for `/rag/query`
 - `POST /chat`
 - `POST /api/chat`
   - chat endpoint exposed at both paths
@@ -102,10 +153,36 @@ The FastAPI app mounts routes in these groups:
   - aggregated cockpit-facing health for backend, llama.cpp, Ollama, Qdrant, Redis, and GPU snapshot
 - `GET /api/cockpit/config`
   - cockpit runtime config snapshot (llm model/endpoint, profile, feature flags)
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes runtime topology and operator configuration
+- `GET /api/cockpit/models`
+  - discoverable model inventory plus runtime target state
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes model and runtime endpoint availability
 - `GET /api/cockpit/queue`
   - lightweight queue status summary
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it probes queue/runtime activity
 - `GET /api/cockpit/docs`
   - latest global document list for cockpit history views
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes global document provenance, source URLs, and local `pdf_path`
+    values
+- `GET /api/cockpit/news/status`
+  - read-only A2M/news split-truth status contract
+  - public response redacts operator-only diagnostics such as artifact roots,
+    absolute projection paths, evidence report paths, and Qdrant collection identity
+  - full path-bearing diagnostics are service-internal unless a future guarded
+    caller explicitly requests them
+- `GET /api/cockpit/pulse?ticker=...`
+  - Intel Pulse population and quality metrics, optionally ticker-scoped
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes extraction-health and failure diagnostics
+- `GET /api/cockpit/matrix?stage=...&ticker=...`
+  - Intel Pulse diagnostic density matrix for one pipeline stage, optionally
+    ticker-scoped
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    it exposes entity-level extraction-state diagnostics
 - `POST /api/cockpit/chat`
   - cockpit chat endpoint (blocking and SSE modes)
   - SSE emits status/chunk/tool/action-preview/done events
@@ -125,6 +202,16 @@ The FastAPI app mounts routes in these groups:
     - `create_thesis`
     - `add_thesis_evidence`
   - these actions write to `user_thesis_memory` through backend-owned store logic
+- `POST /api/cockpit/tv/alert`
+  - receives TradingView Pine Script webhook alerts
+  - requires `webhook_token` in the JSON alert body, or
+    `X-TradingView-Webhook-Token` for relay/manual callers, matching the
+    configured webhook token
+  - strips `webhook_token` before alert persistence
+  - fails closed with `503` when no webhook token is configured
+- `GET /api/cockpit/tv/alerts`
+  - returns recent TradingView alerts from the local alert history file
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/cockpit/feedback/flag`
   - persists a cockpit assistant turn plus user feedback with `feedback_type: "poor" | "good"`, transcript, and backend diagnostics
   - accepts `capture_kind: "chat_feedback" | "ui_issue" | "auto_diagnostic"`; `auto_diagnostic` is reserved for deterministic backend-observed issues such as tool failures, missing visible sources, truncation markers, timeouts, and latency/tool-count inefficiencies
@@ -135,6 +222,14 @@ The FastAPI app mounts routes in these groups:
   - lists recent cockpit feedback reports with `report_id`, `feedback_type`, excerpt, and read API path
 - `GET /api/cockpit/feedback/flags/{report_id}`
   - returns the saved feedback report bundle, markdown summary, and analysis payload by report ID
+- `/api/cockpit/marketplace/price-intelligence/*`
+  - standalone Marketplace price-intelligence route family mounted before the
+    larger Cockpit router
+  - includes tracked-product reads and creation, price-observation reads and
+    ingestion, timelines, benchmark snapshots, and eBay sold-data sync
+  - guarded by `require_api_key()` when `settings.local_api_key` is configured
+  - Cockpit BFF/client callers must forward `X-API-Key` for guarded reads and
+    mutations
 
 ### Flagged chat references
 
@@ -214,6 +309,26 @@ Runtime note:
   - current supported runtime proposal:
     - `start_extraction_runtime`
 
+### Ops job state (`/api/ops/*`)
+
+The Ops job-state surface is intended for Cockpit operator views. These routes
+require `X-API-Key` when `settings.local_api_key` is configured:
+
+- `GET /api/ops/jobs`
+  - list persisted and synthetic operational jobs
+- `GET /api/ops/jobs/active`
+  - list pending/running operational jobs
+- `GET /api/ops/jobs/{job_id}`
+  - read one job run
+- `GET /api/ops/jobs/{job_id}/events`
+  - read job event history
+- `GET /api/ops/jobs/{job_id}/artifacts`
+  - read job artifact metadata
+- `GET /api/ops/stream`
+  - stream job events via SSE
+  - clients must send credentials as headers through a header-capable SSE
+    mechanism; durable API keys must not be embedded in browser URLs
+
 ### Commentary and framework ingestion
 
 - `POST /api/ingest/transcript`
@@ -267,14 +382,29 @@ Runtime note:
   - CLI client: `scripts/run_real_extraction_eval.py` always uses `?background=true` + poll, capping each HTTP call at 60 s while honoring the CLI-level `--timeout-seconds` as the overall deadline via `time.monotonic()`
 - `POST /api/extraction-review/session`
   - builds a manual metric-review session from the latest extracted run(s) for selected document IDs
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/runs?ticker=...&limit=...`
+  - returns recent manual review extraction runs
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/sessions?ticker=...&limit=...`
+  - returns saved manual review session summaries
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/session/{session_id}`
   - loads one saved manual review session snapshot
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `POST /api/extraction-review/session/{session_id}/decision`
   - persists one manual reviewer decision (`approved`, `wrong`, `abstain`)
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/errors?limit=...`
   - returns the structured wrong-metric queue accumulated from manual review decisions
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+- `GET /api/extraction-review/run/{run_id}?limit=...`
+  - returns run-status diagnostics for one extraction review run
+  - requires `X-API-Key` when `settings.local_api_key` is configured
 - `GET /api/extraction-review/snippets/{image_name}`
   - serves generated evidence snippet PNGs for manual extraction review
+  - requires `X-API-Key` when `settings.local_api_key` is configured
+  - preserves image-name and resolved-path traversal checks before serving files
 
 ### Analysis modules
 
@@ -290,6 +420,8 @@ Runtime note:
 - `POST /research/synthesize`
   - server-side synthesis of gathered research sources into a structured brief
   - used by cockpit deep research flows
+  - requires `X-API-Key` when `settings.local_api_key` is configured because
+    synthesis is a server-side inference path, not a passive public read
 
 ## Notes on compatibility and drift
 
@@ -307,4 +439,5 @@ Runtime note:
 - `financial-engine_v2/backend/app/api/analysis.py`
 - `financial-engine_v2/backend/app/routes/chat.py`
 - `financial-engine_v2/backend/app/routes/cockpit_api.py`
+- `financial-engine_v2/backend/app/routes/ops_api.py`
 - `financial-engine_v2/backend/app/routes/research.py`

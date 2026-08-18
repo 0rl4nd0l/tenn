@@ -5,11 +5,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from app.services.asx_holdout_confidentiality import (  # noqa: E402
+    DevelopmentAggregateResult,
+)
+
 DEFAULT_RESULTS_JSON = REPO_ROOT / "reports" / "extraction_real_eval_results.json"
 
 
@@ -36,6 +45,17 @@ def _parse_args() -> argparse.Namespace:
         help="One or more extraction_real_eval_results.json artifacts.",
     )
     parser.add_argument("--summary-path", type=Path, default=None)
+    parser.add_argument(
+        "--corpus-classification",
+        choices=["non_holdout", "holdout"],
+        required=True,
+    )
+    parser.add_argument(
+        "--access-mode",
+        choices=["development", "protected"],
+        required=True,
+    )
+    parser.add_argument("--development-aggregate-json", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -47,7 +67,9 @@ def _load_rows(
     trigger_rows: list[tuple[Any, ...]] = []
     for index, path in enumerate(paths, start=1):
         payload = json.loads(path.read_text(encoding="utf-8"))
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = (
+            payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        )
         run_stamp = summary.get("generated_at") or f"run{index}"
         run_id = f"{path.stem}:{run_stamp}"
         for document in payload.get("documents", []):
@@ -112,6 +134,28 @@ def _load_rows(
     return document_rows, metric_rows, trigger_rows
 
 
+def _load_development_aggregate(paths: list[Path]) -> dict[str, Any] | None:
+    aggregate: dict[str, Any] | None = None
+    for path in paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            current = DevelopmentAggregateResult.from_mapping(payload).to_dict()
+        except ValueError:
+            return None
+        if aggregate is not None and current != aggregate:
+            raise ValueError("development aggregate inputs differ")
+        aggregate = current
+    return aggregate
+
+
+def _aggregate_markdown(aggregate: dict[str, Any]) -> str:
+    rows = "\n".join(
+        f"- {field}: {json.dumps(aggregate[field], sort_keys=True)}"
+        for field in sorted(DevelopmentAggregateResult.ALLOWED_FIELDS)
+    )
+    return f"# Development Aggregate Result\n\n{rows}\n"
+
+
 def _markdown_table(headers: list[str], rows: list[tuple[Any, ...]]) -> str:
     lines = [f"| {' | '.join(headers)} |", f"| {' | '.join(['---'] * len(headers))} |"]
     for row in rows:
@@ -121,6 +165,24 @@ def _markdown_table(headers: list[str], rows: list[tuple[Any, ...]]) -> str:
 
 def main() -> int:
     args = _parse_args()
+    aggregate = None
+    if args.corpus_classification == "holdout" and args.access_mode != "protected":
+        if args.development_aggregate_json is None:
+            raise SystemExit(
+                "--development-aggregate-json is required for public holdout analysis"
+            )
+        aggregate = DevelopmentAggregateResult.from_mapping(
+            json.loads(args.development_aggregate_json.read_text(encoding="utf-8"))
+        ).to_dict()
+    else:
+        aggregate = _load_development_aggregate(args.results_json)
+    if aggregate is not None:
+        summary = _aggregate_markdown(aggregate)
+        if args.summary_path is not None:
+            args.summary_path.parent.mkdir(parents=True, exist_ok=True)
+            args.summary_path.write_text(summary, encoding="utf-8")
+        print(summary)
+        return 0
     duckdb = _require_duckdb()
     document_rows, metric_rows, trigger_rows = _load_rows(args.results_json)
 
@@ -185,20 +247,25 @@ def main() -> int:
         "",
         "## Metric Outcome Distribution",
         "",
-        _markdown_table(
-            ["status", "count"], metric_distribution_rows or [("-", 0)]
-        ),
+        _markdown_table(["status", "count"], metric_distribution_rows or [("-", 0)]),
         "",
         "## Document Trust Distribution",
         "",
-        _markdown_table(
-            ["trust", "count"], trust_distribution_rows or [("-", 0)]
-        ),
+        _markdown_table(["trust", "count"], trust_distribution_rows or [("-", 0)]),
         "",
         "## Most Failed Documents",
         "",
         _markdown_table(
-            ["document", "ticker", "period", "trust", "expected", "failed_metrics", "context_mismatches", "failures"],
+            [
+                "document",
+                "ticker",
+                "period",
+                "trust",
+                "expected",
+                "failed_metrics",
+                "context_mismatches",
+                "failures",
+            ],
             concern_rows or [("-", "-", "-", "-", "-", 0, 0, "-")],
         ),
         "",
@@ -211,9 +278,7 @@ def main() -> int:
         "",
         "## Trust Trigger Summary",
         "",
-        _markdown_table(
-            ["trigger", "count"], trigger_summary_rows or [("-", 0)]
-        ),
+        _markdown_table(["trigger", "count"], trigger_summary_rows or [("-", 0)]),
         "",
         "## Failure Patterns By Period And Trust",
         "",

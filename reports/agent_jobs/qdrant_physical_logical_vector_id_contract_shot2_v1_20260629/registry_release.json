@@ -1,0 +1,11 @@
+{
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "job_id": "qdrant_physical_logical_vector_id_contract_shot2_v1_20260629",
+  "ok": true,
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.json",
+  "repo_root": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629",
+  "status_path": "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/status.json",
+  "warnings": []
+}

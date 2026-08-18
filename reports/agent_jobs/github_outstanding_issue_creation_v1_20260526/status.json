@@ -1,0 +1,49 @@
+{
+  "agent": "Codex",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "collision_risk": "MEDIUM",
+  "contested_surfaces_touched": [],
+  "created_issue_numbers": [
+    94,
+    95
+  ],
+  "created_issue_urls": [
+    "https://github.com/0rl4nd0l/tenn/issues/94",
+    "https://github.com/0rl4nd0l/tenn/issues/95"
+  ],
+  "data_missing": [
+    "Project board fields were not inspected or mutated.",
+    "Registry claim skipped because check-overlap failed on the two pre-existing unrelated untracked task cards.",
+    "UI/source-drawer concern remains an audit validation gap, not a confirmed bug from this run."
+  ],
+  "decision": "proceed_github_issue_creation_only",
+  "execution_mode": "issue_management_audit_first_github_mutation_only_if_missing",
+  "github_repo": "0rl4nd0l/tenn",
+  "github_viewer_permission": "ADMIN",
+  "head_start": "61723bdca4ea30ce404d606cec63e47b9cb739b3",
+  "issues_created": 2,
+  "job_id": "github_outstanding_issue_creation_v1_20260526",
+  "lane": "Repo Hygiene",
+  "product_runtime_data_mutation": false,
+  "registry": {
+    "claim_created": false,
+    "claim_release_required": false,
+    "check_overlap_ok": false,
+    "check_overlap_issues": [
+      "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md is dirty outside current task card allowed_files",
+      "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md is dirty outside current task card allowed_files"
+    ],
+    "list_active_ok": true
+  },
+  "status": "complete_with_known_check_diff_blocker",
+  "task_card": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+  "validation": {
+    "check_diff": "blocked_by_pre_existing_unrelated_untracked_task_cards",
+    "duplicate_searches": "passed",
+    "git_diff_check": "passed",
+    "github_issue_views": "passed",
+    "json_validation": "passed",
+    "task_card_validate": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

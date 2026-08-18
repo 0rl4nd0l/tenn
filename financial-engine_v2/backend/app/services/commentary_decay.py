@@ -23,7 +23,9 @@ def age_days(*, published_at: Any, now: Any = None) -> float:
     published_dt = _coerce_datetime(published_at)
     if published_dt is None:
         return 0.0
-    now_dt = _coerce_datetime(now) if now not in (None, "") else datetime.now(timezone.utc)
+    now_dt = (
+        _coerce_datetime(now) if now not in (None, "") else datetime.now(timezone.utc)
+    )
     if now_dt is None:
         now_dt = datetime.now(timezone.utc)
     delta = now_dt - published_dt
@@ -41,7 +43,9 @@ def compute_recency_decay(
     half_life = float(half_life_days)
     if half_life <= 0.0:
         return 1.0
-    return math.exp(-age_days(published_at=published_at, now=now) / half_life)
+    return math.exp(
+        -math.log(2.0) * age_days(published_at=published_at, now=now) / half_life
+    )
 
 
 def compute_effective_weight(

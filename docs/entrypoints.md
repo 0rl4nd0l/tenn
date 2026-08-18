@@ -1,19 +1,65 @@
-## Entrypoints (Agent Canon)
+## Entrypoints (Runtime Tasks Only)
 
-### Canonical Execution (ENFORCED)
+This document is runtime context. Use it only when a task actually requires
+starting, validating, or diagnosing the Tenn runtime.
 
-`financial-engine_v2/scripts/run_local_backend.sh` is the **ONLY** canonical execution path for this repository.
+Repo-hygiene, docs, task-card, hook, skill, registry, and report-only work
+should not start services by default.
 
-All agents MUST use this path.
+### Runtime Mode Contract
 
-### Agent Boot Sequence (deterministic)
+Tenn has three supported runtime modes. The mode names below are validated by
+`scripts/runtime_entrypoint_contract.py` and mirrored in `agent_contract.json`.
+
+#### Agent-Local Backend Mode
+
+`financial-engine_v2/scripts/run_local_backend.sh` is the canonical backend
+startup path for agent runtime tasks and focused backend validation. Use
+`scripts/start_system.sh` when a task needs the agent-local backend to be
+started or checked deterministically.
+
+Machine mode: `agent_local_backend`
+Machine status: `canonical_for_agent_runtime_tasks`
+Command:
+`LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh`
+
+This mode starts the backend API only. It does not make Docker Compose or the
+Cockpit browser UI the default agent runtime.
+
+#### Full-Stack Cockpit Mode
+
+`cockpit start new` is the canonical operator full-stack entrypoint. It starts
+the Docker Compose infrastructure and launches the Next.js Cockpit UI at
+`http://127.0.0.1:8081`. Use `docs/startup.md` for this mode.
+
+Machine mode: `full_stack_cockpit`
+Machine status: `canonical_for_operator_full_stack`
+Entrypoint: `scripts/cockpit`
+Command: `cockpit start new`
+
+This mode is supported for UI/full-system tasks, but it should not be used for
+ordinary repo-hygiene, docs, task-card, hook, skill, registry, or report-only
+work. It may start host llama.cpp runtimes through `scripts/cockpit` when
+configuration permits.
+
+#### Batch Mode
+
+`python run.py` is supported for batch workflow execution. It is not a system
+bootstrap contract and does not define “the system is running.”
+
+Machine mode: `batch_orchestrator`
+Machine status: `supported_not_system_bootstrap`
+Entrypoint: `run.py`
+Command: `python run.py`
+
+### Runtime Boot Sequence
 
 1. Setup venv (canonical: `financial-engine_v2/.venv`).
    - Create: `python3 -m venv financial-engine_v2/.venv`
    - Activate (optional): `source financial-engine_v2/.venv/bin/activate`
 2. Install dependencies (deterministic).
    - `pip install -r requirements.txt`
-3. Run the system (canonical).
+3. Run the Agent-Local Backend Mode.
    - `LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh`
 4. Validate (smoke).
    - `bash financial-engine_v2/scripts/smoke_local.sh`
@@ -27,24 +73,26 @@ All agents MUST use this path.
 
 ### Entrypoint Classification Table
 
-| Entrypoint | Status | Description |
-|------------|--------|------------|
-| `financial-engine_v2/scripts/run_local_backend.sh` | **CANONICAL** | Main execution path for agents (backend API in isolated mode). |
-| `uvicorn app.main:app ...` | **SUPPORTED** | Equivalent backend API start (prefer the canonical script). |
-| `financial-engine_v2/docker-compose.yml` | **SUPPORTED** | Full infrastructure mode (Postgres/Redis/Qdrant/worker; host Ollama expected). |
-| `financial-engine_v2/scripts/cockpit_tui.py` / `python -m cockpit.main` | **SUPPORTED** | Operator UI layer; depends on backend API and optional infra. |
-| `python run.py` | **SUPPORTED (batch)** | Batch orchestrator (runs workflows; not system bootstrap). |
+| Entrypoint | Mode | Status | Description |
+|------------|------|--------|------------|
+| `financial-engine_v2/scripts/run_local_backend.sh` | Agent-Local Backend Mode | **CANONICAL FOR AGENTS** | Main execution path for focused backend/runtime validation. |
+| `scripts/start_system.sh` | Agent-Local Backend Mode | **CANONICAL WRAPPER** | Starts or checks the local backend with bounded readiness. |
+| `uvicorn app.main:app ...` | Agent-Local Backend Mode | **SUPPORTED** | Equivalent backend API start (prefer the canonical script). |
+| `cockpit start new` | Full-Stack Cockpit Mode | **CANONICAL FOR OPERATORS** | Full Docker Compose infrastructure plus Next.js Cockpit UI on `http://127.0.0.1:8081`. |
+| `financial-engine_v2/docker-compose.yml` | Full-Stack Cockpit Mode | **SUPPORTED INFRASTRUCTURE** | Compose file used by `scripts/cockpit` for Postgres/Redis/Qdrant/backend/worker. |
+| `financial-engine_v2/scripts/cockpit_tui.py` / `python -m cockpit.main` | Full-Stack Cockpit Mode | **SUPPORTED UI** | Operator UI layer; depends on backend API and optional infra. |
+| `python run.py` | Batch Mode | **SUPPORTED BATCH** | Batch orchestrator; not system bootstrap. |
 
-### Prohibited Paths (for agents)
+### Avoid Unless Explicitly Required
 
-Agents MUST NOT use these paths unless a task explicitly requires them:
+Do not use these paths unless a task explicitly requires them:
 
 - `python run.py`
   - Why: runs batch workflows and may depend on external providers/network; it does not define “system is running” (API up) deterministically.
 - Cockpit UI (`financial-engine_v2/scripts/cockpit_tui.py`, `python -m cockpit.main`)
   - Why: adds an interactive UI layer and optional bootstrap behaviors; increases nondeterminism for agents.
-- Docker (`docker compose ...`)
-  - Why: adds hidden dependencies (Docker daemon, Postgres/Redis/Qdrant, host Ollama) and longer startup surface area.
+- Full-Stack Cockpit Mode (`cockpit start new` / `docker compose ...`)
+  - Why: adds Docker daemon, Postgres/Redis/Qdrant, host Ollama, and UI startup surface area.
 
 ### Programmatic Interface
 
@@ -58,7 +106,8 @@ Use these wrappers for deterministic agent control:
 - `scripts/prepare_cloud_worktree.sh`
   - Creates a clean sibling worktree from current `HEAD` for Cursor Cloud or isolated PR review without modifying the dirty main worktree.
 - `agent_contract.json`
-  - Machine-readable pointers to the canonical entrypoint, wrapper, healthcheck route, and validation script.
+  - Machine-readable pointers to the Agent-Local Backend Mode entrypoint,
+    wrapper, healthcheck route, validation script, and supported runtime modes.
 
 For Cursor Cloud branch and PR workflow, see `docs/cloud_workflow.md`.
 
@@ -76,7 +125,7 @@ Validated command sequence:
 9. `python scripts/validate_financial_metrics_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.gates.json`
 10. `python scripts/validate_financial_coverage_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.coverage_gates.json`
 
-Current passing gate set:
+Last documented passing gate set; not rerun during the 2026-06-23 docs audit:
 - Ruff on `autodev`, `financial-engine_v2/backend`, and `scripts`
 - Pytest on `autodev/tests`, `financial-engine_v2/backend/tests`, and `scripts`
 - Canonical dataset eval + baseline regression gate

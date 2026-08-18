@@ -102,6 +102,99 @@ def test_from_extraction_payload_normalizes_metric_collection() -> None:
     assert {record.provenance_status for record in records} == {"precise", "derived"}
 
 
+def test_from_extraction_payload_prefers_structured_field_provenance() -> None:
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "confidence_metrics": 0.72,
+        "field_provenance": {
+            "revenue": {
+                "metric": "revenue",
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 7,
+                "page_tag": "page_7",
+                "row_ref": "Revenue from contracts with customers",
+                "excerpt": "Revenue from contracts with customers",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2025-12-31",
+                "source_document_id": "123e4567-e89b-12d3-a456-426614174000",
+                "extraction_run_id": "run-42",
+            }
+        },
+    }
+
+    records = from_extraction_payload(payload)
+
+    assert len(records) == 1
+    record = records[0]
+    assert record.source_type == "financial_statement"
+    assert record.source_document_id == "123e4567-e89b-12d3-a456-426614174000"
+    assert record.source_label == "income_statement"
+    assert record.location_ref == "page_7"
+    assert record.period_ref == "2025-12-31:A"
+    assert record.evidence_text == "Revenue from contracts with customers"
+    assert record.provenance_status == "precise"
+    assert record.confidence == 0.72
+    assert record.raw_reference == payload["field_provenance"]["revenue"]
+
+
+def test_from_extraction_payload_downgrades_unknown_structured_row_ref() -> None:
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "confidence_metrics": 0.72,
+        "field_provenance": {
+            "financing_cf": {
+                "metric": "financing_cf",
+                "source": "cashflow_statement",
+                "table_label": "cashflow_statement",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "unknown",
+                "excerpt": "unknown",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "source_document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+                "extraction_run_id": "run-unknown-row-ref",
+            },
+            "investing_cf": {
+                "metric": "investing_cf",
+                "source": "cashflow_statement",
+                "table_label": "cashflow_statement",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "Net cash from investing activities",
+                "excerpt": "unknown",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "source_document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+                "extraction_run_id": "run-unknown-row-ref",
+            }
+        },
+    }
+
+    records = from_extraction_payload(payload)
+
+    assert len(records) == 2
+    assert {record.source_label for record in records} == {"cashflow_statement"}
+    assert {record.location_ref for record in records} == {"page_22"}
+    assert {record.provenance_status for record in records} == {"low_traceability"}
+    for record in records:
+        validation = validate_provenance_record(record)
+        issue_codes = {issue["code"] for issue in validation["issues"]}
+        assert "low_traceability" in issue_codes
+
+
 def test_from_orchestrator_evidence_handles_financial_truth_payload() -> None:
     record = from_orchestrator_evidence(
         "financial_truth",

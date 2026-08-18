@@ -1,0 +1,44 @@
+{
+  "blocks": [],
+  "claim_id": "semantic_v2_cross_repo_enforcement",
+  "dataset_version": "migration_canonical_c18935634cf91d1ef80985bce29be846a601be7a_cross_repo_review_v2",
+  "decision": "PASS",
+  "decision_delta": "The validated portable guard derives canonical identity from the selected target upstream/base, and the Stop hook automatically enforces the sole active target-worktree V2 claim while preserving the Tenn fallback and legacy V1 silence.",
+  "decision_id": "tenn-semantic-v2-cross-repo-enforcement-20260713",
+  "does_not_block": [
+    "legacy_v1_task_execution",
+    "existing_v2_semantic_classification",
+    "legacy_v1_shared_registry_silence"
+  ],
+  "evidence_hash": "sha256:39ad7ec0974ce3b513a8877dc3868b0ca84b996e6a7146b4765b357f4484c242",
+  "evidence_refs": [
+    ".agents/skills/tenn-git-guard/scripts/tenn_git_guard.py",
+    ".agents/skills/tenn-git-guard/tests/test_tenn_git_guard.py",
+    "scripts/agent_job_hook.py",
+    "scripts/test_agent_job_hook.py",
+    "reports/agent_jobs/semantic_v2_cross_repo_canonical_20260713/VALIDATION.md"
+  ],
+  "hypothesis_id": "selected_target_and_active_v2_registry_enforce_cross_repo_v2_v1_compat",
+  "invalidation_conditions": [
+    "The portable guard no longer derives canonical identity from selected_base().",
+    "The origin/master cross-repository regression fails.",
+    "The hook no longer selects exactly one non-stale target-worktree V2 claim or stops failing closed on ambiguous/invalid matching selectors.",
+    "Legacy V1 shared-registry jobs begin triggering automatic closeout enforcement."
+  ],
+  "outcome_status": "ADVANCED",
+  "phase_after": "portable_cross_repo_guard_and_active_v2_hook_enforced",
+  "phase_before": "cross_repo_guard_and_stop_hook_not_target_aware",
+  "program_track": "offline_development",
+  "project_id": "tenn",
+  "reopen_conditions": [
+    "A materially different selected upstream/base form exposes a new canonical identity failure.",
+    "A materially different active-registry selector exposes a new cross-worktree hook failure.",
+    "The guard/hook source or evidence hash changes."
+  ],
+  "run_id": "l4nd0-System-Product-Name:2407979:semantic_v2_cross_repo_canonical_20260713",
+  "scope_fingerprint": "2379538a7a034c661a6e2af90d5615fc1622e5be57699d88ecb3b0e80e84a758",
+  "source_class": "tenn_portable_guard_and_hook_source",
+  "target_transition": "portable_cross_repo_guard_and_active_v2_hook_enforced",
+  "task_id": "semantic_v2_cross_repo_canonical_20260713",
+  "validated_at": "2026-07-13T19:35:09+10:00"
+}

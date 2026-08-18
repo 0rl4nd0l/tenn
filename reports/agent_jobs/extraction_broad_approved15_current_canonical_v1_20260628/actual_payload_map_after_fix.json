@@ -1,0 +1,934 @@
+{
+  "actual_payload_document_count": 12,
+  "actual_payloads": {
+    "azj_20251231_h": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "ebit": "income_statement:page_15:Operating profit",
+        "financing_cf": "cashflow_statement:page_19:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_19:Net cash outflow from investing activities",
+        "np_attributable": "income_statement:page_15:Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "cashflow_statement:page_19:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_15:Total revenue and other income"
+      },
+      "metric_scale_sources": {
+        "ebit": "document",
+        "financing_cf": "source_text",
+        "investing_cf": "source_text",
+        "np_attributable": "document",
+        "operating_cf": "source_text",
+        "revenue": "document"
+      },
+      "metric_source_scales": {
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": 522000000.0,
+        "financing_cf": -422000000.0,
+        "investing_cf": -374000000.0,
+        "net_debt": null,
+        "np_attributable": 235000000.0,
+        "operating_cf": 775000000.0,
+        "revenue": 2104000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "ebit": "income_statement:page_15:Operating profit",
+        "financing_cf": "cashflow_statement:page_19:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_19:Net cash outflow from investing activities",
+        "np_attributable": "income_statement:page_15:Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "cashflow_statement:page_19:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_15:Total revenue and other income"
+      },
+      "row_refs": {
+        "ebit": "Operating profit",
+        "financing_cf": "Net cash outflow from financing activities",
+        "investing_cf": "Net cash outflow from investing activities",
+        "np_attributable": "Profit for the six months attributable to owners of Aurizon Holdings Limited",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "Total revenue and other income"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "bhp_fy2021_preliminary_final": {
+      "confidence_metrics": 0.905,
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_46:Purchases of property, p lant and e quipment",
+        "cash_end": "cashflow_statement:page_46:Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "income_statement:page_68:Profit from operations",
+        "financing_cf": "cashflow_statement:page_46:Net financing cash flows from Continuing operations",
+        "investing_cf": "cashflow_statement:page_46:Net investing cash flows from Continuing operations",
+        "np_attributable": "income_statement:page_44:Profit after taxation from Continuing operations",
+        "operating_cf": "cashflow_statement:page_46:Net operating cash flows from Continuing operations",
+        "revenue": "income_statement:page_68:Revenue",
+        "shares_outstanding": "prose_note:page_53:had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "table",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -6606000000.0,
+        "cash_end": 15246000000.0,
+        "ebit": 25906000000.0,
+        "financing_cf": -17922000000.0,
+        "investing_cf": -7845000000.0,
+        "net_debt": null,
+        "np_attributable": 3451000000.0,
+        "operating_cf": 27234000000.0,
+        "revenue": 60817000000.0,
+        "shares_outstanding": 5057000000.0,
+        "total_debt": null
+      },
+      "period_end": "2021-06-30",
+      "period_start": "2020-07-01",
+      "period_type": "A",
+      "provenance": {
+        "capex": "cashflow_statement:page_46:Purchases of property, p lant and e quipment",
+        "cash_end": "cashflow_statement:page_46:Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "income_statement:page_68:Profit from operations",
+        "financing_cf": "cashflow_statement:page_46:Net financing cash flows from Continuing operations",
+        "investing_cf": "cashflow_statement:page_46:Net investing cash flows from Continuing operations",
+        "np_attributable": "income_statement:page_44:Profit after taxation from Continuing operations",
+        "operating_cf": "cashflow_statement:page_46:Net operating cash flows from Continuing operations",
+        "revenue": "income_statement:page_68:Revenue",
+        "shares_outstanding": "prose_note:page_53:had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "row_refs": {
+        "capex": "Purchases of property, p lant and e quipment",
+        "cash_end": "Cash and cash equival ents, net of overdrafts, at the end of th e financial year",
+        "ebit": "Profit from operations",
+        "financing_cf": "Net financing cash flows from Continuing operations",
+        "investing_cf": "Net investing cash flows from Continuing operations",
+        "np_attributable": "Profit after taxation from Continuing operations",
+        "operating_cf": "Net operating cash flows from Continuing operations",
+        "revenue": "Revenue",
+        "shares_outstanding": "had 2,945 million ordinary shares on issue and held by the public and BHP Group Plc had 2,112 millio"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_title": "2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      }
+    },
+    "csl_20251231_h": {
+      "confidence_metrics": 0.933,
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_11:Operating profit (EBIT)",
+        "financing_cf": "cashflow_statement:page_14:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_14:Net cash outflow from investing activities",
+        "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "income_statement:page_11:Net profit for the period",
+        "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+        "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -296000000.0,
+        "cash_end": 1145000000.0,
+        "ebit": 577000000.0,
+        "financing_cf": -1643000000.0,
+        "investing_cf": -652000000.0,
+        "net_debt": 9276000000.0,
+        "np_attributable": 286000000.0,
+        "operating_cf": 1302000000.0,
+        "revenue": null,
+        "shares_outstanding": 482130812.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_14:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_11:Operating profit (EBIT)",
+        "financing_cf": "cashflow_statement:page_14:Net cash outflow from financing activities",
+        "investing_cf": "cashflow_statement:page_14:Net cash outflow from investing activities",
+        "net_debt": "derived:balance_sheet:total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "income_statement:page_11:Net profit for the period",
+        "operating_cf": "cashflow_statement:page_14:Net cash inflow from operating activities",
+        "shares_outstanding": "share_capital:page_24:Closing balance as at 31 December 2025"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Operating profit (EBIT)",
+        "financing_cf": "Net cash outflow from financing activities",
+        "investing_cf": "Net cash outflow from investing activities",
+        "net_debt": "total_debt(10421000000)-cash_end(1145000000)",
+        "np_attributable": "Net profit for the period",
+        "operating_cf": "Net cash inflow from operating activities",
+        "shares_outstanding": "Closing balance as at 31 December 2025"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "eqr_q4_fy2026_appendix5b": {
+      "confidence_metrics": 0.85,
+      "currency": "AUD",
+      "evidence": {
+        "cash_end": "cashflow_statement:page_15:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_15:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_15:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_15:4.2 Net cash from / (used in) operating"
+      },
+      "metric_scale_sources": {
+        "cash_end": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table"
+      },
+      "metric_source_scales": {
+        "cash_end": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands"
+      },
+      "metrics": {
+        "capex": null,
+        "cash_end": 21978000.0,
+        "ebit": null,
+        "financing_cf": 12012000.0,
+        "investing_cf": -2656000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": 1154000.0,
+        "revenue": null,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-10-01",
+      "period_type": "Q",
+      "provenance": {
+        "cash_end": "cashflow_statement:page_15:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_15:4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_15:4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_15:4.2 Net cash from / (used in) operating"
+      },
+      "row_refs": {
+        "cash_end": "Cash and cash equivalents at end of period",
+        "financing_cf": "4.4 Net cash from / (used in) financing activities",
+        "investing_cf": "4.3 Net cash from / (used in) investing activities",
+        "operating_cf": "4.2 Net cash from / (used in) operating"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      }
+    },
+    "fmg_20251231_h": {
+      "confidence_metrics": 1.0,
+      "currency": "USD",
+      "evidence": {
+        "capex": "cashflow_statement:page_23:Payments for property, plant and equipment - joint operations",
+        "cash_end": "cashflow_statement:page_23:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_21:Operating profit",
+        "financing_cf": "cashflow_statement:page_23:unknown",
+        "investing_cf": "cashflow_statement:page_23:unknown",
+        "np_attributable": "income_statement:page_21:Net profit after tax",
+        "operating_cf": "cashflow_statement:page_23:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_21:Operating sales revenue"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -1475000000.0,
+        "cash_end": 4743000000.0,
+        "ebit": 2908000000.0,
+        "financing_cf": -1160000000.0,
+        "investing_cf": -1659000000.0,
+        "net_debt": null,
+        "np_attributable": 1910000000.0,
+        "operating_cf": 3203000000.0,
+        "revenue": 8439000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_23:Payments for property, plant and equipment - joint operations",
+        "cash_end": "cashflow_statement:page_23:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_21:Operating profit",
+        "financing_cf": "cashflow_statement:page_23:unknown",
+        "investing_cf": "cashflow_statement:page_23:unknown",
+        "np_attributable": "income_statement:page_21:Net profit after tax",
+        "operating_cf": "cashflow_statement:page_23:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_21:Operating sales revenue"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment - joint operations",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Operating profit",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "np_attributable": "Net profit after tax",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "Operating sales revenue"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "USD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-25_fy26-half-year-financial-report-and-appendix-4d_910e9da0-debb-4aa4-b524-cad5a69d9aa3.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "gre_q4_fy2025_appendix5b": {
+      "confidence_metrics": 0.85,
+      "currency": "AUD",
+      "evidence": {
+        "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_12:Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_12:Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_11:1.9 Net cash from / (used in) operating activities"
+      },
+      "metric_scale_sources": {
+        "cash_end": "source_text",
+        "financing_cf": "source_text",
+        "investing_cf": "source_text",
+        "operating_cf": "table"
+      },
+      "metric_source_scales": {
+        "cash_end": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands"
+      },
+      "metrics": {
+        "capex": null,
+        "cash_end": 702000.0,
+        "ebit": null,
+        "financing_cf": 869000.0,
+        "investing_cf": -624000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -450000.0,
+        "revenue": null,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2024-12-31",
+      "period_start": "2024-10-01",
+      "period_type": "Q",
+      "provenance": {
+        "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at end of period",
+        "financing_cf": "cashflow_statement:page_12:Net cash from / (used in) financing activities",
+        "investing_cf": "cashflow_statement:page_12:Net cash from / (used in) investing activities",
+        "operating_cf": "cashflow_statement:page_11:1.9 Net cash from / (used in) operating activities"
+      },
+      "row_refs": {
+        "cash_end": "Cash and cash equivalents at end of period",
+        "financing_cf": "Net cash from / (used in) financing activities",
+        "investing_cf": "Net cash from / (used in) investing activities",
+        "operating_cf": "1.9 Net cash from / (used in) operating activities"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+        "period_end": "2024-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      }
+    },
+    "min_2025h1_appendix4d": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_17:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half- year",
+        "ebit": "income_statement:page_14:PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "cashflow_statement:page_17:Net cash from financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash used in investing activities",
+        "np_attributable": "income_statement:page_14:PROFIT/(LOSS) AFTER TAX FOR THE HALF-YEAR",
+        "operating_cf": "cashflow_statement:page_17:Net cash from operating activities",
+        "revenue": "income_statement:page_14:REVENUE",
+        "shares_outstanding": "share_capital:page_32:Balance at 30 June 2025"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -333000000.0,
+        "cash_end": 638000000.0,
+        "ebit": 1031000000.0,
+        "financing_cf": -126000000.0,
+        "investing_cf": -527000000.0,
+        "net_debt": null,
+        "np_attributable": 573000000.0,
+        "operating_cf": 880000000.0,
+        "revenue": 3052000000.0,
+        "shares_outstanding": 196518604.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_17:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half- year",
+        "ebit": "income_statement:page_14:PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "cashflow_statement:page_17:Net cash from financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash used in investing activities",
+        "np_attributable": "income_statement:page_14:PROFIT/(LOSS) AFTER TAX FOR THE HALF-YEAR",
+        "operating_cf": "cashflow_statement:page_17:Net cash from operating activities",
+        "revenue": "income_statement:page_14:REVENUE",
+        "shares_outstanding": "share_capital:page_32:Balance at 30 June 2025"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the half- year",
+        "ebit": "PROFIT/(LOSS) FROM OPERATIONS",
+        "financing_cf": "Net cash from financing activities",
+        "investing_cf": "Net cash used in investing activities",
+        "np_attributable": "PROFIT/(LOSS) AFTER TAX FOR THE HALF-YEAR",
+        "operating_cf": "Net cash from operating activities",
+        "revenue": "REVENUE",
+        "shares_outstanding": "Balance at 30 June 2025"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "rms_2025h1_appendix4d": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "cash_end": "source_table:page_23:Cash and cash equivalents at the end of the half-year",
+        "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+        "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+        "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+      },
+      "metric_scale_sources": {
+        "cash_end": "document",
+        "ebit": "wrapper",
+        "np_attributable": "wrapper",
+        "revenue": "wrapper",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "np_attributable": "thousands",
+        "revenue": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "metrics": {
+        "capex": null,
+        "cash_end": 658721000.0,
+        "ebit": 31284000.0,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": -11716000.0,
+        "operating_cf": null,
+        "revenue": 485630000.0,
+        "shares_outstanding": 1924937480.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "cash_end": "source_table:page_23:Cash and cash equivalents at the end of the half-year",
+        "ebit": "appendix_wrapper:page_1:Earnings before Interest and Tax (EBIT)",
+        "np_attributable": "appendix_wrapper:page_1:Net (loss) / profit after tax attributable to members",
+        "revenue": "appendix_wrapper:page_1:31 December Revenue from ordinary activities",
+        "shares_outstanding": "share_capital:page_31:At 31 December 2025"
+      },
+      "row_refs": {
+        "cash_end": "Cash and cash equivalents at the end of the half-year",
+        "ebit": "Earnings before Interest and Tax (EBIT)",
+        "np_attributable": "Net (loss) / profit after tax attributable to members",
+        "revenue": "31 December Revenue from ordinary activities",
+        "shares_outstanding": "At 31 December 2025"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      }
+    },
+    "seg_h_fy2026_appendix4d": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_17:Payment for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half year",
+        "ebit": "income_statement:page_21:EBIT",
+        "financing_cf": "cashflow_statement:page_17:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash from investing activities",
+        "np_attributable": "income_statement:page_12:Profit / (loss) after income tax from continuing operations",
+        "operating_cf": "cashflow_statement:page_17:Net operating cash flows provided by operating activities",
+        "revenue": "income_statement:page_12:Revenue from continuing operations",
+        "shares_outstanding": "prose_note:page_24:Number of shares on issue 280,874,770"
+      },
+      "metric_scale_sources": {
+        "capex": "source_text",
+        "cash_end": "source_text",
+        "ebit": "document",
+        "financing_cf": "source_text",
+        "investing_cf": "source_text",
+        "np_attributable": "source_text",
+        "operating_cf": "source_text",
+        "revenue": "source_text"
+      },
+      "metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "np_attributable": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands"
+      },
+      "metrics": {
+        "capex": -867000.0,
+        "cash_end": 26716000.0,
+        "ebit": 123456000.0,
+        "financing_cf": -7369000.0,
+        "investing_cf": 7527000.0,
+        "net_debt": null,
+        "np_attributable": 3243000.0,
+        "operating_cf": 11619000.0,
+        "revenue": 73671000.0,
+        "shares_outstanding": 280874770.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_17:Payment for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_17:Cash and cash equivalents at the end of the half year",
+        "ebit": "income_statement:page_21:EBIT",
+        "financing_cf": "cashflow_statement:page_17:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_17:Net cash from investing activities",
+        "np_attributable": "income_statement:page_12:Profit / (loss) after income tax from continuing operations",
+        "operating_cf": "cashflow_statement:page_17:Net operating cash flows provided by operating activities",
+        "revenue": "income_statement:page_12:Revenue from continuing operations",
+        "shares_outstanding": "prose_note:page_24:Number of shares on issue 280,874,770"
+      },
+      "row_refs": {
+        "capex": "Payment for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the half year",
+        "ebit": "EBIT",
+        "financing_cf": "Net cash used in financing activities",
+        "investing_cf": "Net cash from investing activities",
+        "np_attributable": "Profit / (loss) after income tax from continuing operations",
+        "operating_cf": "Net operating cash flows provided by operating activities",
+        "revenue": "Revenue from continuing operations",
+        "shares_outstanding": "Number of shares on issue 280,874,770"
+      },
+      "scale": "thousands",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      }
+    },
+    "tcl_20251231_h": {
+      "confidence_metrics": 0.933,
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_20:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the half-year",
+        "ebit": "income_statement:page_17:Profit/(loss) before income tax",
+        "financing_cf": "cashflow_statement:page_20:unknown",
+        "investing_cf": "cashflow_statement:page_20:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "income_statement:page_17:Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "cashflow_statement:page_20:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_17:Revenue B4",
+        "shares_outstanding": "share_capital:page_13:Securities on issue"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "document",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "np_attributable": "document",
+        "operating_cf": "document",
+        "revenue": "document",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -69000000.0,
+        "cash_end": 1229000000.0,
+        "ebit": 352000000.0,
+        "financing_cf": -1098000000.0,
+        "investing_cf": -248000000.0,
+        "net_debt": 19227000000.0,
+        "np_attributable": 298000000.0,
+        "operating_cf": 853000000.0,
+        "revenue": 1983000000.0,
+        "shares_outstanding": 3115000000.0,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_20:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_20:Cash and cash equivalents at the end of the half-year",
+        "ebit": "income_statement:page_17:Profit/(loss) before income tax",
+        "financing_cf": "cashflow_statement:page_20:unknown",
+        "investing_cf": "cashflow_statement:page_20:unknown",
+        "net_debt": "derived:balance_sheet:total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "income_statement:page_17:Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "cashflow_statement:page_20:Net cash inflow from operating activities",
+        "revenue": "income_statement:page_17:Revenue B4",
+        "shares_outstanding": "share_capital:page_13:Securities on issue"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at the end of the half-year",
+        "ebit": "Profit/(loss) before income tax",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "net_debt": "total_debt(20456000000)-cash_end(1229000000)",
+        "np_attributable": "Profit/(loss) attributable to ordinary security holders of the stapled group",
+        "operating_cf": "Net cash inflow from operating activities",
+        "revenue": "Revenue B4",
+        "shares_outstanding": "Securities on issue"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-19_transurban-appendix-4d-and-1h26-interim-report_bdcd91dd-98de-46ab-a14d-9468462b8de6.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "tls_20251231_h": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_18:\u2013 Capital expenditure (before investments)",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_22:Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "cashflow_statement:page_18:unknown",
+        "investing_cf": "cashflow_statement:page_18:unknown",
+        "net_debt": "net_debt_note:page_45:Net debt",
+        "np_attributable": "appendix_wrapper:page_2:Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "cashflow_statement:page_18:Net cash provided by operating activities",
+        "revenue": "income_statement:page_22:Revenue (excluding finance income)"
+      },
+      "metric_scale_sources": {
+        "capex": "document",
+        "cash_end": "document",
+        "ebit": "table",
+        "financing_cf": "document",
+        "investing_cf": "document",
+        "net_debt": "table",
+        "np_attributable": "wrapper",
+        "operating_cf": "document",
+        "revenue": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "net_debt": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions"
+      },
+      "metrics": {
+        "capex": -1914000000.0,
+        "cash_end": 1436000000.0,
+        "ebit": 2016000000.0,
+        "financing_cf": -1457000000.0,
+        "investing_cf": -1735000000.0,
+        "net_debt": 16800000000.0,
+        "np_attributable": 1124000000.0,
+        "operating_cf": 3637000000.0,
+        "revenue": 11641000000.0,
+        "shares_outstanding": null,
+        "total_debt": null
+      },
+      "period_end": "2025-12-31",
+      "period_start": "2025-07-01",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_18:\u2013 Capital expenditure (before investments)",
+        "cash_end": "cashflow_statement:page_18:Cash and cash equivalents at the end of the period",
+        "ebit": "income_statement:page_22:Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "cashflow_statement:page_18:unknown",
+        "investing_cf": "cashflow_statement:page_18:unknown",
+        "net_debt": "net_debt_note:page_45:Net debt",
+        "np_attributable": "appendix_wrapper:page_2:Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "cashflow_statement:page_18:Net cash provided by operating activities",
+        "revenue": "income_statement:page_22:Revenue (excluding finance income)"
+      },
+      "row_refs": {
+        "capex": "\u2013 Capital expenditure (before investments)",
+        "cash_end": "Cash and cash equivalents at the end of the period",
+        "ebit": "Earnings before interest and income tax expense (EBIT)",
+        "financing_cf": "unknown",
+        "investing_cf": "unknown",
+        "net_debt": "Net debt",
+        "np_attributable": "Profit from ordinary activities after tax attributable to equity holders of Telstra Entity",
+        "operating_cf": "Net cash provided by operating activities",
+        "revenue": "Revenue (excluding finance income)"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    },
+    "wow_20260104_h": {
+      "confidence_metrics": 1.0,
+      "currency": "AUD",
+      "evidence": {
+        "capex": "cashflow_statement:page_12:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_12:Cash and cash equivalents at end of period2",
+        "ebit": "income_statement:page_8:Earnings before interest and tax",
+        "financing_cf": "cashflow_statement:page_12:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_12:Net cash used in investing activities",
+        "np_attributable": "income_statement:page_8:Profit for the period",
+        "operating_cf": "cashflow_statement:page_12:Net cash provided by operating activities",
+        "revenue": "income_statement:page_8:Revenue 2",
+        "shares_outstanding": "share_capital:page_20:Balance at end of period1"
+      },
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "metrics": {
+        "capex": -1218000000.0,
+        "cash_end": 1289000000.0,
+        "ebit": 962000000.0,
+        "financing_cf": -1096000000.0,
+        "investing_cf": -1186000000.0,
+        "net_debt": null,
+        "np_attributable": 381000000.0,
+        "operating_cf": 2301000000.0,
+        "revenue": 37135000000.0,
+        "shares_outstanding": 1221600000.0,
+        "total_debt": null
+      },
+      "period_end": "2026-01-04",
+      "period_start": "2025-07-05",
+      "period_type": "H",
+      "provenance": {
+        "capex": "cashflow_statement:page_12:Payments for property, plant and equipment",
+        "cash_end": "cashflow_statement:page_12:Cash and cash equivalents at end of period2",
+        "ebit": "income_statement:page_8:Earnings before interest and tax",
+        "financing_cf": "cashflow_statement:page_12:Net cash used in financing activities",
+        "investing_cf": "cashflow_statement:page_12:Net cash used in investing activities",
+        "np_attributable": "income_statement:page_8:Profit for the period",
+        "operating_cf": "cashflow_statement:page_12:Net cash provided by operating activities",
+        "revenue": "income_statement:page_8:Revenue 2",
+        "shares_outstanding": "share_capital:page_20:Balance at end of period1"
+      },
+      "row_refs": {
+        "capex": "Payments for property, plant and equipment",
+        "cash_end": "Cash and cash equivalents at end of period2",
+        "ebit": "Earnings before interest and tax",
+        "financing_cf": "Net cash used in financing activities",
+        "investing_cf": "Net cash used in investing activities",
+        "np_attributable": "Profit for the period",
+        "operating_cf": "Net cash provided by operating activities",
+        "revenue": "Revenue 2",
+        "shares_outstanding": "Balance at end of period1"
+      },
+      "scale": "millions",
+      "scale_validation": "pass",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2026-02-25_appendix-4d-and-half-year-financial-report_b84a6cde-1fa0-4d11-a86a-0ad1c1fea6b7.pdf",
+        "period_end": "2026-01-04",
+        "period_type": "H",
+        "scale": "millions"
+      }
+    }
+  },
+  "artifact_type": "approved15_after_csl_fix_actual_payload_map_v1",
+  "payload_key": "document_id",
+  "source_replays": [
+    "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_seg/replay_results.json",
+    "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/no_write_replay_after_fix_csl/replay_results.json"
+  ]
+}

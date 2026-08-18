@@ -1,0 +1,30 @@
+{
+  "blocked_by_unrelated_remaining_dirty_file": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+  "classification": {
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md": {
+      "active": false,
+      "lane": "Evaluation",
+      "lifecycle": "completed_historical_audit_evidence",
+      "preservation_action": "preserve_unchanged",
+      "staleness": "stale_for_current_head",
+      "use_classification": "archive_reference_only"
+    },
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md": {
+      "active": false,
+      "lane": "Reporting",
+      "lifecycle": "blocked_preflight_audit_needs_later_review",
+      "preservation_action": "preserve_unchanged",
+      "staleness": "stale_and_incomplete_for_current_head",
+      "use_classification": "archive_only_blocked_preflight_evidence"
+    }
+  },
+  "current_head_at_start": "3a18475b91a325baccd22a3daf07237dc1d3d18b",
+  "decision": "preserve_archive_classify_two_cards",
+  "generated_at_utc": "2026-05-25T05:48:59Z",
+  "job_id": "strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525",
+  "registry_active_jobs": [],
+  "schema_version": "strategy_lab_readonly_integration_dirty_taskcard_unblock_status_v1",
+  "source_commit_integrated": false,
+  "strategy_lab_integration_review_clean_enough_after_this_task": false,
+  "touched_strategy_lab_source_files": false
+}

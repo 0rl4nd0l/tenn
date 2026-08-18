@@ -1,0 +1,14 @@
+{
+  "task_id": "codex_workflow_fast_progress_lane_remediation_v1_20260628",
+  "status": "current_base_replay_v4_done_local_committed",
+  "branch": "control-plane/codex-workflow-fast-progress-lane-refresh-v4-20260629",
+  "worktree": "/home/l4nd0/tenn-codex-workflow-fast-progress-lane-refresh-v4-20260629",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "head_at_start": "265a0d5a8125254c099e391087724097d6200517",
+  "source_artifact": "/home/l4nd0/tenn/reports/agent_jobs/codex_workflow_remediation_review_board_v1_20260628/BOARD_DECISION.json",
+  "scope": "control-plane-only",
+  "live_ledger_append": "not_attempted_report_local_entry_only",
+  "validation": "v4 current-base replay validation, focused guard tests, task-card gates, and pre-push hook passed",
+  "github": "PR #460 opened at https://github.com/0rl4nd0l/tenn/pull/460; remote branch update pending explicit force-with-lease approval",
+  "commit": "current_branch_HEAD"
+}

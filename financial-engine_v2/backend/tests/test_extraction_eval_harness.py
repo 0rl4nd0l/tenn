@@ -1,16 +1,55 @@
+import json
 from pathlib import Path
 
+import pytest
+
+from app.services.asx_holdout_confidentiality import DevelopmentAggregateResult
 from app.services.extraction_eval import (
     ExtractionFixture,
+    FixtureContext,
     MetricEvalStatus,
     build_fixture_scorecard,
     evaluate_fixture,
     load_fixtures,
+    summarize_numeric_quality,
     summarize_overall_score,
 )
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "extraction_eval"
+
+
+def _development_aggregate() -> dict:
+    return {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+
+def test_synthetic_holdout_scorecard_is_aggregate_only() -> None:
+    scorecard = build_fixture_scorecard(
+        FIXTURES_DIR,
+        {},
+        corpus_classification="holdout",
+        development_aggregate=_development_aggregate(),
+    )
+
+    assert set(scorecard) == DevelopmentAggregateResult.ALLOWED_FIELDS
 
 
 def _load_fixture(fixture_id: str) -> ExtractionFixture:
@@ -59,6 +98,47 @@ def test_load_fixtures_discover_new_scaffold_files():
     assert "net_debt_derived_row_abstain" in fixture_ids
 
 
+@pytest.mark.parametrize("numeric_field", ["metrics", "tolerances"])
+@pytest.mark.parametrize("boolean_value", [False, True])
+def test_load_fixtures_rejects_boolean_numbers(
+    tmp_path,
+    numeric_field,
+    boolean_value,
+):
+    fixture = {
+        "fixture_id": "boolean-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    fixture[numeric_field]["revenue"] = boolean_value
+    (tmp_path / "boolean.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must be numeric"):
+        load_fixtures(tmp_path)
+
+
+def test_load_fixtures_preserves_numeric_zero(tmp_path):
+    fixture = {
+        "fixture_id": "zero-fixture",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "units",
+        "metrics": {"revenue": 0},
+        "tolerances": {"revenue": 0},
+    }
+    (tmp_path / "zero.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    loaded = load_fixtures(tmp_path)
+
+    assert loaded[0].metrics["revenue"] == 0.0
+    assert loaded[0].tolerances["revenue"] == 0.0
+
+
 def test_metric_statuses_include_correct_wrong_missing_abstain():
     payload = _payload(
         metrics={
@@ -89,6 +169,15 @@ def test_metric_statuses_include_correct_wrong_missing_abstain():
         _payload(metrics={}),
     )
     assert missing.metric_status("revenue") == MetricEvalStatus.MISSING
+
+
+@pytest.mark.parametrize("boolean_value", [False, True])
+def test_evaluate_fixture_rejects_boolean_metric_values(boolean_value):
+    fixture = _load_fixture("correct_ok")
+    payload = _payload(metrics={"revenue": boolean_value})
+
+    with pytest.raises(ValueError, match="metric revenue actual value must be numeric"):
+        evaluate_fixture(fixture, payload["metrics"], payload)
 
 
 def test_optional_metric_classifies_as_abstain_when_absent():
@@ -175,6 +264,82 @@ def test_period_and_scale_mismatch_are_enforced_in_context_validation():
     )
     assert mismatch.context_ok is False
     assert set(mismatch.context_mismatches) == {"period_end", "scale"}
+
+
+def test_period_type_mismatch_is_enforced_in_context_validation():
+    payload = _payload(period_type="H", metrics={"revenue": 1_500_000})
+    mismatch = evaluate_fixture(
+        _load_fixture("correct_ok"), payload["metrics"], payload
+    )
+    assert mismatch.context_ok is False
+    assert mismatch.context_mismatches == ["period_type"]
+    assert all(
+        metric.status == MetricEvalStatus.QUARANTINE for metric in mismatch.metrics
+    )
+
+
+def test_accounting_basis_mismatch_is_independent_context_failure():
+    fixture = ExtractionFixture(
+        fixture_id="accounting-basis",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-06-30",
+            currency="AUD",
+            scale="millions",
+            accounting_basis="statutory",
+        ),
+        metrics={"revenue": 100.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = _payload(
+        period_end="2025-06-30",
+        scale="millions",
+        metrics={"revenue": 100.0},
+    )
+    payload["accounting_basis"] = "underlying"
+
+    result = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    assert result.context_ok is False
+    assert result.context_mismatches == ["accounting_basis"]
+    assert result.metric_status("revenue") == MetricEvalStatus.QUARANTINE
+
+
+def test_numeric_precision_is_separate_from_supported_metric_recall():
+    fixture = ExtractionFixture(
+        fixture_id="precision-recall",
+        context=FixtureContext(
+            period_type="A",
+            period_end="2025-06-30",
+            currency="AUD",
+            scale="millions",
+        ),
+        metrics={"revenue": 100.0, "ebit": 20.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = _payload(
+        period_end="2025-06-30",
+        scale="millions",
+        metrics={"revenue": 100.0},
+    )
+    evaluation = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    summary = summarize_numeric_quality([evaluation])
+
+    assert summary["accepted_numeric_precision"] == {
+        "correct_count": 1,
+        "accepted_count": 1,
+        "value": 1.0,
+    }
+    assert summary["supported_metric_recall"] == {
+        "correct_count": 1,
+        "expected_count": 2,
+        "value": 0.5,
+    }
 
 
 def test_scoring_prefers_abstain_over_wrong_for_aggregate_metrics():
@@ -271,6 +436,7 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
 
     scorecard = build_fixture_scorecard(FIXTURES_DIR, payloads)
 
+    assert scorecard["evaluation_lane"] == "synthetic"
     assert scorecard["total_fixture_count"] == 16
     assert scorecard["total_metric_expectations"] == 33
     assert scorecard["correct_count"] == 15
@@ -285,6 +451,12 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
         "mismatched_count": 1,
         "missing_count": 0,
     }
+    assert scorecard["period_type_correctness_summary"] == {
+        "expected_count": 16,
+        "matched_count": 16,
+        "mismatched_count": 0,
+        "missing_count": 0,
+    }
     assert scorecard["currency_correctness_summary"] == {
         "expected_count": 16,
         "matched_count": 13,
@@ -295,6 +467,12 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
         "expected_count": 16,
         "matched_count": 15,
         "mismatched_count": 1,
+        "missing_count": 0,
+    }
+    assert scorecard["accounting_basis_correctness_summary"] == {
+        "expected_count": 0,
+        "matched_count": 0,
+        "mismatched_count": 0,
         "missing_count": 0,
     }
 

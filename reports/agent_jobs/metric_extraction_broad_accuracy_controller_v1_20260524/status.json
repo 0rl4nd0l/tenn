@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "job_id": "metric_extraction_broad_accuracy_controller_v1_20260524",
+  "status": "audit_complete",
+  "agent": "Codex",
+  "lane": "Financial Truth",
+  "supporting_lanes": [
+    "Evaluation"
+  ],
+  "mode": "audit_only",
+  "production_data_access": false,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "initial_head": "b7be44463dd2107428d27165c564e62637576cdd",
+  "current_head": "e641db499b14dc53184eff678552b227a88dc573",
+  "head_drift": {
+    "observed": true,
+    "classification": "live_repo_nonblocking",
+    "commit_subject": "milestone(evaluation): preserve quantdinger clean reprobe proof",
+    "reason_nonblocking": "The observed drift touched Strategy Lab task/report files, not Financial Truth contested surfaces."
+  },
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "canonical_path_checked": "/home/l4nd0/tenn",
+  "canonical_path_resolved_to_worktree": true,
+  "task_card": {
+    "path": "docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+    "created_or_validated": true,
+    "validation_ok": true,
+    "validation_report": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/validation.json"
+  },
+  "registry": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "list_active_initial_ok": true,
+    "check_overlap_ok": true,
+    "claim_ok": true,
+    "released": true,
+    "active_jobs_after_release": 0,
+    "release_status_path": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/status.json"
+  },
+  "collision": {
+    "initial_risk": "HIGH for canonical truth/parser/routing/production extraction; MEDIUM for report-only evaluation artifacts",
+    "actual_risk": "MEDIUM",
+    "contested_surfaces_touched": [],
+    "forbidden_surfaces_touched": [],
+    "decision": "audit_only_completed"
+  },
+  "changed_files": [
+    "docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/README.md",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/status.json",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_coverage_map.json",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_gap_register.json",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/safe_extension_candidates.json",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/no_regression_gate_plan.md",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/validation.json",
+    "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/diff-check.json"
+  ],
+  "artifacts": {
+    "readme": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/README.md",
+    "coverage_map": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_coverage_map.json",
+    "gap_register": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_gap_register.json",
+    "safe_extension_candidates": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/safe_extension_candidates.json",
+    "no_regression_gate_plan": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/no_regression_gate_plan.md",
+    "validation": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/validation.json",
+    "diff_check": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/diff-check.json"
+  },
+  "scorecard_summary": {
+    "broad_accuracy_claim_supported": false,
+    "canonical_core": {
+      "document_count": 10,
+      "metric_expectation_count": 24,
+      "current_accuracy_result": "DATA_MISSING"
+    },
+    "expanded_required": {
+      "document_count": 15,
+      "metric_expectation_count": 39,
+      "current_accuracy_result": "DATA_MISSING"
+    },
+    "confirmed_metric_coverage": {
+      "fixture_count": 15,
+      "total_metric_expectations": 146,
+      "scored_metric_expectations": 73,
+      "candidate_review_required": 70,
+      "ambiguous": 3,
+      "unsupported": 0,
+      "current_accuracy_result": "DATA_MISSING"
+    }
+  },
+  "appendix5b_status_from_existing_artifact": {
+    "artifact": "reports/agent_jobs/appendix5b_prm_gate_stack_canonical_integration_v1_20260524/appendix5b_no_regression_report.json",
+    "gate_pass": true,
+    "canonical_write": false,
+    "documents_scored": 7,
+    "document_pass": 5,
+    "document_fail": 0,
+    "labelled_metric_count": 13,
+    "trusted_metric_count": 13,
+    "exact_match_rate": 1.0,
+    "labelled_metric_coverage": 1.0,
+    "fresh_parent_rerun": false
+  },
+  "appendix4c_status": {
+    "classifier_support_found": true,
+    "comparator_schema_support_found": true,
+    "deterministic_parser_found": false,
+    "promotion_status": "not_ready"
+  },
+  "validation": {
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md --write-report",
+      "result": "passed"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+      "result": "passed"
+    },
+    "json_validation": {
+      "command": "python3 -m json.tool on status, validation, coverage map, gap register, safe extension candidates, and diff-check artifacts",
+      "result": "passed"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+      "result": "passed",
+      "visible_changed_files": [
+        "docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md"
+      ],
+      "note": "Report artifacts are ignored by git status but were written under the allowed output_dir and validated directly."
+    }
+  },
+  "git_status": {
+    "short_untracked_all": [
+      "?? docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md"
+    ],
+    "ignored_report_artifacts_present": true
+  },
+  "data_missing": [
+    "current broad confirmed-coverage extracted-payload scorecard",
+    "current generated reports/extraction_eval artifact",
+    "local source PDFs for confirmed metric coverage rows",
+    "graphify-out/GRAPH_REPORT.md and graphify-out/wiki/index.md",
+    "fresh parent-card Appendix 5B gate rerun"
+  ],
+  "child_task_cards": {
+    "created": [],
+    "reason": "No child mutation was performed under the parent audit. Candidate child tasks are documented in safe_extension_candidates.json."
+  },
+  "save_recommendation": "SAVE_RECOMMENDED",
+  "save_recommendation_reason": "The audit establishes durable profile boundaries, DATA_MISSING items, and safe next child tasks for metric extraction accuracy work."
+}

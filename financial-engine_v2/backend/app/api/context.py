@@ -14,7 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Header, HTTPException, Query, Depends
+from fastapi.params import Header as HeaderParam
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -136,6 +137,60 @@ def _run_query(
             pass
         logger.warning("Query failed: %s", exc)
         return [], str(exc)
+
+
+def _api_key_allows_diagnostics(x_api_key: Any) -> bool:
+    configured_key = str(getattr(settings, "local_api_key", "") or "").strip()
+    if not configured_key:
+        return True
+    if isinstance(x_api_key, HeaderParam):
+        return True
+    return x_api_key == configured_key
+
+
+def _redact_announcement_context(rows: Any) -> list[dict[str, Any]]:
+    sensitive_fields = {
+        "pdf_path",
+        "source_url",
+        "pdf_sha256",
+        "excerpt",
+        "text",
+        "raw_text",
+        "extracted_text",
+        "content",
+    }
+    redacted_rows: list[dict[str, Any]] = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        redacted_row = dict(row)
+        for field in sensitive_fields:
+            if field in redacted_row:
+                redacted_row[field] = None
+        redacted_rows.append(redacted_row)
+    return redacted_rows
+
+
+def _redact_ticker_context_diagnostics(payload: dict[str, Any]) -> dict[str, Any]:
+    redacted = dict(payload)
+    redacted["docs"] = [
+        {
+            **doc,
+            "source_url": None,
+            "pdf_path": None,
+            "pdf_sha256": None,
+        }
+        for doc in redacted.get("docs", [])
+        if isinstance(doc, dict)
+    ]
+    redacted["announcement_context"] = _redact_announcement_context(
+        redacted.get("announcement_context")
+    )
+    redacted["extraction_failures"] = []
+    redacted["low_confidence_financials"] = []
+    redacted["errors"] = []
+    redacted["diagnostics_redacted"] = True
+    return redacted
 
 
 def _is_missing_table_error(error: str | None) -> bool:
@@ -965,7 +1020,7 @@ def _resolve_user_thesis_proposal_payload(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/memory")
+@router.get("/memory", dependencies=[Depends(require_api_key)])
 def get_memory_context(
     ticker: str,
     company_memory_entries_limit: int = Query(default=400, ge=1, le=2000),
@@ -1046,7 +1101,7 @@ def get_memory_context(
     }
 
 
-@router.get("/memory/index")
+@router.get("/memory/index", dependencies=[Depends(require_api_key)])
 def get_memory_index_context(
     company_memory_entries_limit: int = Query(default=5000, ge=1, le=20000),
     company_memory_change_limit: int = Query(default=2000, ge=1, le=20000),
@@ -1264,7 +1319,7 @@ def expire_market_memory_note(request: MarketMemoryExpireRequest) -> dict[str, A
 # ---------------------------------------------------------------------------
 
 
-@router.get("/thesis")
+@router.get("/thesis", dependencies=[Depends(require_api_key)])
 def get_user_thesis_context(
     ticker: str,
     entries_limit: int = Query(default=200, ge=1, le=2000),
@@ -1399,9 +1454,14 @@ def get_ticker_context(
     failures_limit: int = Query(default=50, ge=1, le=200),
     low_confidence_threshold: float = Query(default=0.4, ge=0.0, le=1.0),
     low_confidence_limit: int = Query(default=50, ge=1, le=200),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     errors: list[str] = []
 
     # --- docs (matches DbReader.get_docs) ---
@@ -1427,40 +1487,23 @@ def get_ticker_context(
     if err:
         errors.append(f"docs: {err}")
 
-    # --- financials (matches DbReader.get_financials) ---
-    financials, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT :limit
-    """,
-        {"ticker": ticker, "limit": financials_limit},
-    )
-    if err:
-        errors.append(f"financials: {err}")
+    # --- financials ---
+    from app.services.financial_observations import stable_financial_profile
 
-    # --- latest_financial_snapshot (matches DbReader.get_latest_financial_snapshot) ---
-    snapshot_rows, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT 1
-    """,
-        {"ticker": ticker},
-    )
-    latest_financial_snapshot = snapshot_rows[0] if snapshot_rows else None
-    if err:
-        errors.append(f"latest_financial_snapshot: {err}")
+    try:
+        profile_limit = (
+            financials_limit
+            if isinstance(financials_limit, int)
+            else int(financials_limit.default)
+        )
+        financials = list(stable_financial_profile(db, ticker=ticker))[
+            :profile_limit
+        ]
+        latest_financial_snapshot = financials[0] if financials else None
+    except Exception as exc:
+        financials = []
+        latest_financial_snapshot = None
+        errors.append(f"financials: {exc}")
 
     # --- announcement_context (matches DbReader.get_announcement_context) ---
     announcement_context_fallback_used = False
@@ -1505,27 +1548,14 @@ def get_ticker_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials (matches DbReader.get_low_confidence_financials with ticker) ---
-    low_confidence_financials, err = _run_query(
+    low_confidence_financials = _projected_low_confidence_financials(
         db,
-        """
-        SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-          AND ticker = :ticker
-        ORDER BY confidence_metrics ASC
-        LIMIT :limit
-    """,
-        {
-            "ticker": ticker,
-            "threshold": low_confidence_threshold,
-            "limit": low_confidence_limit,
-        },
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
     )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
 
-    return {
+    payload = {
         "ticker": ticker,
         "docs": docs,
         "financials": financials,
@@ -1536,7 +1566,11 @@ def get_ticker_context(
         "low_confidence_financials": low_confidence_financials,
         "backend_version": "1.0",
         "errors": errors,
+        "diagnostics_redacted": False,
     }
+    if _api_key_allows_diagnostics(x_api_key):
+        return payload
+    return _redact_ticker_context_diagnostics(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -1544,7 +1578,7 @@ def get_ticker_context(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/company_dump")
+@router.get("/company_dump", dependencies=[Depends(require_api_key)])
 def get_company_dump(
     ticker: str,
     docs_limit: int = Query(default=200, ge=1, le=1000),
@@ -1559,6 +1593,7 @@ def get_company_dump(
     market_memory_limit: int = Query(default=300, ge=1, le=2000),
     user_thesis_entries_limit: int = Query(default=200, ge=1, le=2000),
     user_thesis_proposals_limit: int = Query(default=200, ge=1, le=2000),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
@@ -1571,6 +1606,7 @@ def get_company_dump(
         failures_limit=failures_limit,
         low_confidence_threshold=low_confidence_threshold,
         low_confidence_limit=low_confidence_limit,
+        x_api_key=x_api_key,
         db=db,
     )
     errors: list[str] = list(base_context.get("errors") or [])
@@ -1750,44 +1786,49 @@ def _build_verification_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials ---
-    if ticker:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-              AND ticker = :ticker
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {
-                "ticker": ticker,
-                "threshold": low_confidence_threshold,
-                "limit": low_confidence_limit,
-            },
-        )
-    else:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {"threshold": low_confidence_threshold, "limit": low_confidence_limit},
-        )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
+    low_conf = _projected_low_confidence_financials(
+        db,
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
+    )
 
     return {
         "extraction_failures": failures,
         "low_confidence_financials": low_conf,
         "errors": errors,
     }
+
+
+def _projected_low_confidence_financials(
+    db: Session,
+    *,
+    ticker: str | None,
+    threshold: float,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Return only projected rows carrying authoritative numeric confidence.
+
+    Accepted-observation projection deliberately emits ``confidence_metrics``
+    as null: acceptance is categorical truth, not a model-confidence estimate.
+    Consequently accepted truth is never diagnosed as low confidence merely
+    because the legacy compatibility placeholder is absent.  This filter stays
+    narrow so a future authoritative numeric projection can participate without
+    manufacturing a score from acceptance, provenance, or review state.
+    """
+    from app.services.financial_observations import stable_financial_profiles
+
+    rows = stable_financial_profiles(db, ticker=ticker)
+    low_confidence = [
+        row
+        for row in rows
+        if row.get("confidence_metrics") is not None
+        and float(row["confidence_metrics"]) < threshold
+    ]
+    return sorted(
+        low_confidence,
+        key=lambda row: float(row["confidence_metrics"]),
+    )[:limit]
 
 
 def _verification_outcome_summary(
@@ -1814,7 +1855,7 @@ def _verification_outcome_summary(
     return False, ", ".join(parts)
 
 
-@router.get("/verification")
+@router.get("/verification", dependencies=[Depends(require_api_key)])
 def get_verification_context(
     ticker: str | None = Query(default=None),
     failures_limit: int = Query(default=100, ge=1, le=500),
@@ -1822,6 +1863,10 @@ def get_verification_context(
     low_confidence_limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     return _build_verification_context(
         db,
         ticker=ticker,
@@ -1869,7 +1914,7 @@ def run_verification_context(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/verification/runs")
+@router.get("/verification/runs", dependencies=[Depends(require_api_key)])
 def get_verification_runs(
     limit: int = Query(default=20, ge=1, le=50),
 ) -> dict[str, Any]:

@@ -1,0 +1,15 @@
+{
+  "code": "fast = SMA(close, 10)\nslow = SMA(close, 30)\ndf[\"buy\"]  = CROSSOVER(fast, slow).fillna(False).astype(bool)\ndf[\"sell\"] = CROSSUNDER(fast, slow).fillna(False).astype(bool)",
+  "commission": 0.001,
+  "end_date": "2024-03-31",
+  "indicator_params": {},
+  "initial_capital": 10000,
+  "leverage": 1,
+  "market": "Crypto",
+  "slippage": 0.0,
+  "start_date": "2024-01-01",
+  "strategy_config": {},
+  "symbol": "BTC/USDT",
+  "timeframe": "1D",
+  "trade_direction": "long"
+}

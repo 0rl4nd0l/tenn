@@ -1,0 +1,75 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_source_noncandidate_preparse_gate_v1_20260615.md",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser -q",
+      "exit": 1,
+      "result": "red_failed_as_expected",
+      "summary": "extract_structured was called once before the fix"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_excludes_known_false_positive_classes financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_preserves_valid_report_candidates -q",
+      "exit": 0,
+      "result": "passed",
+      "summary": "13 passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit": 0,
+      "result": "passed",
+      "summary": "All checks passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_source_noncandidate_preparse_gate_v1_20260615.md --repo-root .",
+      "exit": 0,
+      "result": "passed",
+      "summary": "disallowed_files=[]"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest pytest financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser_import -q",
+      "exit": 0,
+      "result": "passed",
+      "summary": "review-fix regression: noncandidate gate returns before docling_extract import; 1 passed"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest pytest financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser_import financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_excludes_known_false_positive_classes financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_preserves_valid_report_candidates -q",
+      "exit": 0,
+      "result": "passed",
+      "summary": "review-fix focused slice: 13 passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit": 0,
+      "result": "passed",
+      "summary": "review-fix rerun"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit": 0,
+      "result": "passed",
+      "summary": "review-fix rerun; All checks passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "passed",
+      "summary": "review-fix rerun"
+    }
+  ],
+  "job_id": "extraction_source_noncandidate_preparse_gate_v1_20260615",
+  "validation_scope": "focused_only"
+}

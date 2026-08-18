@@ -1,0 +1,283 @@
+{
+  "approval_status": "NOT_AUTHORIZED",
+  "approval_packet_id": "extraction_count24_approval_packet_v1_20260607",
+  "generated_at": "2026-06-07T06:13:46Z",
+  "mode": "APPROVAL_PACKET_REPORT_ONLY",
+  "risk": "MEDIUM_HIGH",
+  "canonical": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "required_head": "b67736109db2c405171ff039c3b2f071238205db",
+    "prerequisite_merge": {
+      "pr": 306,
+      "merge_commit": "b67736109db2c405171ff039c3b2f071238205db",
+      "meaning": "post-PR301 broad-accuracy guard work is canonical"
+    }
+  },
+  "prior_evidence": {
+    "parent_report": "reports/agent_jobs/extraction_post_pr301_broad_accuracy_push_v1_20260607/README.md",
+    "parent_status": "reports/agent_jobs/extraction_post_pr301_broad_accuracy_push_v1_20260607/status.json",
+    "final_prior_decision": "READY_FOR_COUNT24_APPROVAL_PACKET",
+    "count16": {
+      "seed": 20260602,
+      "actual_count": 16,
+      "candidate_pool_count": 28633,
+      "candidate_pool_ordered_sha256": "3d99f44885fd056ac3f112d56abe95d14dd1ac9affdcd7315f860f690cdeb63f",
+      "candidate_pool_sorted_sha256": "e4d57b2cdb3e8583a3aeaf33fba5a2d959383500733473349771f80531629e7a",
+      "ok": 7,
+      "ok_low_confidence": 0,
+      "failed": 9,
+      "exceptions": 0,
+      "suspicious_accepted_before_repair": [
+        "419bcca8-213e-4706-8962-8e3bd8adf091",
+        "551c6b84-1053-405c-a833-4ecc018e2045"
+      ]
+    },
+    "post_repair_guard": {
+      "error": "validation_gate:announcement_date_period_end",
+      "saved_payloads_failed_closed": [
+        "HUB",
+        "LBL"
+      ]
+    }
+  },
+  "exact_operator_approval_language": "I APPROVE COUNT-24 ONLY for Tenn extraction validation on canonical b67736109db2c405171ff039c3b2f071238205db using seed 20260602. Do not run count-32, broad extraction, backfill, or full ticker-universe extraction.",
+  "not_authorized_until": [
+    "operator provides the exact approval language",
+    "canonical HEAD is rechecked and still includes b67736109db2c405171ff039c3b2f071238205db",
+    "registry/readiness gates are clean immediately before execution",
+    "candidate pool count and hashes are captured before extraction",
+    "selected-document manifest is written before extraction"
+  ],
+  "proposed_sample_strategy": {
+    "run_type": "bounded_count24_validation",
+    "requested_count": 24,
+    "seed": 20260602,
+    "candidate_ordering": "same deterministic candidate ordering used by the post-PR301 count-16 runner",
+    "comparability_goal": "preserve count-16 comparability while expanding the bounded sample from 16 to 24",
+    "selection_rule": "select 24 documents from the freshly recomputed candidate pool using the approved deterministic method; write manifest before extracting any document",
+    "drift_rule": "if current candidate_pool_count or hash differs from prior count-16 evidence, stop before extraction and ask whether to approve a drifted count-24 or refresh the approval packet"
+  },
+  "candidate_pool_hash_requirement": {
+    "must_capture_before_extraction": true,
+    "required_fields": [
+      "candidate_pool_count",
+      "candidate_pool_ordered_sha256",
+      "candidate_pool_sorted_sha256",
+      "candidate_pool_query_or_source_description",
+      "candidate_pool_generation_command",
+      "canonical_head",
+      "timestamp_utc"
+    ],
+    "prior_reference": {
+      "candidate_pool_count": 28633,
+      "candidate_pool_ordered_sha256": "3d99f44885fd056ac3f112d56abe95d14dd1ac9affdcd7315f860f690cdeb63f",
+      "candidate_pool_sorted_sha256": "e4d57b2cdb3e8583a3aeaf33fba5a2d959383500733473349771f80531629e7a"
+    },
+    "hard_stop_on_missing_hash": true,
+    "hard_stop_on_unexplained_drift": true
+  },
+  "selected_doc_manifest_requirement": {
+    "must_exist_before_first_extraction": true,
+    "format": "json",
+    "required_fields_per_document": [
+      "index",
+      "document_id",
+      "ticker",
+      "pdf_path",
+      "title",
+      "source_document_class",
+      "selection_seed",
+      "candidate_pool_ordered_sha256",
+      "canonical_head"
+    ],
+    "required_manifest_fields": [
+      "requested_count",
+      "actual_count",
+      "seed",
+      "canonical_head",
+      "candidate_pool_count",
+      "candidate_pool_ordered_sha256",
+      "candidate_pool_sorted_sha256",
+      "selected_document_ids",
+      "selected_documents"
+    ],
+    "hard_stop_if_manifest_missing_or_invalid": true
+  },
+  "runtime_readiness_gates": {
+    "must_pass_immediately_before_run": [
+      "git branch/head/status confirms clean approved run worktree",
+      "canonical HEAD includes b67736109db2c405171ff039c3b2f071238205db",
+      "task card for the execution run is validated with exact allowed_files",
+      "registry active jobs read-only check shows no overlapping extraction/evaluation job",
+      "runtime backend target is explicit and reachable",
+      "loaded backend/extractor commit proof is captured or DATA_MISSING triggers hard stop",
+      "queue baseline is empty or fully explained",
+      "GPU/process baseline is captured",
+      "DB/Qdrant/news/memory/source PDF write surfaces are snapshotted for side-effect audit"
+    ],
+    "loaded_commit_proof": {
+      "required": true,
+      "acceptable_evidence": [
+        "backend route or process metadata reports loaded git commit equal to approved canonical head",
+        "run script records direct module path and git HEAD when no persistent service is used"
+      ],
+      "if_data_missing": "STOP before extraction and ask for operator decision"
+    }
+  },
+  "queue_gpu_process_checks": {
+    "before_run": [
+      "Redis/extraction queues length and unacked keys captured",
+      "known extraction/backend/worker/llama processes listed with pids and command lines",
+      "GPU telemetry captured with nvidia-smi if available",
+      "fallback GPU proof recorded as DATA_MISSING if nvidia-smi fails"
+    ],
+    "after_run": [
+      "queues return to baseline or every residual item is explained",
+      "no orphaned extraction/backend/worker/llama processes from the run",
+      "GPU process list returns to baseline or every residual process is explained"
+    ],
+    "hard_stop": [
+      "unexpected active extraction job",
+      "unknown live queue payloads",
+      "unexplained GPU/process owner conflict",
+      "missing queue/process baseline"
+    ]
+  },
+  "accepted_output_audit_requirements": {
+    "must_audit_every_ok_and_ok_low_confidence_row": true,
+    "required_checks": [
+      "source_document_class is financial_report or explicitly justified unknown_document",
+      "period_type agrees with explicit source period evidence",
+      "period_end is source-bound and not a leading announcement date for half-year documents",
+      "scale is source-bound and not unknown",
+      "row labels do not use EBITDA or net operating income as canonical EBIT",
+      "metric values include provenance row/page/source text where available",
+      "sanity checks for revenue, cash_end, shares_outstanding, and impossible magnitudes",
+      "non-AUD outputs remain ok_low_confidence unless policy says otherwise"
+    ],
+    "special_rechecks": [
+      "HUB/LBL-like half-year announcement-date guard must fail closed if repeated",
+      "DXC-like net_operating_income as EBIT must fail closed",
+      "director_interest_notice and other noncandidate classes must not appear as accepted outputs"
+    ]
+  },
+  "side_effect_audit_requirements": {
+    "must_capture_before_and_after": [
+      "git status",
+      "source PDF diff/staged audit",
+      "DB file mtimes/sizes for configured DB paths",
+      "Qdrant collection/point counts if reachable",
+      "Redis queue lengths and unacked keys",
+      "news/memory store mutation indicators where applicable",
+      "process and GPU baseline"
+    ],
+    "must_report": [
+      "db_files_changed",
+      "qdrant_changed",
+      "news_route_used",
+      "memory_mutated",
+      "source_pdfs_changed",
+      "queues_clean_after_run",
+      "unexpected_processes_after_run"
+    ]
+  },
+  "stop_conditions": [
+    "operator approval phrase absent or modified",
+    "canonical head does not include b67736109db2c405171ff039c3b2f071238205db",
+    "task-card validation fails",
+    "registry shows overlapping extraction/evaluation work",
+    "candidate pool count/hash missing or unexplained drifted",
+    "selected-document manifest missing or invalid",
+    "loaded commit proof missing",
+    "runtime/backend unavailable",
+    "queue/GPU/process baseline unavailable",
+    "any accepted output has unsafe source-bound truth evidence",
+    "any DB/Qdrant/news/memory/source-PDF mutation appears outside the approved run contract",
+    "count-24 attempts to widen into count-32, broad extraction, backfill, or full ticker-universe extraction"
+  ],
+  "containment_plan_if_unsafe_rows_appear": {
+    "default_action": "STOP_AFTER_COUNT24_AND_DO_NOT_CONTINUE_TO_COUNT32",
+    "required_before_any_containment_mutation": [
+      "record exact document_id, ticker, run_id, metric, row_ref, provenance, DB row key, and Qdrant point id if present",
+      "snapshot affected DB/Qdrant rows or record DATA_MISSING for missing exact identifiers",
+      "write containment approval packet",
+      "obtain explicit operator approval for exact containment mutation"
+    ],
+    "allowed_without_extra_approval": [
+      "report unsafe rows",
+      "classify failure/accepted-output taxonomy",
+      "write report artifacts"
+    ],
+    "forbidden_without_extra_approval": [
+      "delete or update DB rows",
+      "delete or update Qdrant points",
+      "run broad cleanup",
+      "rerun extraction/backfill"
+    ]
+  },
+  "success_failure_thresholds": {
+    "green_threshold": {
+      "exceptions": 0,
+      "unsafe_accepted_outputs": 0,
+      "side_effect_anomalies": 0,
+      "ok_low_confidence_requires_explanation": true,
+      "minimum_acceptable_ok": 12,
+      "failed_rows_allowed_if_fail_closed_and_classified": true
+    },
+    "yellow_threshold": {
+      "exceptions": 0,
+      "unsafe_accepted_outputs": 0,
+      "side_effect_anomalies": 0,
+      "unresolved_DATA_MISSING": "bounded and non-blocking",
+      "action": "taxonomy/report only; no count-32 approval"
+    },
+    "red_threshold": {
+      "unsafe_accepted_outputs": "greater_than_0",
+      "exceptions": "greater_than_0",
+      "side_effect_anomalies": "greater_than_0",
+      "candidate_pool_or_manifest_invalid": true,
+      "action": "stop, preserve artifacts, prepare containment or blocker report"
+    },
+    "count32_graduation": "not authorized by this packet; requires separate approval after count-24 taxonomy and side-effect audit"
+  },
+  "forbidden_during_packet_preparation": [
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "backfill",
+    "full ticker-universe extraction",
+    "DB mutation",
+    "Qdrant mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF edit",
+    "extraction code change",
+    "prompt change",
+    "gold-label change",
+    "runtime change",
+    "schema change",
+    "service restart",
+    "model/GPU config change"
+  ],
+  "packet_preparation_actions_run": {
+    "count24_run": false,
+    "count32_run": false,
+    "sample_run": false,
+    "broad_extraction_run": false,
+    "backfill_run": false,
+    "full_ticker_universe_extraction_run": false,
+    "containment_mutation": false
+  },
+  "remaining_risks": [
+    "WHC 2022 scale root cause remains unresolved from the post-PR301 taxonomy.",
+    "nvidia-smi failed during the prior count-16 phase, so GPU telemetry may remain DATA_MISSING unless fixed before execution.",
+    "PR #301 artifact omitted accepted-row refs/provenance and extraction_run_id values.",
+    "Route-level DXC/LBL exposure checks were not run because exact DB/Qdrant matches were absent.",
+    "Count-24 may reveal new unsafe accepted-output classes not seen in count-16."
+  ],
+  "data_missing": [
+    "Current runtime loaded-commit proof is not collected because this packet does not start services or runtime.",
+    "Current queue/GPU/process baselines are not collected because count-24 execution is not authorized.",
+    "Future candidate pool count/hash and selected-doc manifest are intentionally pending until the approved execution preflight."
+  ]
+}

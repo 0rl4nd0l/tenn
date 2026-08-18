@@ -1,0 +1,100 @@
+{
+  "checks": [
+    {
+      "command": "git rev-parse --abbrev-ref HEAD",
+      "name": "target branch",
+      "result": "passed",
+      "summary": "migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "name": "target head",
+      "result": "passed",
+      "summary": "c8d605e3de625c9f456edc0f3896b571a68f6b25"
+    },
+    {
+      "command": "git rev-parse --verify safe/strategy-lab-readonly-subsystem-maturation-v1-20260525 && git rev-parse --verify e5e12fe990d1^{commit}",
+      "name": "source branch and commit",
+      "result": "passed",
+      "summary": "e5e12fe990d1264210237e9d219ec044dd010a71"
+    },
+    {
+      "command": "git status --short --untracked-files=all",
+      "name": "target dirty state",
+      "result": "blocking",
+      "summary": "Two unrelated untracked task cards were present before this review task card was created."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "name": "registry list-active",
+      "result": "passed",
+      "summary": "active_jobs: []"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525.md",
+      "name": "review task-card validate",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525.md --repo-root .",
+      "name": "registry check-overlap",
+      "result": "failed_blocking",
+      "summary": "Blocked by unrelated dirty task cards outside allowed_files."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525.md",
+      "name": "registry claim",
+      "result": "failed_blocking",
+      "summary": "No claim was created because check-overlap failed on unrelated dirty task cards."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525.md --repo-root . --no-write-report",
+      "name": "task-card check-diff",
+      "result": "failed_blocking",
+      "summary": "Blocked by the same two unrelated dirty task cards outside allowed_files; reported rather than resolved."
+    },
+    {
+      "command": "git show --name-status --stat --oneline --decorate --no-renames e5e12fe990d1",
+      "name": "source commit changed files",
+      "result": "passed",
+      "summary": "33 files changed, scoped to Strategy Lab UI/lib/docs/reports/tests."
+    },
+    {
+      "command": "git diff --name-status --no-renames HEAD..e5e12fe990d1",
+      "name": "broad branch diff",
+      "result": "failed_blocking",
+      "summary": "Broad branch comparison includes unrelated deletes and contested backend route drift because source is behind target."
+    },
+    {
+      "command": "git show --binary --format= e5e12fe990d1 | git apply --check --3way",
+      "name": "single-commit apply check",
+      "result": "passed",
+      "summary": "Patch applied cleanly in check mode; no cherry-pick was performed."
+    },
+    {
+      "command": "scoped grep for true promotion assignments",
+      "name": "forbidden-promotion scan",
+      "result": "passed",
+      "summary": "No true assignments for current_sidecar_available, execution_allowed, canonical_financial_truth, or real_transport in changed files."
+    },
+    {
+      "command": "scoped secret-pattern grep",
+      "name": "secret scan",
+      "result": "passed",
+      "summary": "No secret-pattern matches in changed files."
+    },
+    {
+      "command": "jq empty reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525/status.json reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525/validation.json",
+      "name": "review report JSON",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check -- docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525.md",
+      "name": "review task-card whitespace",
+      "result": "passed"
+    }
+  ],
+  "job_id": "strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525",
+  "schema_version": "strategy_lab_readonly_subsystem_maturation_review_integrate_validation_v1",
+  "status": "parked_report_only_with_blocking_target_dirty_state"
+}

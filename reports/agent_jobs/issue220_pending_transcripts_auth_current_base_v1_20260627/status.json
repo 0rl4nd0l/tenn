@@ -1,0 +1,23 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@7d6ab6c184332d5413700eb08e6790f530000942",
+  "branch": "safe/issue220-pending-transcripts-auth-current-base-v1-20260627",
+  "github_issue": 220,
+  "github_pr": 431,
+  "job_id": "issue220_pending_transcripts_auth_current_base_v1_20260627",
+  "result": "PR_OPEN",
+  "runtime_functionality": "PARTIAL",
+  "safety": {
+    "data_mutation": false,
+    "runtime_started": false,
+    "service_config_changed": false
+  },
+  "updated_at": "2026-06-26T18:43:19Z",
+  "validation": {
+    "backend_route_auth_tests": "19 passed, 5 warnings",
+    "backendapi_client_tests": "2 passed, 1 warning",
+    "git_diff_check": "passed",
+    "py_compile": "passed",
+    "ruff": "passed",
+    "task_card_validate": "passed"
+  }
+}

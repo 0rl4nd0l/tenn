@@ -1,0 +1,109 @@
+{
+  "artifact_type": "extraction_empty_risk_note_suppression_status_v1",
+  "generated_at": "2026-05-27T09:23:00Z",
+  "job_id": "extraction_empty_risk_note_suppression_v1_20260527",
+  "related_issue": 96,
+  "lane": "Provenance",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Evaluation",
+    "Query Orchestration"
+  ],
+  "verdict": "fixed_for_narrow_persistence_bug",
+  "broad_backfill_run": false,
+  "second_canary_batch_submitted": false,
+  "production_db_writes": false,
+  "direct_sql_mutation": false,
+  "qdrant_news_memory_mutation": false,
+  "service_restarts": false,
+  "parser_routing_changes": false,
+  "prompt_changes": false,
+  "gold_label_mutation": false,
+  "source_pdf_edits": false,
+  "schema_migrations": false,
+  "canonical_truth_promotion_changes": false,
+  "runtime_model_gpu_config_changes": false,
+  "repo": {
+    "baseline_worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "baseline_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "baseline_head": "5d6322f48f45739bb3db3961d0416db0af99b932",
+    "baseline_had_unrelated_pr39_architecture_dirt": true,
+    "worktree": "/home/l4nd0/tenn-extraction-empty-risk-note-suppression-v1-20260527",
+    "branch": "safe/extraction-empty-risk-note-suppression-v1-20260527",
+    "head": "5d6322f48f45739bb3db3961d0416db0af99b932",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "isolated_worktree_used": true
+  },
+  "task_card": {
+    "path": "docs/agent_tasks/extraction_empty_risk_note_suppression_v1_20260527.md",
+    "validation_ok": true,
+    "mutation_mode": "safe_extension",
+    "claim_ok": true,
+    "release_ok": true
+  },
+  "root_cause": {
+    "confirmed": true,
+    "pre_fix_allow_empty_true_location": "financial-engine_v2/backend/app/services/pipeline.py:_upsert_financial_rows",
+    "cause": "_upsert_financial_rows called _upsert_risk_note with allow_empty=True while risk_note_written was computed separately from _has_narrative_content",
+    "fix": "_upsert_financial_rows now calls _upsert_risk_note with allow_empty=False"
+  },
+  "behavior": {
+    "empty_no_narrative_risk_rows_suppressed": true,
+    "valid_risk_note_persistence_preserved": true,
+    "risk_note_written_agrees_with_narrative_content": true,
+    "financial_metric_extraction_semantics_changed": false,
+    "parser_routing_or_validation_gate_behavior_changed": false,
+    "pls_scale_unknown_abstention_changed": false,
+    "bhp_native_usd_no_fx_behavior_changed": false
+  },
+  "files_changed": [
+    "docs/agent_tasks/extraction_empty_risk_note_suppression_v1_20260527.md",
+    "financial-engine_v2/backend/app/services/pipeline.py",
+    "financial-engine_v2/backend/tests/test_pipeline_stages.py",
+    "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/README.md",
+    "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/status.json",
+    "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/validation.json",
+    "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/diff-check.json",
+    "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/github_issue_96_comment.md",
+    "reports/agent_jobs/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/README.md",
+    "reports/agent_jobs/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/status.json"
+  ],
+  "proof": {
+    "empty_rows_suppressed": "test_upsert_financial_rows_suppresses_empty_risk_note verifies one ASXPeriodicFinancial row and zero ASXRiskNote rows for empty narrative fields with confidence_narrative 0",
+    "risk_note_written_consistency": "test_process_document_records_reproducibility_for_ok_low_confidence verifies risk_note_written is 0 for an OK no-narrative payload",
+    "valid_rows_persist": "test_upsert_financial_rows_persists_real_risk_note verifies non-empty narrative fields persist to ASXRiskNote",
+    "failed_validation_narrative_preserved": "test_process_document_persists_narrative_for_failed_validation_gate still passes"
+  },
+  "validation_summary": {
+    "task_card_validation": "pass",
+    "registry_list_active": "pass_unrelated_reporting_job_only",
+    "registry_check_overlap": "pass",
+    "registry_claim": "pass",
+    "focused_pytest": "pass_4_tests",
+    "py_compile": "pass",
+    "ruff": "pass",
+    "git_diff_check": "pass",
+    "json_validation": "pass",
+    "task_card_check_diff": "pass",
+    "source_pdfs_staged": false,
+    "registry_release": "pass",
+    "final_list_active": "pass_no_active_jobs",
+    "github_issue_comment": "https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4553213822"
+  },
+  "second_canary_batch": {
+    "safe_to_request_from_risk_note_persistence_standpoint": true,
+    "submitted_by_this_task": false,
+    "remaining_data_missing": [
+      "No second canary batch was run after this patch.",
+      "Orders 3-10 were not audited in this task."
+    ]
+  },
+  "data_missing": [
+    "No second canary batch was run.",
+    "No broad backfill was run.",
+    "No production DB cleanup was attempted for the already-created empty BHP ASXRiskNote row.",
+    "Orders 3-10 were not audited in this task.",
+    "Repo-local .cursor/rules architecture rule files are absent in this isolated worktree."
+  ],
+  "project_memory_save_recommendation": "Save that issue #96 empty ASXRiskNote persistence was fixed by changing _upsert_financial_rows to call _upsert_risk_note with allow_empty=False, with focused DB tests proving empty rows are suppressed and real risk notes still persist. No canary or backfill was run."
+}

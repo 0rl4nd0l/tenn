@@ -1,0 +1,153 @@
+{
+  "generated_at": "2026-05-27T13:49:32+10:00",
+  "issues": [
+    {
+      "number": 40,
+      "before": {
+        "state": "OPEN",
+        "labels": [],
+        "milestone": null,
+        "body_shape": "raw Jam capture only"
+      },
+      "decision": "DATA_MISSING_LINKED",
+      "after": {
+        "state": "OPEN",
+        "labels": [
+          "lane:query-orchestration",
+          "lane:reporting",
+          "lane:provenance",
+          "mode:audit",
+          "priority:p2",
+          "risk:medium",
+          "state:data-missing",
+          "state:needs-review",
+          "type:validation-gap",
+          "type:usability"
+        ],
+        "milestone": "M3 \u2014 Query + Memory Integrity",
+        "body_shape": "Tenn issue contract plus original Jam evidence"
+      }
+    },
+    {
+      "number": 41,
+      "before": {
+        "state": "OPEN",
+        "labels": [
+          "bug"
+        ],
+        "milestone": null,
+        "body_shape": "raw Jam capture only"
+      },
+      "decision": "DATA_MISSING_LINKED",
+      "after": {
+        "state": "OPEN",
+        "labels": [
+          "lane:reporting",
+          "lane:cockpit",
+          "mode:audit",
+          "priority:p1",
+          "risk:medium",
+          "state:data-missing",
+          "state:needs-review",
+          "type:bug",
+          "type:validation-gap"
+        ],
+        "milestone": "M5 \u2014 Cockpit Analyst Workflow",
+        "body_shape": "Tenn issue contract plus original Jam evidence"
+      }
+    },
+    {
+      "number": 53,
+      "before": {
+        "state": "OPEN",
+        "labels": [],
+        "milestone": null,
+        "body_shape": "audit evidence without current contract metadata"
+      },
+      "decision": "NORMALIZED_IN_PLACE",
+      "after": {
+        "state": "OPEN",
+        "labels": [
+          "lane:reporting",
+          "lane:cockpit",
+          "mode:audit",
+          "priority:p2",
+          "risk:medium",
+          "state:ready",
+          "type:usability",
+          "type:validation-gap"
+        ],
+        "milestone": "M5 \u2014 Cockpit Analyst Workflow",
+        "body_shape": "Tenn issue contract"
+      }
+    },
+    {
+      "number": 55,
+      "before": {
+        "state": "OPEN",
+        "labels": [],
+        "milestone": null,
+        "body_shape": "security evidence without current contract metadata"
+      },
+      "decision": "NORMALIZED_IN_PLACE",
+      "after": {
+        "state": "OPEN",
+        "labels": [
+          "lane:runtime",
+          "lane:reporting",
+          "mode:audit",
+          "priority:p1",
+          "risk:high",
+          "state:ready",
+          "type:security",
+          "type:control-plane"
+        ],
+        "milestone": "M6 \u2014 Runtime / Local Automation",
+        "body_shape": "Tenn issue contract"
+      }
+    },
+    {
+      "number": 61,
+      "before": {
+        "state": "OPEN",
+        "labels": [],
+        "milestone": null,
+        "body_shape": "runtime UI honesty evidence without current contract metadata"
+      },
+      "decision": "NORMALIZED_IN_PLACE",
+      "after": {
+        "state": "OPEN",
+        "labels": [
+          "lane:runtime",
+          "lane:reporting",
+          "mode:audit",
+          "priority:p1",
+          "risk:medium",
+          "state:ready",
+          "type:bug",
+          "type:usability"
+        ],
+        "milestone": "M6 \u2014 Runtime / Local Automation",
+        "body_shape": "Tenn issue contract"
+      }
+    },
+    {
+      "number": 106,
+      "before": {
+        "state": "OPEN",
+        "labels": [
+          "state:ready"
+        ],
+        "milestone": "M0 \u2014 Control Plane Hardening"
+      },
+      "decision": "CLOSED_COMPLETED_WITH_EVIDENCE",
+      "after": {
+        "state": "CLOSED",
+        "labels": [
+          "state:done-remediated"
+        ],
+        "milestone": "M0 \u2014 Control Plane Hardening"
+      }
+    }
+  ]
+}

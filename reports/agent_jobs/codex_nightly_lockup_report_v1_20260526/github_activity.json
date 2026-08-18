@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-05-26T18:20:40+10:00",
+  "query": "created:2026-05-26 repo:0rl4nd0l/tenn",
+  "issues_created_today": 38,
+  "prs_created_today": 0,
+  "key_issues": [
+    {
+      "number": 112,
+      "state": "OPEN",
+      "title": "[Runtime] Add final-status observability for nightly news scheduling",
+      "url": "https://github.com/0rl4nd0l/tenn/issues/112"
+    },
+    {
+      "number": 114,
+      "state": "OPEN",
+      "title": "[Runtime] Nightly news fetch fails because canonical ASX ticker universe is missing",
+      "url": "https://github.com/0rl4nd0l/tenn/issues/114"
+    },
+    {
+      "number": 115,
+      "state": "OPEN",
+      "title": "[Repo Hygiene] Add report-only Codex nightly lock-up audit",
+      "url": "https://github.com/0rl4nd0l/tenn/issues/115"
+    }
+  ],
+  "closed_today_sample": [
+    {
+      "number": 85,
+      "state": "CLOSED",
+      "title": "[Repo Hygiene] Integrate registry read-only no-lock list-active fix",
+      "url": "https://github.com/0rl4nd0l/tenn/issues/85"
+    }
+  ]
+}

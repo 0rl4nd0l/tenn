@@ -1,0 +1,47 @@
+{
+  "issue": 85,
+  "source_branch": "safe/registry-readonly-no-lock-list-active-v1-20260525",
+  "source_branch_exists_local": true,
+  "source_branch_exists_on_origin": false,
+  "source_commit": "af69c6fef20070f06d3b57594c9847d2ba98448a",
+  "source_commit_exists_local": true,
+  "source_commit_type": "commit",
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/registry_readonly_no_lock_list_active_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/agent_job_registry.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_agent_job_registry.py",
+      "status": "M"
+    }
+  ],
+  "scope": {
+    "limited_to_registry_tooling_tests_task_and_report_artifacts": true,
+    "product_backend_frontend_runtime_data_files_changed": false,
+    "db_qdrant_news_memory_changed": false,
+    "canonical_financial_truth_changed": false,
+    "parser_extraction_gold_model_runtime_gpu_service_config_changed": false
+  },
+  "verdict": "SAFE_TO_INTEGRATE"
+}

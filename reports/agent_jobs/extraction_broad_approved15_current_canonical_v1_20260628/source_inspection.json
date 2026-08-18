@@ -1,0 +1,83 @@
+{
+  "artifact_type": "approved15_source_inspection_v1",
+  "candidate_failure_classes": [
+    {
+      "blast_radius": "narrow prose fallback window for share-note candidate sections",
+      "class": "SEG_missing_shares_outstanding",
+      "decision": "FIXED_THIS_LANE",
+      "source_proven": true
+    },
+    {
+      "class": "RMS_missing_cashflow_metrics",
+      "decision": "PARK",
+      "reason": "would require cash-flow statement recovery change; separate class",
+      "source_proven": true
+    },
+    {
+      "class": "QBE_revenue_note_heading_false_positive",
+      "decision": "PARK",
+      "reason": "revenue source-text / income statement selection class; separate class and broader gate impact",
+      "source_proven": true
+    },
+    {
+      "class": "CSL_revenue_narrative_false_positive",
+      "decision": "FIXED_AFTER_FULL_REPLAY",
+      "reason": "source-text revenue false positive from narrative; separate class",
+      "remaining_gate_effect": "scorecard gate still blocked; aggregate result_class_summary unchanged because CSL rows remain ambiguous_quarantined in current #97 scoring policy",
+      "source_proven": true,
+      "validated_by": [
+        "focused pytest statement_text_overlay_replaces_narrative_future_sales_revenue",
+        "single-case no-write replay CSL_H_2025-12-31 after fix",
+        "payload_scorecard_after_fix.json rebuilt from full post-SEG replay plus focused CSL replay"
+      ]
+    },
+    {
+      "class": "DXS_mixed_source_scale_and_statement_selection",
+      "decision": "PARK",
+      "reason": "intertwined scale/source-policy behavior; not one narrow safe fix here",
+      "source_proven": "PARTIAL"
+    },
+    {
+      "class": "BHP_MIN_np_attributable_wrong_value",
+      "decision": "PARK",
+      "reason": "requires separate row-level source audit",
+      "source_proven": "DATA_MISSING"
+    }
+  ],
+  "hard_stops_preserved": [
+    "no DB/Qdrant/Redis/news/runtime/backfill/production data mutation",
+    "no source PDF mutation",
+    "no gold label mutation",
+    "no prompt/model/service mutation",
+    "no GitHub issue mutation",
+    "no count-24/count-32 execution"
+  ],
+  "selected_fix": {
+    "class": "SEG_split_number_of_shares_on_issue_sections",
+    "implemented_files": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "reason": "PyMuPDF sections split label \"Number of shares on issue\" and value \"280,874,770\" on source page 24; old prose fallback joined only share-note-keyword followers and missed the adjacent numeric section.",
+    "source_proven": true,
+    "validated_by": [
+      "pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k shares",
+      "single-case no-write replay SEG_H_2025-12-31 after fix",
+      "payload_scorecard_after_fix.json / payload_scorecard_delta_after_fix.json"
+    ]
+  },
+  "selected_remaining_fix": {
+    "class": "CSL_revenue_narrative_false_positive",
+    "implemented_files": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "reason": "Source-text revenue came from narrative future-sales sentence rather than current-period income statement row; formal statement text now replaces it when available, otherwise the rejected revenue metric is cleared fail-closed.",
+    "source_proven": true,
+    "validated_by": [
+      "pytest focused narrative future-sales revenue regression",
+      "CSL_H_2025-12-31 no-write replay PASS / ok_low_confidence"
+    ]
+  },
+  "status": "PARTIAL"
+}

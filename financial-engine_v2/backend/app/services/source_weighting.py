@@ -51,7 +51,6 @@ def apply_source_weighting(
     )
     final_score = (
         float(relevance_score)
-        * float(source_weight)
         * resolved_credibility
         * float(recency_decay)
     )
@@ -80,20 +79,32 @@ def apply_weighting_to_chunk(chunk: dict[str, Any], *, now: Any = None) -> dict[
             float(normalized.get("keyword_score") or 0.0),
         )
 
+    half_life_value = float(half_life_days)
+    try:
+        recency_decay = compute_recency_decay(
+            published_at=normalized.get("published_at"),
+            half_life_days=half_life_value,
+            now=now,
+        )
+    except (TypeError, ValueError, OverflowError) as exc:
+        recency_decay = 1.0
+        normalized["recency_status"] = "malformed_published_at"
+        normalized["recency_warning"] = "invalid_published_at"
+        normalized["published_at_parse_error"] = (
+            f"{type(exc).__name__}: invalid published_at="
+            f"{normalized.get('published_at')!r}: {exc}"
+        )
+
     scoring = apply_source_weighting(
         relevance_score=float(relevance_score or 0.0),
         source_type=source_type,
         credibility_weight=normalized.get("credibility_weight"),
-        recency_decay=compute_recency_decay(
-            published_at=normalized.get("published_at"),
-            half_life_days=half_life_days,
-            now=now,
-        ),
+        recency_decay=recency_decay,
     )
     normalized["source_weight"] = scoring["source_weight"]
     normalized["credibility_weight"] = scoring["credibility_weight"]
     normalized["recency_decay"] = scoring["recency_decay"]
     normalized["relevance_score"] = scoring["relevance_score"]
     normalized["final_score"] = scoring["final_score"]
-    normalized["decay_half_life"] = float(half_life_days)
+    normalized["decay_half_life"] = half_life_value
     return normalized

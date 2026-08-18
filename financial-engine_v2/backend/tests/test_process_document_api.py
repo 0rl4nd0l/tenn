@@ -32,6 +32,7 @@ def test_process_document_api_passes_method_and_strict_flag(monkeypatch):
         }
 
     monkeypatch.setattr("app.services.pipeline.process_document", fake_process_document)
+    monkeypatch.setattr(settings, "task_mode", "sync")
     client = TestClient(app)
 
     response = client.post(

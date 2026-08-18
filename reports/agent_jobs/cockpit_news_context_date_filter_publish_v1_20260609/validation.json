@@ -1,0 +1,44 @@
+{
+  "commands": [
+    {
+      "command": "gh auth status",
+      "result": "PASS",
+      "notes": "Authenticated as 0rl4nd0l"
+    },
+    {
+      "command": "gh pr list --head safe/cockpit-news-context-date-filter-v1-20260609 --state all",
+      "result": "PASS",
+      "notes": "No existing PR before create"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_news_context_date_filter_publish_v1_20260609.md",
+      "result": "PASS",
+      "notes": "ok=true"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_news_context_date_filter_publish_v1_20260609.md --no-write-report",
+      "result": "PASS",
+      "notes": "Only the publish task card was dirty"
+    },
+    {
+      "command": "git push -u origin safe/cockpit-news-context-date-filter-v1-20260609",
+      "result": "PASS",
+      "notes": "Branch pushed and tracking origin"
+    },
+    {
+      "command": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/cockpit-news-context-date-filter-v1-20260609",
+      "result": "PASS",
+      "notes": "Created https://github.com/0rl4nd0l/tenn/pull/337"
+    },
+    {
+      "command": "gh pr view 337 --json number,title,state,isDraft,url,baseRefName,headRefName,mergeStateStatus,mergeable,commits,statusCheckRollup",
+      "result": "PASS",
+      "notes": "OPEN draft PR; scan SUCCESS; lint-and-test IN_PROGRESS"
+    }
+  ],
+  "github_mutation": true,
+  "data_mutation": false,
+  "stash_mutation": false,
+  "branch_delete": false,
+  "pr_merge": false
+}

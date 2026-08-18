@@ -70,7 +70,7 @@ class TestInit:
             with patch("anthropic.Anthropic"):
                 client = AnthropicClient()
 
-        assert client.model == _DEFAULT_MODEL
+        assert client.model == _DEFAULT_MODEL == "claude-sonnet-4-6"
 
     def test_custom_model(self):
         from cockpit.core.agent.anthropic_client import AnthropicClient

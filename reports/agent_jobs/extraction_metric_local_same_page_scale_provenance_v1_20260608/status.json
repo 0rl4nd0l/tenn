@@ -1,0 +1,29 @@
+{
+  "artifacts": [
+    "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/case_candidate_audit.json",
+    "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/provenance_capture.json",
+    "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/repair_decision.json",
+    "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_metric_local_same_page_scale_provenance_v1_20260608/README.md"
+  ],
+  "data_missing": [
+    "second_clean_same_page_case_with_metric_local_trace",
+    "runtime_row_refs_for_cxo_accepted_metrics",
+    "runtime_metric_source_scales_for_cxo",
+    "runtime_metric_scale_sources_for_cxo",
+    "runtime_common_metric_source_scale_trace_for_cxo"
+  ],
+  "generated_at": "2026-06-08T00:42:16.089561Z",
+  "job_id": "extraction_metric_local_same_page_scale_provenance_v1_20260608",
+  "mode": "report_only_no_write_existing_artifacts",
+  "no_write_statement": {
+    "broad_extraction_or_backfill": false,
+    "count24_rerun": false,
+    "count32": false,
+    "db_qdrant_redis_news_memory_mutation": false,
+    "production_extraction_code_repair": false,
+    "prompt_gold_runtime_schema_changes": false,
+    "random_sample": false,
+    "source_pdf_edits": false
+  },
+  "state": "DONE_WITH_RISK"
+}

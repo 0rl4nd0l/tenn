@@ -42,6 +42,8 @@ export function PipelineRibbon({ activeStage, onStageSelect, onStageInspect, pip
         return (
           <React.Fragment key={stage.id}>
             <button
+              type="button"
+              aria-label={`Inspect ${stage.label} pipeline stage`}
               onClick={() => {
                 onStageSelect(stage.id)
                 onStageInspect?.({

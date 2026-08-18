@@ -1,0 +1,32 @@
+{
+  "job_id": "chat_learning_preference_updates_current_base_v2_20260626",
+  "issue": 254,
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "result": "PARTIAL",
+  "branch": "safe/issue254-chat-learning-truth-label-current-base-v2-20260626",
+  "worktree": "/home/l4nd0/tenn-issue254-chat-learning-truth-label-current-base-v2-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "4df1afc941d1008ce135513aee101e5d5275028f",
+  "summary": "Architecture docs now truth-label chat learning as telemetry-only for live /chat traffic; focused updater coverage proves runtime-shaped records do not learn retrieval/router preferences without required grouping fields.",
+  "validation": {
+    "guard_pre_edit": "PASS",
+    "task_card_validate": "PASS",
+    "registry_overlap": "PASS",
+    "registry_claim": "PASS",
+    "ledger_claim": "PASS",
+    "pytest_preference_updater": "PASS_5",
+    "ruff_format_check": "PASS",
+    "ruff_check": "PASS",
+    "py_compile": "PASS",
+    "doc_truth_label_grep": "PASS",
+    "git_diff_check": "PASS",
+    "check_diff_no_write_report": "PASS",
+    "code_review": "PASS_NO_FINDINGS",
+    "github_checks": "PENDING"
+  },
+  "runtime_functionality": {
+    "result": "PARTIAL",
+    "remaining_blocker": "No live runtime was started or queried; this is a docs/test truth-label fix pending PR publication, green GitHub checks, and canonical merge containment."
+  },
+  "next_action": "Commit, push PR, wait for GitHub checks, merge only when gated, then close issue #254 after containment."
+}

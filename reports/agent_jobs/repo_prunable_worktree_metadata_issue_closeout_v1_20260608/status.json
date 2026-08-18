@@ -1,0 +1,24 @@
+{
+  "job_id": "repo_prunable_worktree_metadata_issue_closeout_v1_20260608",
+  "status": "complete",
+  "github_issue": 329,
+  "github_mutations": [
+    {
+      "type": "issue_comment",
+      "issue": 329,
+      "url": "https://github.com/0rl4nd0l/tenn/issues/329#issuecomment-4649121316"
+    },
+    {
+      "type": "issue_close",
+      "issue": 329
+    }
+  ],
+  "actual_prune_run": false,
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active_read_only": "PASS",
+    "pre_close_issue_readback": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "PASS"
+  }
+}

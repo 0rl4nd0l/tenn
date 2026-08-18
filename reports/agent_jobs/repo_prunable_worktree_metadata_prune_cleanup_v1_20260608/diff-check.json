@@ -1,0 +1,69 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/prune_dry_run.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/validation.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/worktree_inventory.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_prune_allowed": false,
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/README.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/status.json",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/worktree_inventory.json",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/prune_dry_run.txt",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/validation.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_issue": 329,
+      "github_mutation_allowed": false,
+      "job_id": "repo_prunable_worktree_metadata_prune_cleanup_v1_20260608",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/repo_prunable_worktree_metadata_prune_cleanup_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "approval_packet_only",
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Evaluation"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

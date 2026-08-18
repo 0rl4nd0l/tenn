@@ -1,0 +1,36 @@
+{
+  "branch": "safe/registry-readonly-no-lock-list-active-v1-20260525",
+  "commit_hash": "DATA_MISSING: report is written before commit",
+  "data_missing": [
+    "Project field backfill/schema for issue #80 was not updated in this task.",
+    "Final commit hash is recorded in the issue comment and final response after commit.",
+    "Bare /usr/bin/python3 has no pytest module; focused tests used uv run with ephemeral pytest/PyYAML."
+  ],
+  "forbidden_surface_attestation": {
+    "branch_cleanup_merge_rebase_reset_stash_prune_delete": false,
+    "canonical_financial_truth_mutation": false,
+    "db_qdrant_news_memory_mutation": false,
+    "gold_label_mutation": false,
+    "model_runtime_gpu_service_config_mutation": false,
+    "parser_routing_or_prompt_mutation": false,
+    "product_backend_frontend_runtime_code": false
+  },
+  "head": "326b60db92bf286344c2bb90ed504ab5378a94a2",
+  "implementation_status": "implemented",
+  "issue": 80,
+  "job_id": "registry_readonly_no_lock_list_active_v1_20260525",
+  "mode": "safe_extension",
+  "read_only_contract": {
+    "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+    "creates_registry_root": false,
+    "heartbeat": false,
+    "lock_acquired": false,
+    "mutates_active_records": false,
+    "prune": false,
+    "release": false,
+    "timestamp_update": false
+  },
+  "result": "PASS",
+  "source_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "source_head": "326b60db92bf286344c2bb90ed504ab5378a94a2"
+}

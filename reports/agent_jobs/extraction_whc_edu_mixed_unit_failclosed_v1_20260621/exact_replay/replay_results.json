@@ -1,0 +1,490 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 2,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782038745, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782038745, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient",
+      "app.services.pipeline.process_document"
+    ]
+  },
+  "profile": "docling-no-write",
+  "results": [
+    {
+      "case_id": "WHC_2023_MIXED_UNIT",
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "elapsed_s": 408.685,
+      "expected_period_end": "2023-06-30",
+      "expected_period_type": "A",
+      "expected_status": "failed",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 111,
+            "table_count": 105
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+            "extraction_status": "failed"
+          },
+          "error_code": "validation_failed",
+          "message": "Validation failed: validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+          "stage": "validation",
+          "status": "failed"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "thousands",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "thousands",
+          "operating_cf": "millions",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -180700000000.0,
+          "cash_end": 2775510.0,
+          "ebit": 3759597000.0,
+          "financing_cf": -1716662.0,
+          "investing_cf": -306936000000.0,
+          "np_attributable": 2668054000.0,
+          "operating_cf": 3583648.0,
+          "revenue": 6064739000.0,
+          "shares_outstanding": 836600784.0
+        },
+        "period_end": "2023-06-30",
+        "period_start": "2022-07-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_18:Purchase of property, plant and equipment",
+          "cash_end": "cashflow_statement:page_18:unknown",
+          "ebit": "income_statement:page_54:Profit before net finance income/expense",
+          "financing_cf": "cashflow_statement:page_18:unknown",
+          "investing_cf": "cashflow_statement:page_18:unknown",
+          "np_attributable": "income_statement:page_54:Net profit for the year",
+          "operating_cf": "cashflow_statement:page_18:Net cash from operating activities",
+          "revenue": "income_statement:page_54:Revenue",
+          "shares_outstanding": "share_capital:page_88:Ordinary share capital at the end of the period"
+        },
+        "row_refs": {
+          "capex": "Purchase of property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Profit before net finance income/expense",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Net profit for the year",
+          "operating_cf": "Net cash from operating activities",
+          "revenue": "Revenue",
+          "shares_outstanding": "Ordinary share capital at the end of the period"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_subtype": "appendix4e",
+          "document_title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+          "period_end": "2023-06-30",
+          "period_type": "A",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "ntents For personal use only Appendix 4E Results for announcement to the market for the year ended 30 June 2023 Name of Entity Whitehaven Coal Limited ABN 68 124 425 396 Whitehaven Coal Limit",
+              "evidence": "for the year ended 30 June 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "haven Coal Annual Financial Report 2023 For personal use only Directors' Report For the year ended 30 June 2023 Directors' Report For the year ended 30 June 2023 Page 1 | Whitehaven Coal Annu",
+              "evidence": "For the year ended 30 June 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "al use only Directors' Report For the year ended 30 June 2023 Directors' Report For the year ended 30 June 2023 Page 1 | Whitehaven Coal Annual Financial Report 2023",
+              "evidence": "For the year ended 30 June 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2023-06-30",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date"
+        },
+        "status": "failed",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 111,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "ticker": "WHC"
+    },
+    {
+      "case_id": "EDU_2023_MIXED_UNIT",
+      "debug_capture_keys": [
+        "pass3a_results"
+      ],
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "elapsed_s": 335.609,
+      "expected_period_end": "2023-12-31",
+      "expected_period_type": "A",
+      "expected_status": "failed",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 113,
+            "table_count": 78
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+            "extraction_status": "failed"
+          },
+          "error_code": "validation_failed",
+          "message": "Validation failed: validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+          "stage": "validation",
+          "status": "failed"
+        }
+      ],
+      "pass3a_result_count": 4,
+      "result": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+        "metric_scale_sources": {
+          "capex": "document",
+          "cash_end": "document",
+          "ebit": "table",
+          "financing_cf": "document",
+          "investing_cf": "document",
+          "np_attributable": "table",
+          "operating_cf": "document",
+          "revenue": "table",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -78008000.0,
+          "cash_end": 3121297000.0,
+          "ebit": 868000.0,
+          "financing_cf": -3590738000.0,
+          "investing_cf": -464151000.0,
+          "np_attributable": 385000.0,
+          "operating_cf": 1100996000.0,
+          "revenue": 11596000.0,
+          "shares_outstanding": 4066197.0
+        },
+        "period_end": "2023-12-31",
+        "period_start": "2023-01-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_53:Payments for plant and equipment",
+          "cash_end": "cashflow_statement:page_53:Cash and cash equivalents at end of year",
+          "ebit": "income_statement:page_23:EBIT",
+          "financing_cf": "cashflow_statement:page_53:Net cash (used in) / provided by financing activities",
+          "investing_cf": "cashflow_statement:page_53:Net cash used in investing activities",
+          "np_attributable": "income_statement:page_23:Net profit / (loss)",
+          "operating_cf": "cashflow_statement:page_53:Net cash provided by / (used in) operating activities",
+          "revenue": "income_statement:page_23:Total revenue",
+          "shares_outstanding": "share_capital:page_37:Number of shares under option"
+        },
+        "row_refs": {
+          "capex": "Payments for plant and equipment",
+          "cash_end": "Cash and cash equivalents at end of year",
+          "ebit": "EBIT",
+          "financing_cf": "Net cash (used in) / provided by financing activities",
+          "investing_cf": "Net cash used in investing activities",
+          "np_attributable": "Net profit / (loss)",
+          "operating_cf": "Net cash provided by / (used in) operating activities",
+          "revenue": "Total revenue",
+          "shares_outstanding": "Number of shares under option"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "period_end": "2023-12-31",
+          "period_type": "A",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "annual_report_title"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "annual_report_title"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "962 152) (EDU, EDU Holdings or the Company) and its controlled entities (Group) for the year ended 31 December 2023 (FY23). Any reference to the financial year relates to the period from 1 Januar",
+              "evidence": "for the year ended 31 December 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-12-31",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "areholders, On behalf of the Board, we are pleased to present our Annual Report for the year ended 31 December 2023 (FY23). Revenue for the year grew to $21.6m, up $3.9m (22%). With a slight impr",
+              "evidence": "for the year ended 31 December 2023",
+              "is_comparative_context": "false",
+              "period_end": "2023-12-31",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2023-12-31",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date"
+        },
+        "status": "failed",
+        "structured_extraction": {
+          "docling_version": "2.104.0",
+          "fallback_used": false,
+          "page_count": 113,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "ticker": "EDU"
+    }
+  ],
+  "status": "PASS"
+}

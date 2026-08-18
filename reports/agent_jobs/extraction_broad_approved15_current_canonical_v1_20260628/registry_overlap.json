@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "scripts/agent_job_registry.py",
+    "check-overlap",
+    "--repo-root",
+    ".",
+    "docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md"
+  ],
+  "json": {
+    "active_jobs": [],
+    "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+    "issues": [],
+    "job_id": "extraction_broad_approved15_current_canonical_v1_20260628",
+    "lane": "Financial Truth",
+    "ok": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "repo_root": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628",
+    "task_card": "docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md",
+    "warnings": []
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"issues\": [],\n  \"job_id\": \"extraction_broad_approved15_current_canonical_v1_20260628\",\n  \"lane\": \"Financial Truth\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628\",\n  \"task_card\": \"docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md\",\n  \"warnings\": []\n}\n"
+}

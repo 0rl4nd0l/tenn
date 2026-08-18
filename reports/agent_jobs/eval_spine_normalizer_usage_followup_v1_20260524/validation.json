@@ -1,0 +1,27 @@
+{
+  "job_id": "eval_spine_normalizer_usage_followup_v1_20260524",
+  "commands": [
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_eval_spine_manifest.py -q",
+      "exit_code": 0,
+      "result": "11 passed in 0.10s"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m scripts.reporting.gold_metric_coverage_eval_spine_normalizer --metric-inventory reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/metric_inventory.json --out-dir reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524 --task-card docs/agent_tasks/eval_spine_normalizer_usage_followup_v1_20260524.md --job-id eval_spine_normalizer_usage_followup_v1_20260524 --repo-root \"$PWD\"",
+      "exit_code": 0,
+      "result": "normalized_manifest.json, scorecards.csv, and metric_expectations.csv generated"
+    }
+  ],
+  "sample_output_validation": {
+    "canonical_core_metric_check_count": 24,
+    "expanded_required_metric_check_count": 39,
+    "confirmed_metric_coverage_metric_check_count": 146,
+    "metric_expectation_rows": 23,
+    "accuracy_overclaim_guard_present": true
+  }
+}

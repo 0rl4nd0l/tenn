@@ -1,0 +1,42 @@
+{
+  "job_id": "analysis_analyse_ticker_current_base_v2_20260626",
+  "issue": 253,
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "result": "PARTIAL",
+  "branch": "safe/issue253-analyse-ticker-current-base-v2-20260626",
+  "worktree": "/home/l4nd0/tenn-issue253-analyse-ticker-current-base-v2-20260626",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "69980b4412ab96808d1134cd14aaf47462a90560",
+  "summary": "analyse_ticker now instantiates TickerContextLoader with analysis_rag_query before calling load, with a focused regression test.",
+  "validation": {
+    "guard_pre_edit": "PASS",
+    "guard_post_edit": "DIRTY_RELATED_WORKTREE_EXPECTED_BEFORE_COMMIT",
+    "task_card_validate": "PASS",
+    "registry_overlap": "PASS",
+    "ledger_validate": "PASS",
+    "pytest_test_analysis_modules": "PASS_49",
+    "ruff_check": "PASS",
+    "py_compile": "PASS",
+    "git_diff_check": "PASS",
+    "ruff_format_check": "FAILED_NON_GATE_PREEXISTING_WHOLE_FILE_FORMATTING",
+    "code_review": "PASS_NO_FINDINGS",
+    "github_checks": "PENDING"
+  },
+  "docs_impact": {
+    "docs_impact": "DOCS_NOT_REQUIRED",
+    "docs_checked": [
+      "issue #253",
+      "prior local task card",
+      "orchestrator.py",
+      "focused tests"
+    ],
+    "docs_changed": [],
+    "docs_followup": [],
+    "reason": "The fix aligns the documented helper with existing loader wiring and does not change durable operator workflow."
+  },
+  "runtime_functionality": {
+    "result": "PARTIAL",
+    "remaining_blocker": "No live app/API process was started or queried; publish requires green GitHub checks and canonical merge containment."
+  },
+  "next_action": "Commit, push PR, wait for GitHub checks, merge only when gated, then close issue #253 after containment."
+}

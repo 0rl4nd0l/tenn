@@ -1,0 +1,67 @@
+Using llama.cpp at http://127.0.0.1:8001/v1
+[1/16] CXO/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf
+  -> ok elapsed=49.18 metrics=5/10 error=None
+[2/16] WHC/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf
+  -> failed elapsed=11.47 metrics=0/10 error=validation_gate:scale_unknown
+[3/16] EQR/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf
+  -> failed elapsed=5.67 metrics=0/10 error=validation_gate:source_noncandidate:meeting_or_proxy_notice
+[4/16] MAH/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf
+  -> failed elapsed=0.42 metrics=0/10 error=validation_gate:source_noncandidate:operational_project_update
+[5/16] FCL/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf
+  -> failed elapsed=0.94 metrics=0/10 error=validation_gate:source_noncandidate:board_change_notice
+[6/16] AZJ/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf
+  -> failed elapsed=167.73 metrics=10/10 error=validation_gate:scale_unknown
+[7/16] WHC/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf
+  -> ok elapsed=155.78 metrics=9/10 error=None
+[8/16] HRZ/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf
+  -> failed elapsed=0.2 metrics=0/10 error=validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement
+[9/16] MPL/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf
+  -> failed elapsed=1.05 metrics=0/10 error=validation_gate:source_noncandidate:pre_results_segment_re_presentation
+[10/16] LOT/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf
+  -> ok elapsed=53.97 metrics=4/10 error=None
+[11/16] DXC/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf
+  -> failed elapsed=106.83 metrics=4/10 error=validation_gate:metric_label_mismatch:ebit:net_operating_income
+[12/16] ABE/2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf
+  -> ok elapsed=99.21 metrics=5/10 error=None
+[13/16] HUB/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf
+  -> ok elapsed=129.55 metrics=9/10 error=None
+[14/16] LBL/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf
+  -> ok elapsed=75.76 metrics=6/10 error=None
+[15/16] NSR/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf
+  -> ok elapsed=129.57 metrics=8/10 error=None
+[16/16] CTN/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf
+  -> failed elapsed=79.24 metrics=6/10 error=validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title
+{
+  "exception_count": 0,
+  "failed_count": 9,
+  "failure_taxonomy": {
+    "source_noncandidate:board_change_notice": 1,
+    "source_noncandidate:meeting_or_proxy_notice": 1,
+    "source_noncandidate:operational_project_update": 1,
+    "source_noncandidate:pre_results_segment_re_presentation": 1,
+    "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+    "validation_gate:metric_label_mismatch": 1,
+    "validation_gate:period_source_mismatch": 1,
+    "validation_gate:scale_unknown": 2
+  },
+  "low_confidence_taxonomy": {},
+  "ok_count": 7,
+  "ok_low_confidence_count": 0,
+  "status_distribution": {
+    "failed": 9,
+    "ok": 7
+  },
+  "timing": {
+    "max_s": 167.73,
+    "mean_s": 66.66,
+    "median_s": 64.87,
+    "min_s": 0.2,
+    "p95_s": 167.73,
+    "total_s": 1066.57
+  },
+  "total": 16,
+  "unsafe_row_check": {
+    "negative_revenue": [],
+    "nonpositive_shares": []
+  }
+}

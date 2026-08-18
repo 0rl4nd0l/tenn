@@ -1,0 +1,254 @@
+{
+  "base_url": "http://127.0.0.1:11434/v1",
+  "currency": "AUD",
+  "data_root": "/tmp/tenn-lbl-income-row-ref-repair-v1-20260616",
+  "debug_capture_keys": [
+    "pass3a_results"
+  ],
+  "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+  "error": null,
+  "field_provenance": {
+    "cash_end": {
+      "currency": "AUD",
+      "excerpt": "Cash &Equivalents",
+      "metric": "cash_end",
+      "page_number": 22,
+      "page_tag": "page_22",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "Cash &Equivalents",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "cashflow_statement",
+      "table_label": "cashflow_statement"
+    },
+    "ebit": {
+      "currency": "AUD",
+      "excerpt": "EBIT",
+      "metric": "ebit",
+      "page_number": 21,
+      "page_tag": "page_21",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "EBIT",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "income_statement",
+      "table_label": "income_statement"
+    },
+    "financing_cf": {
+      "currency": "AUD",
+      "excerpt": "Cashflow from financing",
+      "metric": "financing_cf",
+      "page_number": 22,
+      "page_tag": "page_22",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "Cashflow from financing",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "cashflow_statement",
+      "table_label": "cashflow_statement"
+    },
+    "investing_cf": {
+      "currency": "AUD",
+      "excerpt": "Cashflow from investing",
+      "metric": "investing_cf",
+      "page_number": 22,
+      "page_tag": "page_22",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "Cashflow from investing",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "cashflow_statement",
+      "table_label": "cashflow_statement"
+    },
+    "np_attributable": {
+      "currency": "AUD",
+      "excerpt": "NPAT For",
+      "metric": "np_attributable",
+      "page_number": 21,
+      "page_tag": "page_21",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "NPAT For",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "income_statement",
+      "table_label": "income_statement"
+    },
+    "operating_cf": {
+      "currency": "AUD",
+      "excerpt": "Cashflow from operations For",
+      "metric": "operating_cf",
+      "page_number": 22,
+      "page_tag": "page_22",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "Cashflow from operations For",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "cashflow_statement",
+      "table_label": "cashflow_statement"
+    },
+    "revenue": {
+      "currency": "AUD",
+      "excerpt": "Sales Revenue",
+      "metric": "revenue",
+      "page_number": 21,
+      "page_tag": "page_21",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "row_ref": "Sales Revenue",
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "income_statement",
+      "table_label": "income_statement"
+    }
+  },
+  "metric_scale_sources": {
+    "cash_end": "table",
+    "ebit": "table",
+    "financing_cf": "table",
+    "investing_cf": "table",
+    "np_attributable": "table",
+    "operating_cf": "table",
+    "revenue": "table"
+  },
+  "metric_source_scales": {
+    "cash_end": "thousands",
+    "ebit": "thousands",
+    "financing_cf": "thousands",
+    "investing_cf": "thousands",
+    "np_attributable": "thousands",
+    "operating_cf": "thousands",
+    "revenue": "thousands"
+  },
+  "metrics": {
+    "capex": null,
+    "cash_end": 3999700.0,
+    "ebit": 213677000.0,
+    "financing_cf": -4257100.0,
+    "investing_cf": -991800.0,
+    "net_debt": null,
+    "np_attributable": 22159000.0,
+    "operating_cf": 5124600.0,
+    "revenue": 230089000.0,
+    "shares_outstanding": null
+  },
+  "model_override": "qwen2.5:32b",
+  "non_null_metric_values": {
+    "cash_end": 3999700.0,
+    "ebit": 213677000.0,
+    "financing_cf": -4257100.0,
+    "investing_cf": -991800.0,
+    "np_attributable": 22159000.0,
+    "operating_cf": 5124600.0,
+    "revenue": 230089000.0
+  },
+  "non_null_metrics": 7,
+  "pass3a_result_count": 3,
+  "period_end": "2025-12-31",
+  "period_start": "2025-07-01",
+  "period_type": "H",
+  "row_refs": {
+    "cash_end": "Cash &Equivalents",
+    "ebit": "EBIT",
+    "financing_cf": "Cashflow from financing",
+    "investing_cf": "Cashflow from investing",
+    "np_attributable": "NPAT For",
+    "operating_cf": "Cashflow from operations For",
+    "revenue": "Sales Revenue"
+  },
+  "scale": "thousands",
+  "scale_validation": "pass",
+  "skip_narrative": true,
+  "source_bound": {
+    "currency": "AUD",
+    "document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+    "period_end": "2025-12-31",
+    "period_type": "H",
+    "scale": "thousands"
+  },
+  "source_period_end_binding": {
+    "corroborating_source_paths": [],
+    "from_period_end": "2026-01-31",
+    "period_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-announcement_989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf",
+    "period_source_role": "results_announcement",
+    "reason": "explicit_companion_source_half_year_period_end_over_unsupported_pass1_period_end",
+    "selection_rule": "same_day_same_ticker_companion_period_source",
+    "source_period_end_reason": "half_year_ended_explicit_date",
+    "target_document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+    "target_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+    "target_title_announcement_date": "2026-02-20",
+    "to_period_end": "2025-12-31"
+  },
+  "source_period_end_evidence": {
+    "hits": [
+      {
+        "evidence": "for the six months ended 31 December 2025",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "reason": "half_year_ended_explicit_date",
+        "source": "source_text"
+      }
+    ],
+    "period_end": "2025-12-31",
+    "period_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-announcement_989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf",
+    "period_source_role": "results_announcement",
+    "period_type": "H",
+    "reason": "half_year_ended_explicit_date"
+  },
+  "status": "ok",
+  "structured_extraction": {
+    "docling_version": "2.87.0",
+    "fallback_used": false,
+    "page_count": 24,
+    "parser_id": "docling_cpu",
+    "warnings": []
+  },
+  "table_page_header_evidence": [
+    {
+      "header_line": "",
+      "markdown_prefix": "A$000 | FY22 | FY23 | FY24 | FY25 | 1HFY26\n--- | --- | --- | --- | --- | ---\nCash &Equivalents | 5,683.8 | 8,929.2 | 5,759.1 | 5.634.8 | 3.999.7\nCurrentassets only | 22,367.7 | 25,715.3 | 22,237.0 | 24,546.5 | 24,173.3\nNon-currentassets use | 23,455.8 | 26,117.2 | 38,589.8 | 38,331.0 | 38,733.2\nTotalassets | 45,823.5 | 51,832.5 | 60,826.8 | 62,877.5 | 62,906.5\nCurrentliabilities | 8,664.7 | 9,263.8 | 8,852.6 | 9,432.9 | 7,942.3\nNon-currentliabilities | 8,220.3 | 11,498.1 | 13,727.1 | 12,367.0 | 12,377.0\nTotal liabilities personal | 16,885.0 | 20,761.9 | 22,579.7 | 21,799.9 | 20,319.3\nNetassets | 28,938.5 | 31,070.6 | 38,247.1 | 41,077.6 | 42,587.2\nCashflow from operations For | 4,243.8 | 7,704.3 | 6,705.1 | 5,124.6 | 1,503.8\nCashflow from investing | (10,861.3) | (1,327.4) | (5,782.8) | (991.8) | (1,027.2)\nCashflow from financing | 7,373.6 | (3,131.5) | (4,092.3) | (4,257.1) | (2,111.7)\nNetcash flow | 776.0 | 3,245.4 | (3,170.1) | (124.3) | (1,635.1)",
+      "metrics": {
+        "cash_end": 3999700.0,
+        "financing_cf": -4257100.0,
+        "investing_cf": -991800.0,
+        "operating_cf": 5124600.0
+      },
+      "page_number": 22,
+      "row_refs": {
+        "cash_end": "Cash &Equivalents",
+        "financing_cf": "Cashflow from financing",
+        "investing_cf": "Cashflow from investing",
+        "operating_cf": "Cashflow from operations For"
+      },
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "cashflow_statement"
+    },
+    {
+      "header_line": "",
+      "markdown_prefix": "A$000 | FY22 | FY23 | FY24 | FY25 | 1HFY26\n--- | --- | --- | --- | --- | ---\nSales Revenue | 30,711.1 | 38,612.4 | 41,983.6 | 43,475.6 | 23,008,9\nGrossprofit only | 16,701.2 | 20,463.0 | 21,642.0 | 22,786.9 | 12,350.3\nOperatingExpenses | (8,024.8) | (10,266.1) | (12,192.1) | (13,778.3) | (7,161.9)\nEBITDA use | 8,676.4 | 10,196.9 | 9,449.7 | 9,008.6 | 5,188.4\nD&A | (2,902.2) | (3,267.6) | (3,494.7) | (3,196.4) | (1,520.7)\nEBIT | 5,774.2 | 6,929.3 | 5,985.8 | 5,812.2 | 21 3,667.7\nInterest | (442.8) | (562.2) | (790.2) | (824.7) | (394.5)\nNPBT personal | 5,331.4 | 6,367.1 | 5,164.8 | 4,987.4 | 3,273.2\nNPAT For | 3,628.8 | 4,758.5 | 3,482.3 | 3,844.8 | 2,215.9\nDividends for Period | 1.40 cents | 1.60 cents | 1.60 cents | 1.20 cents | 0.80 cents\nEPS | 3.53 cents | 4.34 cents | 3.10 cents | 3.28 cents | 1.88 cents",
+      "metrics": {
+        "ebit": 213677000.0,
+        "np_attributable": 22159000.0,
+        "revenue": 230089000.0
+      },
+      "page_number": 21,
+      "row_refs": {
+        "ebit": "EBIT",
+        "metric_name": "Sales Revenue,EBIT,NPAT For",
+        "np_attributable": "NPAT For",
+        "revenue": "Sales Revenue"
+      },
+      "scale": "thousands",
+      "scale_source": "table",
+      "source": "income_statement"
+    }
+  ],
+  "target_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+  "ticker": "LBL"
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenn Issue Finder"
+  short_description: "Find high-confidence Tenn issues"
+  default_prompt: "Use $tenn-issue-finder as a read-only discovery supervisor with bounded lane passes, duplicate checks, branch hygiene classification, GitHub labels/milestones/Projects recommendations, compact findings, and only high-confidence Tenn issue drafts or approved creations."

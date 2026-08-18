@@ -27,6 +27,11 @@ from app.models import Document  # noqa: E402
 from app.providers.universe import ASX20  # noqa: E402
 from app.services.pipeline import backfill_ticker_sync  # noqa: E402
 from health_guard import assert_healthy, load_health_snapshot  # noqa: E402
+from marketindex_recovery_reporting import (  # noqa: E402
+    MARKETINDEX_HEADED_RECOVERY_MARKERS,
+    add_marketindex_recovery_blocker,
+    build_marketindex_recovery_summary,
+)
 from ticker_quarantine import add_to_quarantine, load_quarantine  # noqa: E402
 
 # Set by signal handler when user stops the script (Ctrl+C / SIGTERM). Checked in main loop.
@@ -98,6 +103,39 @@ def _document_count_for_ticker(ticker: str) -> int:
     db = SessionLocal()
     try:
         return db.query(Document).filter(Document.ticker == ticker.upper()).count()
+    finally:
+        db.close()
+
+
+def _summarize_marketindex_headed_recovery_rows(rows, tickers) -> dict:
+    summary = build_marketindex_recovery_summary(tickers)
+    for row in rows or []:
+        add_marketindex_recovery_blocker(
+            summary,
+            ticker=getattr(row, "ticker", ""),
+            marker=getattr(row, "pdf_sha256", ""),
+            document_id=getattr(row, "document_id", ""),
+            source_url=getattr(row, "source_url", ""),
+            stage="post_backfill_report",
+        )
+    return summary
+
+
+def _load_marketindex_headed_recovery_summary(tickers) -> dict:
+    summary = build_marketindex_recovery_summary(tickers)
+    db = SessionLocal()
+    try:
+        query = (
+            db.query(Document)
+            .filter(Document.ticker.in_(_parse_tickers(tickers)))
+            .filter(Document.pdf_sha256.in_(list(MARKETINDEX_HEADED_RECOVERY_MARKERS)))
+            .filter(Document.source_url.ilike("%marketindex.com.au%"))
+            .order_by(Document.published_at.desc().nullslast())
+        )
+        return _summarize_marketindex_headed_recovery_rows(query.all(), tickers)
+    except Exception as exc:
+        summary["query_error"] = str(exc)
+        return summary
     finally:
         db.close()
 
@@ -315,6 +353,7 @@ def main():
                 "report": str(args.report),
             },
             "resume_command": resume_cmd,
+            "marketindex_headed_recovery": build_marketindex_recovery_summary(tickers),
         }
         print(json.dumps(plan, indent=2, default=str))
         return
@@ -355,6 +394,7 @@ def main():
         },
         "resume": None,
         "post_reports": {},
+        "marketindex_headed_recovery": build_marketindex_recovery_summary(tickers),
     }
 
     backfill_failed = False
@@ -514,6 +554,15 @@ def main():
         summary["status"] = "interrupted"
     else:
         summary["status"] = "success" if not backfill_failed and resume_rc == 0 else "failed"
+
+    summary["marketindex_headed_recovery"] = _load_marketindex_headed_recovery_summary(tickers)
+    if summary["marketindex_headed_recovery"].get("requires_headed_recovery_count"):
+        print(
+            "[marketindex] headed recovery required: "
+            f"requires_headed_recovery_count={summary['marketindex_headed_recovery']['requires_headed_recovery_count']} "
+            f"command={summary['marketindex_headed_recovery']['recommended_command']}",
+            flush=True,
+        )
 
     # Quarantine: when run used universe file and (succeeded or interrupted), and at least one ticker had data
     if used_universe_file and summary["status"] in ("success", "interrupted") and not args.no_quarantine:

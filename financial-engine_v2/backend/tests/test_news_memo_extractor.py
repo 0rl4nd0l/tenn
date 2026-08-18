@@ -152,6 +152,36 @@ def test_extract_routes_configured_llm_runtime_in_metadata(
     assert metadata["llm_model"] == "model:qwen3.5-35b-a3b-apex"
 
 
+def test_extract_records_effective_anthropic_route_in_provenance(
+    tmp_memos_path: Path,
+) -> None:
+    def llm_fn(*, prompt: str, metadata: dict[str, Any]) -> dict[str, Any]:
+        metadata.update(
+            {
+                "effective_provider": "anthropic",
+                "effective_model": "claude-sonnet-test",
+                "effective_base_url": "https://api.anthropic.com",
+                "routing_reason": "metric_extraction_active",
+            }
+        )
+        return GOOD_LLM_RESPONSE
+
+    extractor = NewsMemoExtractor(llm_fn=llm_fn, memos_path=tmp_memos_path)
+
+    memo = extractor.extract(
+        source_id="news-api-route",
+        article_text="NYSE:XYZ announced a supported update.",
+        provider="newspaper4k",
+        published_at="2026-07-15",
+    )
+
+    provenance = memo["extraction_provenance"]
+    assert provenance["llm_provider"] == "anthropic"
+    assert provenance["llm_model"] == "claude-sonnet-test"
+    assert provenance["llm_url"] == "https://api.anthropic.com"
+    assert provenance["routing_reason"] == "metric_extraction_active"
+
+
 def test_extract_prompt_cleans_html_and_lists_candidate_tickers(
     tmp_memos_path: Path,
 ) -> None:

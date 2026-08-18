@@ -1,0 +1,14 @@
+{
+  "base_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "safe/extraction-no-write-replay-harness-v1-20260618",
+  "github_mutation_allowed": true,
+  "job_id": "extraction_no_write_harness_publish_v1_20260618",
+  "pr": {
+    "number": 379,
+    "state": "draft",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/379"
+  },
+  "state": "DONE_WITH_RISK",
+  "summary": "Publishing the committed certified no-write extraction replay harness branch as one draft PR.",
+  "worktree": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618"
+}

@@ -54,6 +54,23 @@ def _build_config(tmpdir: Path) -> dict[str, object]:
 
 
 class CockpitChatStatusWidgetTests(unittest.IsolatedAsyncioTestCase):
+    def test_startup_warning_notes_sqlite_news_fallback_without_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            cfg = _build_config(tmpdir)
+            cfg["rag"] = {
+                "news_context": {
+                    "db_path": str(tmpdir / "news.sqlite"),
+                    "corpus_filter": "news",
+                }
+            }
+
+            app = CockpitApp(repo_root=REPO_ROOT, config=cfg, read_only=True)
+
+            warnings = "\n".join(app._startup_warnings)
+            self.assertIn("news context will use SQLite fallback", warnings)
+            self.assertNotIn("news context disabled", warnings)
+
     async def test_runtime_panel_and_thinking_status_regression(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             app = CockpitApp(repo_root=REPO_ROOT, config=_build_config(Path(tmp)), read_only=True)

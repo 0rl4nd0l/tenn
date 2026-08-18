@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap --repo-root . docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run --with pytest pytest -q financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/test_backfill_missing_universe_announcements.py",
+      "exit_code": 0,
+      "summary": "18 passed, 1 warning"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/scripts/full_history_ticker_sync.py financial-engine_v2/scripts/marketindex_recovery_reporting.py financial-engine_v2/scripts/resume_pending_downloads.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/backfill_missing_universe_announcements.py scripts/test_backfill_missing_universe_announcements.py",
+      "exit_code": 0,
+      "summary": "All checks passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/scripts/full_history_ticker_sync.py financial-engine_v2/scripts/marketindex_recovery_reporting.py financial-engine_v2/scripts/resume_pending_downloads.py financial-engine_v2/scripts/test_full_history_ticker_sync_env.py financial-engine_v2/scripts/test_marketindex_recovery_reporting.py financial-engine_v2/scripts/test_resume_pending_extraction_failures.py scripts/backfill_missing_universe_announcements.py scripts/test_backfill_missing_universe_announcements.py",
+      "exit_code": 0
+    },
+    {
+      "command": "bash -n financial-engine_v2/scripts/build_production_bundle.sh",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/marketindex_headed_recovery_reporting_current_base_v2_20260627.md",
+      "exit_code": 0
+    }
+  ],
+  "runtime_functionality_result": "PARTIAL",
+  "runtime_functionality_reason": "Live report output was not generated because live backfills/recovery/runtime mutation were out of scope."
+}

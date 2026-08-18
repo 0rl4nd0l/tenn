@@ -743,6 +743,88 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
     assert repro["failure_code"] is None
     assert repro["non_null_metric_count"] == 3
 
+    run_status_path = tmp_path / "run_status" / f"{result['run_id']}.json"
+    run_status = json.loads(run_status_path.read_text(encoding="utf-8"))
+    summary = run_status["final_summary"]
+    assert summary["financial_rows_written"] == 0
+    assert summary["risk_note_written"] == 0
+
+
+def test_upsert_financial_rows_suppresses_empty_risk_note() -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+    from app.models.base import Base
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+    doc = SimpleNamespace(ticker="PLS", document_id=uuid.uuid4())
+    payload = {
+        "period_type": "H",
+        "period_end": "2026-03-31",
+        "confidence_metrics": 0.65,
+        "metrics": {"revenue": 1000.0},
+        "risk_summary": "",
+        "risk_bullets": [],
+        "guidance_summary": None,
+        "material_changes": [],
+        "confidence_narrative": 0.0,
+    }
+
+    session = Session()
+    try:
+        assert pipeline._upsert_financial_rows(session, doc, payload) == 0
+        session.flush()
+
+        assert session.query(ASXPeriodicFinancial).filter_by(ticker="PLS").count() == 0
+        assert session.query(ASXRiskNote).count() == 0
+        assert pipeline._has_narrative_content(payload) is False
+    finally:
+        session.close()
+
+
+def test_upsert_financial_rows_persists_real_risk_note() -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.models.asx_financials import ASXRiskNote
+    from app.models.base import Base
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+    doc = SimpleNamespace(ticker="BHP", document_id=uuid.uuid4())
+    payload = {
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "confidence_metrics": 1.0,
+        "metrics": {"revenue": 55_658_000_000.0},
+        "risk_summary": "Commodity prices remain a key operating risk.",
+        "risk_bullets": ["Iron ore price volatility"],
+        "guidance_summary": "Capital discipline remains a stated priority.",
+        "material_changes": None,
+        "confidence_narrative": 0.7,
+    }
+
+    session = Session()
+    try:
+        assert pipeline._upsert_financial_rows(session, doc, payload) == 0
+        session.flush()
+
+        note = session.query(ASXRiskNote).filter_by(document_id=doc.document_id).one()
+        assert note.risk_summary == "Commodity prices remain a key operating risk."
+        assert note.risk_bullets == ["Iron ore price volatility"]
+        assert note.guidance_summary == "Capital discipline remains a stated priority."
+        assert note.material_changes is None
+        assert note.confidence_narrative == pytest.approx(0.7)
+        assert pipeline._has_narrative_content(payload) is True
+    finally:
+        session.close()
+
 
 def test_process_document_records_reproducibility_for_failed_extraction(
     monkeypatch, tmp_path

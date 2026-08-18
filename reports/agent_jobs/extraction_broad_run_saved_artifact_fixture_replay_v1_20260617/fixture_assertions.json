@@ -1,0 +1,55 @@
+{
+  "assertions": [
+    "record status is accepted output",
+    "metric_provenance is non-empty",
+    "revenue provenance is available",
+    "provenance_missing is explicit list",
+    "accepted_output_scale_magnitude_risk exists and is accepted_output=true",
+    "summary provenance_coverage exists and is non-empty",
+    "summary risk_flag_distribution exists"
+  ],
+  "fixture_source": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json",
+  "forbidden_actions_avoided": [
+    "run_multipass_extraction",
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "broad backfill",
+    "runtime service start",
+    "canonical writes",
+    "DB/Qdrant/Redis/news/memory mutation",
+    "GitHub mutation"
+  ],
+  "mode": "saved_artifact_no_extraction",
+  "non_null_metrics": 7,
+  "ok": true,
+  "provenance_available": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "cash_end"
+  ],
+  "provenance_missing": [],
+  "risk_flags": [],
+  "risk_level": "none",
+  "status": "ok",
+  "summary_provenance_coverage": {
+    "documents_with_any_provenance": 1,
+    "documents_with_full_provenance": 1,
+    "documents_with_missing_provenance": 0,
+    "metrics_missing_provenance": {},
+    "metrics_with_provenance": {
+      "cash_end": 1,
+      "ebit": 1,
+      "financing_cf": 1,
+      "investing_cf": 1,
+      "np_attributable": 1,
+      "operating_cf": 1,
+      "revenue": 1
+    }
+  },
+  "summary_risk_flag_distribution": {}
+}

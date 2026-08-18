@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "job_id": "status_route_contract_implementation_for_news_health_v1_20260525",
+  "generated_at": "2026-05-25T04:29:00Z",
+  "phase": "phase_1_audit_and_candidate_file_discovery",
+  "repo": {
+    "canonical_entrypoint": "/home/l4nd0/tenn",
+    "resolved_worktree": "/home/l4nd0/tenn-status-route-contract-news-health-v1-20260525",
+    "base_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "working_branch": "safe/status-route-contract-news-health-v1-20260525",
+    "head_before": "af49ede4ceb0e809580efe97754d9f17fbcd3c50"
+  },
+  "discovered_routes": [
+    {
+      "route": "POST /rag/query",
+      "surface": "backend",
+      "file": "financial-engine_v2/backend/app/main.py",
+      "status": "implemented",
+      "notes": "source='news' dispatches to app.services.rag.query_news_chunks against Qdrant news_chunks."
+    },
+    {
+      "route": "GET /api/cockpit/health",
+      "surface": "backend",
+      "file": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "implemented",
+      "notes": "Aggregated cockpit health exists but does not expose A2M/news projection split truth."
+    },
+    {
+      "route": "GET /api/cockpit/config",
+      "surface": "backend",
+      "file": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "implemented",
+      "notes": "Runtime/config snapshot exists but does not expose A2M/news projection split truth."
+    },
+    {
+      "route": "POST /rag/query",
+      "surface": "Next rewrite",
+      "file": "cockpit-ui/next.config.mjs",
+      "status": "implemented",
+      "notes": "Next rewrites /rag/:path* to backend, allowing Cockpit news search to call backend /rag/query."
+    },
+    {
+      "route": "GET /api/cockpit/strategy-lab/status",
+      "surface": "Next BFF",
+      "file": "cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+      "status": "implemented_unrelated_pattern",
+      "notes": "Read-only status-route pattern exists for Strategy Lab but is not news/A2M."
+    }
+  ],
+  "missing_routes": [
+    {
+      "route": "GET /api/cockpit/news/status",
+      "surface": "backend",
+      "status": "missing",
+      "evidence": "No matching route file/decorator in financial-engine_v2/backend/app/routes/cockpit_api.py route inventory."
+    },
+    {
+      "route": "GET /api/cockpit/status",
+      "surface": "backend",
+      "status": "missing",
+      "evidence": "Prior read-only smoke reported 404; current route inventory does not list it."
+    },
+    {
+      "route": "GET /api/news/status",
+      "surface": "backend",
+      "status": "intentionally_absent_in_profile",
+      "evidence": "financial-engine_v2/backend/tests/test_route_parity_contract.py asserts /api/news/status is absent and returns 404."
+    },
+    {
+      "route": "GET /api/cockpit/news/status",
+      "surface": "Next app route",
+      "status": "no_explicit_bff_file",
+      "evidence": "No cockpit-ui/app/api/cockpit/news/status/route.ts exists; same-origin /api paths can still rewrite to backend."
+    }
+  ],
+  "current_consumers": [
+    {
+      "consumer": "Cockpit News screen",
+      "file": "cockpit-ui/components/cockpit/news/news-screen.tsx",
+      "route": "POST /rag/query",
+      "status": "uses_qdrant_backed_query_route"
+    },
+    {
+      "consumer": "Textual Cockpit BackendApiClient",
+      "file": "financial-engine_v2/cockpit/integrations/backend_api.py",
+      "route": "POST /rag/query",
+      "status": "uses_backend_rag_query"
+    },
+    {
+      "consumer": "Cockpit config/status UI consumers",
+      "files": [
+        "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+        "cockpit-ui/components/cockpit/settings/settings-screen.tsx"
+      ],
+      "route": "GET /api/cockpit/config",
+      "status": "do_not_currently_consume_news_projection_health"
+    }
+  ],
+  "a2m_news_health_status_to_preserve": {
+    "qdrant_retrieval": "ok",
+    "canonical_sqlite_projection": "missing",
+    "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+    "cockpit_query_route": "ok_via_rag_query",
+    "cockpit_status_routes": "missing_404_before_this_task",
+    "chat_synthesis": "DATA_MISSING",
+    "projection_repair": "not_run"
+  },
+  "candidate_implementation_files": [
+    {
+      "path": "financial-engine_v2/backend/app/services/news_health_status.py",
+      "reason": "Add a small read-only status contract builder isolated from retrieval, DB mutation, Qdrant mutation, chat, and projection repair."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "reason": "Expose GET /api/cockpit/news/status from the existing cockpit backend router."
+    }
+  ],
+  "candidate_tests": [
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_news_status.py",
+      "reason": "Focused FastAPI/TestClient contract coverage for the status route and preserved split-truth labels."
+    }
+  ],
+  "candidate_non_implementation_files": [
+    "docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/README.md",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_route_contract_audit.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_reporting_gap_register.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/validation.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/diff-check.json"
+  ],
+  "overlap_risk": {
+    "shared_checkout_blocker": "Initial /home/l4nd0/tenn check-overlap failed due two foreign untracked task cards outside this job.",
+    "safe_isolation": "Created /home/l4nd0/tenn-status-route-contract-news-health-v1-20260525 from af49ede4.",
+    "active_jobs": [
+      {
+        "job_id": "pr39_ci_failure_root_cause_audit_v1_20260525",
+        "lane": "Evaluation",
+        "overlap": "none"
+      },
+      {
+        "job_id": "strategy_lab_quantdinger_repeatability_review_path_v1_20260525",
+        "lane": "Reporting",
+        "overlap": "none with candidate files"
+      }
+    ],
+    "current_job_claim": "claimed"
+  },
+  "closed_audit_context_incorporated": {
+    "issue_64_worktree_hygiene": "High worktree count and foreign task cards are preserved as hygiene context, not treated as product blockers.",
+    "issue_65_merge_parking": "No repo-visible merge parking registry is assumed.",
+    "issue_67_graphify": "Missing ignored Graphify artifacts are not treated as a backend contract blocker.",
+    "closed_cockpit_ui_issues": "Current candidate files do not duplicate or overwrite closed UI fixes."
+  },
+  "architecture_review": {
+    "cursor_rule_files": "DATA_MISSING: .cursor/rules is absent in this checkout.",
+    "repo_architecture_docs_checked": [
+      "docs/architecture/06_embeddings_and_vector_store.md",
+      "docs/architecture/07_rag_contract.md",
+      "docs/architecture/10_failure_model.md",
+      "docs/architecture/15_news_substrate.md",
+      "docs/architecture/19_backend_api_surface.md",
+      "docs/architecture/21_cockpit_client_contract.md"
+    ],
+    "verdict": "approved_for_bounded_read_only_status_contract",
+    "reason": "The candidate implementation adds no embedding backend, no vector ID changes, no Qdrant/DB mutation, no projection rebuild, no retrieval data-flow change, and no chat/session writes."
+  },
+  "decision": "implement",
+  "decision_reason": "A bounded backend status contract plus focused test can represent the split A2M/news truth without changing retrieval behavior or mutating data stores.",
+  "implementation_result": {
+    "status": "implemented",
+    "route": "GET /api/cockpit/news/status",
+    "files_changed": [
+      "financial-engine_v2/backend/app/services/news_health_status.py",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_cockpit_news_status.py"
+    ],
+    "retrieval_behavior_changed": false,
+    "projection_repair_run": false,
+    "qdrant_mutation": false,
+    "sqlite_mutation": false,
+    "chat_session_write": false,
+    "ui_consumer_added": false
+  }
+}

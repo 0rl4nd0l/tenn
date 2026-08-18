@@ -1,0 +1,18 @@
+{
+  "duration_seconds": 0.006,
+  "request": {
+    "headers": {},
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/health",
+    "url": "http://127.0.0.1:15080/api/health"
+  },
+  "response": {
+    "body": {
+      "status": "healthy",
+      "timestamp": "2026-05-25T01:50:51Z"
+    },
+    "http_status": 200
+  }
+}

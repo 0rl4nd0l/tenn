@@ -1,0 +1,55 @@
+{
+  "artifact_type": "extraction_no_write_case_manifest_v1",
+  "certification": {
+    "allow_broad_extraction": false,
+    "allow_live_fetch": false,
+    "allow_production_writes": false,
+    "allow_remote_llm": false,
+    "loopback_llm_only": true,
+    "notes": "Focused JAY market-update revenue cases. Source documents are fixed local PDFs; writes must remain limited to report-local artifacts and isolated parser cache."
+  },
+  "cases": [
+    {
+      "case_id": "JAY_Q3FY23_MARKET_UPDATE",
+      "role": "market_update_net_revenue_guard",
+      "ticker": "JAY",
+      "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+      "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "source_path": "asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "Q",
+      "expected_period_end": "2023-03-31",
+      "parser_backend": "docling",
+      "strict_parser": true,
+      "skip_narrative": true,
+      "source_bound_metric_policy": "recover_net_revenue_only",
+      "source_bound_revenue_label": "Net Revenue",
+      "source_bound_revenue_value": 1152000,
+      "source_bound_unit_evidence": [
+        "Page 2 Q3 FY23 row contains Net Revenue $1,152K.",
+        "The document says the later Q3 FY23 Quarterly Business Review and Appendix 4C will contain contribution profit and cash flow detail, so non-revenue metrics must not be inferred."
+      ]
+    },
+    {
+      "case_id": "JAY_Q4FY23_MARKET_UPDATE_PAIR",
+      "role": "market_update_net_revenue_pairing_guard",
+      "ticker": "JAY",
+      "document_id": "e2149cbc-e031-4e20-8110-597b5c9d7d8e",
+      "title": "2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+      "source_path": "asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "Q",
+      "expected_period_end": "2023-06-30",
+      "parser_backend": "docling",
+      "strict_parser": true,
+      "skip_narrative": true,
+      "source_bound_metric_policy": "recover_net_revenue_only",
+      "source_bound_revenue_label": "Net Revenue",
+      "source_bound_revenue_value": 1546000,
+      "source_bound_unit_evidence": [
+        "Page 2 Q4 FY23 row contains Net Revenue $1,546K.",
+        "Page 3 also contains FY23 headline unaudited trips and revenues; this guard is for the Q4 row only and must not infer cash-flow, profit, balance-sheet, or annual metrics."
+      ]
+    }
+  ]
+}

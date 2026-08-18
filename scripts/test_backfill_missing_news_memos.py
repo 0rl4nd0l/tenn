@@ -40,7 +40,13 @@ def _create_articles_db(path: Path) -> None:
             );
             """
         )
+        tickers = {
+            "art-1": "BHP",
+            "art-2": "CBA",
+            "art-3": "WBC",
+        }
         for article_id in ("art-1", "art-2", "art-3"):
+            ticker = tickers[article_id]
             conn.execute(
                 """
                 INSERT INTO articles(
@@ -51,14 +57,28 @@ def _create_articles_db(path: Path) -> None:
                 (
                     article_id,
                     f"https://example.com/{article_id}",
-                    f"Title {article_id}",
-                    "Description",
-                    "Body text " * 20,
+                    f"ASX:{ticker} market update {article_id}",
+                    f"{ticker} shares and earnings description",
+                    f"ASX:{ticker} shares rallied after a market update. " * 20,
                     "newspaper4k",
                     "en",
                     "2026-05-05T00:00:00Z",
                     0.9,
                 ),
+            )
+            conn.execute(
+                """
+                INSERT INTO entity_links(article_id, ticker) VALUES (?, ?)
+                """,
+                (article_id, ticker),
+            )
+            conn.execute(
+                """
+                INSERT INTO article_relevance(
+                    article_id, ticker, is_primary, relevance_score
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (article_id, ticker, 1, 0.9),
             )
         conn.commit()
     finally:
@@ -542,7 +562,7 @@ def test_backfill_env_json_error_fallback_success_completes_coverage(
     def fake_dispatch(articles, **kwargs):
         dispatch_models.append(str(kwargs.get("llm_model") or ""))
         source_ids = [f"news:{article['article_id']}" for article in articles]
-        if kwargs.get("llm_model"):
+        if kwargs.get("llm_model") == "model:qwen3.5-35b-a3b-apex":
             rows = [json.dumps({"source_id": source_id}) for source_id in source_ids]
             with memos_path.open("a", encoding="utf-8") as handle:
                 handle.write("\n".join(rows) + "\n")
@@ -605,7 +625,10 @@ def test_backfill_env_json_error_fallback_success_completes_coverage(
         )
 
     assert exit_code == 0
-    assert dispatch_models == ["", "model:qwen3.5-35b-a3b-apex"]
+    assert dispatch_models == [
+        "model:qwen2.5-14b-instruct",
+        "model:qwen3.5-35b-a3b-apex",
+    ]
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert summary["coverage_after"]["status"] == "complete"
     assert summary["coverage_after"]["missing"] == 0
@@ -613,6 +636,54 @@ def test_backfill_env_json_error_fallback_success_completes_coverage(
     assert summary["json_error_fallback"]["fallback_attempted"] is True
     assert summary["json_error_fallback"]["fallback_completed"] == 1
     assert summary["json_error_fallback"]["fallback_failures"] == 0
+
+
+def test_backfill_cli_passes_memo_llm_url_and_model(tmp_path: Path) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    memos_path = tmp_path / "news_memos.jsonl"
+    summary_path = tmp_path / "summary.json"
+    _create_articles_db(db_path)
+    seen_kwargs: list[dict[str, object]] = []
+
+    def fake_dispatch(articles, **kwargs):
+        seen_kwargs.append(dict(kwargs))
+        return {
+            "status": "pending",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "wait_requested": kwargs["wait_for_completion"],
+            "llm_url": kwargs.get("llm_url"),
+            "llm_model": kwargs.get("llm_model"),
+        }
+
+    with patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch):
+        exit_code = backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--limit",
+                "1",
+                "--memo-diagnostics-path",
+                str(memos_path),
+                "--memo-llm-url",
+                "http://127.0.0.1:18001",
+                "--memo-llm-model",
+                "model:qwen3.5-35b-a3b-apex",
+                "--summary-json",
+                str(summary_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert seen_kwargs[0]["llm_url"] == "http://127.0.0.1:18001"
+    assert seen_kwargs[0]["llm_model"] == "model:qwen3.5-35b-a3b-apex"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["memo_llm"] == {
+        "url": "http://127.0.0.1:18001",
+        "model": "model:qwen3.5-35b-a3b-apex",
+    }
 
 
 def test_backfill_no_wait_does_not_batch(tmp_path: Path) -> None:

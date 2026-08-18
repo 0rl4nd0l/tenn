@@ -68,7 +68,10 @@ def test_recent_returns_approved_commentary_sources_newest_first(monkeypatch) ->
     ]
     assert body["items"][0]["source_name"] == "Macro Note"
     assert body["items"][0]["source_type"] == "market_commentary"
+    assert body["items"][0]["source_kind"] == "concat"
     assert body["items"][0]["approved_at"] == "2026-05-02T10:00:00Z"
+    assert body["items"][1]["source_type"] == "youtube_transcript"
+    assert body["items"][1]["source_kind"] == "ephemeral"
 
 
 def test_recent_honors_limit(monkeypatch) -> None:

@@ -1,0 +1,158 @@
+{
+  "artifact_type": "extraction_broad_approved15_current_canonical_validation_v2",
+  "branch": "safe/extraction-broad-approved15-current-canonical-v1-20260628",
+  "canonical_head": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d",
+  "created_at": "2026-06-28T07:35:02Z",
+  "latest_origin_head": "87e49247a0ddbf5e35fd6b7c2b61ea5a1fe9d74c",
+  "status": "PARTIAL",
+  "worktree": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628",
+  "full_post_seg_approved15_replay": {
+    "accepted_case_ids": [
+      "AZJ_H_2025-12-31",
+      "BHP_A_2021-06-30",
+      "EQR_Q_2025-12-31",
+      "FMG_H_2025-12-31",
+      "GRE_Q_2024-12-31",
+      "MIN_H_2025-12-31",
+      "RMS_H_2025-12-31",
+      "SEG_H_2025-12-31",
+      "TCL_H_2025-12-31",
+      "TLS_H_2025-12-31",
+      "WOW_H_2026-01-04"
+    ],
+    "accepted_payload_count": 11,
+    "case_count": 15,
+    "elapsed_s": 1803.19,
+    "fail_closed_case_ids": [
+      "ANZ_H_2025-03-31",
+      "CSL_H_2025-12-31",
+      "DXS_H_2025-12-31",
+      "QBE_H_2025-06-30"
+    ],
+    "fail_closed_payload_count": 4,
+    "failed_case_ids": [],
+    "failed_payload_count": 0,
+    "side_effect_pass": true,
+    "status": "PARTIAL"
+  },
+  "selected_remaining_fix": {
+    "class": "CSL_revenue_narrative_false_positive",
+    "source_proven": true,
+    "behavior": "Replace rejected future-sales narrative revenue with formal statement-text revenue when recoverable; otherwise clear the rejected revenue metric fail-closed.",
+    "implemented_files": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ]
+  },
+  "focused_csl_replay": {
+    "accepted_case_ids": [
+      "CSL_H_2025-12-31"
+    ],
+    "accepted_payload_count": 1,
+    "case_count": 1,
+    "elapsed_s": 129.054,
+    "fail_closed_case_ids": [],
+    "fail_closed_payload_count": 0,
+    "failed_case_ids": [],
+    "failed_payload_count": 0,
+    "payload_status": "ok_low_confidence",
+    "revenue_retained": false,
+    "side_effect_pass": true,
+    "status": "PASS"
+  },
+  "scorecard_after_csl_fix": {
+    "actual_payload_document_count": 12,
+    "blocking_row_count": 97,
+    "gate_decision": "blocked",
+    "gate_status": "fail",
+    "result_class_summary": {
+      "ambiguous_quarantined": 73,
+      "missing_evidence": 0,
+      "missing_expected_metric": 4,
+      "not_evaluated_no_actual_payload": 18,
+      "present_correct": 49,
+      "present_wrong_value": 2,
+      "unsupported_correctly_abstained": 0,
+      "wrong_period": 0,
+      "wrong_unit_currency_scale": 0
+    },
+    "why_counts_unchanged_after_csl": "CSL fixture rows remain ambiguous_quarantined under the current #97 scoring policy even after the focused actual payload is available."
+  },
+  "commands": [
+    {
+      "command": "git fetch origin migration/clean-runtime-baseline-reconstruct-v1",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --name-status HEAD..origin/migration/clean-runtime-baseline-reconstruct-v1 -- financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py scripts/extraction_no_write_replay.py financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/eval_fixtures financial-engine_v2/backend/tests/eval_source_assets",
+      "result": "pass: no extraction-scope drift"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md",
+      "result": "pass"
+    },
+    {
+      "command": "uv run --isolated --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... full post-SEG approved-15 replay",
+      "result": "PARTIAL: 15 cases, 11 accepted, 4 fail-closed, 0 failed, side-effect audit passed"
+    },
+    {
+      "command": "uv run --isolated --with-requirements financial-engine_v2/backend/requirements.txt --with 'pytest>=8.3.3' python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'statement_text_overlay_replaces_narrative_future_sales_revenue or statement_text_overlay_replaces_ebitda_with_income_statement_profit_before_tax or shares_prose_recovers_split_number_of_shares_on_issue or shares_prose_rejects_split_weighted_average_shares'",
+      "result": "4 passed, 251 deselected, 1 warning"
+    },
+    {
+      "command": "uv run --isolated --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... focused CSL no-write replay",
+      "result": "PASS: 1 accepted, 0 fail-closed, 0 failed, side-effect audit passed"
+    },
+    {
+      "command": "uv run --isolated --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... final scorecard rebuild",
+      "result": "blocked: 12 actual payload documents, 97 blocking rows"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/validation.json && python3 -m json.tool reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/handoff/LEDGER_ENTRY.json",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-closeout docs/agent_tasks/extraction_broad_approved15_current_canonical_v1_20260628.md --repo-root .",
+      "result": "pass"
+    }
+  ],
+  "functionality_proof": {
+    "intended output": "Report-local approved-15 no-write extraction evidence and one narrow source-proven extractor behavior improvement; no production extraction output was intended or written.",
+    "live output location": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/*; no DB/API/queue/store production surface was checked for fresh rows.",
+    "pre-run max timestamp or count": "DATA_MISSING for production output; full post-SEG report-local replay count 15 cases before the CSL fix.",
+    "post-run max timestamp or count": "DATA_MISSING for production output; focused CSL replay count 1 accepted case; final scorecard actual payload document count 12.",
+    "rows/files inserted or updated after run start": "0 production rows; report-local artifacts only; tracked code/test/task-card files changed.",
+    "readiness/gate status": "scorecard gate blocked; 97 blocking rows; summary {'ambiguous_quarantined': 73, 'missing_evidence': 0, 'missing_expected_metric': 4, 'not_evaluated_no_actual_payload': 18, 'present_correct': 49, 'present_wrong_value': 2, 'unsupported_correctly_abstained': 0, 'wrong_period': 0, 'wrong_unit_currency_scale': 0}",
+    "exact command/query used": "See commands list in this artifact plus replay and scorecard artifacts under the job report directory.",
+    "result: WORKING / PARTIAL / BROKEN / DATA_MISSING": "PARTIAL",
+    "remaining blocker": "Pre-persistence scorecard gate remains blocked; RMS, QBE, DXS, and BHP/MIN classes remain separate unresolved blockers; no production output proof was attempted or allowed."
+  },
+  "canonical_drift_audit": {
+    "latest_origin_head": "87e49247a0ddbf5e35fd6b7c2b61ea5a1fe9d74c",
+    "worktree_head": "7a0bab4ca9337c6c9d735f23d5898d9b306ecc2d",
+    "origin_commits_not_in_worktree_head": 7,
+    "extraction_scope_changed_files": [],
+    "decision": "EXTRACTION_SCOPE_EVIDENCE_STILL_APPLIES",
+    "artifact": "reports/agent_jobs/extraction_broad_approved15_current_canonical_v1_20260628/canonical_drift.json"
+  },
+  "hard_stops_preserved": [
+    "no DB/Qdrant/Redis/news/runtime/backfill/production data mutation",
+    "no source PDF mutation",
+    "no gold label mutation",
+    "no prompt/model/service mutation",
+    "no GitHub issue mutation",
+    "no count-24/count-32 execution"
+  ]
+}

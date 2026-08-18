@@ -11,16 +11,58 @@ This keeps the scaffold deterministic and fast for unit-level hardening work.
 from __future__ import annotations
 
 import json
+import math
+import re
 from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from enum import Enum
+from numbers import Real
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from app.services.multipass_extraction import METRIC_FIELDS
+from app.services.asx_holdout_confidentiality import (
+    CorpusClassification,
+    DevelopmentAggregateResult,
+    ProtectedAccessMode,
+    serialize_evaluation_output,
+)
+from app.services.financial_metric_contract import (
+    METRIC_CONTRACT_BY_CANONICAL_FIELD,
+    MetricContractStatus,
+    ProvenanceRequirement,
+)
+from app.services.multipass_extraction import METRIC_FIELDS, SCALE_MULTIPLIERS
 from app.services.provenance import (
     from_extraction_payload,
     validate_provenance_collection,
 )
+
+
+_CELL_NUMERIC_RE = re.compile(
+    r"^(?:(?:[A-Za-z]{1,3})?\$|[£€])?\s*"
+    r"(?P<number>[+-]?(?:\d+(?:,\d{3})*|\d+)(?:\.\d+)?)"
+    r"\s*(?P<suffix>k|thousand|thousands|m|mn|million|millions|"
+    r"b|bn|billion|billions|t|tn|trillion|trillions)?$",
+    re.IGNORECASE,
+)
+_CELL_SUFFIX_MULTIPLIERS = {
+    "k": Decimal(1_000),
+    "thousand": Decimal(1_000),
+    "thousands": Decimal(1_000),
+    "m": Decimal(1_000_000),
+    "mn": Decimal(1_000_000),
+    "million": Decimal(1_000_000),
+    "millions": Decimal(1_000_000),
+    "b": Decimal(1_000_000_000),
+    "bn": Decimal(1_000_000_000),
+    "billion": Decimal(1_000_000_000),
+    "billions": Decimal(1_000_000_000),
+    "t": Decimal(1_000_000_000_000),
+    "tn": Decimal(1_000_000_000_000),
+    "trillion": Decimal(1_000_000_000_000),
+    "trillions": Decimal(1_000_000_000_000),
+}
 
 
 class MetricEvalStatus(str, Enum):
@@ -37,6 +79,7 @@ class FixtureContext:
     period_type: str | None
     currency: str | None
     scale: str | None
+    accounting_basis: str | None = None
 
 
 @dataclass(frozen=True)
@@ -100,7 +143,10 @@ def load_fixtures(fixtures_dir: str | Path) -> list[ExtractionFixture]:
     output: list[ExtractionFixture] = []
     for path in sorted(fixture_dir.glob("*.json")):
         payload = _parse_fixture_path(path)
-        fixture_id = str(payload.get("fixture_id") or path.stem)
+        fixture_id = (
+            strict_str_or_none(payload.get("fixture_id"), field_name="fixture_id")
+            or path.stem
+        )
         metrics = _coerce_metric_map(payload.get("metrics", {}), path)
         optional_metrics = _coerce_metric_list(
             payload.get("optional_metrics", []), path
@@ -111,10 +157,17 @@ def load_fixtures(fixtures_dir: str | Path) -> list[ExtractionFixture]:
         _validate_metric_names(path, [*metrics, *expected_nulls, *optional_metrics])
 
         context = FixtureContext(
-            period_end=str_or_none(payload.get("period_end")),
-            period_type=str_or_none(payload.get("period_type")),
-            currency=str_or_none(payload.get("currency")),
-            scale=str_or_none(payload.get("scale")),
+            period_end=strict_iso_date_or_none(
+                payload.get("period_end"), field_name="period_end"
+            ),
+            period_type=strict_str_or_none(
+                payload.get("period_type"), field_name="period_type"
+            ),
+            currency=strict_str_or_none(payload.get("currency"), field_name="currency"),
+            scale=strict_str_or_none(payload.get("scale"), field_name="scale"),
+            accounting_basis=strict_str_or_none(
+                payload.get("accounting_basis"), field_name="accounting_basis"
+            ),
         )
         output.append(
             ExtractionFixture(
@@ -151,11 +204,23 @@ def evaluate_fixture(
     fixture: ExtractionFixture,
     extracted_metrics: dict[str, Any],
     extracted_payload: dict[str, Any] | None = None,
+    *,
+    expected_source_document_id: str | None = None,
+    require_structured_provenance: bool = False,
 ) -> FixtureEvaluation:
     """Evaluate one fixture against one extracted metric payload."""
 
     extracted_payload = extracted_payload or {}
-    provenance_summary = _build_provenance_summary(extracted_payload)
+    _validate_fixture_identity_and_context(fixture)
+    _validate_fixture_numeric_values(fixture)
+    _validate_extracted_metric_values(extracted_metrics)
+    _validate_extracted_payload_types(extracted_payload)
+    provenance_summary = _build_provenance_summary(
+        extracted_payload,
+        expected_context=fixture.context,
+        expected_source_document_id=expected_source_document_id,
+        require_structured=require_structured_provenance,
+    )
     context_mismatches = _validate_context(fixture.context, extracted_payload)
 
     # If we cannot trust extracted context, mark every metric as quarantine.
@@ -282,9 +347,65 @@ def summarize_overall_score(evaluations: Iterable[FixtureEvaluation]) -> dict[st
     }
 
 
+def summarize_numeric_quality(
+    evaluations: Iterable[FixtureEvaluation],
+) -> dict[str, dict[str, int | float | None]]:
+    """Report present-value precision separately from supported-metric recall.
+
+    Precision considers supported numeric outputs that were eligible for value
+    comparison. Recall considers every supported non-null metric expectation,
+    including missing and context-quarantined expectations.
+    """
+
+    accepted_count = 0
+    accepted_correct_count = 0
+    supported_expected_count = 0
+    supported_correct_count = 0
+
+    for evaluation in evaluations:
+        for metric in evaluation.metrics:
+            contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric.metric)
+            if (
+                contract is None
+                or contract.declared_status != MetricContractStatus.SUPPORTED
+            ):
+                continue
+
+            if metric.expected is not None:
+                supported_expected_count += 1
+                if metric.status == MetricEvalStatus.CORRECT:
+                    supported_correct_count += 1
+
+            if metric.actual is not None and metric.status in {
+                MetricEvalStatus.CORRECT,
+                MetricEvalStatus.WRONG,
+            }:
+                accepted_count += 1
+                if metric.status == MetricEvalStatus.CORRECT:
+                    accepted_correct_count += 1
+
+    return {
+        "accepted_numeric_precision": {
+            "correct_count": accepted_correct_count,
+            "accepted_count": accepted_count,
+            "value": _safe_ratio(accepted_correct_count, accepted_count),
+        },
+        "supported_metric_recall": {
+            "correct_count": supported_correct_count,
+            "expected_count": supported_expected_count,
+            "value": _safe_ratio(supported_correct_count, supported_expected_count),
+        },
+    }
+
+
 def build_fixture_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
+    *,
+    corpus_classification: CorpusClassification
+    | str = CorpusClassification.NON_HOLDOUT,
+    access_mode: ProtectedAccessMode | str = ProtectedAccessMode.DEVELOPMENT,
+    development_aggregate: DevelopmentAggregateResult | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a stable JSON-serializable scorecard for all fixtures.
 
@@ -313,13 +434,21 @@ def build_fixture_scorecard(
 
     total_metric_expectations = sum(v["metric_count"] for v in fixture_summaries)
     period_summary = _build_context_summary(fixtures, fixture_payloads, "period_end")
+    period_type_summary = _build_context_summary(
+        fixtures, fixture_payloads, "period_type"
+    )
     currency_summary = _build_context_summary(fixtures, fixture_payloads, "currency")
     scale_summary = _build_context_summary(fixtures, fixture_payloads, "scale")
     provenance_summary = summarize_provenance_summaries(
         evaluation.provenance_summary for evaluation in evaluations
     )
+    numeric_quality = summarize_numeric_quality(evaluations)
+    accounting_basis_summary = _build_context_summary(
+        fixtures, fixture_payloads, "accounting_basis"
+    )
 
-    return {
+    result = {
+        "evaluation_lane": "synthetic",
         "total_fixture_count": len(fixtures),
         "total_metric_expectations": total_metric_expectations,
         "correct_count": status_counts["correct"],
@@ -328,8 +457,13 @@ def build_fixture_scorecard(
         "abstained_count": status_counts["abstain"],
         "quarantined_count": status_counts["quarantine"],
         "period_correctness_summary": period_summary,
+        "period_end_correctness_summary": period_summary,
+        "period_type_correctness_summary": period_type_summary,
+        "period_basis_correctness_summary": period_type_summary,
         "currency_correctness_summary": currency_summary,
         "scale_correctness_summary": scale_summary,
+        "accounting_basis_correctness_summary": accounting_basis_summary,
+        **numeric_quality,
         "provenance_summary": provenance_summary,
         "fixture_summaries": fixture_summaries,
         "status_summary": {
@@ -340,6 +474,12 @@ def build_fixture_scorecard(
             "quarantine": status_counts["quarantine"],
         },
     }
+    return serialize_evaluation_output(
+        result,
+        corpus_classification=corpus_classification,
+        access_mode=access_mode,
+        development_aggregate=development_aggregate,
+    )
 
 
 def summarize_provenance_summaries(
@@ -354,6 +494,9 @@ def summarize_provenance_summaries(
     issue_count = 0
     error_count = 0
     warning_count = 0
+    canonical_required_record_count = 0
+    canonical_valid_record_count = 0
+    canonical_invalid_record_count = 0
 
     for summary in summaries:
         if summary.get("available"):
@@ -369,6 +512,15 @@ def summarize_provenance_summaries(
         issue_count += int(summary.get("issue_count", 0))
         error_count += int(summary.get("error_count", 0))
         warning_count += int(summary.get("warning_count", 0))
+        canonical_required_record_count += int(
+            summary.get("canonical_required_record_count", 0)
+        )
+        canonical_valid_record_count += int(
+            summary.get("canonical_valid_record_count", 0)
+        )
+        canonical_invalid_record_count += int(
+            summary.get("canonical_invalid_record_count", 0)
+        )
 
         status_counts = summary.get("status_counts", {})
         if isinstance(status_counts, dict):
@@ -391,6 +543,9 @@ def summarize_provenance_summaries(
         "issue_count": issue_count,
         "error_count": error_count,
         "warning_count": warning_count,
+        "canonical_required_record_count": canonical_required_record_count,
+        "canonical_valid_record_count": canonical_valid_record_count,
+        "canonical_invalid_record_count": canonical_invalid_record_count,
         "status_counts": dict(sorted(aggregated_status_counts.items())),
     }
 
@@ -443,14 +598,32 @@ def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
         "provenance_issue_count": provenance["issue_count"],
         "provenance_error_count": provenance["error_count"],
         "provenance_warning_count": provenance["warning_count"],
+        "provenance_canonical_required_record_count": provenance[
+            "canonical_required_record_count"
+        ],
+        "provenance_canonical_valid_record_count": provenance[
+            "canonical_valid_record_count"
+        ],
+        "provenance_canonical_invalid_record_count": provenance[
+            "canonical_invalid_record_count"
+        ],
         "provenance_status_counts": provenance["status_counts"],
         "provenance_issues": provenance["issues"],
     }
 
 
-def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _build_provenance_summary(
+    payload: Mapping[str, Any],
+    *,
+    expected_context: FixtureContext | None = None,
+    expected_source_document_id: str | None = None,
+    require_structured: bool = False,
+) -> dict[str, Any]:
+    field_provenance = payload.get("field_provenance")
     provenance = payload.get("provenance")
-    if not isinstance(provenance, Mapping):
+    if not isinstance(field_provenance, Mapping) and not isinstance(
+        provenance, Mapping
+    ):
         return {
             "available": False,
             "status": "unavailable",
@@ -459,12 +632,21 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             "issue_count": 0,
             "error_count": 0,
             "warning_count": 0,
+            "canonical_required_record_count": 0,
+            "canonical_valid_record_count": 0,
+            "canonical_invalid_record_count": 0,
             "status_counts": {},
             "issues": [],
             "metric_summaries": [],
         }
 
-    metric_names = [str(metric_name) for metric_name in provenance]
+    metric_names: list[str] = []
+    for source_map in (field_provenance, provenance):
+        if not isinstance(source_map, Mapping):
+            continue
+        for metric_name in source_map:
+            metric_names.append(str(metric_name))
+    metric_names = list(dict.fromkeys(metric_names))
     records = from_extraction_payload(
         payload,
         source_document_id=str_or_none(payload.get("source_document_id")),
@@ -473,12 +655,28 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     status_counts: dict[str, int] = {}
     metric_summaries: list[dict[str, Any]] = []
+    canonical_required_record_count = 0
+    canonical_valid_record_count = 0
     for metric_name, record, result in zip(
         metric_names,
         records,
         validation["record_results"],
         strict=False,
     ):
+        canonical_provenance = _evaluate_canonical_provenance(
+            metric_name,
+            record,
+            result,
+            payload=payload,
+            actual_value=_payload_metric_value(payload, metric_name),
+            expected_context=expected_context,
+            expected_source_document_id=expected_source_document_id,
+            require_structured=require_structured,
+        )
+        if canonical_provenance["required"]:
+            canonical_required_record_count += 1
+            if canonical_provenance["valid"]:
+                canonical_valid_record_count += 1
         status_counts[record.provenance_status] = (
             status_counts.get(record.provenance_status, 0) + 1
         )
@@ -490,6 +688,9 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
                 "issue_codes": [issue["code"] for issue in result["issues"]],
                 "error_count": result["error_count"],
                 "warning_count": result["warning_count"],
+                "canonical_provenance_required": canonical_provenance["required"],
+                "canonical_provenance_valid": canonical_provenance["valid"],
+                "canonical_provenance_reason": canonical_provenance["reason"],
             }
         )
 
@@ -509,10 +710,22 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "issue_count": len(issues),
         "error_count": validation["error_count"],
         "warning_count": validation["warning_count"],
+        "canonical_required_record_count": canonical_required_record_count,
+        "canonical_valid_record_count": canonical_valid_record_count,
+        "canonical_invalid_record_count": (
+            canonical_required_record_count - canonical_valid_record_count
+        ),
         "status_counts": dict(sorted(status_counts.items())),
         "issues": issues,
         "metric_summaries": metric_summaries,
     }
+
+
+def build_payload_provenance_summary(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate raw extraction provenance for production consumers."""
+    return _build_provenance_summary(payload, require_structured=True)
 
 
 def _build_context_summary(
@@ -602,8 +815,13 @@ def _status_reason(
 def _validate_context(context: FixtureContext, payload: dict[str, Any]) -> list[str]:
     checks = {
         "period_end": (context.period_end, str_or_none(payload.get("period_end"))),
+        "period_type": (context.period_type, str_or_none(payload.get("period_type"))),
         "currency": (context.currency, str_or_none(payload.get("currency"))),
         "scale": (context.scale, str_or_none(payload.get("scale"))),
+        "accounting_basis": (
+            context.accounting_basis,
+            str_or_none(payload.get("accounting_basis")),
+        ),
     }
 
     mismatches = []
@@ -671,7 +889,7 @@ def _coerce_tolerances(raw: Any, path: Path) -> dict[str, float]:
 
     parsed: dict[str, float] = {}
     for metric, value in raw.items():
-        if not isinstance(value, int | float):
+        if not _is_real_number(value):
             raise ValueError(f"tolerance for {path}:{metric} must be numeric")
         parsed[metric] = float(value)
     return parsed
@@ -680,7 +898,7 @@ def _coerce_tolerances(raw: Any, path: Path) -> dict[str, float]:
 def _coerce_metric_value(metric: str, raw: Any, path: Path) -> float | None:
     if raw is None:
         return None
-    if isinstance(raw, bool) or isinstance(raw, (int, float)):
+    if _is_real_number(raw):
         return float(raw)
     raise ValueError(f"metric {metric} in {path} must be numeric or null")
 
@@ -688,11 +906,186 @@ def _coerce_metric_value(metric: str, raw: Any, path: Path) -> float | None:
 def _safe_float(value: Any) -> float | None:
     if value is None:
         return None
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
+    if _is_real_number(value):
         return float(value)
     return None
+
+
+def _is_real_number(value: Any) -> bool:
+    if not isinstance(value, Real) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
+def _validate_fixture_numeric_values(fixture: ExtractionFixture) -> None:
+    for metric, value in fixture.metrics.items():
+        if value is not None and not _is_real_number(value):
+            raise ValueError(f"metric {metric} fixture value must be numeric or null")
+    for metric, tolerance in fixture.tolerances.items():
+        if not _is_real_number(tolerance):
+            raise ValueError(f"tolerance for {metric} must be numeric")
+
+
+def _validate_fixture_identity_and_context(fixture: ExtractionFixture) -> None:
+    if not isinstance(fixture.fixture_id, str):
+        raise ValueError("fixture_id must be a string")
+    for field_name in (
+        "period_type",
+        "currency",
+        "scale",
+        "accounting_basis",
+    ):
+        value = getattr(fixture.context, field_name)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+    period_end = fixture.context.period_end
+    if period_end is not None:
+        if not isinstance(period_end, str):
+            raise ValueError("period_end must be a string")
+        _validate_iso_date(period_end, field_name="period_end")
+
+
+def _validate_extracted_metric_values(extracted_metrics: Mapping[str, Any]) -> None:
+    for metric, value in extracted_metrics.items():
+        if metric not in METRIC_FIELDS or value is None:
+            continue
+        if not _is_real_number(value):
+            raise ValueError(f"metric {metric} actual value must be numeric or null")
+
+
+def _validate_extracted_payload_types(payload: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        payload,
+        (
+            "document_id",
+            "source_document_id",
+            "period_end",
+            "period_type",
+            "currency",
+            "scale",
+            "accounting_basis",
+        ),
+    )
+    _validate_optional_iso_date(payload.get("period_end"), field_name="period_end")
+
+    provenance = payload.get("provenance")
+    if isinstance(provenance, Mapping):
+        for metric_name, value in provenance.items():
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"provenance.{metric_name} must be a string")
+
+    field_provenance = payload.get("field_provenance")
+    if not isinstance(field_provenance, Mapping):
+        return
+    for raw in field_provenance.values():
+        if not isinstance(raw, Mapping):
+            continue
+        _validate_structured_provenance_types(raw)
+
+
+def _validate_structured_provenance_types(raw: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        raw,
+        (
+            "metric",
+            "source",
+            "statement_context",
+            "source_document_id",
+            "period_end",
+            "period_type",
+            "currency",
+            "scale",
+            "page_tag",
+            "table_label",
+            "table_ref",
+            "region_ref",
+            "region",
+            "row_ref",
+            "excerpt",
+            "derivation_identity",
+            "authorized_derivation",
+        ),
+    )
+    _validate_optional_iso_date(raw.get("period_end"), field_name="period_end")
+    _require_page_identity(raw, "page_number")
+
+    source_row_refs = raw.get("source_row_refs")
+    if source_row_refs is not None:
+        if not isinstance(source_row_refs, list) or any(
+            not isinstance(row_ref, str) for row_ref in source_row_refs
+        ):
+            raise ValueError("source_row_refs must be a list of strings")
+
+    source_cell = raw.get("source_cell")
+    if isinstance(source_cell, Mapping):
+        _validate_source_cell_types(source_cell)
+    source_cells = raw.get("source_cells")
+    if isinstance(source_cells, list):
+        for cell in source_cells:
+            if isinstance(cell, Mapping):
+                _validate_source_cell_types(cell)
+
+
+def _validate_source_cell_types(cell: Mapping[str, Any]) -> None:
+    _require_string_fields(
+        cell,
+        (
+            "source_document_id",
+            "page_tag",
+            "table_label",
+            "table_ref",
+            "region_ref",
+            "region",
+            "row_label",
+            "row_ref",
+            "header_cell",
+            "requested_period_end",
+        ),
+    )
+    _validate_optional_iso_date(
+        cell.get("requested_period_end"),
+        field_name="requested_period_end",
+    )
+    _require_page_identity(cell, "page_number")
+    for field_name in ("row_index", "column_index"):
+        value = cell.get(field_name)
+        if value is not None and (
+            not isinstance(value, int) or isinstance(value, bool)
+        ):
+            raise ValueError(f"{field_name} must be an integer")
+    raw_value = cell.get("raw_value")
+    if raw_value is not None and not (
+        isinstance(raw_value, str) or _is_real_number(raw_value)
+    ):
+        raise ValueError("raw_value must be a string or real number")
+
+
+def _require_string_fields(
+    values: Mapping[str, Any],
+    field_names: Iterable[str],
+) -> None:
+    for field_name in field_names:
+        value = values.get(field_name)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
+
+
+def _require_page_identity(values: Mapping[str, Any], field_name: str) -> None:
+    value = values.get(field_name)
+    if value is None:
+        return
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{field_name} must be an integer or string")
+
+
+def _payload_metric_value(payload: Mapping[str, Any], metric_name: str) -> Any:
+    metrics = payload.get("metrics")
+    if isinstance(metrics, Mapping):
+        return metrics.get(metric_name)
+    return payload.get(metric_name)
 
 
 def _validate_metric_names(path: Path, values: Iterable[str]) -> None:
@@ -702,6 +1095,469 @@ def _validate_metric_names(path: Path, values: Iterable[str]) -> None:
             raise ValueError(f"unknown metric '{metric}' in {path}")
 
 
+def _evaluate_canonical_provenance(
+    metric_name: str,
+    record: Any,
+    validation: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    actual_value: Any,
+    expected_context: FixtureContext | None,
+    expected_source_document_id: str | None,
+    require_structured: bool,
+) -> dict[str, bool | str]:
+    contract = METRIC_CONTRACT_BY_CANONICAL_FIELD.get(metric_name)
+    required = bool(
+        contract is not None
+        and contract.declared_status == MetricContractStatus.SUPPORTED
+        and contract.provenance_requirement != ProvenanceRequirement.NOT_CANONICAL
+    )
+    if not required:
+        return {"required": False, "valid": True, "reason": "not_required"}
+
+    if require_structured:
+        strict_reason = _strict_provenance_failure_reason(
+            contract=contract,
+            record=record,
+            payload=payload,
+            actual_value=actual_value,
+            expected_context=expected_context,
+            expected_source_document_id=expected_source_document_id,
+        )
+        if strict_reason is not None:
+            return {
+                "required": True,
+                "valid": False,
+                "reason": strict_reason,
+            }
+
+    if not record.source_document_id:
+        return {
+            "required": True,
+            "valid": False,
+            "reason": "source_document_id_missing",
+        }
+    if not validation.get("ok"):
+        return {
+            "required": True,
+            "valid": False,
+            "reason": "provenance_validation_error",
+        }
+    if record.provenance_status == "precise":
+        return {"required": True, "valid": True, "reason": "direct_source"}
+
+    if record.provenance_status == "derived" and contract is not None:
+        derivation_identity = _explicit_derivation_identity(record.raw_reference)
+        if any(
+            derivation.value == derivation_identity
+            for derivation in contract.authorized_derivations
+        ):
+            return {
+                "required": True,
+                "valid": True,
+                "reason": "authorized_derivation",
+            }
+
+    return {
+        "required": True,
+        "valid": False,
+        "reason": f"invalid_status:{record.provenance_status}",
+    }
+
+
+def _explicit_derivation_identity(raw_reference: Any) -> str | None:
+    if isinstance(raw_reference, Mapping):
+        return str_or_none(
+            raw_reference.get("derivation_identity")
+            or raw_reference.get("authorized_derivation")
+        )
+    if not isinstance(raw_reference, str):
+        return None
+    parts = raw_reference.strip().lower().split(":", maxsplit=2)
+    if len(parts) != 3 or parts[0] != "derived" or not parts[1]:
+        return None
+    return parts[2]
+
+
+def _strict_provenance_failure_reason(
+    *,
+    contract: Any,
+    record: Any,
+    payload: Mapping[str, Any],
+    actual_value: Any,
+    expected_context: FixtureContext | None,
+    expected_source_document_id: str | None,
+) -> str | None:
+    expected_source = str_or_none(expected_source_document_id)
+    if expected_source is None:
+        return "fixture_source_document_id_missing"
+
+    payload_source = str_or_none(payload.get("source_document_id"))
+    if payload_source is None:
+        return "source_document_id_missing"
+    if payload_source != expected_source:
+        return "source_document_id_mismatch"
+
+    raw = record.raw_reference
+    if not isinstance(raw, Mapping):
+        return "structured_provenance_missing"
+    raw_source_document_id = str_or_none(raw.get("source_document_id"))
+    if raw_source_document_id is None:
+        return "source_document_id_missing"
+    if raw_source_document_id != expected_source:
+        return "source_document_id_mismatch"
+
+    expected_fields = {
+        "period_end": (
+            str_or_none(expected_context.period_end) if expected_context else None
+        ),
+        "period_type": (
+            str_or_none(expected_context.period_type) if expected_context else None
+        ),
+        "currency": (
+            str_or_none(expected_context.currency) if expected_context else None
+        ),
+        "scale": str_or_none(expected_context.scale) if expected_context else None,
+    }
+    for field_name, expected_value in expected_fields.items():
+        if expected_value is None:
+            return f"fixture_{field_name}_missing"
+
+    source = str_or_none(raw.get("source"))
+    derived_source = source.removeprefix("derived:") if source else None
+    allowed_sources = {
+        statement_context.value for statement_context in contract.statement_contexts
+    }
+    if derived_source not in allowed_sources:
+        return "statement_context_not_allowed"
+    declared_statement_context = str_or_none(raw.get("statement_context"))
+    if declared_statement_context is not None and _normalized_evidence_text(
+        declared_statement_context
+    ) != _normalized_evidence_text(derived_source):
+        return "statement_context_mismatch"
+
+    page_references = [
+        _normalized_page_reference(raw.get(field_name))
+        for field_name in ("page_number", "page_tag")
+        if raw.get(field_name) is not None
+    ]
+    if not page_references:
+        return "page_binding_missing"
+    if any(page_reference is None for page_reference in page_references):
+        return "page_binding_invalid"
+    if len(set(page_references)) != 1:
+        return "page_binding_mismatch"
+    parent_bindings = _normalized_table_or_region_bindings(raw)
+    if not parent_bindings:
+        return "table_or_region_binding_missing"
+    if len(parent_bindings) != 1:
+        return "table_or_region_binding_mismatch"
+    if _normalized_evidence_text(derived_source) not in parent_bindings:
+        return "statement_table_context_mismatch"
+
+    for field_name, expected_value in expected_fields.items():
+        actual_context_value = str_or_none(raw.get(field_name))
+        if actual_context_value is None:
+            return f"{field_name}_missing"
+        if actual_context_value.lower() != expected_value.lower():
+            return f"{field_name}_mismatch"
+
+    if record.provenance_status == "derived":
+        if contract.direct_source_required and not contract.authorized_derivations:
+            return "unauthorized_derivation"
+        derivation_identity = _explicit_derivation_identity(raw)
+        if not any(
+            derivation.value == derivation_identity
+            for derivation in contract.authorized_derivations
+        ):
+            return "unauthorized_derivation"
+        if derived_source != "cashflow_statement":
+            return "statement_context_not_allowed"
+        if not _has_explicit_source_row_refs(raw):
+            return "source_row_refs_missing"
+        cell_failure = _structured_source_cells_failure_reason(
+            raw,
+            plural=True,
+            expected_period_end=expected_fields["period_end"],
+            expected_value=actual_value,
+            expected_scale=expected_fields["scale"],
+        )
+        if cell_failure is not None:
+            return cell_failure
+        return None
+
+    row_ref = str_or_none(raw.get("row_ref"))
+    if row_ref is None or row_ref.lower() == "unknown":
+        return "row_binding_missing"
+    cell_failure = _structured_source_cells_failure_reason(
+        raw,
+        plural=False,
+        expected_period_end=expected_fields["period_end"],
+        expected_value=actual_value,
+        expected_scale=expected_fields["scale"],
+    )
+    if cell_failure is not None:
+        return cell_failure
+    return None
+
+
+def _has_explicit_source_row_refs(raw: Mapping[str, Any]) -> bool:
+    row_refs = raw.get("source_row_refs")
+    return bool(
+        isinstance(row_refs, list)
+        and len(row_refs) >= 2
+        and all(
+            (value := str_or_none(row_ref)) is not None and value.lower() != "unknown"
+            for row_ref in row_refs
+        )
+    )
+
+
+def _structured_source_cells_failure_reason(
+    raw: Mapping[str, Any],
+    *,
+    plural: bool,
+    expected_period_end: str,
+    expected_value: Any,
+    expected_scale: str,
+) -> str | None:
+    if plural:
+        source_cells = raw.get("source_cells")
+        if not isinstance(source_cells, list):
+            return "cell_binding_missing"
+        cells = source_cells
+        source_row_refs = _explicit_source_row_refs(raw)
+        if len(cells) != len(source_row_refs):
+            return "source_row_cell_count_mismatch"
+        if len(cells) < 2:
+            return "cell_binding_missing"
+    else:
+        source_cell = raw.get("source_cell")
+        source_cells = raw.get("source_cells")
+        if source_cells is not None and (
+            not isinstance(source_cells, list)
+            or len(source_cells) != 1
+            or not isinstance(source_cell, Mapping)
+            or source_cells[0] != source_cell
+        ):
+            return "cell_representation_mismatch"
+        cells = [source_cell]
+        source_row_refs = [str_or_none(raw.get("row_ref"))]
+
+    parent_source_document_id = str_or_none(raw.get("source_document_id"))
+    parent_page = _normalized_page_reference(
+        raw.get("page_number") or raw.get("page_tag")
+    )
+    parent_bindings = _normalized_table_or_region_bindings(raw)
+    normalized_values: list[Decimal] = []
+
+    for index, cell in enumerate(cells):
+        if not isinstance(cell, Mapping):
+            return "cell_binding_missing"
+        if not all(
+            str_or_none(cell.get(field_name)) is not None
+            for field_name in (
+                "page_number",
+                "row_index",
+                "column_index",
+                "raw_value",
+                "header_cell",
+            )
+        ):
+            return "cell_binding_missing"
+
+        cell_period_end = str_or_none(cell.get("requested_period_end"))
+        if cell_period_end is None:
+            return "cell_period_missing"
+        if cell_period_end.lower() != expected_period_end.lower():
+            return "cell_period_mismatch"
+
+        cell_source_document_id = str_or_none(cell.get("source_document_id"))
+        if cell_source_document_id is None:
+            return "cell_source_document_id_missing"
+        if cell_source_document_id != parent_source_document_id:
+            return "cell_source_document_id_mismatch"
+
+        cell_page_references = [
+            _normalized_page_reference(cell.get(field_name))
+            for field_name in ("page_number", "page_tag")
+            if cell.get(field_name) is not None
+        ]
+        if any(page_reference is None for page_reference in cell_page_references):
+            return "cell_page_invalid"
+        if len(set(cell_page_references)) != 1:
+            return "cell_page_mismatch"
+        cell_page = cell_page_references[0]
+        if parent_page is None or cell_page != parent_page:
+            return "cell_page_mismatch"
+
+        cell_bindings = _normalized_table_or_region_bindings(cell)
+        if not cell_bindings:
+            return "cell_table_or_region_missing"
+        if len(cell_bindings) != 1 or cell_bindings != parent_bindings:
+            return "cell_table_or_region_mismatch"
+
+        expected_row = source_row_refs[index]
+        cell_row_bindings = {
+            normalized
+            for field_name in ("row_label", "row_ref")
+            if (value := str_or_none(cell.get(field_name))) is not None
+            and (normalized := _normalized_evidence_text(value))
+        }
+        if expected_row is None or not cell_row_bindings:
+            return "cell_binding_missing"
+        if len(cell_row_bindings) != 1:
+            return "cell_row_mismatch"
+        if next(iter(cell_row_bindings)) != _normalized_evidence_text(expected_row):
+            return "source_row_cell_mismatch" if plural else "cell_row_mismatch"
+
+        header_cell = str_or_none(cell.get("header_cell"))
+        if header_cell is None or not _header_matches_period(
+            header_cell,
+            expected_period_end,
+        ):
+            return "cell_header_period_mismatch"
+
+        normalized_value = _normalized_source_cell_value(cell, expected_scale)
+        if normalized_value is None:
+            return "cell_value_invalid"
+        normalized_values.append(normalized_value)
+
+    expected_numeric = _decimal_from_real(expected_value)
+    if expected_numeric is None:
+        return "metric_value_missing_or_invalid"
+    reproduced_value = (
+        sum(normalized_values, start=Decimal(0)) if plural else normalized_values[0]
+    )
+    if reproduced_value != expected_numeric:
+        return "derived_value_mismatch" if plural else "cell_value_mismatch"
+    return None
+
+
+def _explicit_source_row_refs(raw: Mapping[str, Any]) -> list[str]:
+    row_refs = raw.get("source_row_refs")
+    if not isinstance(row_refs, list):
+        return []
+    return [
+        value for row_ref in row_refs if (value := str_or_none(row_ref)) is not None
+    ]
+
+
+def _normalized_page_reference(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(
+        r"(?:page[_\s-]*|p\.?\s*)?(\d+)",
+        value.strip(),
+        re.IGNORECASE,
+    )
+    return int(match.group(1)) if match is not None else None
+
+
+def _normalized_table_or_region_bindings(raw: Mapping[str, Any]) -> set[str]:
+    return {
+        normalized
+        for field_name in ("table_label", "table_ref", "region_ref", "region")
+        if (value := str_or_none(raw.get(field_name))) is not None
+        and (normalized := _normalized_evidence_text(value))
+    }
+
+
+def _normalized_evidence_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _header_matches_period(header: str, expected_period_end: str) -> bool:
+    try:
+        period = date.fromisoformat(expected_period_end)
+    except ValueError:
+        return False
+    day = period.strftime("%d")
+    month = period.strftime("%m")
+    year = period.strftime("%Y")
+    month_names = "|".join(
+        re.escape(value) for value in (period.strftime("%B"), period.strftime("%b"))
+    )
+    patterns = (
+        rf"(?<![A-Za-z0-9]){year}[-/]{month}[-/]{day}(?![A-Za-z0-9])",
+        rf"(?<![A-Za-z0-9]){day}[-/]{month}[-/]{year}(?![A-Za-z0-9])",
+        rf"(?<![A-Za-z0-9]){day}\s+(?:{month_names})\s+{year}(?![A-Za-z0-9])",
+    )
+    return any(re.search(pattern, header, re.IGNORECASE) for pattern in patterns)
+
+
+def _normalized_source_cell_value(
+    cell: Mapping[str, Any],
+    expected_scale: str,
+) -> Decimal | None:
+    parsed = _parse_source_cell_number(cell.get("raw_value"))
+    if parsed is None:
+        return None
+    value, explicit_units = parsed
+    if explicit_units:
+        return value
+    multiplier = SCALE_MULTIPLIERS.get(expected_scale.lower())
+    if multiplier is None:
+        return None
+    return value * Decimal(multiplier)
+
+
+def _parse_source_cell_number(value: Any) -> tuple[Decimal, bool] | None:
+    if not _is_real_number(value) and not isinstance(value, str):
+        return None
+    text = str(value).strip()
+    negative_parentheses = text.startswith("(") and text.endswith(")")
+    if negative_parentheses:
+        text = text[1:-1].strip()
+    match = _CELL_NUMERIC_RE.fullmatch(text)
+    if match is None:
+        return None
+    try:
+        parsed = Decimal(match.group("number").replace(",", ""))
+    except InvalidOperation:
+        return None
+    if not parsed.is_finite():
+        return None
+    if negative_parentheses:
+        parsed = -abs(parsed)
+    suffix = str(match.group("suffix") or "").lower()
+    if suffix:
+        return parsed * _CELL_SUFFIX_MULTIPLIERS[suffix], True
+    return parsed, False
+
+
+def _decimal_from_real(value: Any) -> Decimal | None:
+    if not _is_real_number(value):
+        return None
+    parsed = Decimal(str(value))
+    return parsed if parsed.is_finite() else None
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float | None:
+    if denominator == 0:
+        return None
+    return round(numerator / denominator, 4)
+
+
+def _validate_iso_date(value: str, *, field_name: str) -> None:
+    try:
+        date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{field_name} must be a valid ISO date") from exc
+
+
+def _validate_optional_iso_date(value: Any, *, field_name: str) -> None:
+    if value is None:
+        return
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    _validate_iso_date(value, field_name=field_name)
+
+
 def str_or_none(value: Any) -> str | None:
     if value is None:
         return None
@@ -709,3 +1565,19 @@ def str_or_none(value: Any) -> str | None:
         stripped = value.strip()
         return stripped if stripped else None
     return str(value).strip() or None
+
+
+def strict_str_or_none(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    stripped = value.strip()
+    return stripped if stripped else None
+
+
+def strict_iso_date_or_none(value: Any, *, field_name: str) -> str | None:
+    text = strict_str_or_none(value, field_name=field_name)
+    if text is not None:
+        _validate_iso_date(text, field_name=field_name)
+    return text

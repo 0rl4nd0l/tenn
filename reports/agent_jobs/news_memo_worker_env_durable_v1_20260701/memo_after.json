@@ -1,0 +1,49 @@
+{
+  "captured_at": "2026-07-01T10:37:32.140262+00:00",
+  "exists": true,
+  "last_valid_row_id": "news:art_ffe96e73baccb32f600ec187",
+  "last_valid_row_title": null,
+  "latest_field": "published_at",
+  "latest_row_id": "news:art_06be4ffaaa411c36a2953907",
+  "latest_row_title": null,
+  "latest_value": "2026-07-01T06:56:41Z",
+  "line_count": 412,
+  "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+  "proof_source_id": "news:art_78563f510fe7a2e3c622a9ef",
+  "proof_source_present": true,
+  "proof_source_row": {
+    "claims": [
+      "Consumer staples sector slumped 2.2%",
+      "Healthcare sector rose 0.8%"
+    ],
+    "extraction_provenance": {
+      "component": "news_memo_extractor",
+      "llm_model": "model:qwen2.5-14b-instruct",
+      "llm_url": "http://127.0.0.1:8001",
+      "max_article_chars": 5000
+    },
+    "impact_magnitude": "moderate",
+    "key_events": [
+      "Coles Group (ASX:COL) tumbles more than 4%",
+      "Woolworths (ASX:WOW) dragged almost 2% lower",
+      "Healthcare continues to outperform as most sectors fall",
+      "Chinese lithium futures jumped more than 5%"
+    ],
+    "provider": "newspaper4k",
+    "published_at": "2026-07-01T06:46:35Z",
+    "risks": [
+      "Coles' proposed Greencross deal affecting consumer staples",
+      "Ongoing concerns about housing valuations and lofty share prices for financials"
+    ],
+    "sentiment": "bearish",
+    "source_id": "news:art_78563f510fe7a2e3c622a9ef",
+    "tickers": [
+      "COL",
+      "WOW",
+      "IMI"
+    ]
+  },
+  "sha256": "575ab19d726ac12e76f1b1654e5c4910151f70d7cf4ffa8f0282ad2c2fdf9499",
+  "size_bytes": 392835,
+  "valid_json_lines": 412
+}

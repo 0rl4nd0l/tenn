@@ -4,6 +4,21 @@ This runbook captures the validated command sequence for the current stable base
 
 **CI:** GitHub Actions runs ruff + pytest (excluding `live_eval`) on pushes to `main` / `cloud/**` and on pull requests — see `.github/workflows/ci.yml`. Use `pytest -c pytest.ini ...` from the repo root so `pythonpath` and `addopts` match CI. CI includes `autodev/tests` as a second pytest step.
 
+**Fresh worktree pytest fallback:** when a focused validation target needs the
+repo/backend runtime dependencies but the selected venv does not have pytest,
+run through the repo helper instead of installing into the runtime venv:
+
+```bash
+python3 scripts/run_pytest_with_fallback.py --base-python financial-engine_v2/.venv/bin/python -- financial-engine_v2/backend/tests/test_multipass_extraction.py -q
+```
+
+The helper first uses a base Python that already has pytest. If pytest is
+missing, it creates an ephemeral `/tmp/tenn-pytest-overlay-*` venv, installs
+validation-only pytest packages there, exposes the base venv site-packages via
+`PYTHONPATH`, and removes the overlay after the run. It must not change repo
+dependency files, runtime venvs, lockfiles, host-global config, or system
+packages.
+
 **Deterministic analysis artifact (v0):** `python3 financial-engine_v2/scripts/export_financial_snapshot.py TICKER` writes `reports/analysis/{TICKER}/financial_snapshot_v0.json` from `asx_periodic_financials` (no LLM). Backend: `app.services.analysis.periodic_snapshot_export`.
 
 ## Command Sequence
@@ -16,6 +31,7 @@ python -m ruff check autodev financial-engine_v2/backend scripts
 pytest autodev/tests
 pytest financial-engine_v2/backend/tests
 pytest scripts
+python3 scripts/run_pytest_with_fallback.py --base-python financial-engine_v2/.venv/bin/python -- financial-engine_v2/backend/tests/test_multipass_extraction.py -q
 bash scripts/run_canonical_dataset_checks.sh
 python scripts/check_canonical_regression.py --baseline reports/baselines/canonical_eval_baseline_latest.json --news-report reports/news_eval_report.json --company-report reports/company_eval_report_v2.json --reference-report reports/eval_queries_report.json
 python scripts/validate_financial_metrics_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.gates.json
@@ -36,6 +52,8 @@ python scripts/run_extraction_evaluation_gates.py
 - `COCKPIT_VALIDATE_ROUTING_SMOKE=1` adds a live Cockpit chat provenance probe; leave it off for offline/CI runs that must avoid API-backed chat calls.
 - Canonical dataset checks support CPU fallback by default (`REQUIRE_CUDA=0`).
 - Set `REQUIRE_CUDA=1` only when CUDA must be enforced.
+- Certified no-write extraction replays default to a per-case timeout. A timed
+  out case is an infrastructure `DATA_MISSING` result, not a product pass.
 
 ## Canonical Regression Fixtures
 - `reports/baselines/canonical_eval_baseline_latest.json`

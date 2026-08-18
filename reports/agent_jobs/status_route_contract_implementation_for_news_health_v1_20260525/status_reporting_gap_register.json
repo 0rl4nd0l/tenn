@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "job_id": "status_route_contract_implementation_for_news_health_v1_20260525",
+  "generated_at": "2026-05-25T04:43:00Z",
+  "gaps": [
+    {
+      "id": "missing_status_route",
+      "category": "missing status route",
+      "before_status": "missing_404",
+      "after_status": "resolved_backend_route_implemented",
+      "current_contract": "GET /api/cockpit/news/status reports A2M/news health split truth.",
+      "remaining_risk": "No explicit UI consumer was added."
+    },
+    {
+      "id": "qdrant_vs_sqlite_ambiguity",
+      "category": "Qdrant-vs-SQLite ambiguity",
+      "before_status": "ambiguous_in_status_surfaces",
+      "after_status": "represented",
+      "current_contract": "qdrant_retrieval and canonical_sqlite_projection are separate fields.",
+      "remaining_risk": "Route does not live-probe Qdrant; it identifies prior smoke evidence and live_probe_performed=false."
+    },
+    {
+      "id": "legacy_evidence_confusion",
+      "category": "legacy evidence confusion",
+      "before_status": "legacy /mnt/sdb2 evidence could be mistaken as canonical",
+      "after_status": "represented",
+      "current_contract": "legacy_sqlite_projection=evidence_present_not_current_consumer.",
+      "remaining_risk": "Legacy DB is not opened by the route."
+    },
+    {
+      "id": "chat_synthesis_data_missing",
+      "category": "chat synthesis DATA_MISSING",
+      "before_status": "DATA_MISSING",
+      "after_status": "DATA_MISSING_preserved",
+      "current_contract": "chat_synthesis=DATA_MISSING unless separately smoke-tested.",
+      "remaining_risk": "A future safe smoke is required before claiming chat synthesis works."
+    },
+    {
+      "id": "ui_consumer_absence",
+      "category": "UI consumer absence",
+      "before_status": "no direct A2M/news health consumer",
+      "after_status": "backend route available_no_ui_consumer_added",
+      "current_contract": "Cockpit can call /api/cockpit/news/status; no component was changed.",
+      "remaining_risk": "Operators still need a later UI task if this should be visible in the News screen."
+    },
+    {
+      "id": "test_coverage_absence",
+      "category": "test coverage absence",
+      "before_status": "no focused route contract test",
+      "after_status": "resolved",
+      "current_contract": "financial-engine_v2/backend/tests/test_cockpit_news_status.py covers helper and route.",
+      "remaining_risk": "Full backend test suite was not run."
+    },
+    {
+      "id": "data_missing_boundaries",
+      "category": "DATA_MISSING",
+      "before_status": "implicit",
+      "after_status": "explicit",
+      "current_contract": "The route marks no live Qdrant probe, no legacy DB read, no projection repair, and chat DATA_MISSING.",
+      "remaining_risk": "Current runtime health may differ from last read-only smoke until separately probed."
+    }
+  ]
+}

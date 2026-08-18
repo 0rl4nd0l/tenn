@@ -1,0 +1,113 @@
+{
+  "job_id": "pr39_ci_split_audit_preservation_review_v1_20260527",
+  "mode": "RESULT REVIEW / AUDIT ONLY",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "810c2b0ef60ed205e15f9d4dd2eb16773e69f98a",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "registry_status": {
+    "list_active_read_only": "ok_empty",
+    "check_overlap": "failed_due_dirty_files_outside_this_task_allowlist",
+    "claim": "not_attempted",
+    "release": "not_needed",
+    "registry_scope": "shared",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry"
+  },
+  "prior_report_status": {
+    "task_card_path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+    "task_card_exists": true,
+    "task_card_git_state": "untracked_not_committed",
+    "report_dir": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526",
+    "report_dir_exists": true,
+    "report_dir_git_state": "ignored_not_committed",
+    "required_files_present": {
+      "README.md": true,
+      "status.json": true,
+      "failure_clusters.json": true,
+      "diff-check.json": true,
+      "child_task_proposals.md": true,
+      "pr39_merge_readiness.md": true
+    },
+    "accepted_as_audit_evidence": true,
+    "pr39_readiness_verdict": [
+      "NOT_MERGE_READY",
+      "PARKING_RECOMMENDED",
+      "KEEP_DRAFT"
+    ],
+    "issue_105_closeout_status": "keep_open_child_tasks_required"
+  },
+  "prior_artifact_parse_status": {
+    "status_json": "passed",
+    "failure_clusters_json": "passed",
+    "diff_check_json": "passed",
+    "cluster_count": 13,
+    "root_cause_fixed": false,
+    "follow_up_required": true,
+    "ci_run_ids": {
+      "lint_and_test": 26439822448,
+      "lint_and_test_job": 77831209696,
+      "sloppy_scan": 26439822445,
+      "sloppy_scan_job": 77831209694,
+      "superseded_old_run": 26379324415
+    }
+  },
+  "dirty_work_status": {
+    "status": "PARTIAL_BLOCKED_BY_UNRELATED_DIRTY_WORK",
+    "settled_default_dirty_paths": [
+      "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+      "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md"
+    ],
+    "ignored_report_paths": [
+      "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/",
+      "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/"
+    ],
+    "transient_unrelated_dirty_paths_observed": [
+      "financial-engine_v2/backend/app/services/news_health_status.py",
+      "financial-engine_v2/cockpit/core/actions.py",
+      "financial-engine_v2/cockpit/core/tools.py",
+      "financial-engine_v2/shared/news_artifacts.py",
+      "scripts/news_pipeline/cli_common.py"
+    ],
+    "final_check_diff_expected_blocker": "prior issue #105 task card remains untracked outside this task allowlist; transient product/news dirt was also observed by registry check-overlap",
+    "cleanup_performed": false
+  },
+  "github_status": {
+    "pr_number": 39,
+    "pr_state": "OPEN",
+    "pr_is_draft": true,
+    "pr_head": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+    "pr_base": "36130cbdb98e7084e8396d125a1d6f8d3ab48bc7",
+    "pr_merge_state": "UNSTABLE",
+    "pr_changed_files": 346,
+    "pr_additions": 39618,
+    "pr_deletions": 190,
+    "issue_number": 105,
+    "issue_state": "OPEN"
+  },
+  "generated_artifacts": [
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/README.md",
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/status.json",
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/dirty_work_matrix.json",
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/child_task_priority.md",
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/preservation_recommendation.md",
+    "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/diff-check.json"
+  ],
+  "validation_status": {
+    "task_card_validate": "passed",
+    "registry_list_active_read_only": "passed",
+    "registry_check_overlap": "failed_due_dirty_files_outside_this_task_allowlist",
+    "generated_json_parse": "passed",
+    "prior_json_parse": "passed",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "failed_due_prior_issue_105_task_card_outside_this_task_allowlist",
+    "diff_check_artifact": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/diff-check.json"
+  },
+  "github_mutation": false,
+  "production_data_access": false,
+  "recommendation": [
+    "PRESERVE_REPORT",
+    "PARK_REPORT",
+    "CREATE_CHILD_TASKS",
+    "WAIT_FOR_DIRTY_WORK_OWNER"
+  ],
+  "project_memory_save_recommendation": "RECOMMENDED"
+}

@@ -1,0 +1,87 @@
+{
+  "artifact_type": "aau_canary_failure_source_verification_v1",
+  "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+  "fixture_id": "aau_a_2025-12-31_canary_regression",
+  "ticker": "AAU",
+  "source_pdf": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+  "pdfinfo": {
+    "pages": 66,
+    "title": "Microsoft Word - AGL Annual Report 31 Dec 25 - front section",
+    "encrypted": "yes (print:yes copy:no change:no addNotes:no algorithm:RC4)"
+  },
+  "verification_tools": [
+    "pdfinfo",
+    "pdftotext -layout",
+    "pdftoppm -png -r 120",
+    "rendered PNG visual inspection"
+  ],
+  "rendered_pages_inspected": [
+    "tmp/pdfs/aau_front-02.png",
+    "tmp/pdfs/aau_statements-24.png",
+    "tmp/pdfs/aau_statements-27.png"
+  ],
+  "context": {
+    "period_type": {
+      "value": "A",
+      "evidence": "front matter identifies an annual report"
+    },
+    "period_end": {
+      "value": "2025-12-31",
+      "evidence": "front matter and statement headings say year ended 31 December 2025"
+    },
+    "currency": {
+      "value": "USD",
+      "evidence": "statement columns are labelled US$"
+    },
+    "scale": {
+      "value": "units",
+      "evidence": "statement columns are labelled US$ with no thousands or millions qualifier"
+    }
+  },
+  "metrics": {
+    "revenue": {
+      "value": 187743,
+      "source_page": 23,
+      "source_label": "Revenue",
+      "source_column": "2025 US$"
+    },
+    "np_attributable": {
+      "value": 1100860,
+      "source_page": 23,
+      "source_label": "Profit/(loss) after income tax expense for the year",
+      "source_column": "2025 US$"
+    },
+    "operating_cf": {
+      "value": -854114,
+      "source_page": 26,
+      "source_label": "NET CASH USED IN OPERATING ACTIVITIES",
+      "source_column": "2025 US$"
+    },
+    "investing_cf": {
+      "value": 301155,
+      "source_page": 26,
+      "source_label": "NET CASH PROVIDED BY/(USED IN) INVESTING ACTIVITIES",
+      "source_column": "2025 US$"
+    },
+    "financing_cf": {
+      "value": 4103422,
+      "source_page": 26,
+      "source_label": "NET CASH PROVIDED BY FINANCING ACTIVITIES",
+      "source_column": "2025 US$"
+    },
+    "cash_end": {
+      "value": 3956993,
+      "source_page": 26,
+      "source_label": "CASH AT THE END OF FINANCIAL YEAR",
+      "source_column": "2025 US$"
+    }
+  },
+  "excluded_metrics": {
+    "ebit": "not labelled as EBIT in the verified source pages",
+    "capex": "not labelled as canonical capex in the verified source pages",
+    "net_debt": "would require derivation from cash and borrowings, so it is not labelled",
+    "shares_outstanding": "not needed for the canary failure regression fixture"
+  },
+  "runtime_or_datastore_mutation": false,
+  "source_pdf_mutated": false
+}

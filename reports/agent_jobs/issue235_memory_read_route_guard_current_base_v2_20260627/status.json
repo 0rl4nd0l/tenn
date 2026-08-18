@@ -1,0 +1,25 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@38e74ca717197e82102d0554aa031ab09233378f",
+  "branch": "safe/issue235-memory-read-route-guard-current-base-v2-20260627",
+  "evidence_grade": "VERIFIED",
+  "issue_refs": [235],
+  "job_id": "issue235_memory_read_route_guard_current_base_v2_20260627",
+  "pr_refs": [439],
+  "result": "PARTIAL",
+  "runtime_functionality_proven": false,
+  "status": "implementation_validated",
+  "supersedes": [
+    "PR #439 head cbbadbd4081fa6a1ff612883498fbba125c94ae8"
+  ],
+  "validation": {
+    "backend_pytest": "51 passed",
+    "ci_followup": "updated company_dump diagnostics expectation to 401",
+    "diff_check": "passed",
+    "git_diff_check": "passed",
+    "ledger_validate": "passed",
+    "py_compile": "passed",
+    "ruff": "passed",
+    "task_card_validate": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-issue235-memory-read-route-guard-current-base-v2-20260627"
+}

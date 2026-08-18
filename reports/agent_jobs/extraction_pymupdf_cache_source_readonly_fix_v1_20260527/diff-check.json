@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/github_issue_96_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md",
+        "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/README.md",
+        "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/status.json",
+        "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/diff-check.json",
+        "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/github_issue_96_comment.md",
+        "financial-engine_v2/backend/app/services/docling_extract.py",
+        "financial-engine_v2/backend/tests/test_docling_extract.py"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "issue_comment_only",
+      "job_id": "extraction_pymupdf_cache_source_readonly_fix_v1_20260527",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "supporting_lanes": [
+        "Provenance",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

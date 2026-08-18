@@ -28,7 +28,7 @@ The source-of-truth application runtime is the financial engine. OpenClaw usage 
 3. Download PDFs to `docs_root`.
 4. Extract PDF structure (tables + sections) via docling by default, with PyMuPDF available as fallback or explicit override via `EXTRACTION_BACKEND=pymupdf`.
 5. Chunk text sections per document. Route embedding and generation requests through the backend self-optimizing model router.
-6. Embed chunks via the routed embedding role and upsert deterministic vector IDs into Qdrant.
+6. Embed chunks via the routed embedding role and upsert deterministic logical vector IDs into Qdrant, with any physical point-ID mapping handled at the backend adapter boundary.
 7. Optionally extract structured financial and risk rows back into Postgres through the routed reasoning or deep-reasoning role.
 8. Serve retrieval through `POST /rag/query` and operational APIs under `/api/*`.
 

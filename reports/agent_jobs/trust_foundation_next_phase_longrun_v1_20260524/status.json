@@ -1,0 +1,64 @@
+{
+  "job_id": "trust_foundation_next_phase_longrun_v1_20260524",
+  "status": "complete_pending_commit",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Provenance",
+    "Query Orchestration",
+    "Memory",
+    "Reporting",
+    "Financial Truth"
+  ],
+  "mode": "safe_extension_with_audit_read_only_children",
+  "production_data_access": false,
+  "branch": "safe/trust-foundation-next-phase-longrun-v1-20260524",
+  "worktree": "/home/l4nd0/tenn-trust-foundation-next-phase-longrun-v1-20260524",
+  "base_head": "a71a4fbeb4477a3fbe25ffc27c15c9a2e09e52b8",
+  "canonical_head_at_final_resample": "594df2dd19d72d8a047f581e7793204b9d873f7f",
+  "a71a4fbeb447_is_ancestor_of_canonical_head": true,
+  "registry_final_active_jobs": [],
+  "children": {
+    "recent_news_positive_claim_verified_fixture_v1_20260524": {
+      "status": "complete_safe_extension",
+      "implemented": true,
+      "validation": "PASS"
+    },
+    "memory_fanout_suppression_quarantine_design_v1_20260524": {
+      "status": "complete_design_no_mutation",
+      "implemented": false,
+      "validation": "PASS_REPORT_ARTIFACTS"
+    },
+    "a2m_news_projection_path_discovery_v1_20260524": {
+      "status": "complete_with_data_missing_classified",
+      "implemented": false,
+      "validation": "PASS_READ_ONLY_WITH_DATA_MISSING"
+    },
+    "eval_spine_normalizer_usage_followup_v1_20260524": {
+      "status": "complete_safe_extension",
+      "implemented": true,
+      "validation": "PASS"
+    }
+  },
+  "no_write_boundaries": {
+    "canonical_financial_truth_writes": false,
+    "memory_writes": false,
+    "news_sqlite_writes": false,
+    "qdrant_writes": false,
+    "postgres_production_writes": false,
+    "parser_or_extraction_changes": false,
+    "docker_cron_systemd_model_gpu_runtime_topology_changes": false
+  },
+  "data_missing": [
+    "Memory source spans and operator decisions for candidate quarantine entries.",
+    "Actual source SQLite path if moved outside checked paths.",
+    "Nightly fallback refresh success/failure evidence.",
+    "SQLite-to-Qdrant row parity because source SQLite files are absent.",
+    "Current confirmed_metric_coverage extracted-payload accuracy proof.",
+    "Canonical merge status for the isolated branch."
+  ],
+  "commit": {
+    "status": "pending_after_report_finalization",
+    "planned_subject": "milestone(evaluation): advance trust foundation next phase"
+  },
+  "save_recommendation": "SAVE_RECOMMENDED"
+}

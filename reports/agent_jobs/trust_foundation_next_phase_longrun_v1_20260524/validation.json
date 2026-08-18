@@ -1,0 +1,60 @@
+{
+  "job_id": "trust_foundation_next_phase_longrun_v1_20260524",
+  "commands": [
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "exit_code": 0,
+      "result": "74 passed in 1.92s"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_eval_spine_manifest.py -q",
+      "exit_code": 0,
+      "result": "11 passed in 0.09s"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/chat_evidence_guard.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "json artifact validation for 12 report JSON files",
+      "exit_code": 0,
+      "result": "json_ok 12"
+    },
+    {
+      "command": "csv row-count validation for quarantine, A2M matrix, scorecards, and metric expectations",
+      "exit_code": 0,
+      "result": "csv_ok"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate <controller and 4 child task cards>",
+      "exit_code": 0,
+      "result": "task_cards_ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/trust_foundation_next_phase_longrun_v1_20260524.md",
+      "exit_code": 0,
+      "result": "ok true; issues []"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release trust_foundation_next_phase_longrun_v1_20260524",
+      "exit_code": 0,
+      "result": "released; active job removed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "exit_code": 0,
+      "result": "active_jobs []"
+    }
+  ],
+  "controller_check_diff": {
+    "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/trust_foundation_next_phase_longrun_v1_20260524.md",
+    "exit_code": 0,
+    "result": "ok true; disallowed_files []; report_path reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/diff-check.json"
+  }
+}

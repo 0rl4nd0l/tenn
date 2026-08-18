@@ -1,0 +1,228 @@
+{
+  "artifact_type": "extraction_hub_period_end_binding_repair_validation_v1",
+  "branch": "safe/extraction-hub-period-end-binding-v1-20260608",
+  "head_before_commit": "c5c39d128a6e1ea23415f08803844677add1efdd",
+  "worktree": "/home/l4nd0/tenn-hub-period-end-binding-v1-20260608",
+  "task_card": {
+    "path": "docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md",
+    "validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md",
+      "status": "passed"
+    }
+  },
+  "registry": {
+    "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+    "ok": true,
+    "read_only": true,
+    "active_jobs": [],
+    "lock_acquired": false
+  },
+  "source_evidence": {
+    "audit_path": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608/reports/agent_jobs/extraction_period_source_exact_evidence_audit_v1_20260608/evidence_audit.json",
+    "preserved_scorecard_commit": "6e8be73cf5e16f8923d33f60ad7887c70aef1bd9",
+    "repair_closeout_commit": "df821df661c1218d8155d6addaf44e3b3b9e6a14",
+    "decision_table": {
+      "HUB": "repairable",
+      "LBL": "fail_closed",
+      "CTN": "separate_candidate_already_handled"
+    }
+  },
+  "tests": [
+    {
+      "name": "py_compile_multipass_extraction",
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "passed"
+    },
+    {
+      "name": "focused_hub_lbl_period_binding_tests",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic --with pydantic-settings pytest financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -q -k 'hub_explicit_source_period_end_overrides_announcement_date or hub_title_date_only_period_end_remains_fail_closed or lbl_1h_fy26_label_only_period_end_remains_fail_closed or title_only_explicit_period_end_does_not_override_announcement_date or exact_source_period_end_does_not_override_non_announcement_date_conflict or explicit_source_period_end_detection_refuses_ambiguous_or_loose_dates or explicit_source_period_end_conflict_is_hard_blocked or explicit_source_period_end_type_conflict_is_hard_blocked'",
+      "status": "passed",
+      "summary": "8 passed, 16 deselected, 1 warning"
+    },
+    {
+      "name": "existing_announcement_date_guard_subset",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic --with pydantic-settings pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q -k 'announcement_date_period_end or half_year_period_end_distinct'",
+      "status": "passed",
+      "summary": "3 passed, 181 deselected, 1 warning"
+    },
+    {
+      "name": "full_pre_canary_truth_gate_file_isolated_uv",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic --with pydantic-settings pytest financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -q",
+      "status": "failed_pre_existing_environment_or_test_target",
+      "summary": "23 passed, 1 failed, 1 warning",
+      "failure": "test_run_multipass_blocks_advisory_only_document_before_llm failed before execution body patching because app.services has no imported docling_extract attribute in the isolated uv environment."
+    }
+  ],
+  "saved_artifact_replay": {
+    "artifact_type": "extraction_hub_period_end_binding_saved_artifact_replay_v1",
+    "mode": "saved_artifact_replay_only_no_extraction",
+    "input_scorecard_commit": "6e8be73cf5e16f8923d33f60ad7887c70aef1bd9",
+    "input_scorecard_path": "reports/agent_jobs/extraction_confirmed_payload_scorecard_v1_20260608/scorecard.json",
+    "input_evidence_audit_path": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608/reports/agent_jobs/extraction_period_source_exact_evidence_audit_v1_20260608/evidence_audit.json",
+    "observed_gain": {
+      "documents": 1,
+      "blocked_non_null_metrics": 9
+    },
+    "cases": [
+      {
+        "ticker": "HUB",
+        "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+        "original_status": "failed",
+        "original_period_end": "2024-02-20",
+        "original_failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+        "source_evidence_period_end": "2023-12-31",
+        "source_evidence_reason": "half_year_ended_explicit_date",
+        "source_text_hit": true,
+        "override_applied": true,
+        "replayed_period_end": "2023-12-31",
+        "replayed_status": "ok",
+        "replayed_error": null,
+        "blocked_non_null_metrics": 9,
+        "gained": true
+      },
+      {
+        "ticker": "LBL",
+        "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+        "original_status": "failed",
+        "original_period_end": "2026-02-20",
+        "original_failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+        "source_evidence_period_end": null,
+        "source_evidence_reason": "not_detected",
+        "source_text_hit": false,
+        "override_applied": false,
+        "replayed_period_end": "2026-02-20",
+        "replayed_status": "failed",
+        "replayed_error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+        "blocked_non_null_metrics": 6,
+        "gained": false
+      }
+    ]
+  },
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "full ticker extraction",
+    "service routes",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "runtime/service/model/GPU config mutation",
+    "schema mutation",
+    "production data mutation",
+    "GitHub mutation"
+  ],
+  "data_missing": [
+    "LBL exact source-bound half-year period_end date",
+    "HUB/LBL row_refs in preserved scorecard",
+    "HUB/LBL extraction_run_id in preserved scorecard",
+    "/workspace/.venv in this host session"
+  ],
+  "subagent_review": {
+    "status": "completed",
+    "result": "no code changes requested after local follow-up",
+    "notes": [
+      "Reviewer confirmed the core guard requires H report type, H source period-end evidence, half_year_ended_explicit_date, at least one source_text hit, and current period_end equal to the leading title date.",
+      "Reviewer warned the repair is HUB-pattern generic rather than hardcoded to the HUB document. This matches the task-card allowed repair shape.",
+      "Reviewer found a title-only exact-period test gap; the test was updated to assert _validate_gate remains failed end to end."
+    ]
+  },
+  "follow_up_pr336_title_only_period_end_bypass": {
+    "head_before_follow_up": "e7102a2b6d2875d395941b9a418fbaa3ad1527e2",
+    "review_finding": "Missing Pass 1 period_end fill accepted title-only explicit period-end evidence.",
+    "status": "local_validation_passed",
+    "code_changes": [
+      "_has_source_text_period_end_hit centralizes parsed source_text hit checks.",
+      "Missing Pass 1 period_end fill now requires a parsed source_text period-end hit.",
+      "Announcement-date override reuses the helper for exact source-text half-year evidence.",
+      "Appendix wrapper period-end propagation now rejects title-only period-end evidence."
+    ],
+    "tests": [
+      {
+        "name": "focused_hub_lbl_source_period_tests",
+        "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic --with pydantic-settings pytest financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -q -k 'hub_explicit_source_period_end_overrides_announcement_date or hub_title_date_only_period_end_remains_fail_closed or lbl_1h_fy26_label_only_period_end_remains_fail_closed or title_only_explicit_period_end_does_not_override_announcement_date or exact_source_period_end_does_not_override_non_announcement_date_conflict or explicit_source_period_end_detection_refuses_ambiguous_or_loose_dates or explicit_source_period_end_conflict_is_hard_blocked or explicit_source_period_end_type_conflict_is_hard_blocked or source_period'",
+        "status": "passed",
+        "summary": "14 passed, 10 deselected, 1 warning"
+      },
+      {
+        "name": "announcement_date_and_half_year_run_path_tests",
+        "command": "PYTHONPATH=financial-engine_v2/backend uv run --with pytest --with python-dateutil --with pydantic --with pydantic-settings pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q -k 'announcement_date_period_end or half_year_period_end_distinct'",
+        "status": "passed",
+        "summary": "5 passed, 181 deselected, 1 warning"
+      },
+      {
+        "name": "py_compile_multipass_extraction",
+        "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "status": "passed"
+      },
+      {
+        "name": "task_card_validate_repair",
+        "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md",
+        "status": "passed"
+      }
+    ],
+    "changed_files": [
+      "docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/README.md",
+      "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json"
+    ],
+    "forbidden_actions_not_run": [
+      "count-24",
+      "count-32",
+      "random samples",
+      "broad extraction",
+      "backfill",
+      "full ticker extraction",
+      "service routes",
+      "DB mutation",
+      "Qdrant mutation",
+      "Redis mutation",
+      "news mutation",
+      "source PDF mutation",
+      "prompt mutation",
+      "gold label mutation",
+      "runtime/service/model/GPU config mutation",
+      "schema mutation",
+      "production data mutation"
+    ]
+  },
+  "final_hygiene": {
+    "json_validation": {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json",
+      "status": "passed"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    "task_card_check_diff_final_staged": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md --repo-root . --no-write-report",
+      "status": "passed",
+      "summary": "Allowed staged files only; disallowed_files empty."
+    },
+    "forbidden_surface_audit": {
+      "status": "passed",
+      "changed_files": [
+        "docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/README.md",
+        "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json"
+      ],
+      "forbidden_surface_violations": []
+    },
+    "final_commit": {
+      "status": "created_after_artifact_validation"
+    }
+  }
+}

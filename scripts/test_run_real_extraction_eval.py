@@ -184,7 +184,53 @@ def _sample_eval_response() -> dict:
     }
 
 
+def _development_aggregate() -> dict:
+    return {
+        "corpus_version": "opaque-v1",
+        "corpus_digest": "a" * 64,
+        "document_count": 48,
+        "partition_counts": {"diagnostic": 12, "holdout": 36},
+        "bucket_counts": {
+            "annual": 8,
+            "4E": 8,
+            "half-year": 8,
+            "4D": 8,
+            "quarterly": 8,
+            "4C": 8,
+        },
+        "company_count": 12,
+        "sector_count": 6,
+        "scan_image_heavy_count": 6,
+        "non_aud_count": 1,
+        "issuer_size_counts": {"large": 24, "small": 24},
+    }
+
+
 class TestBackendRequestHelpers(unittest.TestCase):
+    def test_development_artifacts_are_aggregate_only_in_every_format(self):
+        aggregate = _development_aggregate()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            results = Path(tmpdir) / "results.json"
+            report = Path(tmpdir) / "report.md"
+            mod._write_development_artifacts(
+                aggregate,
+                results_json=results,
+                report_path=report,
+            )
+            paths = mod._artifact_paths(results, report)
+            for key in ("results_json", "summary_json", "canonical_scorecard_json"):
+                self.assertEqual(
+                    json.loads(paths[key].read_text(encoding="utf-8")),
+                    aggregate,
+                )
+            combined = "\n".join(
+                path.read_text(encoding="utf-8")
+                for path in paths.values()
+                if path.exists()
+            )
+            for secret in ("document_id", "ticker", "expected", "actual", "secret.pdf"):
+                self.assertNotIn(secret, combined)
+
     def test_resolve_backend_api_key_prefers_arg_then_settings_then_env(self):
         with mock.patch.object(
             mod, "settings", SimpleNamespace(local_api_key="settings-key")
@@ -202,18 +248,22 @@ class TestBackendRequestHelpers(unittest.TestCase):
         sample = _sample_eval_response()
         responses = [
             _FakeResponse({"task_id": "task-abc", "status": "pending"}),
-            _FakeResponse({
-                "task_id": "task-abc",
-                "status": "running",
-                "result": None,
-                "error": None,
-            }),
-            _FakeResponse({
-                "task_id": "task-abc",
-                "status": "completed",
-                "result": sample,
-                "error": None,
-            }),
+            _FakeResponse(
+                {
+                    "task_id": "task-abc",
+                    "status": "running",
+                    "result": None,
+                    "error": None,
+                }
+            ),
+            _FakeResponse(
+                {
+                    "task_id": "task-abc",
+                    "status": "completed",
+                    "result": sample,
+                    "error": None,
+                }
+            ),
         ]
 
         def fake_urlopen(request, timeout):
@@ -251,6 +301,8 @@ class TestBackendRequestHelpers(unittest.TestCase):
                 "tolerance": 0.05,
                 "method": "docling",
                 "strict_method": True,
+                "corpus_classification": "non_holdout",
+                "access_mode": "development",
             },
         )
         self.assertEqual(captured[0]["timeout"], 60.0)
@@ -262,6 +314,44 @@ class TestBackendRequestHelpers(unittest.TestCase):
         )
         self.assertEqual(poll_request.get_method(), "GET")
         self.assertIsNone(poll_request.data)
+
+    def test_request_real_gold_job_accepts_aggregate_only_holdout_result(self):
+        aggregate = _development_aggregate()
+        responses = [
+            _FakeResponse({"task_id": "task-holdout", "status": "pending"}),
+            _FakeResponse(
+                {
+                    "task_id": "task-holdout",
+                    "status": "completed",
+                    "result": aggregate,
+                    "error": None,
+                }
+            ),
+        ]
+        response_index = {"value": 0}
+
+        def fake_urlopen(request, timeout):
+            response = responses[response_index["value"]]
+            response_index["value"] += 1
+            return response
+
+        runner = getattr(mod, "_request_real_gold_" + "eval")
+        with mock.patch.object(mod.urlrequest, "urlopen", side_effect=fake_urlopen):
+            payload = runner(
+                backend_url="http://127.0.0.1:8000",
+                api_key=None,
+                limit=0,
+                tolerance=0.01,
+                method="auto",
+                strict_method=False,
+                timeout_seconds=10.0,
+                poll_interval_seconds=0.0,
+                corpus_classification="holdout",
+                access_mode=None,
+                development_aggregate=aggregate,
+            )
+
+        self.assertEqual(payload, aggregate)
 
     def test_request_real_gold_job_surfaces_backend_detail(self):
         runner = getattr(mod, "_request_real_gold_" + "eval")
@@ -288,12 +378,14 @@ class TestBackendRequestHelpers(unittest.TestCase):
     def test_request_real_gold_job_raises_when_task_reports_failed(self):
         responses = [
             _FakeResponse({"task_id": "task-xyz", "status": "pending"}),
-            _FakeResponse({
-                "task_id": "task-xyz",
-                "status": "failed",
-                "result": None,
-                "error": "RuntimeError: docling crashed",
-            }),
+            _FakeResponse(
+                {
+                    "task_id": "task-xyz",
+                    "status": "failed",
+                    "result": None,
+                    "error": "RuntimeError: docling crashed",
+                }
+            ),
         ]
         idx = {"i": 0}
 

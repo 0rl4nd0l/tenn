@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_readonly_smoke_v1_20260525",
+  "status": "smoke_complete",
+  "lane": "Query Orchestration",
+  "supporting_lanes": [
+    "Provenance",
+    "Reporting"
+  ],
+  "mode": "audit_only",
+  "production_data_access": false,
+  "branch": "safe/a2m-news-projection-integration-readonly-smoke-controller-v1-20260525",
+  "head": "2d1e810bcb978cc062d5de81d2c6b6198a76b8a4",
+  "worktree": "/home/l4nd0/tenn-a2m-news-projection-controller-v1-20260525",
+  "registry_status": {
+    "controller_claim": "active",
+    "smoke_task_card_validate": "pass",
+    "smoke_check_overlap": "blocked_by_self_controller_overlap",
+    "external_active_jobs": [
+      {
+        "job_id": "reporting_ui_safe_issue_fixes_v1_20260525",
+        "lane": "Reporting",
+        "overlap": false
+      },
+      {
+        "job_id": "strategy_lab_quantdinger_repeatability_harness_v1_20260525",
+        "lane": "Evaluation",
+        "overlap": false
+      }
+    ]
+  },
+  "safe_isolation_used": true,
+  "changed_files": [
+    "docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_readonly_smoke_matrix.json",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_next_fix_decision.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/validation.json"
+  ],
+  "validation": {
+    "task_card_validate": "pass",
+    "qdrant_readonly_collection": "pass",
+    "qdrant_readonly_counts": "pass",
+    "sqlite_readonly_queries": "pass",
+    "backend_health": "pass",
+    "backend_rag_query": "pass",
+    "next_rag_query": "pass",
+    "json_validation": "pass",
+    "git_diff_check": "pass",
+    "task_card_check_diff": "covered_by_controller_check_diff_pass; standalone_smoke_check_diff_expected_self_scope_failure"
+  },
+  "qdrant_status": {
+    "status": "Confirmed",
+    "collection": "news_chunks",
+    "reachable": true,
+    "points_count": 22324,
+    "indexed_vectors_count": 22346,
+    "combined_a2m_count": 24,
+    "ticker_a2m_count": 16,
+    "primary_ticker_a2m_count": 16,
+    "tickers_contains_a2m_count": 24,
+    "legacy_latest_article_art_f249_count": 0,
+    "mutation_performed": false
+  },
+  "canonical_projection_status": {
+    "status": "Confirmed absent",
+    "news_articles_sqlite": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+    "news_articles_sqlite_exists": false,
+    "news_sqlite": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+    "news_sqlite_exists": false
+  },
+  "legacy_projection_status": {
+    "status": "Confirmed present with A2M evidence",
+    "news_articles_sqlite": {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+      "articles": 2983,
+      "distinct_a2m_articles": 7,
+      "primary_a2m_articles": 6,
+      "latest_a2m_published_at": "2026-05-17T22:01:00Z"
+    },
+    "news_sqlite": {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+      "context_chunks": 24096,
+      "ticker_like_a2m_chunks": 43,
+      "title_text_like_a2m_chunks": 771,
+      "combined_a2m_like_chunks": 791,
+      "latest_a2m_published_at": "2026-05-17T22:01:00Z"
+    }
+  },
+  "cockpit_route_status": {
+    "backend_api_health": "pass_200",
+    "backend_rag_query_news_a2m": "pass_returned_results",
+    "next_config": "pass_200",
+    "next_rag_query_news_a2m": "pass_returned_results",
+    "next_api_cockpit_news_status": "missing_404",
+    "next_api_cockpit_status": "missing_404",
+    "next_server_cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui",
+    "news_screen_rewrite": "Confirmed /rag/query -> backend /rag/query via next.config.mjs"
+  },
+  "user_visible_a2m_status": {
+    "status": "Confirmed for news search route; DATA_MISSING for live chat synthesis",
+    "news_search_route_user_visible": true,
+    "chat_synthesis_live_smoked": false,
+    "chat_synthesis_reason_not_run": "Chat/session paths may write state; forbidden by audit-only smoke."
+  },
+  "recommended_next_task": "a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+  "save_recommendation": "Save to Project Memory: A2M is currently reachable through Qdrant-backed /rag/query even while canonical NVMe SQLite projection files are absent; future status/reporting must distinguish Qdrant retrieval health, canonical SQLite projection health, and legacy /mnt/sdb2 provenance.",
+  "forbidden_mutation_performed": false,
+  "updated_at": "2026-05-25T13:50:00+10:00"
+}

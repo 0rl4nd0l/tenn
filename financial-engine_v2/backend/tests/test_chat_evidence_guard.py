@@ -12,6 +12,7 @@ from app.services.chat_evidence_guard import (
     RECENT_NEWS_EVENT,
     RECENT_NEWS_OR_UPDATE,
     TARIFF_REGULATORY,
+    apply_local_news_only_guard,
     apply_visible_evidence_gap_labels,
     enrich_chat_metadata_with_evidence_guard,
     evaluate_chat_evidence_requirements,
@@ -207,6 +208,142 @@ def test_recent_news_question_with_context_news_and_filings_is_insufficient() ->
     assert RECENT_NEWS_OR_UPDATE in result["unsupported_claim_families"]
 
 
+def test_local_news_only_guard_blocks_context_news_and_filing_answer() -> None:
+    guarded, metadata = apply_local_news_only_guard(
+        (
+            "Here is the latest local news for A2M: the class action settlement "
+            "and dividend update were lodged with the ASX."
+        ),
+        [
+            {
+                "title": "A2M infant formula recall uncertainty",
+                "source_id": "news:a2m-recall:1",
+                "kind": "news",
+                "doc_type": "news",
+                "published_at": "2026-05-17T22:01:00Z",
+                "evidence_labels": ["context_only", "local_news_context"],
+                "claim_verified": False,
+            },
+            {
+                "title": "A2M dividend update",
+                "source_id": "asx:A2M:dividend",
+                "kind": "document",
+                "doc_type": "asx_announcement",
+                "evidence_labels": ["context_only"],
+                "claim_verified": False,
+            },
+        ],
+        {
+            "source_coverage_status": "context_only",
+            "claim_verified_source_count": 0,
+            "evidence_labels": ["context_only", "local_news_context"],
+        },
+        user_message=(
+            "What is the latest local news for A2M? Use local news evidence only. "
+            "If no relevant local_news_context is available, say DATA_MISSING."
+        ),
+    )
+
+    assert guarded.startswith("DATA_MISSING:")
+    assert "context-only and not claim-verified" in guarded
+    assert "A2M infant formula recall uncertainty" in guarded
+    assert "class action" not in guarded.lower()
+    assert "dividend update" not in guarded.lower()
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 1
+    assert metadata["claim_verified_local_news_count"] == 0
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+    assert "missing_required_evidence" in metadata["evidence_labels"]
+
+
+def test_local_news_only_guard_blocks_document_only_no_news_answer() -> None:
+    guarded, metadata = apply_local_news_only_guard(
+        "COH latest local news is a substantial holder notice and dividend filing.",
+        [
+            {
+                "title": "COH substantial holder notice",
+                "source_id": "asx:COH:holder",
+                "kind": "document",
+                "doc_type": "asx_announcement",
+                "evidence_labels": ["context_only"],
+                "claim_verified": False,
+            }
+        ],
+        {
+            "source_coverage_status": "no_hit",
+            "claim_verified_source_count": 0,
+            "evidence_labels": ["no_hit", "context_only"],
+        },
+        user_message="What is the latest local news for COH? Use local news evidence only.",
+    )
+
+    assert guarded.startswith("DATA_MISSING:")
+    assert "no relevant local_news_context" in guarded
+    assert "substantial holder" not in guarded.lower()
+    assert "dividend" not in guarded.lower()
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 0
+    assert "no_hit" in metadata["evidence_labels"]
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_local_news_only_guard_preserves_claim_verified_news_answer() -> None:
+    original = "BHP latest local news is the completed transaction reported today."
+    guarded, metadata = apply_local_news_only_guard(
+        original,
+        [
+            {
+                "title": "BHP completes transaction",
+                "source_id": "news:bhp-transaction:1",
+                "kind": "news",
+                "doc_type": "news",
+                "evidence_labels": ["claim_verified", "local_news_context"],
+                "claim_verified": True,
+            }
+        ],
+        {
+            "source_coverage_status": "claim_verified",
+            "claim_verified_source_count": 1,
+            "evidence_labels": ["claim_verified", "local_news_context"],
+        },
+        user_message="What is the latest local news for BHP? Use local news evidence only.",
+    )
+
+    assert guarded == original
+    assert metadata["source_coverage_status"] == "claim_verified"
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["local_news_context_count"] == 1
+    assert metadata["claim_verified_local_news_count"] == 1
+
+
+def test_local_news_only_guard_preserves_degraded_runtime_status() -> None:
+    guarded, metadata = apply_local_news_only_guard(
+        "The runtime failed, but latest local news is available from a filing.",
+        [
+            {
+                "title": "Runtime failure",
+                "source_id": "runtime_failure:qual_context_news:A2M",
+                "doc_type": "runtime_failure",
+                "evidence_labels": ["degraded_runtime", "operational_trace"],
+            }
+        ],
+        {
+            "source_coverage_status": "degraded_runtime",
+            "claim_verified_source_count": 0,
+            "evidence_labels": ["degraded_runtime"],
+        },
+        user_message="What is the latest local news for A2M? Use local news evidence only.",
+    )
+
+    assert guarded.startswith("DATA_MISSING:")
+    assert metadata["source_coverage_status"] == "degraded_runtime"
+    assert metadata["claim_verified_source_count"] == 0
+    assert "degraded_runtime" in metadata["evidence_labels"]
+    assert "missing_required_evidence" in metadata["evidence_labels"]
+
+
 def test_raw_support_flags_do_not_self_promote_to_recent_news_event() -> None:
     result = evaluate_chat_evidence_requirements(
         answer_text="BHP latest update this week was caused by a recent event.",
@@ -249,6 +386,31 @@ def test_claim_verified_news_event_satisfies_recent_update_requirement() -> None
     assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
     assert RECENT_NEWS_EVENT in result["evidence_categories"]
     assert result["missing_evidence_categories"] == []
+    assert RECENT_NEWS_OR_UPDATE not in result["unsupported_claim_families"]
+
+
+def test_claim_verified_recent_news_event_role_satisfies_recent_update_requirement() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP latest news update this week was a new transaction event.",
+        sources=[
+            {
+                "title": "BHP announces completed transaction",
+                "source_id": "event_source:BHP:2026-05-24:transaction",
+                "kind": "context",
+                "doc_type": "event_note",
+                "snippet": "BHP announced a completed transaction on 2026-05-24.",
+                "source_role_labels": ["recent_news_event"],
+                "evidence_labels": ["claim_verified"],
+                "published_at": "2026-05-24T00:00:00Z",
+                "claim_verified": True,
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert RECENT_NEWS_EVENT in result["evidence_categories"]
+    assert result["missing_evidence_categories"] == []
+    assert "insufficient_for_recent_news" not in result["evidence_requirement_labels"]
     assert RECENT_NEWS_OR_UPDATE not in result["unsupported_claim_families"]
 
 

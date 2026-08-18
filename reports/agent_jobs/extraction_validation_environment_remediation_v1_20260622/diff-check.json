@@ -1,0 +1,69 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_validation_environment_remediation_v1_20260622.md",
+        "docs/validation_baseline.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "scripts/run_pytest_with_fallback.py",
+        "scripts/test_run_pytest_with_fallback.py",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/TASK_CARD.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/BOARD.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/BOARD_DECISION.json",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/STATE.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/DECISIONS.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/CODE_REVIEW.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/status.json",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/validation.json",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/diff-check.json",
+        "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622/pytest_fallback_selftest.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/validation_baseline.md"
+      ],
+      "docs_checked": [
+        "docs/validation_baseline.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/run_pytest_with_fallback.py"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_validation_environment_remediation_v1_20260622",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_validation_environment_remediation_v1_20260622",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Remediate the validation-environment failure that left focused pytest unavailable and broad no-write replays able to hang without structured artifacts.",
+      "recommended_model": "high reasoning",
+      "supporting_lanes": [
+        "Reporting",
+        "Provenance"
+      ],
+      "task_tier": "large",
+      "timeout_seconds": 3600,
+      "why_this_model": "The remediation changes validation control-plane behavior for Financial Truth extraction closeout and must preserve no-write safety.",
+      "worker_decision_limit": "No worker delegation; orchestrator owns review-board decision, implementation, validation, and PR update.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

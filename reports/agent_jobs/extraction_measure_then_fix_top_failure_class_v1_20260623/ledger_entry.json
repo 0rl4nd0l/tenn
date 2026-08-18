@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-06-23T07:56:18.462234Z",
+  "job_id": "extraction_measure_then_fix_top_failure_class_v1_20260623",
+  "ledger_mutation_performed": false,
+  "ledger_validation": {
+    "committed_entry_count": 5,
+    "entry_count": 20,
+    "live_entry_count": 15,
+    "ok": true,
+    "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+  },
+  "reason": "Task card was missing from origin; report-local guard evidence captured instead of mutating shared ledger."
+}

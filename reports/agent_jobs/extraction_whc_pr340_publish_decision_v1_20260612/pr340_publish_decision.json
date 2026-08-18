@@ -1,0 +1,129 @@
+{
+  "ancestry": {
+    "base_head_is_ancestor_of_local": true,
+    "local_head": "739340407de6a1bd49cda03952d8a1ba3b8ec2ac",
+    "local_is_ancestor_of_pr_head": false,
+    "local_ref": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+    "merge_base_base_local": "f9b488bed8fb0c36e2b6c5cdf4f87668e3abb1bd",
+    "merge_base_pr_local": "aeb72fe23b0353e9cca7a1e89848cea4a42c1a0f",
+    "pr_head": "d65945b8280c2ac819995e2c9832a0623994a5a3",
+    "pr_head_is_ancestor_of_local": false,
+    "pr_head_ref": "origin/safe/extraction-whc-ocr-openability-probe-report-local-v1-20260610"
+  },
+  "base_head": "f9b488bed8fb0c36e2b6c5cdf4f87668e3abb1bd",
+  "base_ref": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "data_missing": [
+    "No GitHub write was performed, so no new CI/Sloppy Scan run exists for local commit 73934040.",
+    "No reconciliation plan was executed for replacing or superseding PR #340."
+  ],
+  "decision": "do_not_push_or_update_pr_340",
+  "exact_next_command_after_operator_approval": {
+    "create_new_draft_pr": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-whc-parser-openability-sidecar-v1-20260610 --title \"chore(extraction): add WHC openability period binding\" --body \"WHC openability period-binding stack. Exact WHC replay now passes with period_end=2022-06-30 and 8 accepted metrics. No count-24/count-32/broad extraction/backfill/service routes/production mutation.\"",
+    "publish_local_branch": "git push -u origin safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+    "why_new_pr_not_pr340": "PR #340 is a distinct one-commit report-local probe branch at d65945b8; the local WHC branch contains an eight-commit stack from current migration base plus report packets."
+  },
+  "forbidden_actions_not_run": [
+    "git push",
+    "gh pr edit",
+    "gh pr create",
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "random sample",
+    "backfill",
+    "service route execution",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source-PDF mutation",
+    "prompt mutation",
+    "gold-label mutation",
+    "schema mutation",
+    "runtime config mutation",
+    "model/GPU config mutation",
+    "production data mutation",
+    "PR #318 patch mining"
+  ],
+  "head": "739340407de6a1bd49cda03952d8a1ba3b8ec2ac",
+  "job_id": "extraction_whc_pr340_publish_decision_v1_20260612",
+  "left_right_base_vs_local": [
+    "> 73934040 chore(extraction): add saved artifact guard scorecard packet",
+    "> c97ca602 chore(extraction): bind WHC openability period evidence",
+    "> 0537859e chore(extraction): record WHC runtime endpoint replay",
+    "> 9fb5cf60 chore(extraction): record WHC openability exact replay blocker",
+    "> 106073c6 chore(extraction): add WHC openability selected-table bridge",
+    "> 9da84026 chore(extraction): improve WHC openability row candidates",
+    "> f6e1ea41 chore(extraction): prove WHC openability diagnostics on source",
+    "> d93c9358 chore(extraction): add WHC parser openability diagnostics"
+  ],
+  "left_right_pr_head_vs_local": [
+    "> 73934040 chore(extraction): add saved artifact guard scorecard packet",
+    "> c97ca602 chore(extraction): bind WHC openability period evidence",
+    "> 0537859e chore(extraction): record WHC runtime endpoint replay",
+    "> 9fb5cf60 chore(extraction): record WHC openability exact replay blocker",
+    "> 106073c6 chore(extraction): add WHC openability selected-table bridge",
+    "> 9da84026 chore(extraction): improve WHC openability row candidates",
+    "> f6e1ea41 chore(extraction): prove WHC openability diagnostics on source",
+    "> d93c9358 chore(extraction): add WHC parser openability diagnostics",
+    "> f9b488be Merge pull request #184 from 0rl4nd0l/audit/jam-failure-to-request-search-triage-v1-20260601",
+    "> e3175fd4 Merge pull request #180 from 0rl4nd0l/audit/cockpit-announcement-context-schema-audit-v1-20260601",
+    "> 66c50ad4 Merge pull request #179 from 0rl4nd0l/audit/home-portfolio-panel-no-data-audit-v1-20260601",
+    "< d65945b8 chore(extraction): add WHC OCR openability probe packet",
+    "> 5601ec0a milestone(reporting): refresh Jam search-request triage",
+    "> 247fd100 milestone(provenance): audit announcement context schema ownership",
+    "> e503b253 milestone(reporting): audit Home portfolio partial state"
+  ],
+  "pr_340": {
+    "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+    "commits": [
+      {
+        "authoredDate": "2026-06-10T04:07:47Z",
+        "authors": [
+          {
+            "email": "0rl4nd0l@users.noreply.github.com",
+            "id": "U_kgDOBmiw7Q",
+            "login": "0rl4nd0l",
+            "name": "0rl4nd0l"
+          }
+        ],
+        "committedDate": "2026-06-10T04:11:40Z",
+        "messageBody": "",
+        "messageHeadline": "chore(extraction): add WHC OCR openability probe packet",
+        "oid": "d65945b8280c2ac819995e2c9832a0623994a5a3"
+      }
+    ],
+    "headRefName": "safe/extraction-whc-ocr-openability-probe-report-local-v1-20260610",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 340,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-06-10T04:20:03Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/0rl4nd0l/tenn/actions/runs/27252651051/job/80480197082",
+        "name": "lint-and-test",
+        "startedAt": "2026-06-10T04:12:17Z",
+        "status": "COMPLETED"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-06-10T04:12:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/0rl4nd0l/tenn/actions/runs/27252651030/job/80480197074",
+        "name": "scan",
+        "startedAt": "2026-06-10T04:12:17Z",
+        "status": "COMPLETED"
+      }
+    ],
+    "title": "chore(extraction): add WHC OCR openability probe packet",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/340"
+  },
+  "reason": "PR #340 remote head is not an ancestor of the local WHC branch, and local is not an ancestor of PR #340 remote head. Updating PR #340 would require a non-fast-forward/replacement or manual reconciliation.",
+  "status": "NO_PUSH_STOPPED",
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610"
+}

@@ -1,0 +1,37 @@
+{
+  "job_id": "branch_hygiene_issue_visibility_v1_20260525",
+  "mode": "safe_extension",
+  "primary_lane": "Reporting",
+  "supporting_lanes": [
+    "Repo Hygiene",
+    "Evaluation"
+  ],
+  "branch": "safe/github-issue-branch-hygiene-visibility-v1-20260525",
+  "base_head": "dfa76437bebd9e0ec22f6c80ec9ab5e9177a5f4b",
+  "protocol_updated": true,
+  "external_skills_updated": true,
+  "repo_mirrors_updated": true,
+  "external_repo_mirrors_in_sync": true,
+  "live_github_mutation": false,
+  "production_data_access": false,
+  "forbidden_mutations": false,
+  "registry": {
+    "status": "released",
+    "released_at": "2026-05-25T07:11:42.219167Z",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "data_missing": [
+    "No live GitHub issue/PR duplicate check was performed because this task forbids live GitHub mutation and only required protocol/skill updates.",
+    "No branch inventory issue was created in this task; a separate read-only branch hygiene inventory issue/task is recommended."
+  ],
+  "validation_summary": [
+    "quick_validate.py passed for all three external skills and all three repo mirror skills.",
+    "YAML parse passed for all edited external and repo mirror agents/openai.yaml files.",
+    "External skills and repo mirrors are byte-for-byte in sync.",
+    "Task-card validate and check-diff passed.",
+    "git diff --check and git diff --cached --check passed.",
+    "status.json and diff-check.json parsed as valid JSON."
+  ],
+  "verdict": "PASS"
+}

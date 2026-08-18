@@ -1,0 +1,19 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head_at_start": "26e6000ff7b02a4e05ab6a7f31f939b34aa55215",
+  "branch": "safe/issue261-malformed-date-current-base-v2-20260626",
+  "issue": 261,
+  "job_id": "chat_recency_malformed_date_current_base_v2_20260626",
+  "status": "LOCAL_FIX_VALIDATED_READY_TO_PUBLISH",
+  "supersedes_pr_if_successful": 419,
+  "updated_at": "2026-06-26T23:24:00+10:00",
+  "validation": {
+    "diff_check": "PASS",
+    "git_diff_check": "PASS",
+    "news_retrieval_eval_pytest": "PASS_34",
+    "py_compile": "PASS",
+    "ruff_check": "PASS",
+    "tenn_chat_and_weighting_pytest": "PASS_36"
+  },
+  "worktree": "/home/l4nd0/tenn-issue261-malformed-date-current-base-v2-20260626"
+}

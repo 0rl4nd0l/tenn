@@ -1,0 +1,62 @@
+{
+  "job_id": "extraction_lbl_row_ref_post_repair_validation_v1_20260616",
+  "validation_status": "passed_with_risk",
+  "checks": [
+    {
+      "name": "post_task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_lbl_row_ref_post_repair_validation_v1_20260616.md",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "registry_list_active_read_only",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit_status": 0,
+      "status": "passed_no_active_jobs"
+    },
+    {
+      "name": "pr_snapshot_supported_fields_retry",
+      "command": "gh pr view 362 --json number,url,title,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,commits,files,statusCheckRollup,changedFiles,additions,deletions,reviewDecision,updatedAt,createdAt",
+      "exit_status": 0,
+      "status": "passed",
+      "artifact": "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/pr_snapshot.json"
+    },
+    {
+      "name": "repair_report_json_validation",
+      "command": "python3 - <<'PY' ... json.load repair status/validation/evidence/replay/diff-check ... PY",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "replay_summary_assertions",
+      "command": "python3 - <<'PY' ... assert LBL replay status and target row_refs ... PY",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "forbidden_path_audit",
+      "command": "python3 - <<'PY' ... audit origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD ... PY",
+      "exit_status": 0,
+      "status": "passed",
+      "artifact": "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/forbidden_path_audit.json"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    {
+      "name": "post_task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_lbl_row_ref_post_repair_validation_v1_20260616.md --repo-root .",
+      "exit_status": 0,
+      "status": "passed",
+      "artifact": "reports/agent_jobs/extraction_lbl_row_ref_post_repair_validation_v1_20260616/diff-check.json"
+    }
+  ],
+  "warnings": [
+    "Initial PR snapshot command requested unsupported gh field headRefOid and exited 1; rerun with supported fields passed.",
+    "PR #362 was draft and lint-and-test was IN_PROGRESS at snapshot time.",
+    "Task ledger files were DATA_MISSING; bounded fallback PR/issue/worktree search did not find an open duplicate for this exact branch."
+  ]
+}

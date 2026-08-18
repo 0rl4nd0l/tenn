@@ -1,0 +1,29 @@
+{
+  "_source": "Hand-verified from local source PDF text and cross-checked against the byte-identical curated BHP FY2025 real-gold source. The report is presented in US$ millions, revenue is 51,262, net operating cash flows are 18,692, and net debt is 12,924 for the year ended 30 June 2025.",
+  "_verification": "hand-verified-pdftotext-and-existing-real-gold-source-sha256",
+  "_verification_confidence": "high",
+  "document_id": "bhp_a_2025-06-30_canary_regression",
+  "ticker": "BHP",
+  "source_document_id": "2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7",
+  "source_file": "/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7.pdf",
+  "source_sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+  "period_type": "A",
+  "period_end": "2025-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 51262000000,
+    "operating_cf": 18692000000,
+    "net_debt": 12924000000
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "operating_cf": 0.01,
+    "net_debt": 0.01
+  },
+  "notes": {
+    "revenue": "The #96 canary payload selected 55,658,000,000, which is the 2024 comparative revenue value, not the 2025 current-period revenue.",
+    "currency": "Native USD is retained. No FX conversion is applied."
+  },
+  "expected_trust": "trusted"
+}

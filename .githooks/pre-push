@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+REMOTE_NAME="${1:-origin}"
+while IFS= read -r git_env_var; do
+  unset "$git_env_var"
+done < <(git rev-parse --local-env-vars)
+cd "$ROOT"
+
+ZERO_SHA="0000000000000000000000000000000000000000"
+if ! HEAD_SHA="$(git rev-parse HEAD 2>/dev/null)"; then
+  echo "[pre-push] failed to resolve the current checkout head" >&2
+  exit 1
+fi
+if ! PATHS_FILE="$(mktemp)"; then
+  echo "[pre-push] failed to allocate changed-file enumeration storage" >&2
+  exit 1
+fi
+trap 'rm -f -- "$PATHS_FILE"' EXIT
+
+enumerate_ref_paths() {
+  local local_sha="$1"
+  local remote_sha="$2"
+  local output_path="$3"
+  local commits commit remote_commit
+
+  : > "$output_path" || return 1
+
+  if [[ "$remote_sha" == "$ZERO_SHA" ]]; then
+    if ! commits="$(git rev-list "$local_sha" --not "--remotes=$REMOTE_NAME" 2>/dev/null)"; then
+      return 1
+    fi
+    while IFS= read -r commit; do
+      [[ -z "$commit" ]] && continue
+      if ! git diff-tree --root -m -M --no-commit-id --name-only -z -r --diff-filter=ACMR "$commit" >> "$output_path" 2>/dev/null; then
+        return 1
+      fi
+    done <<< "$commits"
+    return 0
+  fi
+
+  if ! remote_commit="$(git rev-parse --verify "${remote_sha}^{commit}" 2>/dev/null)"; then
+    return 1
+  fi
+  git diff -M --name-only -z --diff-filter=ACMR "$remote_commit" "$local_sha" > "$output_path" 2>/dev/null
+}
+
+changed_python=()
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -z "${local_ref:-}" || "$local_sha" == "$ZERO_SHA" ]] && continue
+  if ! local_commit="$(git rev-parse --verify "${local_sha}^{commit}" 2>/dev/null)"; then
+    echo "[pre-push] failed to enumerate changed files for $local_ref -> $remote_ref" >&2
+    exit 1
+  fi
+  if ! enumerate_ref_paths "$local_commit" "$remote_sha" "$PATHS_FILE"; then
+    echo "[pre-push] failed to enumerate changed files for $local_ref -> $remote_ref" >&2
+    exit 1
+  fi
+  while IFS= read -r -d '' path; do
+    [[ "$path" != *.py ]] && continue
+    if [[ "$local_commit" != "$HEAD_SHA" ]] && git cat-file -e "${local_commit}:${path}" 2>/dev/null; then
+      echo "[pre-push] cannot lint Python from a divergent pushed ref: $local_ref ($path)" >&2
+      exit 1
+    fi
+    if [[ "$local_commit" == "$HEAD_SHA" && -f "$path" ]]; then
+      changed_python+=("$path")
+    elif [[ "$local_commit" == "$HEAD_SHA" ]] && git cat-file -e "${local_commit}:${path}" 2>/dev/null; then
+      echo "[pre-push] cannot lint pushed Python missing from the current checkout: $path" >&2
+      exit 1
+    fi
+  done < "$PATHS_FILE"
+done
+
+RUFF="$ROOT/financial-engine_v2/.venv/bin/ruff"
+if [[ "${#changed_python[@]}" -gt 0 && -x "$RUFF" ]]; then
+  echo "[pre-push] changed-file ruff check..." >&2
+  "$RUFF" check -- "${changed_python[@]}"
+elif [[ "${#changed_python[@]}" -gt 0 ]]; then
+  echo "[pre-push] ruff unavailable; CI remains the full-suite gate" >&2
+fi
+
+if [[ -f scripts/check_markdown_hygiene.sh ]]; then
+  echo "[pre-push] markdown hygiene..." >&2
+  bash scripts/check_markdown_hygiene.sh
+fi

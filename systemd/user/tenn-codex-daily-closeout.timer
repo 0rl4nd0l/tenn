@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Tenn Codex daily closeout lock-up audit
+
+[Timer]
+OnCalendar=*-*-* 20:30:00
+Persistent=false
+Unit=tenn-codex-daily-closeout.service
+
+[Install]
+WantedBy=timers.target

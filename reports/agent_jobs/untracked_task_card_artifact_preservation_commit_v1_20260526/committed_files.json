@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-05-26T06:53:06Z",
+  "job_id": "untracked_task_card_artifact_preservation_commit_v1_20260526",
+  "base_head": "61723bdca4ea30ce404d606cec63e47b9cb739b3",
+  "commit_scope": [
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+    "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+    "docs/agent_tasks/untracked_task_card_preservation_classification_v1_20260526.md",
+    "docs/agent_tasks/untracked_task_card_artifact_preservation_commit_v1_20260526.md",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/README.md",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/status.json",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/issue_drafts.md",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/duplicate_check.md",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/data_missing.md",
+    "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/diff-check.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/README.md",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/status.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/classification_matrix.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/duplicate_search_matrix.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/artifact_inventory.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/validation_results.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/diff-check.json",
+    "reports/agent_jobs/untracked_task_card_artifact_preservation_commit_v1_20260526/README.md",
+    "reports/agent_jobs/untracked_task_card_artifact_preservation_commit_v1_20260526/status.json",
+    "reports/agent_jobs/untracked_task_card_artifact_preservation_commit_v1_20260526/committed_files.json",
+    "reports/agent_jobs/untracked_task_card_artifact_preservation_commit_v1_20260526/validation_results.json",
+    "reports/agent_jobs/untracked_task_card_artifact_preservation_commit_v1_20260526/diff-check.json"
+  ],
+  "dirty_context_only_not_committed": [
+    "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+  ],
+  "forbidden_mutation_performed": false,
+  "github_mutation_performed": false,
+  "product_runtime_data_mutation_performed": false
+}

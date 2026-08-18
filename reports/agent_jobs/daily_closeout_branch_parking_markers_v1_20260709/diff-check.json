@@ -1,0 +1,39 @@
+{
+  "changed_files": [],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/daily_closeout_branch_parking_markers_v1_20260709.md",
+        "docs/agent_registry/merge_parking/REGISTRY.md",
+        "docs/agent_registry/merge_parking/parked/daily-closeout-live-install-v1-20260709.md",
+        "reports/agent_jobs/daily_closeout_execution_worktree_reconcile_v1_20260708/PARKING_REVIEW.md",
+        "reports/agent_jobs/daily_closeout_execution_worktree_reconcile_v1_20260708/REPORT_REVIEW_STATUS.json",
+        "reports/agent_jobs/daily_closeout_live_timer_install_v1_20260708/PARKING_REVIEW.md",
+        "reports/agent_jobs/daily_closeout_live_timer_install_v1_20260708/REPORT_REVIEW_STATUS.json",
+        "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709/STATE.md",
+        "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709/VALIDATION.md",
+        "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709/NEXT_GOAL.md",
+        "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "daily_closeout_branch_parking_markers_v1_20260709",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/daily_closeout_branch_parking_markers_v1_20260709",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "task_scope": "control_plane_only",
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

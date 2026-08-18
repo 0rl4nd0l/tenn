@@ -1,0 +1,20 @@
+{
+  "duration_seconds": 0.001,
+  "request": {
+    "headers": {},
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/agent/v1/health",
+    "url": "http://127.0.0.1:15080/api/agent/v1/health"
+  },
+  "response": {
+    "body": {
+      "service": "quantdinger-agent-gateway",
+      "status": "ok",
+      "timestamp": "2026-05-25T01:53:38Z",
+      "version": "v1"
+    },
+    "http_status": 200
+  }
+}

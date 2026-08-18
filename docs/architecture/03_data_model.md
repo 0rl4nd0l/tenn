@@ -6,7 +6,16 @@ This document describes canonical identifiers, key database entities, provenance
 
 - **document_id**: UUID. Canonical form when serialized (e.g. in APIs or vector payloads) is **lowercase string** (e.g. `a1b2c3d4-e5f6-7890-abcd-ef1234567890`). Stored as UUID in the database; string representation must be consistent for deduplication and vector ID construction.
 
-- **Vector IDs**: Composite string `document_id:chunk_index`, where `document_id` is the canonical lowercase UUID string and `chunk_index` is the zero-based index of the chunk within that document. Example: `a1b2c3d4-e5f6-7890-abcd-ef1234567890:0`. Vector IDs are not bare UUIDs.
+- **Logical vector IDs**: Composite string `document_id:chunk_index`,
+  where `document_id` is the canonical lowercase UUID string and
+  `chunk_index` is the zero-based index of the chunk within that document.
+  Example: `a1b2c3d4-e5f6-7890-abcd-ef1234567890:0`. Logical vector IDs are
+  not bare UUIDs.
+
+- **Physical Qdrant point IDs**: Qdrant storage IDs for the points. They may be
+  the literal logical vector ID when the client/storage path supports it, or a
+  deterministic UUIDv5 mapping of that logical ID at the backend adapter
+  boundary. Physical point IDs are not canonical vector/chunk identity.
 
 ## Key DB entities (high level)
 
@@ -37,6 +46,7 @@ Every point in the RAG collection must have a payload that includes the followin
 | doc_class     | Document class (e.g. announcement)               |
 | doc_subtype   | Document subtype (e.g. periodic)                 |
 | chunk_index   | Zero-based chunk index within the document       |
+| logical_vector_id | Canonical logical vector ID: `document_id:chunk_index` |
 | title         | Document title                                   |
 
 Payloads are written in the pipeline when upserting vectors and validated on read in RAG search. Missing or invalid `document_id` in a payload causes runtime errors. See `backend/app/services/pipeline.py` (payload construction) and `backend/app/services/rag.py` (validation).

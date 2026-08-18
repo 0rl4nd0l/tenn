@@ -1,0 +1,100 @@
+{
+  "changed_files": [
+    {
+      "path": ".agents/skills/tenn-financial-metric-extraction/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": ".agents/skills/tenn-git-guard/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": ".agents/skills/tenn-handoff/SKILL.md",
+      "status": "M"
+    },
+    {
+      "path": "AGENTS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/README.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/portable_guard_first_guidance_v1_20260623.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/SKILLS_SURFACE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/CODE_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/PR_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/diff-check.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/portable_guard_first_guidance_v1_20260623.md",
+        "AGENTS.md",
+        "docs/README.md",
+        "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+        "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+        "docs/dev_flow/SKILLS_SURFACE.md",
+        ".agents/skills/tenn-git-guard/SKILL.md",
+        ".agents/skills/tenn-handoff/SKILL.md",
+        ".agents/skills/tenn-financial-metric-extraction/SKILL.md",
+        "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/README.md",
+        "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/CODE_REVIEW.md",
+        "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/PR_REVIEW.md",
+        "reports/agent_jobs/portable_guard_first_guidance_v1_20260623/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "docs_only",
+      "job_id": "portable_guard_first_guidance_v1_20260623",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/portable_guard_first_guidance_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "task_scope": "docs_only",
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

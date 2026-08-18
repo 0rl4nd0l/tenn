@@ -1,4 +1,0 @@
-interface:
-  display_name: "Cockpit Flag Orchestrator"
-  short_description: "Investigate and fix Cockpit flags"
-  default_prompt: "Use $cockpit-flag-orchestrator to triage open auto diagnostics, flagged chats, and UI screenshots with subagents, then implement verified fixes."

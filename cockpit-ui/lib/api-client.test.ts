@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Listener = (event: { data?: string }) => void
 
@@ -44,6 +44,11 @@ describe('streamChat', () => {
   beforeEach(() => {
     eventOrder.length = 0
     instances.length = 0
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
   })
 
   it('disables auto-start so listeners are attached before streaming begins', async () => {
@@ -100,5 +105,319 @@ describe('streamChat', () => {
     expect(onEnd).toHaveBeenCalledTimes(1)
     expect(onError).toHaveBeenCalledWith({ data: 'Connection lost' })
     expect(instance.close).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('listDocuments', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when listing documents', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { listDocuments } = await import('./api-client')
+
+    await listDocuments()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/docs',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
+
+describe('runtime topology helpers', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when reading config, models, and queue status', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({}), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchAvailableModels, getQueueStatus, getSystemStatus } =
+      await import('./api-client')
+
+    await getSystemStatus()
+    await fetchAvailableModels()
+    await getQueueStatus()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/config',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/models',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/queue',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
+
+describe('context diagnostics API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the configured API key when loading ticker documents', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ docs: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getTickerDocuments } = await import('./api-client')
+
+    await getTickerDocuments('bhp', 5)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/context/ticker?ticker=BHP&docs_limit=5&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+
+  it('sends the configured API key when loading verification runs', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, runs: [], count: 0 }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getVerificationRuns } = await import('./api-client')
+
+    await getVerificationRuns(10)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/context/verification/runs?limit=10',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+})
+
+describe('Intel Ops API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    window.localStorage.clear()
+  })
+
+  it('sends the configured API key when fetching Intel Pulse', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ stats: {}, pipeline: [], failures: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getIntelPulse } = await import('./api-client')
+
+    await getIntelPulse('bhp')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/pulse?ticker=BHP',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+
+  it('sends the configured API key when fetching the diagnostic matrix', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ stage: 'extraction', entities: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getDiagnosticMatrix } = await import('./api-client')
+
+    await getDiagnosticMatrix('extraction', 'bhp')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/matrix?stage=extraction&ticker=BHP',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'local-secret',
+        }),
+      }),
+    )
+  })
+
+  it('prefers the browser-stored cockpit API key over the env key', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'env-secret')
+    window.localStorage.setItem('cockpit.apiKey', 'stored-secret')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ stats: {}, pipeline: [], failures: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getIntelPulse } = await import('./api-client')
+
+    await getIntelPulse('bhp')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/pulse?ticker=BHP',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'stored-secret',
+        }),
+      }),
+    )
+  })
+})
+
+describe('extraction review API client', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  it('sends the API key for guarded extraction review read routes', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      items: [],
+      session_id: 'session-1',
+      run_id: 'run-1',
+      events: [],
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const {
+      getExtractionReviewErrors,
+      getExtractionReviewRuns,
+      getExtractionReviewRunStatus,
+      getExtractionReviewSessions,
+      getExtractionReviewSession,
+    } = await import('./api-client')
+
+    await getExtractionReviewRuns('bhp', 20)
+    await getExtractionReviewSessions('bhp', 20)
+    await getExtractionReviewSession('session-1')
+    await getExtractionReviewErrors(25)
+    await getExtractionReviewRunStatus('run-1', 30)
+
+    expect(fetchMock).toHaveBeenCalledTimes(5)
+    const expectedPaths = [
+      '/api/extraction-review/runs?limit=20&ticker=BHP',
+      '/api/extraction-review/sessions?limit=20&ticker=BHP',
+      '/api/extraction-review/session/session-1',
+      '/api/extraction-review/errors?limit=25',
+      '/api/extraction-review/run/run-1?limit=30',
+    ]
+    expectedPaths.forEach((path, index) => {
+      expect(fetchMock.mock.calls[index][0]).toBe(path)
+      expect(fetchMock.mock.calls[index][1]?.headers).toMatchObject({
+        'X-API-Key': 'local-secret',
+      })
+    })
+  })
+
+  it('fetches extraction review snippet blobs with the API key', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const createObjectURL = vi.fn(() => 'blob:snippet')
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() })
+    const fetchMock = vi.fn(async () => new Response(new Blob(['png'], { type: 'image/png' }), {
+      status: 200,
+      statusText: 'OK',
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getExtractionReviewSnippetObjectUrl } = await import('./api-client')
+
+    await expect(getExtractionReviewSnippetObjectUrl('/api/extraction-review/snippets/revenue.png')).resolves.toBe('blob:snippet')
+    expect(fetchMock).toHaveBeenCalledWith('/api/extraction-review/snippets/revenue.png', {
+      headers: { 'X-API-Key': 'local-secret' },
+    })
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not send the API key to invalid extraction review snippet URLs', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_KEY', 'local-secret')
+    vi.resetModules()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getExtractionReviewSnippetObjectUrl } = await import('./api-client')
+
+    await expect(getExtractionReviewSnippetObjectUrl('https://example.invalid/snippet.png')).rejects.toThrow(
+      'Invalid extraction review snippet URL',
+    )
+    await expect(getExtractionReviewSnippetObjectUrl('/api/extraction-review/snippets/../secret.png')).rejects.toThrow(
+      'Invalid extraction review snippet URL',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

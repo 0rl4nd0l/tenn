@@ -1,0 +1,71 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/dev_flow/templates/BOARD_DECISION.json",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/control_plane_board_decision_validator_v1_20260623.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/check_board_decision.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/test_check_board_decision.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/control_plane_board_decision_validator_v1_20260623.md",
+        "scripts/check_board_decision.py",
+        "scripts/test_check_board_decision.py",
+        "docs/dev_flow/templates/BOARD_DECISION.json",
+        "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
+        "docs/dev_flow/CONTROL_PLANE_STATUS.md",
+        "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/STATE.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/DECISIONS.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/VALIDATION.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/NEXT_GOAL.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/CODE_REVIEW.md",
+        "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623/diff-check.json"
+      ],
+      "approval_required": false,
+      "closeout_scope": "control_plane_only",
+      "job_id": "control_plane_board_decision_validator_v1_20260623",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/control_plane_board_decision_validator_v1_20260623",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

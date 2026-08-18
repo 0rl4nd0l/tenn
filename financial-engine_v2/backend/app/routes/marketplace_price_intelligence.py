@@ -5,9 +5,10 @@ import os
 import threading
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.routes import require_api_key
 from app.core.config import PROJECT_ROOT
 from app.services.marketplace_price_intelligence import (
     MarketplacePriceIntelligenceService,
@@ -18,7 +19,7 @@ from app.services.ebay_sold_scanner import EbaySoldScanner
 from cockpit.storage.state import StateStore
 
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_api_key)])
 _STATE_STORE_LOCK = threading.Lock()
 _STATE_STORES: dict[str, StateStore] = {}
 
@@ -195,10 +196,10 @@ async def sync_ebay_sold_data(
     product = await asyncio.to_thread(service.get_tracked_product, tracked_product_id)
     if product is None:
         raise HTTPException(status_code=404, detail="tracked product not found")
-    
+
     query = (payload.query if payload and payload.query else product["canonical_key"])
     scanner = EbaySoldScanner(service)
-    
+
     # Running synchronously in a thread for now as per project preference for simple routes
     try:
         stats = await scanner.scrape_sold_items(tracked_product_id, query)

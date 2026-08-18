@@ -1,0 +1,94 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_whc_openability_exact_source_smoke_v1_20260610.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_whc_parser_openability_sidecar_v1_20260610.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/exact_source_smoke.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/live_git_status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/code_review.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_whc_parser_openability_sidecar_v1_20260610.md",
+        "financial-engine_v2/backend/app/services/docling_extract.py",
+        "financial-engine_v2/backend/tests/test_docling_extract.py",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/README.md",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/status.json",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/live_git_status.json",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/code_review.json",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/validation.json",
+        "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/diff-check.json",
+        "docs/agent_tasks/extraction_whc_openability_exact_source_smoke_v1_20260610.md",
+        "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/README.md",
+        "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/live_git_status.json",
+        "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/exact_source_smoke.json",
+        "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/validation.json",
+        "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_whc_parser_openability_sidecar_v1_20260610",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "issue": 85,
+  "branch_before": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "5a902c7e84aabc103914145de0feec569dd5efec",
+  "active_baseline_preintegration_read_only": {
+    "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+    "exit_code": 2,
+    "observed_error": "unrecognized arguments: --read-only",
+    "result": "MISSING_BEFORE_INTEGRATION"
+  },
+  "integration": {
+    "source_commit": "af69c6fef20070f06d3b57594c9847d2ba98448a",
+    "dry_run_branch": "codex/registry-readonly-no-lock-integration-v1-20260526",
+    "dry_run_cherry_pick_commit": "92897ce4",
+    "active_branch_commit": "c0113f11da37110b79d76ff37f9593f858e491e5",
+    "method": "git cherry-pick -x exact source commit"
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root .",
+      "observed": {
+        "active_jobs_before_claim": [],
+        "active_jobs_after_claim": [
+          "registry_readonly_no_lock_integration_review_v1_20260526"
+        ],
+        "blocking_same_lane_registry_jobs": false
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md --repo-root .",
+      "context": "clean integration worktree before claim",
+      "observed": {
+        "issues": [],
+        "active_jobs": []
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "git cherry-pick -x af69c6fef20070f06d3b57594c9847d2ba98448a",
+      "context": "clean integration worktree and active migration checkout",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py --help",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --help",
+      "observed": {
+        "read_only_option_present": true
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "observed": {
+        "read_only": true,
+        "lock_acquired": false
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "registry file snapshot before and after read-only list-active",
+      "observed": {
+        "registry_snapshot_diff_status": 0,
+        "registry_snapshot_unchanged": true,
+        "lock_exists_after": false
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root .",
+      "observed": {
+        "read_only": false,
+        "lock_acquired": true
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "uv run --with pytest --with PyYAML pytest -q scripts/test_agent_job_registry.py",
+      "observed": {
+        "passed": 16,
+        "warnings": 1
+      },
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    }
+  ],
+  "known_ambient_dirty_context": [
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "status": "pre-existing untracked file in the shared migration checkout",
+      "action": "left untouched and unstaged"
+    }
+  ],
+  "data_missing": [
+    "The source branch safe/registry-readonly-no-lock-list-active-v1-20260525 exists locally but was not advertised by origin during ls-remote.",
+    "The final report commit hash is recorded in the GitHub closeout comment and final response because this report is part of that commit."
+  ],
+  "result": "PASS"
+}

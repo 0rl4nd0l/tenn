@@ -1,0 +1,28 @@
+{
+  "job_id": "memory_fanout_suppression_quarantine_design_v1_20260524",
+  "commands": [
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_live_inventory_readonly_v1_20260524/inventory.json",
+      "result": "PASS",
+      "purpose": "Read prior inventory artifact without opening live stores."
+    },
+    {
+      "command": "code inspection: company_memory.py, memory_assembler.py, query_orchestrator.py, memory_signal_router.py, audit_memory_integrity.py",
+      "result": "PASS",
+      "purpose": "Identify current read/selection path and fanout detector shape."
+    }
+  ],
+  "no_write_checks": {
+    "live_memory_db_opened": false,
+    "memory_routes_called": false,
+    "qdrant_touched": false,
+    "news_sqlite_touched": false,
+    "postgres_touched": false,
+    "migration_created_or_run": false
+  },
+  "artifact_validation_pending_in_controller": [
+    "python3 -m json.tool reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.json",
+    "python3 -m json.tool reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/status.json",
+    "python3 -m json.tool reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/validation.json"
+  ]
+}

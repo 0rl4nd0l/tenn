@@ -11,12 +11,14 @@ TWO MODES:
       Run manually before merging any extraction changes.
       Requires: llamacpp running on port 8001, eval_fixtures/*.json present.
 """
+
 import datetime
 import json
 import logging
 import math
 import time
 import warnings
+from numbers import Real
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -55,12 +57,15 @@ def load_fixtures() -> list[dict]:
     ]
 
 
-def metric_matches(extracted: float | None, expected: float | None,
-                   tolerance: float) -> bool:
+def metric_matches(
+    extracted: float | None, expected: float | None, tolerance: float
+) -> bool:
     """Returns True if extracted is within tolerance of expected."""
+    if not _is_real_number(tolerance):
+        return False
     if expected is None:
         return extracted is None  # null expected → must be null
-    if extracted is None:
+    if not _is_real_number(expected) or not _is_real_number(extracted):
         return False  # value expected → must not be null
     if expected == 0:
         return abs(extracted) < 1  # near-zero
@@ -75,21 +80,42 @@ def _fixture_to_model(fixture: dict) -> ExtractionFixture:
             period_type=fixture.get("period_type"),
             currency=fixture.get("currency"),
             scale=fixture.get("scale"),
+            accounting_basis=fixture.get("accounting_basis"),
         ),
-        metrics={
-            str(metric): float(value)
-            for metric, value in fixture.get("metrics", {}).items()
-            if value is not None
-        },
+        metrics=_coerce_fixture_numeric_map(fixture.get("metrics", {}), nulls=True),
         expected_nulls=[
             str(metric) for metric in fixture.get("expected_nulls", []) if metric
         ],
         optional_metrics=[],
-        tolerances={
-            str(metric): float(value)
-            for metric, value in fixture.get("tolerances", {}).items()
-        },
+        tolerances=_coerce_fixture_numeric_map(
+            fixture.get("tolerances", {}),
+            nulls=False,
+        ),
     )
+
+
+def _coerce_fixture_numeric_map(
+    values: dict,
+    *,
+    nulls: bool,
+) -> dict[str, float]:
+    parsed: dict[str, float] = {}
+    for metric, value in values.items():
+        if value is None and nulls:
+            continue
+        if not _is_real_number(value):
+            raise ValueError(f"{metric} must be a finite real number")
+        parsed[str(metric)] = float(value)
+    return parsed
+
+
+def _is_real_number(value: object) -> bool:
+    if not isinstance(value, Real) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
 
 
 def _context_detail(
@@ -97,10 +123,17 @@ def _context_detail(
     extracted_payload: dict[str, object],
 ) -> dict[str, dict[str, object]]:
     detail: dict[str, dict[str, object]] = {}
-    for field in ("period_end", "currency", "scale"):
-        expected = fixture.get(field)
-        actual = extracted_payload.get(field)
-        detail[field] = {
+    fields = {
+        "period_end": "period_end",
+        "period_basis": "period_type",
+        "currency": "currency",
+        "scale": "scale",
+        "accounting_basis": "accounting_basis",
+    }
+    for public_name, payload_name in fields.items():
+        expected = fixture.get(payload_name)
+        actual = extracted_payload.get(payload_name)
+        detail[public_name] = {
             "expected": expected,
             "actual": actual,
             "matched": (
@@ -120,7 +153,9 @@ def _metric_outcome_class(status: MetricEvalStatus) -> str:
     return status.value
 
 
-def _derive_trust_detail(metric_results: list[dict], context_mismatches: list[str]) -> tuple[str, list[str]]:
+def _derive_trust_detail(
+    metric_results: list[dict], context_mismatches: list[str]
+) -> tuple[str, list[str]]:
     if context_mismatches:
         return "quarantine", [
             f"context_mismatch:{field}" for field in context_mismatches
@@ -222,7 +257,54 @@ def _select_seg_failure_debug_capture(
     }
 
 
-def _validate_extraction_runtime_preflight(*, timeout: float = 30.0) -> dict[str, object]:
+def test_evaluate_fixture_uses_structured_field_provenance_summary() -> None:
+    fixture = ExtractionFixture(
+        fixture_id="BHP-2025",
+        context=FixtureContext(
+            period_end="2025-12-31",
+            period_type="A",
+            currency="AUD",
+            scale="thousands",
+        ),
+        metrics={"revenue": 12_345_000.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {"revenue": 12_345_000.0},
+        "field_provenance": {
+            "revenue": {
+                "metric": "revenue",
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 7,
+                "page_tag": "page_7",
+                "row_ref": "Revenue from contracts with customers",
+                "excerpt": "Revenue from contracts with customers",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2025-12-31",
+            }
+        },
+    }
+
+    result = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    assert result.provenance_summary["available"] is True
+    assert result.provenance_summary["record_count"] == 1
+    assert result.provenance_summary["status_counts"] == {"precise": 1}
+
+
+def _validate_extraction_runtime_preflight(
+    *, timeout: float = 30.0
+) -> dict[str, object]:
     extraction_url, requested_model = resolve_extraction_runtime_config()
     headers = build_llm_headers(base_url=extraction_url)
     try:
@@ -247,7 +329,9 @@ def _validate_extraction_runtime_preflight(*, timeout: float = 30.0) -> dict[str
     )
     resolved_model = _resolve_model_id(models_payload, requested_model)
     if resolved_model not in available_model_ids:
-        available_display = ", ".join(available_model_ids) if available_model_ids else "<none>"
+        available_display = (
+            ", ".join(available_model_ids) if available_model_ids else "<none>"
+        )
         raise RuntimeError(
             "live eval preflight failed: extraction runtime "
             f"{extraction_url} does not expose requested extraction model "
@@ -286,9 +370,7 @@ def _write_eval_log(
         "overall_accuracy": round(overall_acc, 4),
         "per_fixture": per_fixture_data,
         "per_metric": {
-            m: round(sum(v) / len(v), 4)
-            for m, v in per_metric_results.items()
-            if v
+            m: round(sum(v) / len(v), 4) for m, v in per_metric_results.items() if v
         },
         "thresholds": {
             "min_accuracy_overall": config["min_accuracy_overall"],
@@ -325,7 +407,9 @@ def _write_eval_progress(
     progress_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def _emit_live_eval_progress(request: pytest.FixtureRequest | None, message: str) -> None:
+def _emit_live_eval_progress(
+    request: pytest.FixtureRequest | None, message: str
+) -> None:
     reporter = None
     if request is not None:
         reporter = request.config.pluginmanager.getplugin("terminalreporter")
@@ -339,6 +423,7 @@ def _emit_live_eval_progress(request: pytest.FixtureRequest | None, message: str
 # Unit mode: schema and structure tests (no real LLM)
 # ---------------------------------------------------------------------------
 
+
 def test_eval_config_exists_and_valid():
     """eval_config.json must exist and contain required keys."""
     config = load_config()
@@ -351,16 +436,29 @@ def test_eval_config_exists_and_valid():
 def test_multipass_result_has_expected_keys():
     """MultipassResult payload must contain all METRIC_FIELDS + narrative fields."""
     from app.services.multipass_extraction import (
-        MultipassResult, METRIC_FIELDS, _run_pass4_reconciler, _run_pass3b_narrative_extractor
+        MultipassResult,
+        METRIC_FIELDS,
+        _run_pass4_reconciler,
+        _run_pass3b_narrative_extractor,
     )
 
     mock_pass3a = [
-        {"_source": "cashflow_statement", "operating_cf": 1_000_000, "investing_cf": None,
-         "financing_cf": None, "cash_end": 500_000, "pass3_confidence": 0.9, "row_refs": {}}
+        {
+            "_source": "cashflow_statement",
+            "operating_cf": 1_000_000,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": 500_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {},
+        }
     ]
     mock_pass3b = {
-        "risk_summary": "Test risk", "risk_bullets": ["Risk 1"],
-        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.7
+        "risk_summary": "Test risk",
+        "risk_bullets": ["Risk 1"],
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.7,
     }
     mock_pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
 
@@ -377,11 +475,35 @@ def test_multipass_result_has_expected_keys():
 
 def test_metric_match_within_tolerance():
     """Tolerance function must correctly identify acceptable values."""
-    assert metric_matches(3_241_000, 3_241_000, 0.01)       # exact
-    assert metric_matches(3_208_590, 3_241_000, 0.01)        # within 1%
-    assert not metric_matches(2_900_000, 3_241_000, 0.01)    # outside 1%
-    assert metric_matches(None, None, 0.01)                   # both null OK
-    assert not metric_matches(None, 3_241_000, 0.01)          # missing value
+    assert metric_matches(3_241_000, 3_241_000, 0.01)  # exact
+    assert metric_matches(3_208_590, 3_241_000, 0.01)  # within 1%
+    assert not metric_matches(2_900_000, 3_241_000, 0.01)  # outside 1%
+    assert metric_matches(None, None, 0.01)  # both null OK
+    assert not metric_matches(None, 3_241_000, 0.01)  # missing value
+    assert not metric_matches(True, 1.0, 0.01)
+    assert not metric_matches(1.0, True, 0.01)
+    assert not metric_matches(1.0, 1.0, True)
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        {"metrics": {"revenue": True}},
+        {"metrics": {"revenue": 1.0}, "tolerances": {"revenue": False}},
+    ],
+)
+def test_fixture_adapter_rejects_boolean_numbers(fixture):
+    with pytest.raises(ValueError, match="finite real number"):
+        _fixture_to_model(fixture)
+
+
+def test_fixture_adapter_preserves_numeric_zero():
+    fixture = _fixture_to_model(
+        {"metrics": {"revenue": 0}, "tolerances": {"revenue": 0}}
+    )
+
+    assert fixture.metrics["revenue"] == 0.0
+    assert fixture.tolerances["revenue"] == 0.0
 
 
 def test_expected_nulls_counted_in_accuracy():
@@ -439,8 +561,12 @@ def test_structural_fixture_with_only_expected_nulls_produces_valid_accuracy():
     }
     # Simulated extraction result with income statement metrics correctly absent
     extracted_metrics = {
-        "revenue": None, "ebit": None, "np_attributable": None, "net_debt": None,
-        "operating_cf": 500_000, "cash_end": 2_000_000,
+        "revenue": None,
+        "ebit": None,
+        "np_attributable": None,
+        "net_debt": None,
+        "operating_cf": 500_000,
+        "cash_end": 2_000_000,
     }
 
     fixture_results: list[bool] = []
@@ -503,6 +629,7 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
         "period_end": "2025-12-31",
         "currency": "AUD",
         "scale": "thousands",
+        "accounting_basis": "statutory",
         "metrics": {
             "revenue": 73_671_000,
             "shares_outstanding": 280_874_770,
@@ -518,6 +645,7 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
         "period_end": "2025-12-31",
         "currency": "AUD",
         "scale": "thousands",
+        "accounting_basis": "statutory",
         "metrics": {
             "revenue": 73_671_000,
             "shares_outstanding": 280_875,
@@ -535,10 +663,17 @@ def test_fixture_result_detail_includes_metric_outcomes_and_context():
     assert detail["trust_triggers"] == ["shares_outstanding:wrong"]
     assert detail["failed_metrics"] == ["shares_outstanding"]
     assert detail["context_detail"]["currency"]["matched"] is True
-
-    by_metric = {
-        item["metric_name"]: item for item in detail["metric_results"]
+    assert detail["context_detail"]["period_basis"]["matched"] is True
+    assert detail["context_detail"]["accounting_basis"]["matched"] is True
+    assert set(detail["context_detail"]) == {
+        "period_end",
+        "period_basis",
+        "currency",
+        "scale",
+        "accounting_basis",
     }
+
+    by_metric = {item["metric_name"]: item for item in detail["metric_results"]}
     assert by_metric["revenue"]["outcome_class"] == "correct"
     assert by_metric["shares_outstanding"]["metric_status"] == "wrong"
     assert by_metric["shares_outstanding"]["expected_value_presence"] is True
@@ -661,6 +796,7 @@ def test_extraction_runtime_preflight_fails_for_wrong_single_model_runtime(
 # Live eval mode: accuracy regression gate (requires real LLM + fixtures)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.live_eval
 def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
     """
@@ -681,15 +817,19 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
     overall_results: list[bool] = []
     per_fixture_data: dict[str, dict] = {}
     run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
-    progress_path = Path(__file__).parent / "eval_results" / f"eval_progress_{run_id}.json"
+    progress_path = (
+        Path(__file__).parent / "eval_results" / f"eval_progress_{run_id}.json"
+    )
     fixture_statuses: dict[str, dict] = {}
 
     import os
+
     force_llamacpp = os.getenv("EVAL_FORCE_LLAMACPP", "").lower() in ("1", "true")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
     llm_api_key_present = bool(os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY"))
     if anthropic_key and not force_llamacpp:
         import anthropic
+
         llm_client = anthropic.Anthropic(api_key=anthropic_key)
         eval_model = os.getenv("EVAL_CLAUDE_MODEL", "claude-opus-4-6")
         llm_client._extraction_model = eval_model
@@ -774,9 +914,17 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
                 label,
                 result.error,
             )
-            num_metrics = len(fixture["metrics"]) + len(
-                [m for m in fixture.get("expected_nulls", []) if m not in fixture["metrics"]]
-            ) + (1 if "period_end" in fixture else 0)
+            num_metrics = (
+                len(fixture["metrics"])
+                + len(
+                    [
+                        m
+                        for m in fixture.get("expected_nulls", [])
+                        if m not in fixture["metrics"]
+                    ]
+                )
+                + (1 if "period_end" in fixture else 0)
+            )
             fixture_min_acc = fixture.get("config", {}).get(
                 "min_accuracy_overall", config["min_accuracy_overall"]
             )
@@ -789,7 +937,9 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
                         per_metric_results.setdefault(null_metric, []).append(False)
                 fixture_results_failed = [False] * num_metrics
                 overall_results.extend(fixture_results_failed)
-            extracted_payload = result.payload if isinstance(result.payload, dict) else {}
+            extracted_payload = (
+                result.payload if isinstance(result.payload, dict) else {}
+            )
             result_detail = _build_fixture_result_detail(fixture, extracted_payload)
             per_fixture_data[label] = {
                 "accuracy": 0.0,
@@ -885,7 +1035,9 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
                 overall_results.append(pe_match)
 
         # Per-fixture accuracy gate
-        fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0
+        fixture_acc = (
+            sum(fixture_results) / len(fixture_results) if fixture_results else 0
+        )
         result_detail = _build_fixture_result_detail(fixture, result.payload)
         per_fixture_data[label] = {
             "accuracy": round(fixture_acc, 4),
@@ -894,11 +1046,13 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
         }
         seg_failed = label == "SEG" and fixture_acc < fixture_min_acc
         if seg_failed:
-            per_fixture_data[label]["seg_failure_debug"] = _select_seg_failure_debug_capture(
-                extracted_payload=result.payload,
-                pass3a_results=seg_debug_capture.get("pass3a_results")
-                if isinstance(seg_debug_capture, dict)
-                else None,
+            per_fixture_data[label]["seg_failure_debug"] = (
+                _select_seg_failure_debug_capture(
+                    extracted_payload=result.payload,
+                    pass3a_results=seg_debug_capture.get("pass3a_results")
+                    if isinstance(seg_debug_capture, dict)
+                    else None,
+                )
             )
         fixture_statuses[label] = {
             "status": result.status,
@@ -947,12 +1101,18 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
     overall_acc = sum(overall_results) / len(overall_results) if overall_results else 0
 
     # Structured eval log written before assertions so it exists even on failure.
-    _write_eval_log(config, overall_acc, per_fixture_data, per_metric_results,
-                    model_label=model_label, llm_api_key_present=llm_api_key_present)
+    _write_eval_log(
+        config,
+        overall_acc,
+        per_fixture_data,
+        per_metric_results,
+        model_label=model_label,
+        llm_api_key_present=llm_api_key_present,
+    )
 
     # Per-fixture failures reported first (most actionable)
-    assert not fixture_failures, (
-        f"Per-fixture accuracy failures:\n" + "\n".join(f"  {f}" for f in fixture_failures)
+    assert not fixture_failures, f"Per-fixture accuracy failures:\n" + "\n".join(
+        f"  {f}" for f in fixture_failures
     )
 
     # Overall accuracy across all fixtures

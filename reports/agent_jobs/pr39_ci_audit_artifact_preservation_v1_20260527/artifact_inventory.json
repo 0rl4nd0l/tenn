@@ -1,0 +1,195 @@
+{
+  "job_id": "pr39_ci_audit_artifact_preservation_v1_20260527",
+  "generated_at": "2026-05-27T05:45:00Z",
+  "entries": [
+    {
+      "path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+      "exists": true,
+      "git_visibility": "untracked_before_preservation",
+      "parsed_or_validated": "task-card validate passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Prior issue #105 audit task card."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/README.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Prior audit summary; report dir ignored by git info/exclude reports/ rule."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/status.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Prior audit status; records 13 clusters and follow-up required."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/failure_clusters.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed; 13 entries",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Machine-readable C01-C13 cluster map."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/child_task_proposals.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Prior audit child task proposals."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/pr39_merge_readiness.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Records NOT_MERGE_READY, PARKING_RECOMMENDED, KEEP_DRAFT."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/diff-check.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Prior audit diff-check evidence."
+    },
+    {
+      "path": "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+      "exists": true,
+      "git_visibility": "untracked_before_preservation",
+      "parsed_or_validated": "task-card validate passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Follow-up preservation-review task card."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/README.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Preservation-review summary."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/status.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Preservation-review status."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/dirty_work_matrix.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Dirty-work classification from the review."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/child_task_priority.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Ordered child cluster queue."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/preservation_recommendation.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "inspected as markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Accepted prior audit as parkable evidence but not durable in git."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/diff-check.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Preservation-review diff-check evidence."
+    },
+    {
+      "path": "docs/agent_tasks/pr39_ci_audit_artifact_preservation_v1_20260527.md",
+      "exists": true,
+      "git_visibility": "untracked_before_preservation",
+      "parsed_or_validated": "task-card validate passed",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Current preservation task card."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/README.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "generated markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Current preservation summary."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/status.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "generated JSON; parse validation required",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Current preservation machine-readable status."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/artifact_inventory.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "generated JSON; parse validation required",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Current artifact inventory."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/parking_recommendation.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "generated markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Parking recommendation; no merge-parking registry entry written."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/next_child_task_queue.md",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "generated markdown",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Ordered C01-C13 queue; no child cards created."
+    },
+    {
+      "path": "reports/agent_jobs/pr39_ci_audit_artifact_preservation_v1_20260527/diff-check.json",
+      "exists": true,
+      "git_visibility": "ignored_before_preservation",
+      "parsed_or_validated": "JSON parse required after final check-diff",
+      "safe_to_commit_under_this_task": true,
+      "action_taken": "COMMITTED_ALLOWED_ARTIFACTS",
+      "notes": "Current task-card diff-check output."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "branch": "safe/github-issue-templates-v1-20260525",
+  "github_mutation": {
+    "live_issue_mutation": false,
+    "live_label_mutation": false,
+    "live_milestone_mutation": false,
+    "live_pr_mutation": false,
+    "live_project_mutation": false
+  },
+  "job_id": "github_issue_templates_v1_20260525",
+  "mode": "repo/process safe_extension",
+  "status": "completed",
+  "templates": [
+    ".github/ISSUE_TEMPLATE/tenn_task.yml",
+    ".github/ISSUE_TEMPLATE/tenn_bug_regression_seed.yml",
+    ".github/ISSUE_TEMPLATE/tenn_audit_finding.yml",
+    ".github/ISSUE_TEMPLATE/tenn_followup_remediation.yml",
+    ".github/ISSUE_TEMPLATE/tenn_branch_merge_review.yml",
+    ".github/ISSUE_TEMPLATE/config.yml"
+  ],
+  "validation": {
+    "activated_label_milestone_values": "pass",
+    "branch_classification_values": "pass",
+    "git_diff_check": "pass",
+    "issue_template_required_fields": "pass",
+    "issue_template_yaml_parse": "pass",
+    "status_json_parse": "pass",
+    "task_card_check_diff": "pass",
+    "task_card_check_overlap": "pass",
+    "task_card_validate": "pass"
+  },
+  "worktree": "/home/l4nd0/tenn-github-issue-templates-v1-20260525"
+}

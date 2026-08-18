@@ -1,0 +1,250 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 1,
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.003,
+    "models_head": "{'data': [{'id': 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782201705, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3-30B-A3B-Instruct-2507-Q3_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1782201705, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/l",
+    "models_status_code": 200,
+    "write_sentinels": [
+      "app.core.db.SessionLocal",
+      "app.services.embeddings.QdrantClient"
+    ]
+  },
+  "profile": "baseline-no-write",
+  "results": [
+    {
+      "case_id": "WHC",
+      "case_timeout_seconds": 300,
+      "debug_capture_keys": [
+        "openability_selected_tables",
+        "pass3a_results"
+      ],
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "elapsed_s": 70.514,
+      "expected_period_end": "2022-06-30",
+      "expected_period_type": "A",
+      "expected_status": "ok",
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "pymupdf",
+            "page_count": 116,
+            "table_count": 39
+          },
+          "error_code": null,
+          "message": "Parsed document with pymupdf.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_result_count": 3,
+      "result": {
+        "confidence_metrics": 0.926,
+        "currency": "AUD",
+        "error": null,
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands"
+        },
+        "non_null_metric_count": 9,
+        "non_null_metrics": {
+          "capex": -124210000.0,
+          "cash_end": 1215460000.0,
+          "ebit": 2821254000.0,
+          "financing_cf": -1232370000.0,
+          "investing_cf": -177195000.0,
+          "net_debt": -1048606000.0,
+          "np_attributable": 1951965000.0,
+          "operating_cf": 2529823000.0,
+          "revenue": 4920102000.0
+        },
+        "period_end": "2022-06-30",
+        "period_start": "2021-07-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_60:Purchase of property, plant and equipment (124,210) (68,693)",
+          "cash_end": "cashflow_statement:page_60:unknown",
+          "ebit": "income_statement:page_57:Profit/(loss) before net financial expense 2,821,254 (706,181)",
+          "financing_cf": "cashflow_statement:page_60:unknown",
+          "investing_cf": "cashflow_statement:page_60:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(166854000)-cash_end(1215460000)",
+          "np_attributable": "income_statement:page_57:Net profit/(loss) for the year 1,951,965 (543,914)",
+          "operating_cf": "cashflow_statement:page_60:Net cash from operating activities 3.4 2,529,823 138,765",
+          "revenue": "income_statement:page_57:Revenue 21 4,920,102 1,556,976"
+        },
+        "row_refs": {
+          "capex": "Purchase of property, plant and equipment (124,210) (68,693)",
+          "cash_end": "unknown",
+          "ebit": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(166854000)-cash_end(1215460000)",
+          "np_attributable": "Net profit/(loss) for the year 1,951,965 (543,914)",
+          "operating_cf": "Net cash from operating activities 3.4 2,529,823 138,765",
+          "revenue": "Revenue 21 4,920,102 1,556,976"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+          "period_end": "2022-06-30",
+          "period_type": "A",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "annual_report_title"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "annual_report_title"
+        },
+        "source_period_end_evidence": {
+          "hits": [
+            {
+              "context": "coal price based on M38 Index Indonesian coal Forecasts2 For personal use only For the year ended 30 June 2022 As at 30 June 2022 for the year ended 30 June 2022",
+              "evidence": "For the year ended 30 June 2022",
+              "is_comparative_context": "true",
+              "period_end": "2022-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            },
+            {
+              "context": "casts2 For personal use only For the year ended 30 June 2022 As at 30 June 2022 for the year ended 30 June 2022",
+              "evidence": "for the year ended 30 June 2022",
+              "is_comparative_context": "true",
+              "period_end": "2022-06-30",
+              "period_type": "A",
+              "reason": "year_ended_explicit_date",
+              "source": "source_text"
+            }
+          ],
+          "period_end": "2022-06-30",
+          "period_type": "A",
+          "reason": "year_ended_explicit_date"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": null,
+          "fallback_used": false,
+          "page_count": 116,
+          "parser_id": "pymupdf",
+          "warnings": []
+        }
+      },
+      "role": "openability_period_binding_guard",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "ticker": "WHC"
+    }
+  ],
+  "status": "PASS"
+}

@@ -1,0 +1,113 @@
+{
+  "job_id": "loose_task_card_classification_v1_20260526",
+  "generated_at": "2026-05-27T11:46:25+10:00",
+  "status": "classification_complete_preservation_ready",
+  "mode": "audit_only/preservation_decision",
+  "repo": {
+    "root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before_classification": "3725591cf76ec1a56428a476e23dbd1ebc4050fc",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "ahead_of_origin_before_classification": 2,
+    "dirty_files_before_classification": [
+      "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md",
+      "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+    ]
+  },
+  "registry": {
+    "read_only": true,
+    "active_jobs": [
+      {
+        "job_id": "extraction_terminal_state_candidate_manifest_v1_20260527",
+        "lane": "Query Orchestration",
+        "worktree": "/home/l4nd0/tenn-extraction-terminal-state-candidate-manifest-v1-20260527",
+        "overlap_with_this_task": false
+      }
+    ]
+  },
+  "classifications": [
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "job_id": "github_outstanding_issue_creation_v1_20260526",
+      "lane": "Evaluation",
+      "requested_primary_lane": "Repo Hygiene",
+      "owner": "Codex",
+      "output_dir": "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526",
+      "classification": "ALREADY_COMPLETED",
+      "durability_note": "Still needed as provenance for live GitHub issue creation.",
+      "github_evidence": [
+        {
+          "number": 94,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards"
+        },
+        {
+          "number": 95,
+          "state": "OPEN",
+          "title": "[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence"
+        }
+      ],
+      "preservation_decision": "PRESERVE_AND_COMMIT",
+      "safe_to_rerun": false
+    },
+    {
+      "path": "docs/agent_tasks/codex_nightly_lockup_report_v1_20260526.md",
+      "job_id": "codex_nightly_lockup_report_v1_20260526",
+      "lane": "Reporting",
+      "requested_primary_lane": "Repo Hygiene",
+      "owner": "Codex",
+      "output_dir": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526",
+      "classification": "ALREADY_COMPLETED",
+      "durability_note": "Already preserved locally; related #115 remains open for operator decision.",
+      "github_evidence": [
+        {
+          "number": 115,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Add report-only Codex nightly lock-up audit"
+        }
+      ],
+      "preservation_decision": "NO_NEW_COMMIT_NEEDED",
+      "safe_to_rerun": false
+    }
+  ],
+  "data_missing": [
+    "Remote durability of the existing nightly lock-up artifacts is not proven because the branch is ahead of origin.",
+    "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/diff-check.json is listed by the task card but is absent.",
+    "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md is unrelated dirty work outside this classification scope.",
+    "Project board fields were not inspected or mutated."
+  ],
+  "intended_preservation_commit": {
+    "include": [
+      "docs/agent_tasks/loose_task_card_classification_v1_20260526.md",
+      "reports/agent_jobs/loose_task_card_classification_v1_20260526/README.md",
+      "reports/agent_jobs/loose_task_card_classification_v1_20260526/classification_matrix.md",
+      "reports/agent_jobs/loose_task_card_classification_v1_20260526/status.json",
+      "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/README.md",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/status.json",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/duplicate_search_matrix.json",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/created_issues.json",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/skipped_items.json",
+      "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/diff-check.json"
+    ],
+    "commit_hash": "PENDING_COMMIT"
+  },
+  "validation": {
+    "task_card_validate": "PASS",
+    "json_parse": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "BLOCKED_BY_UNRELATED_DIRT",
+    "check_diff_report": "reports/agent_jobs/loose_task_card_classification_v1_20260526/diff-check.json",
+    "check_diff_blocker": "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md"
+  },
+  "recommended_next_issue": {
+    "primary": 115,
+    "reason": "Decide whether the completed report-only nightly lock-up audit should close or remain open for runner integration.",
+    "not_next": [
+      {
+        "number": 111,
+        "reason": "Already closed."
+      }
+    ]
+  }
+}

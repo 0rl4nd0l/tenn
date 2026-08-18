@@ -1,0 +1,86 @@
+{
+  "job_id": "jam_failure_to_request_search_triage_v1_20260601",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_overlap_initial",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md --repo-root .",
+      "result": "blocked_then_fixed",
+      "detail": "Initial Evaluation primary lane overlapped an active extraction Evaluation job; task card was corrected to Reporting primary lane."
+    },
+    {
+      "name": "registry_overlap_final",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "jam_metadata",
+      "tool": "mcp__codex_apps__jam._getdetails",
+      "result": "pass"
+    },
+    {
+      "name": "jam_screenshot",
+      "tool": "mcp__codex_apps__jam._getscreenshots",
+      "result": "pass"
+    },
+    {
+      "name": "jam_console_logs",
+      "tool": "mcp__codex_apps__jam._getconsolelogs",
+      "result": "data_missing",
+      "detail": "connector returned HTTP 404"
+    },
+    {
+      "name": "jam_network_requests",
+      "tool": "mcp__codex_apps__jam._getnetworkrequests",
+      "result": "data_missing",
+      "detail": "connector returned HTTP 404"
+    },
+    {
+      "name": "jam_user_events",
+      "tool": "mcp__codex_apps__jam._getuserevents",
+      "result": "data_missing",
+      "detail": "connector returned HTTP 404"
+    },
+    {
+      "name": "adjacent_issue_check",
+      "command": "gh issue view 83 104 107 116 122",
+      "result": "pass"
+    },
+    {
+      "name": "json_validation",
+      "command": "jq empty reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/*.json",
+      "result": "pass"
+    },
+    {
+      "name": "path_redaction_scan",
+      "command": "rg path-redaction-pattern over task card and report bundle",
+      "result": "pass"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md",
+      "result": "pass",
+      "detail": "Task card includes allow_audit_code_changes=true because this audit preserves report bundle files."
+    },
+    {
+      "name": "registry_release",
+      "command": "python3 scripts/agent_job_registry.py release jam_failure_to_request_search_triage_v1_20260601 --repo-root .",
+      "result": "pass"
+    }
+  ],
+  "decision": "KEEP_OPEN_DATA_MISSING_LINK_122"
+}

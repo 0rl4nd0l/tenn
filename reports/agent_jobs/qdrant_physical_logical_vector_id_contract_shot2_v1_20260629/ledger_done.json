@@ -1,0 +1,60 @@
+{
+  "entry": {
+    "artifacts": [
+      "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/"
+    ],
+    "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@3b32b8b3be8b04bb5a198c71ec928db182438f17",
+    "branch": "safe/issue266-qdrant-vector-id-contract-shot2-v1-20260629",
+    "codex_goal_id": "DATA_MISSING",
+    "evidence_grade": "VERIFIED",
+    "files_touched": [
+      "docs/agent_tasks/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629.md",
+      "docs/architecture/",
+      "financial-engine_v2/backend/app/services/embeddings.py",
+      "financial-engine_v2/backend/app/services/pipeline_stages.py",
+      "financial-engine_v2/backend/app/services/commentary_ingest.py",
+      "financial-engine_v2/backend/tests/test_embeddings_local_point_id_compat.py",
+      "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+      "financial-engine_v2/backend/tests/test_qdrant_resolution.py",
+      "financial-engine_v2/backend/tests/test_rag_payload_guardrails.py",
+      "financial-engine_v2/scripts/inspect_qdrant_collection.py",
+      "financial-engine_v2/scripts/embed_docs_to_qdrant.py",
+      "reports/agent_jobs/qdrant_physical_logical_vector_id_contract_shot2_v1_20260629/"
+    ],
+    "issue_refs": [
+      266
+    ],
+    "next_action": "Review local commit, then publish a draft PR only with explicit GitHub approval; do not run live Qdrant/reindex/backfill without separate approval.",
+    "owner": "Codex",
+    "owner_boundary": false,
+    "parent_task_id": "issue-266",
+    "pr_refs": [],
+    "session_id": "DATA_MISSING",
+    "source_session_ref": "codex:thread:DATA_MISSING",
+    "started_at": "2026-06-29T08:06:23Z",
+    "status": "done",
+    "summary": "Implemented issue #266 Shot 2 locally: logical_vector_id payload contract with deterministic UUIDv5 physical Qdrant point mapping, docs, inspector, and focused tests. No live Qdrant/runtime/data mutation.",
+    "superseded_by": [],
+    "supersedes": [
+      "qdrant_physical_logical_vector_id_contract_v1_20260602 waiting_on_user"
+    ],
+    "task_id": "qdrant_physical_logical_vector_id_contract_shot2_v1_20260629",
+    "thread_id": "019f123b-7eae-7a52-a2c0-1d043e1b6683",
+    "updated_at": "2026-06-29T08:18:00Z",
+    "validation": {
+      "commands": [
+        "pytest vector/qdrant/payload/architecture set: 62 passed",
+        "pytest test_pipeline_stages.py: 25 passed",
+        "ruff changed Python files: passed",
+        "py_compile changed modules/scripts: passed",
+        "git diff --check: passed",
+        "task-card validate/check-diff: passed"
+      ],
+      "status": "passed"
+    },
+    "workflow": "tenn-fix",
+    "worktree": "/home/l4nd0/tenn-issue266-qdrant-vector-id-contract-shot2-v1-20260629"
+  },
+  "ok": true,
+  "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+}

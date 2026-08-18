@@ -1,0 +1,32 @@
+{
+  "job_id": "strategy_lab_readonly_analyst_workflow_v1_20260601",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_readonly_analyst_workflow_v1_20260601.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_readonly_analyst_workflow_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/strategy_lab_readonly_analyst_workflow_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "focused_vitest",
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run lib/strategy-lab-artifacts.test.ts",
+      "result": "pass",
+      "detail": "1 file passed; 3 tests passed"
+    },
+    {
+      "name": "focused_eslint",
+      "command": "corepack pnpm --dir cockpit-ui exec eslint lib/strategy-lab-review-queue.ts lib/strategy-lab-artifacts.test.ts",
+      "result": "pass"
+    }
+  ],
+  "remaining_scope": "No live adapter, current sidecar probe, Home layout change, review decision store, or promotion workflow."
+}

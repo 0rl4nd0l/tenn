@@ -1,0 +1,81 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/a2m_news_projection_status_reporting_safe_extension_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status_reporting_gap_register.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/a2m_news_projection_status_reporting_safe_extension_v1_20260525.md",
+        "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/README.md",
+        "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status.json",
+        "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status_reporting_gap_register.json",
+        "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/validation.json",
+        "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+      "owner": "Codex",
+      "primary_lane": "Query Orchestration",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 3600,
+      "title": "A2M news projection status reporting safe extension"
+    },
+    "ok": true
+  }
+}

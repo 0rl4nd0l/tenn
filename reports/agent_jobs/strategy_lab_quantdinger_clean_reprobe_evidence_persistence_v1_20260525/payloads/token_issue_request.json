@@ -1,0 +1,9 @@
+{
+  "expires_in_days": 1,
+  "instruments": "BTC/USDT",
+  "markets": "Crypto",
+  "name": "tenn-clean-reprobe-rb-v1-20260525",
+  "paper_only": true,
+  "rate_limit_per_min": 60,
+  "scopes": "R,B"
+}

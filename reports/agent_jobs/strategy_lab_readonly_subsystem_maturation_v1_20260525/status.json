@@ -1,0 +1,171 @@
+{
+  "schema_version": "strategy_lab_readonly_subsystem_maturation_status_v1",
+  "job_id": "strategy_lab_readonly_subsystem_maturation_v1_20260525",
+  "agent": "Codex",
+  "lane": "Query Orchestration",
+  "supporting_lanes": ["Reporting", "Provenance", "Evaluation"],
+  "execution_mode": "SAFE EXTENSION",
+  "risk": "HIGH",
+  "branch": "safe/strategy-lab-readonly-subsystem-maturation-v1-20260525",
+  "worktree": "/home/l4nd0/tenn-strategy-lab-readonly-subsystem-maturation-v1-20260525",
+  "source_head_at_worktree_creation": "af49ede4ceb0",
+  "review_status": "PENDING_REVIEW",
+  "source_mode": "repo_artifacts_only",
+  "current_sidecar_available": false,
+  "execution_allowed": false,
+  "canonical_financial_truth": false,
+  "real_transport": false,
+  "production_data_access": false,
+  "broker_credentials": false,
+  "tenn_store_writes": false,
+  "registry_release": {
+    "released": true,
+    "released_at": "2026-05-25T05:11:09.764434Z",
+    "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/strategy_lab_readonly_subsystem_maturation_v1_20260525.json"
+  },
+  "milestones": [
+    {
+      "id": 1,
+      "name": "Strategy Lab Review Queue Foundation",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "A repo-backed review queue contract exists for repeatability, transport contract, runtime proof, degraded-state, cleanup/revoke, review decision, promotion blocker, and risk items.",
+        "The Cockpit artifact route now exposes review queue items with PENDING_REVIEW, DATA_MISSING, availability, priority, grouping, and provenance labels."
+      ],
+      "non_live_non_authoritative": [
+        "The queue is not persisted to a database and does not create runtime dependency or execution affordance."
+      ],
+      "unresolved_risks": [
+        "Human review ownership and review SLA are DATA_MISSING."
+      ],
+      "next_safest_milestone": "Experiment Session Envelope"
+    },
+    {
+      "id": 2,
+      "name": "Experiment Session Envelope",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "A read-only experiment session schema and Cockpit payload abstraction bind runtime proof refs, reprobe refs, degraded-state refs, cleanup/revoke refs, review status, promotion blockers, timestamps, and worktree refs."
+      ],
+      "non_live_non_authoritative": [
+        "The session is an offline artifact envelope only and does not orchestrate a sidecar or backend runtime."
+      ],
+      "unresolved_risks": [
+        "Final self-referential post-commit refs remain DATA_MISSING inside the committed artifact and are reported in the final closeout instead."
+      ],
+      "next_safest_milestone": "Analyst Workflow Improvements"
+    },
+    {
+      "id": 3,
+      "name": "Analyst Workflow Improvements",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "The Strategy Lab artifact review card now displays review queue, experiment session, export packet, promotion gate, cleanup/revoke, runtime provenance, unresolved risk, and DATA_MISSING cues."
+      ],
+      "non_live_non_authoritative": [
+        "The UI remains a review surface backed by repo artifacts only; all runtime/current/execution/canonical flags stay false."
+      ],
+      "unresolved_risks": [
+        "No human decision workflow or artifact store exists."
+      ],
+      "next_safest_milestone": "Offline Adapter Contract Maturation"
+    },
+    {
+      "id": 4,
+      "name": "Offline Adapter Contract Maturation",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "Readonly transport documentation now records degraded, retry, timeout, runtime-unavailable, cleanup, promotion gate, future seam, and forbidden-surface semantics as documentation/status only."
+      ],
+      "non_live_non_authoritative": [
+        "No live adapter, MCP transport, backend service, persistent runtime, token manager, scheduler, queue worker, websocket, or event streaming was implemented."
+      ],
+      "unresolved_risks": [
+        "A future adapter seam requires a separate task card and new collision review."
+      ],
+      "next_safest_milestone": "Review Packet / Export Layer"
+    },
+    {
+      "id": 5,
+      "name": "Review Packet / Export Layer",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "Markdown/JSON review packets exist for experiment review, repeatability summary, risk summary, artifact provenance, and cleanup/revoke audit."
+      ],
+      "non_live_non_authoritative": [
+        "Packets are repo artifacts only and are not delivered to external systems."
+      ],
+      "unresolved_risks": [
+        "Packet review decisions remain PENDING_REVIEW."
+      ],
+      "next_safest_milestone": "Reliability / Regression Hardening"
+    },
+    {
+      "id": 6,
+      "name": "Reliability / Regression Hardening",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "Focused Python, Vitest, TypeScript, ESLint, JSON validation, API smoke, secret scan, forbidden-promotion grep, git diff check, and task-card diff check cover the new bounded surface."
+      ],
+      "non_live_non_authoritative": [
+        "Validation does not exercise a live sidecar because current availability promotion is forbidden."
+      ],
+      "unresolved_risks": [
+        "Full browser visual QA was not run; API route smoke and component tests covered the changed UI path."
+      ],
+      "next_safest_milestone": "Subagent Evidence Passes"
+    },
+    {
+      "id": 7,
+      "name": "Subagent Evidence Passes",
+      "classification": "Confirmed",
+      "status": "completed",
+      "trustworthy_now": [
+        "Five audit-only scout artifacts record review queue, provenance UX, artifact consistency, validation/regression, and runtime boundary findings."
+      ],
+      "non_live_non_authoritative": [
+        "Scouts were evidence passes only and did not assign ownership of contested runtime surfaces."
+      ],
+      "unresolved_risks": [
+        "Any future live seam remains blocked by explicit promotion gates."
+      ],
+      "next_safest_milestone": "Human review of repo-backed Strategy Lab packets"
+    }
+  ],
+  "confirmed": [
+    "The subsystem is coherent enough for offline analyst review using repo-backed artifacts.",
+    "PENDING_REVIEW and DATA_MISSING semantics are visible in docs, packets, tests, and the Cockpit artifact card.",
+    "No DB persistence, runtime dependency, backend orchestration, execution surface, live transport, or canonical financial truth integration was added."
+  ],
+  "inferred": [
+    "The analyst workflow is operationally useful for reviewing existing Strategy Lab proof packets because the API smoke returns queue/session/packet counts and preserved false boundary flags."
+  ],
+  "data_missing": [
+    "human_review_decision",
+    "review_owner",
+    "reviewed_at",
+    "current_sidecar_runtime",
+    "approved_live_adapter_task_card",
+    "production_secrets_scan_beyond_repo_text",
+    "final_commit_sha_inside_self_referential_artifact"
+  ],
+  "promotion_gates_still_required": [
+    "Separate approved task card for any adapter seam",
+    "Human review decision",
+    "Runtime boundary review",
+    "Secret-management review",
+    "Execution-surface denial review",
+    "Canonical-truth architecture review",
+    "Post-cleanup current availability proof that does not promote current_sidecar_available in this subsystem"
+  ],
+  "remaining_blockers": [
+    "Live, paper, broker, persistent runtime, MCP/live transport, backend orchestration, Tenn DB/Qdrant/news/memory writes, parser/runtime/model/GPU config changes, and canonical financial truth remain intentionally blocked."
+  ],
+  "next_safe_step": "Run a human review of the repo-backed Strategy Lab review packets and record a bounded review decision artifact without changing runtime availability or execution flags."
+}

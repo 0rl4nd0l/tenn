@@ -31,13 +31,30 @@ if str(BACKEND_ROOT) not in sys.path:
 NEWS_CHUNKS_MODEL_FILE = (
     REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
 )
+DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
+OLLAMA_URL_ENV = "OLLAMA_URL"
+OLLAMA_URL_SOURCE_CLI = "cli"
+OLLAMA_URL_SOURCE_ENV = "env"
+OLLAMA_URL_SOURCE_SETTINGS = "settings"
+OLLAMA_URL_SOURCE_DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
 
-from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONTEXT_DB  # noqa: E402
+from news_pipeline.cli_common import (  # noqa: E402
+    DEFAULT_NEWS_ARTICLES_DB,
+    DEFAULT_NEWS_CONTEXT_DB,
+    describe_news_artifact_paths,
+    resolve_path,
+)
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
 
 DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
+DEFAULT_NEWS_MEMO_LLM_URL = "http://127.0.0.1:8001"
+DEFAULT_NEWS_MEMO_LLM_MODEL = "model:qwen2.5-14b-instruct"
+NEWS_MEMO_LLM_URL_ENV = "NEWS_MEMO_LLM_URL"
+NEWS_MEMO_LLM_MODEL_ENV = "NEWS_MEMO_LLM_MODEL"
+LLAMACPP_URL_ENV = "LLAMACPP_URL"
+LLAMACPP_MODEL_ENV = "LLAMACPP_MODEL"
 EXCHANGE_TICKER_PATTERN = re.compile(
     r"\b(?:ASX|NYSE|NASDAQ|TSX|TSXV|TSE|LSE|AIM|OTCMKTS|OTC)\s*:\s*"
     r"([A-Z][A-Z0-9.\-]{0,12})\b",
@@ -167,6 +184,53 @@ def _normalize_memo_ticker_candidate(value: Any) -> str:
     return cleaned
 
 
+def _require_http_url(candidate: str, *, source_label: str) -> str:
+    if candidate.startswith("http://") or candidate.startswith("https://"):
+        return candidate
+    raise ValueError(f"Invalid {source_label}. Expected a http:// or https:// URL.")
+
+
+def resolve_ollama_url(
+    *,
+    cli_url: str | None,
+    settings_url: str | None,
+) -> tuple[str, str]:
+    """
+    Resolve Ollama base URL with explicit precedence.
+
+    Empty settings values are treated as missing so local jobs can fall back to
+    the canonical host default. Explicit CLI/env/settings values must be valid
+    URLs and fail fast if malformed.
+    """
+
+    if cli_url is not None:
+        candidate = str(cli_url or "").strip()
+        if not candidate:
+            raise ValueError(
+                "Invalid --ollama-url. Expected a non-empty http:// or https:// value."
+            )
+        return _require_http_url(
+            candidate,
+            source_label="--ollama-url",
+        ), OLLAMA_URL_SOURCE_CLI
+
+    env_url = os.getenv(OLLAMA_URL_ENV, "").strip()
+    if env_url:
+        return _require_http_url(
+            env_url,
+            source_label=OLLAMA_URL_ENV,
+        ), OLLAMA_URL_SOURCE_ENV
+
+    settings_candidate = str(settings_url or "").strip()
+    if settings_candidate:
+        return _require_http_url(
+            settings_candidate,
+            source_label="configured settings.ollama_url",
+        ), OLLAMA_URL_SOURCE_SETTINGS
+
+    return DEFAULT_OLLAMA_URL, OLLAMA_URL_SOURCE_DEFAULT
+
+
 def _memo_exchange_ticker_candidates(text: str) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
@@ -281,6 +345,29 @@ def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
         return max(1, int(raw_value))
     except (TypeError, ValueError) as exc:
         raise ValueError("NEWS_MEMO_MAX_ARTICLE_CHARS must be a positive integer") from exc
+
+
+def resolve_news_memo_llm_url(value: str | None = None) -> str:
+    raw_value = (
+        str(value or "").strip()
+        or os.getenv(NEWS_MEMO_LLM_URL_ENV, "").strip()
+        or os.getenv(LLAMACPP_URL_ENV, "").strip()
+        or DEFAULT_NEWS_MEMO_LLM_URL
+    )
+    if raw_value.startswith("http://") or raw_value.startswith("https://"):
+        return raw_value
+    raise ValueError(
+        f"{NEWS_MEMO_LLM_URL_ENV} must be a http:// or https:// URL"
+    )
+
+
+def resolve_news_memo_llm_model(value: str | None = None) -> str:
+    return (
+        str(value or "").strip()
+        or os.getenv(NEWS_MEMO_LLM_MODEL_ENV, "").strip()
+        or os.getenv(LLAMACPP_MODEL_ENV, "").strip()
+        or DEFAULT_NEWS_MEMO_LLM_MODEL
+    )
 
 
 def _read_news_memo_source_ids(memos_path: str | Path | None = None) -> Dict[str, Any]:
@@ -1402,6 +1489,7 @@ def sync_news_to_qdrant(
     dispatch_memos: bool = True,
     cleanup_stale: bool = False,
     qdrant_only: bool = False,
+    skip_clean_upserts: bool = False,
     target_contract_report: bool = False,
     qdrant_client: Any | None = None,
     embed_texts_fn: Callable[[List[str]], List[List[float]]] | None = None,
@@ -1416,6 +1504,8 @@ def sync_news_to_qdrant(
     memo_wait_poll_interval_seconds: float = 2.0,
     memo_force_dispatch: bool = False,
     memo_max_article_chars: int | str | None = None,
+    memo_llm_url: str | None = None,
+    memo_llm_model: str | None = None,
     embed_model: str | None = None,
     ollama_url: str | None = None,
     write_model_marker: bool = True,
@@ -1428,6 +1518,23 @@ def sync_news_to_qdrant(
     if cleanup_stale and since_hours is not None and int(since_hours) > 0:
         raise ValueError("--cleanup-stale requires a full target (--since-hours 0)")
 
+    settings_ollama_url: str | None = None
+    if embed_model is None or ollama_url is None:
+        try:
+            from app.core.config import settings
+
+            embed_model = embed_model or str(
+                getattr(settings, "embed_model", "nomic-embed-text")
+            )
+            settings_ollama_url = str(getattr(settings, "ollama_url", "") or "")
+        except Exception:
+            embed_model = embed_model or "nomic-embed-text"
+    embed_model = str(embed_model or "nomic-embed-text")
+    ollama_url, ollama_url_source = resolve_ollama_url(
+        cli_url=ollama_url,
+        settings_url=settings_ollama_url,
+    )
+
     target = build_news_projection_target(db_path, since_hours=since_hours)
     articles = list(target["articles"])
     target_points = list(target["points"])
@@ -1438,13 +1545,22 @@ def sync_news_to_qdrant(
         "deleted": 0,
         "dry_run": bool(dry_run),
         "qdrant_only": bool(qdrant_only),
+        "skip_clean_upserts": bool(skip_clean_upserts),
+        "ollama_url": ollama_url,
+        "ollama_url_source": ollama_url_source,
     }
     if target_contract_report or dry_run or qdrant_only or cleanup_stale:
         stats["target_contract_report"] = target["report"]
 
     client = qdrant_client
     current_payloads: Dict[str, Dict[str, Any]] = {}
-    needs_diff = dry_run or qdrant_only or cleanup_stale or target_contract_report
+    needs_diff = (
+        dry_run
+        or qdrant_only
+        or cleanup_stale
+        or target_contract_report
+        or skip_clean_upserts
+    )
     if needs_diff or target_points:
         if client is None:
             try:
@@ -1485,20 +1601,6 @@ def sync_news_to_qdrant(
 
     if client is None:
         raise RuntimeError("Qdrant client unavailable")
-
-    if embed_model is None or ollama_url is None:
-        try:
-            from app.core.config import settings
-
-            embed_model = embed_model or str(
-                getattr(settings, "embed_model", "nomic-embed-text")
-            )
-            ollama_url = ollama_url or str(
-                getattr(settings, "ollama_url", "http://localhost:11434")
-            )
-        except Exception:
-            embed_model = embed_model or "nomic-embed-text"
-            ollama_url = ollama_url or "http://localhost:11434"
 
     if embed_texts_fn is None:
         from app.services.ollama import ollama_embed
@@ -1602,7 +1704,7 @@ def sync_news_to_qdrant(
     total_upserted = 0
     batch: List[Dict[str, Any]] = []
     points_for_upsert = target_points
-    if qdrant_only:
+    if qdrant_only or skip_clean_upserts:
         if not current_payloads and "qdrant_diff" not in stats:
             diff, current_payloads = _build_qdrant_diff(
                 client=client,
@@ -1612,7 +1714,8 @@ def sync_news_to_qdrant(
             )
             stats["qdrant_diff"] = diff
         if stats.get("qdrant_diff", {}).get("status") != "available":
-            raise RuntimeError("Qdrant diff is required for --qdrant-only repair")
+            reason = "--qdrant-only repair" if qdrant_only else "--skip-clean-upserts"
+            raise RuntimeError(f"Qdrant diff is required for {reason}")
         repair_ids = _repair_point_ids(target_points, current_payloads)
         points_for_upsert = [
             point for point in target_points if str(point["id"]) in repair_ids
@@ -1683,6 +1786,8 @@ def sync_news_to_qdrant(
                 poll_interval_seconds=float(memo_wait_poll_interval_seconds),
                 force_dispatch=bool(memo_force_dispatch),
                 max_article_chars=memo_max_article_chars,
+                llm_url=memo_llm_url,
+                llm_model=memo_llm_model,
             )
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
@@ -1750,6 +1855,14 @@ def main() -> int:
         help="Optional path for a nightly sync summary JSON artifact",
     )
     ap.add_argument(
+        "--ollama-url",
+        default=None,
+        help=(
+            "Ollama base URL; overrides OLLAMA_URL, settings.ollama_url, then "
+            "http://127.0.0.1:11434"
+        ),
+    )
+    ap.add_argument(
         "--memo-diagnostics-path",
         default="",
         help=(
@@ -1782,6 +1895,24 @@ def main() -> int:
         ),
     )
     ap.add_argument(
+        "--memo-llm-url",
+        default="",
+        help=(
+            "OpenAI-compatible llama.cpp URL sent with each memo task "
+            f"(default: {NEWS_MEMO_LLM_URL_ENV}, {LLAMACPP_URL_ENV}, then "
+            f"{DEFAULT_NEWS_MEMO_LLM_URL})"
+        ),
+    )
+    ap.add_argument(
+        "--memo-llm-model",
+        default="",
+        help=(
+            "Model name sent with each memo task "
+            f"(default: {NEWS_MEMO_LLM_MODEL_ENV}, {LLAMACPP_MODEL_ENV}, then "
+            f"{DEFAULT_NEWS_MEMO_LLM_MODEL})"
+        ),
+    )
+    ap.add_argument(
         "--wait-for-memos",
         action="store_true",
         help="Wait for dispatched news memo Celery tasks with a bounded timeout",
@@ -1807,6 +1938,14 @@ def main() -> int:
         "--qdrant-only",
         action="store_true",
         help="Run Qdrant projection repair only; disables memo dispatch and SQLite fallback rebuild",
+    )
+    ap.add_argument(
+        "--skip-clean-upserts",
+        action="store_true",
+        help=(
+            "Use Qdrant payload diff to embed/upsert only missing or drifted "
+            "chunks; clean existing chunks are left untouched"
+        ),
     )
     ap.add_argument(
         "--target-contract-report",
@@ -1837,19 +1976,30 @@ def main() -> int:
         memo_max_article_chars = resolve_news_memo_max_article_chars(args.memo_max_article_chars)
     except ValueError as exc:
         ap.error(str(exc))
+    try:
+        memo_llm_url = resolve_news_memo_llm_url(args.memo_llm_url)
+    except ValueError as exc:
+        ap.error(str(exc))
+    memo_llm_model = resolve_news_memo_llm_model(args.memo_llm_model)
     dispatch_memos = not bool(args.no_dispatch_memos)
     if bool(args.qdrant_only):
         dispatch_memos = False
+    db_path = str(resolve_path(args.db_path))
+    news_context_db = str(resolve_path(args.news_context_db))
     summary: Dict[str, Any] = {
         "generated_at_utc": now_utc_iso(),
-        "provider": latest_provider_run_summary(args.db_path),
+        "paths": describe_news_artifact_paths(
+            news_articles_db=Path(db_path),
+            news_context_db=Path(news_context_db),
+        ),
+        "provider": latest_provider_run_summary(db_path),
         "qdrant_sync": {"status": "not_run"},
         "sqlite_fallback": {"status": "not_run"},
         "memo_extraction": {"status": "not_run"},
     }
     try:
         stats = sync_news_to_qdrant(
-            db_path=args.db_path,
+            db_path=db_path,
             qdrant_url=args.qdrant_url,
             collection=args.collection,
             batch_size=int(args.batch_size),
@@ -1858,13 +2008,17 @@ def main() -> int:
             dispatch_memos=dispatch_memos,
             cleanup_stale=bool(args.cleanup_stale),
             qdrant_only=bool(args.qdrant_only),
+            skip_clean_upserts=bool(args.skip_clean_upserts),
             target_contract_report=bool(args.target_contract_report),
+            ollama_url=args.ollama_url,
             memo_diagnostics_path=args.memo_diagnostics_path or None,
             memo_wait_for_completion=bool(args.wait_for_memos),
             memo_wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
             memo_wait_poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
             memo_force_dispatch=bool(args.force_dispatch_memos),
             memo_max_article_chars=memo_max_article_chars,
+            memo_llm_url=memo_llm_url,
+            memo_llm_model=memo_llm_model,
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}
@@ -1877,8 +2031,8 @@ def main() -> int:
         )
         if bool(args.refresh_sqlite_fallback):
             summary["sqlite_fallback"] = refresh_news_sqlite_fallback(
-                articles_db_path=args.db_path,
-                context_db_path=args.news_context_db,
+                articles_db_path=db_path,
+                context_db_path=news_context_db,
                 lane=args.fallback_lane,
                 window_start_utc=window_start_utc,
             )

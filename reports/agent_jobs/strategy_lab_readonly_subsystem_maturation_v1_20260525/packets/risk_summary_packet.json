@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "packet_type": "risk_summary_packet",
+  "job_id": "strategy_lab_readonly_subsystem_maturation_v1_20260525",
+  "generated_at": "2026-05-25T04:48:03Z",
+  "source_mode": "repo_artifacts_only",
+  "review_status": "PENDING_REVIEW",
+  "current_sidecar_available": false,
+  "execution_allowed": false,
+  "canonical_financial_truth": false,
+  "real_transport": false,
+  "unresolved_risks": [
+    {
+      "id": "risk_current_availability_overclaim",
+      "severity": "high",
+      "summary": "Historical sandbox proof could be mistaken for current sidecar availability.",
+      "mitigation": "Every status, packet, and UI surface preserves current_sidecar_available=false."
+    },
+    {
+      "id": "risk_execution_surface_drift",
+      "severity": "high",
+      "summary": "QuantDinger is trading-capable software even though this subsystem is non-executing.",
+      "mitigation": "Queue and packets preserve execution_allowed=false and expose no order or backend orchestration surface."
+    },
+    {
+      "id": "risk_canonical_truth_drift",
+      "severity": "high",
+      "summary": "Sidecar results could be misread as Tenn canonical financial truth.",
+      "mitigation": "Every artifact and packet preserves canonical_financial_truth=false and PENDING_REVIEW."
+    },
+    {
+      "id": "risk_missing_review_decision",
+      "severity": "medium",
+      "summary": "No human review decision exists.",
+      "mitigation": "Review decision is explicitly DATA_MISSING and blocks promotion."
+    }
+  ],
+  "promotion_gates_still_required": [
+    "human review decision",
+    "safe adapter seam review",
+    "current runtime proof if current availability is ever claimed",
+    "retry/degraded/timeout behavior proof",
+    "cleanup and revoke proof for any runtime probe",
+    "secret scan and no-token persistence proof"
+  ],
+  "data_missing": [
+    "review_owner",
+    "reviewed_at",
+    "approved_adapter_task_card",
+    "post_commit_ref"
+  ]
+}

@@ -13,6 +13,8 @@ from cockpit.core.chat import ChatController, ResponseMode
 class ChatTickerDetectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self._old_agent_mode = os.environ.get("COCKPIT_AGENT_MODE")
+        self._old_anthropic_api_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        self._old_anthropic_model = os.environ.pop("ANTHROPIC_MODEL", None)
         os.environ["COCKPIT_AGENT_MODE"] = "keyword"
         self.controller = ChatController(
             ollama_client=MagicMock(),
@@ -25,6 +27,14 @@ class ChatTickerDetectionTests(unittest.TestCase):
             os.environ.pop("COCKPIT_AGENT_MODE", None)
         else:
             os.environ["COCKPIT_AGENT_MODE"] = self._old_agent_mode
+        if self._old_anthropic_api_key is None:
+            os.environ.pop("ANTHROPIC_API_KEY", None)
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = self._old_anthropic_api_key
+        if self._old_anthropic_model is None:
+            os.environ.pop("ANTHROPIC_MODEL", None)
+        else:
+            os.environ["ANTHROPIC_MODEL"] = self._old_anthropic_model
 
     def test_detect_ticker_ignores_generic_lowercase_words(self) -> None:
         self.assertIsNone(
@@ -176,6 +186,95 @@ class ChatTickerDetectionTests(unittest.TestCase):
             top_k=5,
             ticker="BHP",
         )
+
+    def test_strict_local_news_context_prompt_uses_news_shortcircuit(self) -> None:
+        self.controller.tool_router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "BHP local news update",
+                    "published_at": "2026-05-24T03:00:00Z",
+                    "url": "https://example.com/bhp-local-news",
+                    "text": "BHP was covered in local market news.",
+                }
+            ],
+        }
+
+        response = self.controller.build_chat_response(
+            "Use only local_news_context for BHP", prior_ticker=None
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIn("Recent BHP-linked news:", response.text)
+        self.assertIn("BHP local news update", response.text)
+        self.controller.tool_router.get_news_context.assert_called_once_with(
+            query="BHP",
+            top_k=5,
+            ticker="BHP",
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_natural_local_news_prompts_use_news_shortcircuit(self) -> None:
+        prompts = [
+            ("latest local news for A2M", "A2M"),
+            ("latest local news for BHP", "BHP"),
+            ("what is the latest news on CSL", "CSL"),
+            ("recent local news for BHP", "BHP"),
+            ("show me local news for A2M", "A2M"),
+            ("any recent company news for CSL", "CSL"),
+        ]
+        self.controller.tool_router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "Local news update",
+                    "published_at": "2026-05-24T03:00:00Z",
+                    "url": "https://example.com/local-news",
+                    "text": "The company was covered in local market news.",
+                }
+            ],
+        }
+
+        for prompt, ticker in prompts:
+            with self.subTest(prompt=prompt):
+                self.controller.tool_router.get_news_context.reset_mock()
+                self.controller.ollama_client.chat.reset_mock()
+
+                response = self.controller.build_chat_response(
+                    prompt, prior_ticker=None
+                )
+
+                self.assertEqual(response.mode, ResponseMode.FAST)
+                self.assertIn(f"Recent {ticker}-linked news:", response.text)
+                self.assertIn("Local news update", response.text)
+                self.controller.tool_router.get_news_context.assert_called_once_with(
+                    query=ticker,
+                    top_k=5,
+                    ticker=ticker,
+                )
+                self.controller.ollama_client.chat.assert_not_called()
+
+    def test_natural_news_shortcircuit_does_not_capture_non_news_controls(
+        self,
+    ) -> None:
+        prompts = [
+            "summarise BHP financial performance",
+            "latest Appendix 4C for XRO",
+            "BHP share price news",
+            "latest on BHP",
+        ]
+
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                ticker, _ = self.controller._resolve_ticker_context(
+                    prompt, prior_ticker=None
+                )
+                self.controller.tool_router.get_news_context.reset_mock()
+
+                response = self.controller._try_news_shortcircuit(prompt, ticker)
+
+                self.assertIsNone(response)
+                self.controller.tool_router.get_news_context.assert_not_called()
 
     def test_ticker_leading_price_prompt_hits_price_fast_path(self) -> None:
         self.controller.tool_router.get_price_context_for_window.return_value = {
@@ -686,7 +785,7 @@ class ChatTickerDetectionTests(unittest.TestCase):
                     action_registry=MagicMock(),
                     cockpit_llm={
                         "defaults": {
-                            "anthropic_model": "claude-sonnet-4-20250514",
+                            "anthropic_model": "claude-sonnet-4-6",
                             "anthropic_api_key": "sk-configured",
                         }
                     },
@@ -694,7 +793,7 @@ class ChatTickerDetectionTests(unittest.TestCase):
 
             self.assertIsNotNone(controller._hybrid_router)
             self.assertEqual(captured["api_key"], "sk-configured")
-            self.assertEqual(captured["model"], "claude-sonnet-4-20250514")
+            self.assertEqual(captured["model"], "claude-sonnet-4-6")
 
 
 if __name__ == "__main__":

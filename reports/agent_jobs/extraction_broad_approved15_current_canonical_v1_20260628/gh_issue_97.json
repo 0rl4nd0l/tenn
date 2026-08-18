@@ -1,0 +1,82 @@
+{
+  "command": [
+    "gh",
+    "issue",
+    "view",
+    "97",
+    "--json",
+    "number,title,state,updatedAt,labels,url"
+  ],
+  "json": {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "E99695",
+        "description": "State: blocked by missing required data or evidence.",
+        "id": "LA_kwDORRPz_M8AAAACklh7gg",
+        "name": "state:data-missing"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "State: needs human or reviewer evaluation.",
+        "id": "LA_kwDORRPz_M8AAAACklh7wg",
+        "name": "state:needs-review"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "number": 97,
+    "state": "OPEN",
+    "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage",
+    "updatedAt": "2026-06-01T17:27:55Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/97"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"labels\":[{\"id\":\"LA_kwDORRPz_M8AAAACkj1qig\",\"name\":\"mode:audit\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkj1qiw\",\"name\":\"risk:high\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkj1xGw\",\"name\":\"lane:evaluation\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkkZmDA\",\"name\":\"lane:provenance\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkkZvEg\",\"name\":\"lane:financial-truth\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACkkZ8lg\",\"name\":\"lane:reporting\",\"description\":\"\",\"color\":\"ededed\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh5Yw\",\"name\":\"priority:p1\",\"description\":\"Priority: P1 important near-term work.\",\"color\":\"D93F0B\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh7gg\",\"name\":\"state:data-missing\",\"description\":\"State: blocked by missing required data or evidence.\",\"color\":\"E99695\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh7wg\",\"name\":\"state:needs-review\",\"description\":\"State: needs human or reviewer evaluation.\",\"color\":\"C5DEF5\"},{\"id\":\"LA_kwDORRPz_M8AAAACklh-HA\",\"name\":\"type:validation-gap\",\"description\":\"Type: missing or insufficient validation coverage.\",\"color\":\"FBCA04\"}],\"number\":97,\"state\":\"OPEN\",\"title\":\"[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage\",\"updatedAt\":\"2026-06-01T17:27:55Z\",\"url\":\"https://github.com/0rl4nd0l/tenn/issues/97\"}\n"
+}

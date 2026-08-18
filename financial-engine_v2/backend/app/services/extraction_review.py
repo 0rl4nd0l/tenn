@@ -29,8 +29,11 @@ from app.core.config import settings
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.services.extraction_run_observability import has_run_status
+from app.services.financial_metric_contract import (
+    REVIEW_GOLD_METRIC_ALIASES as _GOLD_METRIC_ALIASES,
+)
 from app.services.multipass_extraction import METRIC_FIELDS
-from app.services.provenance import from_extraction_provenance
+from app.services.provenance import from_extraction_payload_metric
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
@@ -58,17 +61,12 @@ ERROR_QUEUE_PATH = REVIEW_ROOT / "wrong_metric_queue.json"
 REAL_GOLD_REVIEW_DIR = BACKEND_ROOT / "data" / "extraction_gold_real"
 
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
-_GOLD_METRIC_ALIASES = {
-    "operating_cf": "operating_cash_flow",
-    "operating_cash_flow": "operating_cf",
-}
 _PAGE_RE = re.compile(r"page_(\d+)")
 _WHITESPACE_RE = re.compile(r"\s+")
 _ASCII_CHARS = " .:-=+*#%@"
 
 
-from sqlalchemy import desc
-from app.models.asx_financials import ASXPeriodicFinancial
+from app.services.financial_observations import stable_financial_profile
 
 
 def _previous_period_value(
@@ -86,20 +84,19 @@ def _previous_period_value(
                 return None
         
         # Find the most recent record for the same ticker and type before the current period_end
-        prev = (
-            db.query(ASXPeriodicFinancial)
-            .filter(
-                ASXPeriodicFinancial.ticker == ticker,
-                ASXPeriodicFinancial.period_type == period_type,
-                ASXPeriodicFinancial.period_end < period_end,
-            )
-            .order_by(desc(ASXPeriodicFinancial.period_end))
-            .first()
+        prev = next(
+            (
+                row
+                for row in stable_financial_profile(db, ticker=ticker)
+                if row.get("period_type") == period_type
+                and row.get("period_end") < period_end
+            ),
+            None,
         )
         
         if prev:
             try:
-                val = getattr(prev, metric, None)
+                val = prev.get(metric)
                 return float(val) if val is not None else None
             except (TypeError, ValueError, AttributeError):
                 return None
@@ -788,22 +785,10 @@ def build_review_item(
         period_end = str(payload.get("period_end") or "").strip() or None
         period_type = str(payload.get("period_type") or "").strip() or None
         source_document_id = str(getattr(document, "document_id", "") or "").strip()
-        raw_provenance = (
-            payload.get("provenance")
-            if isinstance(payload.get("provenance"), Mapping)
-            else {}
-        )
-        
-        provenance_value = str(raw_provenance.get(metric) or "").strip() or None
-        
-        record = from_extraction_provenance(
-            metric_name=metric,
-            provenance=provenance_value,
+        record = from_extraction_payload_metric(
+            payload,
+            metric,
             source_document_id=source_document_id or None,
-            period_ref=f"{period_end}:{period_type}"
-            if period_end and period_type
-            else (period_end or period_type),
-            confidence=payload.get("confidence_metrics"),
         )
         page_number = _parse_page_number(record.location_ref)
         item_id = f"{run.run_id}:{metric}"

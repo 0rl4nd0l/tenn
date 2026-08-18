@@ -1,0 +1,11 @@
+{
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "head_before_task": "9da8402690877eb3366d7c6fb95e0f4c29cf4438",
+  "base_context": "continuation from local WHC parser openability sidecar branch",
+  "registry_read_only": {
+    "ok": true,
+    "active_jobs": []
+  },
+  "github_writes_allowed": false
+}

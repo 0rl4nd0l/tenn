@@ -348,7 +348,11 @@ class BackendApiClient:
         if low_confidence_limit is not None:
             params["low_confidence_limit"] = low_confidence_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -372,7 +376,11 @@ class BackendApiClient:
         if low_confidence_limit is not None:
             params["low_confidence_limit"] = low_confidence_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -415,7 +423,11 @@ class BackendApiClient:
         if market_memory_limit is not None:
             params["market_memory_limit"] = market_memory_limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -678,7 +690,11 @@ class BackendApiClient:
         if limit is not None:
             params["limit"] = limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {"count": 0, "items": []}
 
@@ -690,7 +706,7 @@ class BackendApiClient:
     ) -> dict[str, Any]:
         url = f"{self.base_url}/api/extraction-review/session/{str(session_id or '').strip()}"
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url)
+            response = client.get(url, headers=self._api_key_headers())
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -730,7 +746,11 @@ class BackendApiClient:
         if limit is not None:
             params["limit"] = limit
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
             response.raise_for_status()
             return response.json() if response.content else {}
 
@@ -809,7 +829,7 @@ class BackendApiClient:
     def get_pending_transcripts(self, *, timeout: float = 10.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/commentary/transcripts/pending"
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url)
+            response = client.get(url, headers=self._api_key_headers())
             response.raise_for_status()
             return response.json() if response.content else {"pending": [], "count": 0}
 

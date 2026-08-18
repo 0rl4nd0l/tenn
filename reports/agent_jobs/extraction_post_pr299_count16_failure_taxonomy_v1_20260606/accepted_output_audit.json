@@ -1,0 +1,84 @@
+{
+  "audited_documents": [
+    {
+      "bucket": "accepted-output risk",
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "implemented_repair_coverage": "Directly targeted by selected-table scale propagation test and code change.",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": 29562000000.0,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": 39374000000.0,
+        "operating_cf": null,
+        "revenue": 46547000000.0,
+        "shares_outstanding": 137757000.0
+      },
+      "phase2_scale": "millions",
+      "phase2_status": "ok",
+      "post_repair_runtime_validation": "not_run; Phase 3 did not run another sample or single-doc extraction.",
+      "risk": "confirmed selected-table scale-binding error",
+      "source_evidence_summary": "DXC page 25 contains a Consolidated profit & loss statement marked $'000 with Total revenue 46,547 and Net profit/(loss) after tax 39,374. Phase 2 accepted revenue 46,547,000,000 and NP attributable 39,374,000,000, consistent with applying millions to a thousands table.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "ticker": "DXC",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf"
+    },
+    {
+      "bucket": "accepted-output risk",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "implemented_repair_coverage": "Partial/unknown; selected-table scale propagation may help only if the chosen structured table has an explicit local scale marker.",
+      "metrics": {
+        "capex": null,
+        "cash_end": 5634800000.0,
+        "ebit": 5812200000.0,
+        "financing_cf": -4257100000.0000005,
+        "investing_cf": -991800000.0,
+        "net_debt": null,
+        "np_attributable": 3844800000.0,
+        "operating_cf": 5124600000.0,
+        "revenue": 43475600000.0,
+        "shares_outstanding": null
+      },
+      "phase2_scale": "millions",
+      "phase2_status": "ok",
+      "post_repair_runtime_validation": "not_run; Phase 3 did not run another sample or single-doc extraction.",
+      "risk": "suspicious presentation/chart scale extraction",
+      "source_evidence_summary": "LBL first pages and appendix are 1H FY26 results presentation material. Visible highlights show revenue $23.0m and chart units $M; Phase 2 accepted revenue 43,475,600,000 and other multi-billion values. Source evidence suggests chart/appendix numeric scale needs a dedicated accepted-output audit after the DXC-class repair.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "ticker": "LBL",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    },
+    {
+      "bucket": "accepted-output risk",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "implemented_repair_coverage": "Not targeted by the selected-table scale repair.",
+      "metrics": {
+        "capex": -350500000.0,
+        "cash_end": 10500000.0,
+        "ebit": 578100000.0,
+        "financing_cf": -434000000.0,
+        "investing_cf": -349300000.0,
+        "net_debt": null,
+        "np_attributable": 226600000.0,
+        "operating_cf": 788200000.0,
+        "revenue": 1428200000.0,
+        "shares_outstanding": 250000130.0
+      },
+      "phase2_scale": "millions",
+      "phase2_status": "ok",
+      "post_repair_runtime_validation": "not_run; Phase 3 did not run another sample or single-doc extraction.",
+      "risk": "rounding policy not yet represented",
+      "source_evidence_summary": "AZJ source states amounts are rounded to the nearest $100,000 unless otherwise stated; financial statement columns are $m. Phase 2 values appear magnitude-plausible, but the rounding policy remains unmodelled.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    }
+  ],
+  "conclusion": "Unsafe/suspicious accepted outputs exist in the Phase 2 evidence. DXC has a clear source-bound scale repair; LBL/AZJ still require accepted-output audit before count-24.",
+  "unsafe_row_check_from_phase2": {
+    "negative_revenue": [],
+    "nonpositive_shares": []
+  }
+}

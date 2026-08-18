@@ -1,0 +1,91 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "base_head": "3725591cf76ec1a56428a476e23dbd1ebc4050fc",
+  "branch": "safe/extraction-source-asset-manifest-metadata-safe-extension-v1-20260526",
+  "confirmed": [
+    "#99 has a tracked metadata-only source asset manifest and resolver foundation.",
+    "The manifest covers 30 real-gold and confirmed metric coverage source assets.",
+    "Raw PDFs were not committed, moved, copied, deleted, or modified.",
+    "Source openability is reviewability-only and does not count as metric correctness.",
+    "No production extraction, backfill, DB, Qdrant, news, memory, canonical financial truth, parser, prompt, gold-label, runtime, service, UI, or schema mutation was performed."
+  ],
+  "data_missing": [
+    "Expected SHA256 hashes for the 30 source PDFs are not committed in this manifest.",
+    "Live backend source route/openability was not exercised.",
+    "Approved actual extracted payloads for all confirmed metric coverage expectations are still missing.",
+    "Approved broad confirmed metric coverage thresholds are still missing.",
+    "Expanded metric-family policy and fixtures from #98 remain incomplete.",
+    ".cursor/rules/* and graphify-out/GRAPH_REPORT.md were absent in this isolated checkout."
+  ],
+  "generated_artifacts": [
+    "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/source_asset_resolution_sample.json",
+    "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/README.md",
+    "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/validation.json",
+    "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/diff-check.json"
+  ],
+  "inferred": [
+    "This source-asset foundation is a safe prerequisite for broader extracted-payload scoring.",
+    "#97 payload correctness and #98 metric parity should remain separate gates from source reviewability."
+  ],
+  "issue": "#99",
+  "job_id": "extraction_source_asset_manifest_metadata_safe_extension_v1_20260526",
+  "lane": "Provenance",
+  "manifest": {
+    "asset_count": 30,
+    "path": "financial-engine_v2/backend/tests/eval_source_assets/confirmed_metric_coverage_source_assets.json",
+    "raw_pdfs_committed": false
+  },
+  "mode": "safe_extension_metadata_report_local_test_only",
+  "registry": {
+    "claim": "PASS",
+    "initial_baseline_overlap_check": "FAIL_EXPECTED_DIRT",
+    "isolated_overlap_check": "PASS",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "release": "PASS",
+    "released_at": "2026-05-27T01:33:30.604929Z",
+    "scope": "shared",
+    "status": "released"
+  },
+  "remaining_blockers": [
+    "Approved actual extracted payloads before broad scorecard trust.",
+    "Expected source hashes or equivalent reviewed metadata for durable PDF identity.",
+    "Approved expanded metric-family policy from #98.",
+    "Approved broad thresholds for confirmed metric coverage.",
+    "#96 broad backfill remains blocked because this task does not authorize production mutation."
+  ],
+  "resolution_sample": {
+    "artifact": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/source_asset_resolution_sample.json",
+    "reviewability_only": true,
+    "source_openability_counts_as_metric_correctness": false,
+    "status_counts": {
+      "manifest_error": 0,
+      "missing": 0,
+      "present_metadata_mismatch": 0,
+      "present_unverified": 30,
+      "present_verified": 0
+    },
+    "total_asset_count": 30
+  },
+  "speculative": [
+    "Default CI can validate the manifest and resolver even when /data/asx/docs is absent."
+  ],
+  "status": "implemented_validated_released",
+  "supporting_lanes": [
+    "Evaluation",
+    "Financial Truth"
+  ],
+  "task_card": "docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+  "validation": {
+    "git_diff_check": "PASS",
+    "json_manifest": "PASS",
+    "json_resolution_sample": "PASS",
+    "py_compile": "PASS",
+    "pytest_focused": "PASS: 10 passed, 1 warning in 0.13s",
+    "raw_pdf_staging_check": "PASS: no matches",
+    "registry_release": "PASS",
+    "ruff": "PASS",
+    "task_card_check_diff": "PASS",
+    "task_card_validate": "PASS"
+  },
+  "worktree": "/home/l4nd0/tenn-extraction-source-asset-manifest-metadata-safe-extension-v1-20260526"
+}

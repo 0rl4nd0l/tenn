@@ -4,6 +4,7 @@ import logging
 import math
 import re
 from collections import Counter
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from qdrant_client import QdrantClient
@@ -46,6 +47,11 @@ _NEWS_ROUNDUP_TITLE_MARKERS = (
     "morning wrap",
     "lunch wrap",
     "closing bell",
+    "evening wrap",
+    "rise and shine",
+    "scan lists",
+    "broker moves",
+    "asx 200",
     "latest nasdaq news",
     "financial, business & stock market news",
 )
@@ -87,6 +93,10 @@ def _build_news_ticker_filter(ticker: Optional[str]) -> Optional[qmodels.Filter]
                 match=qmodels.MatchValue(value=symbol),
             ),
             qmodels.FieldCondition(
+                key="primary_ticker",
+                match=qmodels.MatchValue(value=symbol),
+            ),
+            qmodels.FieldCondition(
                 key="tickers",
                 match=qmodels.MatchValue(value=symbol),
             ),
@@ -106,6 +116,84 @@ def _is_roundup_title(title: str) -> bool:
     return any(marker in lower for marker in _NEWS_ROUNDUP_TITLE_MARKERS)
 
 
+def _parse_news_published_at(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _payload_tickers(payload: dict[str, Any]) -> list[str]:
+    values = payload.get("tickers")
+    if isinstance(values, list):
+        return [str(value).strip().upper() for value in values if str(value).strip()]
+    if isinstance(values, str):
+        return [part.strip().upper() for part in values.split(",") if part.strip()]
+    return []
+
+
+def _news_ticker_match_bonus(payload: dict[str, Any], ticker: str) -> float:
+    symbol = str(ticker or "").strip().upper()
+    if not symbol:
+        return 0.0
+
+    bonus = 0.0
+    primary = str(payload.get("primary_ticker") or "").strip().upper()
+    stored_ticker = str(payload.get("ticker") or "").strip().upper()
+    linked_tickers = _payload_tickers(payload)
+    title = str(payload.get("title") or "")
+
+    if primary == symbol:
+        bonus += 0.25
+    elif stored_ticker == symbol:
+        bonus += 0.21
+    elif symbol in linked_tickers:
+        bonus += 0.08
+
+    if _title_mentions_ticker(title, symbol):
+        bonus += 0.28
+
+    if _is_roundup_title(title):
+        bonus -= 0.16
+    if len(linked_tickers) >= 30:
+        bonus -= 0.12
+    elif len(linked_tickers) >= 12:
+        bonus -= 0.06
+    return bonus
+
+
+def _news_recency_bonus(
+    published_at: datetime | None,
+    *,
+    newest_published_at: datetime | None,
+) -> float:
+    if published_at is None or newest_published_at is None:
+        return 0.0
+    age_days = max(
+        0.0,
+        (newest_published_at - published_at).total_seconds() / 86400.0,
+    )
+    if age_days <= 1:
+        return 0.14
+    if age_days <= 7:
+        return 0.12
+    if age_days <= 30:
+        return 0.09
+    if age_days <= 90:
+        return 0.04
+    if age_days >= 180:
+        return -0.14
+    if age_days >= 90:
+        return -0.08
+    return 0.0
+
+
 def _normalize_news_results(
     hits: list[Any],
     *,
@@ -114,18 +202,32 @@ def _normalize_news_results(
 ) -> list[dict[str, Any]]:
     by_article: dict[str, dict[str, Any]] = {}
     normalized_ticker = (ticker or "").strip().upper()
+    newest_published_at = max(
+        (
+            parsed
+            for parsed in (
+                _parse_news_published_at(
+                    (dict(getattr(hit, "payload", None) or {})).get("published_at")
+                )
+                for hit in hits
+            )
+            if parsed is not None
+        ),
+        default=None,
+    )
 
     for hit in hits:
         payload = dict(getattr(hit, "payload", None) or {})
         score = float(getattr(hit, "score", 0.0) or 0.0)
         article_id = str(payload.get("article_id") or payload.get("chunk_id") or "")
-        title = str(payload.get("title") or "")
         rank_score = score
+        published_dt = _parse_news_published_at(payload.get("published_at"))
         if normalized_ticker:
-            if _title_mentions_ticker(title, normalized_ticker):
-                rank_score += 0.18
-            elif _is_roundup_title(title):
-                rank_score -= 0.08
+            rank_score += _news_ticker_match_bonus(payload, normalized_ticker)
+            rank_score += _news_recency_bonus(
+                published_dt,
+                newest_published_at=newest_published_at,
+            )
 
         candidate = {"score": score, "payload": payload}
         published_at = str(payload.get("published_at") or "")
@@ -342,7 +444,7 @@ def query_news_chunks(
     client = _build_qdrant_client()
     candidate_limit = int(max(1, top_k))
     if ticker:
-        candidate_limit = min(max(candidate_limit * 4, 12), 64)
+        candidate_limit = 200
     hits = client.search(
         collection_name="news_chunks",
         query_vector=vec,

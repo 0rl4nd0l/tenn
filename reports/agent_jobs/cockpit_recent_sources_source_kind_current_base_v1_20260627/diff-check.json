@@ -1,0 +1,117 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/chat/sources-drawer.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/chat/sources-drawer.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_recent_sources_source_kind_current_base_v1_20260627.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/api/commentary.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_commentary_recent_endpoint.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_recent_sources_source_kind_current_base_v1_20260627.md",
+        "financial-engine_v2/backend/app/api/commentary.py",
+        "financial-engine_v2/backend/tests/test_commentary_recent_endpoint.py",
+        "cockpit-ui/components/cockpit/chat/sources-drawer.tsx",
+        "cockpit-ui/components/cockpit/chat/sources-drawer.test.tsx",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/README.md",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/STATE.md",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/VALIDATION.md",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/REVIEW.md",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/PR_BODY.md",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/status.json",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/validation.json",
+        "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "AGENTS.md",
+        "docs/README.md",
+        "issue"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "cockpit_recent_sources_source_kind_current_base_v1_20260627",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_recent_sources_source_kind_current_base_v1_20260627",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Issue #213 asks for a focused UI/API attachment metadata contract fix; no durable docs routing or runtime operation changes.",
+      "recommended_model": "standard coding model",
+      "related_issue": 213,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 7200,
+      "why_this_model": "Focused backend response-contract and Cockpit UI callback change with tests.",
+      "worker_decision_limit": "No workers used; scope is narrow and same-surface coordination is simpler in one worktree.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

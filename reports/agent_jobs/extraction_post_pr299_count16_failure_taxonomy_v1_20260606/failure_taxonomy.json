@@ -1,0 +1,207 @@
+{
+  "bucket_counts": {
+    "accepted-output risk": 3,
+    "eligible doc missing scale evidence": 1,
+    "parser/table coverage gap": 1,
+    "period/source mismatch": 1,
+    "true noncandidate": 5
+  },
+  "failed_documents": [
+    {
+      "bucket": "parser/table coverage gap",
+      "document_class": "financial_report",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "error": "validation_gate:scale_unknown",
+      "gate": "validation_gate:scale_unknown",
+      "next_action": "Target WHC 2022 parser/table coverage in a separate repair; do not infer scale from narrative highlights.",
+      "secondary_bucket": "eligible doc missing scale evidence",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "source_evidence_summary": "WHC 2022 is an annual report. Light pdftotext audit found readable front matter but financial-statement page window yielded effectively blank/garbled text, matching the Phase 2 zero-metric scale_unknown outcome.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "status": "failed",
+      "ticker": "WHC",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+    },
+    {
+      "bucket": "true noncandidate",
+      "document_class": "meeting_or_proxy_notice",
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "error": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "gate": "source_noncandidate:meeting_or_proxy_notice",
+      "next_action": "No repair; Phase 1 exclusion behaved as intended.",
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies meeting/proxy material, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "meeting_or_proxy_notice",
+        "evidence": [
+          "meeting_or_proxy_notice_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:meeting_or_proxy_notice"
+      },
+      "source_evidence_summary": "Title and first-page source class identify notice of annual general meeting/proxy form.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "status": "failed",
+      "ticker": "EQR",
+      "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf"
+    },
+    {
+      "bucket": "true noncandidate",
+      "document_class": "operational_project_update",
+      "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "error": "validation_gate:source_noncandidate:operational_project_update",
+      "gate": "source_noncandidate:operational_project_update",
+      "next_action": "No repair; Phase 1 exclusion behaved as intended.",
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies an operational project update, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "operational_project_update",
+        "evidence": [
+          "operational_project_update_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:operational_project_update"
+      },
+      "source_evidence_summary": "Title identifies an update in relation to the Mt Morgans Gold Project, not a financial report.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "status": "failed",
+      "ticker": "MAH",
+      "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf"
+    },
+    {
+      "bucket": "true noncandidate",
+      "document_class": "board_change_notice",
+      "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "error": "validation_gate:source_noncandidate:board_change_notice",
+      "gate": "source_noncandidate:board_change_notice",
+      "next_action": "No repair; Phase 1 exclusion behaved as intended.",
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a board-change notice, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "board_change_notice",
+        "evidence": [
+          "board_change_notice_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:board_change_notice"
+      },
+      "source_evidence_summary": "Title and source class identify board changes, not a financial report.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "status": "failed",
+      "ticker": "FCL",
+      "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf"
+    },
+    {
+      "bucket": "true noncandidate",
+      "document_class": "share_sale_or_gross_proceeds_announcement",
+      "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "error": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "gate": "source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "next_action": "No repair; Phase 1 exclusion behaved as intended.",
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a share-sale or gross-proceeds announcement, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "share_sale_or_gross_proceeds_announcement",
+        "evidence": [
+          "share_sale_gross_proceeds_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:share_sale_or_gross_proceeds_announcement"
+      },
+      "source_evidence_summary": "Title identifies shares sold and gross proceeds announcement, not a financial report.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "status": "failed",
+      "ticker": "HRZ",
+      "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf"
+    },
+    {
+      "bucket": "true noncandidate",
+      "document_class": "pre_results_segment_re_presentation",
+      "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "error": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+      "gate": "source_noncandidate:pre_results_segment_re_presentation",
+      "next_action": "No repair; Phase 1 exclusion behaved as intended.",
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a pre-results segment re-presentation document, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "pre_results_segment_re_presentation",
+        "evidence": [
+          "pre_results_segment_re_presentation_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:pre_results_segment_re_presentation"
+      },
+      "source_evidence_summary": "Title identifies re-presentation of segment results/terminology before results, not a canonical financial report.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "status": "failed",
+      "ticker": "MPL",
+      "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf"
+    },
+    {
+      "bucket": "period/source mismatch",
+      "document_class": "unknown_document",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "gate": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "next_action": "Separate targeted period-evidence repair for Appendix 5B / quarterly activity wording.",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence_summary": "Source first page is a Quarterly Activity Report for the period ending 31 March 2022 and later pages contain Appendix 5B cash-flow tables. The mismatch appears caused by source-period evidence missing singular quarterly activity / Appendix 5B support and being distracted by a historical 2014 Annual Report phrase.",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "status": "failed",
+      "ticker": "CTN",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+    }
+  ],
+  "low_confidence_documents": [],
+  "phase2_report": "reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606",
+  "repair_decision": {
+    "files_changed": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "implemented": true,
+    "not_repaired": [
+      "WHC 2022 parser/table coverage gap",
+      "CTN Appendix 5B / quarterly activity source-period evidence gap",
+      "AZJ nearest-$100,000 rounding policy",
+      "LBL accepted-output chart/table scale ambiguity"
+    ],
+    "repair_class": "source-bound scale marker propagation",
+    "runtime_sample_after_repair": "not_run; no additional count-16/count-24/count-32 or broad extraction was run.",
+    "scope": "Use selected table-local scale markers such as $'000 when extracting and reconciling metrics, even if earlier document-level scale evidence says millions."
+  },
+  "sample_summary": {
+    "exception_count": 0,
+    "failed": 7,
+    "failure_taxonomy": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 1,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 1
+    },
+    "low_confidence_taxonomy": {},
+    "ok": 9,
+    "ok_low_confidence": 0,
+    "total": 16
+  },
+  "top_repeated_root_cause": "Among hard failures, true noncandidate exclusions repeat 5x and are behaving as intended. Among accuracy risks that can harm broad correctness, accepted-output scale/rounding risk repeats across DXC/LBL/AZJ; DXC has the clearest source-bound selected-table scale repair."
+}

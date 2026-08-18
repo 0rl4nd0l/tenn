@@ -1,0 +1,22 @@
+{
+  "documents": {
+    "AZJ": {
+      "error": "validation_gate:scale_unknown",
+      "payload_scale": "unknown",
+      "scale_validation": "pass",
+      "status": "failed"
+    },
+    "EDU": {
+      "error": "validation_gate:scale_unknown",
+      "payload_scale": "unknown",
+      "scale_validation": "pass",
+      "status": "failed"
+    }
+  },
+  "final_decision": "NEEDS_SCALE_TABLE_HARNESS",
+  "generated_at": "2026-06-07T11:05:51.234599Z",
+  "job_id": "extraction_azj_edu_pass3a_provenance_capture_v1_20260607",
+  "no_count24_count32_backfill_random_sample_run": true,
+  "same_root_cause_proven": false,
+  "state": "DONE_WITH_RISK"
+}

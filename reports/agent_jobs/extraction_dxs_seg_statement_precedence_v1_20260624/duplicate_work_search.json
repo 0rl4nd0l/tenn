@@ -1,0 +1,62 @@
+{
+  "artifact_type": "duplicate_work_search_v1",
+  "job_id": "extraction_dxs_seg_statement_precedence_v1_20260624",
+  "classification": "NO_EXACT_ACTIVE_OR_OPEN_PR_IMPLEMENTATION_FOUND",
+  "searched_before_edits": true,
+  "requested_scope": [
+    "DXS stapled/group statement selection",
+    "SEG Appendix 4D wrapper versus full financial statement precedence"
+  ],
+  "commands": [
+    {
+      "command": "python3 /home/l4nd0/.agents/skills/tenn-git-guard/scripts/tenn_git_guard.py preflight --repo-root /home/l4nd0/tenn-extraction-dxs-seg-statement-precedence-v1-20260624 --topic \"extraction dxs seg statement precedence issue97 safe extension\" --json",
+      "artifact": "reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/guard_preflight.json",
+      "result": "PASS; duplicate_work_classification=NO_MATCHING_ACTIVE_WORK_FOUND"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "artifact": "reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/registry_active_jobs.json",
+      "result": "active_jobs=[]"
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py validate --json",
+      "artifact": "reports/agent_jobs/extraction_dxs_seg_statement_precedence_v1_20260624/ledger_validate.json",
+      "result": "PASS; live and committed ledger sources present"
+    },
+    {
+      "command": "git branch --all --list \"*DXS*\" \"*dxs*\" \"*SEG*\" \"*seg*\" \"*precedence*\" \"*issue97*\"",
+      "result": "Related issue #97 audit/status and CTN source-type precedence branches exist; no exact DXS/SEG statement-precedence implementation branch was active or open."
+    },
+    {
+      "command": "gh pr list --state all --search \"DXS SEG statement precedence issue97\"",
+      "result": "[]"
+    },
+    {
+      "command": "gh issue list --state all --search \"DXS SEG statement precedence issue97\"",
+      "result": "[]"
+    },
+    {
+      "command": "rg -n \"DXS|SEG|statement precedence|appendix-wrapper|stapled group|Appendix 4D wrapper\" docs reports financial-engine_v2/backend scripts",
+      "result": "Found prior source-review and issue #97 evidence artifacts plus unrelated CTN precedence work; no exact active DXS/SEG extractor-class fix to adopt."
+    }
+  ],
+  "related_work": [
+    {
+      "path_or_ref": "reports/agent_jobs/extraction_issue97_gate_blocker_source_review_v1_20260624/BOARD_DECISION.json",
+      "classification": "ADOPT_AS_SCOPE_EVIDENCE_ONLY",
+      "reason": "Report-only source review classified DXS and SEG as source-proven extractor-class defects; it did not implement the fix."
+    },
+    {
+      "path_or_ref": "safe/extraction-ctn-quarterly-source-type-precedence-v1-20260608 and related CTN branches",
+      "classification": "OUT_OF_SCOPE_RELATED_PRECEDENCE_WORK",
+      "reason": "Quarterly CTN source-type precedence work is not the DXS stapled/group or SEG Appendix wrapper/full-statement issue."
+    },
+    {
+      "path_or_ref": "reports/agent_jobs/extraction_approved_fixture_scorecard_blocker_orchestration_v1_20260624",
+      "classification": "ADOPT_AS_SCORECARD_BASELINE_ONLY",
+      "reason": "Prior approved-15 scorecard and board packet established the remaining DXS/SEG fail-closed class; the current task is a narrower follow-up."
+    }
+  ],
+  "decision": "CONTINUE",
+  "notes": "No GitHub mutation, branch deletion, merge, rebase, runtime service start, DB/Qdrant/Redis/news/memory mutation, gold fixture edit, source PDF edit, prompt edit, schema edit, model/GPU edit, or broad parser rewrite was used for duplicate-work search."
+}

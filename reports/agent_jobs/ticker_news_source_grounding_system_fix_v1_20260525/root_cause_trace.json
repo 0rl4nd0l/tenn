@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "job_id": "ticker_news_source_grounding_system_fix_v1_20260525",
+  "generated_at": "2026-05-25T06:49:00Z",
+  "decision": {
+    "root_cause_classification": "prompt_context_assembly_failure_and_synthesis_honesty_failure",
+    "implementation_allowed": true,
+    "fix_type": "deterministic_local_news_only_final_answer_guard",
+    "not_a2m_only": true
+  },
+  "phase_2_decision_tree": {
+    "storage_missing_for_most_tickers": {
+      "decision": false,
+      "evidence": "Qdrant news evidence existed for A2M, BHP, CSL, XRO, and NST; only the COH control had zero Qdrant news rows. Canonical SQLite news projections were absent, but Cockpit retrieved Qdrant local_news_context for five of six probes."
+    },
+    "entity_linking_failure": {
+      "decision": "not_primary",
+      "evidence": "Ticker filters returned Qdrant rows whose tickers array included the requested ticker for five basket tickers. A2M direct primary_ticker rows were also present."
+    },
+    "retrieval_failure": {
+      "decision": "not_primary",
+      "evidence": "The live chat source list included local_news_context for A2M, BHP, CSL, XRO, and NST."
+    },
+    "ranking_failure": {
+      "decision": "secondary",
+      "evidence": "Direct /rag/query frequently ranked broad multi-ticker market wraps or scan-list articles above primary ticker articles. This is visible for BHP, CSL, XRO, and NST, and A2M top result was a broad AEG article before direct A2M recall articles."
+    },
+    "prompt_context_assembly_failure": {
+      "decision": true,
+      "evidence": "The Cockpit chat final answer mixed local_news_context, document/filing context, and price context. For local-news-only prompts, answers used ASX filings or financial statements as if they were local news."
+    },
+    "synthesis_honesty_failure": {
+      "decision": true,
+      "evidence": "A2M, BHP, CSL, NST, and COH final text described filings, financial statements, dividend notices, holder notices, or price trend as latest local news despite zero claim_verified sources."
+    },
+    "source_label_semantics_failure": {
+      "decision": "guard_gap",
+      "evidence": "Source labels and claim_verified_source_count were mostly honest, but the final text did not obey those labels. Existing visible gap labels could prefix a warning without suppressing the dishonest answer body."
+    },
+    "runtime_schema_degraded": {
+      "decision": false,
+      "evidence": "No cockpit_announcement_context or runtime schema error appeared in the refreshed probes. Runtime degradation was not the root cause."
+    }
+  },
+  "owning_code_paths": [
+    {
+      "path": "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+      "ownership": "response-level evidence requirement labels, visible evidence-gap wording, and new local-news-only final-answer guard"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "ownership": "Cockpit chat response source normalization, routing metadata, non-stream final response delivery, and SSE final response delivery"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+      "ownership": "unit coverage for evidence guard semantics"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "ownership": "route coverage for non-stream and SSE Cockpit chat response contract"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_sources.py",
+      "ownership": "source-label taxonomy compatibility fixture"
+    }
+  ],
+  "fix_summary": {
+    "guard_function": "apply_local_news_only_guard",
+    "request_detector": "requires_local_news_only_guard",
+    "trigger": "local-news-only or local_news_context-oriented user request",
+    "behavior_without_claim_verified_local_news": [
+      "rewrite final text to DATA_MISSING instead of returning model text that used filings/documents as news",
+      "preserve visible sources and labels",
+      "set source_coverage_status to missing_required_evidence unless status is degraded_runtime or local_personal_data",
+      "keep claim_verified_source_count at zero",
+      "record local_news_context_count and claim_verified_local_news_count",
+      "add insufficient_for_recent_news and missing_required_evidence labels",
+      "list context-only local news titles without converting them to claim-verified evidence"
+    ],
+    "behavior_with_claim_verified_local_news": [
+      "leave answer text unchanged",
+      "record local_news_context_count and claim_verified_local_news_count"
+    ],
+    "streaming_behavior": [
+      "suppress incremental SSE text chunks for local-news-only requests so unguarded model text cannot leak before the guarded done event",
+      "send the guarded final text in the done event"
+    ]
+  },
+  "explicit_non_fixes": [
+    "No DB mutation",
+    "No Qdrant mutation",
+    "No news-store mutation",
+    "No reindex, resync, backfill, or projection repair",
+    "No parser routing change",
+    "No canonical financial truth write",
+    "No Tenn memory write",
+    "No runtime/model/GPU config edit",
+    "No UI change",
+    "No A2M alias hardcoding"
+  ],
+  "architecture_review": {
+    "cursor_rules_present": false,
+    "architecture_docs_checked": [
+      "docs/architecture/07_rag_contract.md",
+      "docs/architecture/15_news_substrate.md",
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "invariants": [
+      {
+        "invariant": "RAG failures must not silently return wrong or partial results",
+        "result": "preserved",
+        "evidence": "The fix does not change retrieval. It prevents source-insufficient local-news-only synthesis from presenting non-news context as news."
+      },
+      {
+        "invariant": "Production news substrate must remain a single canonical path and rebuilds must be deliberate",
+        "result": "preserved",
+        "evidence": "No news DB path, pipeline, rebuild, or baseline artifact was changed."
+      },
+      {
+        "invariant": "Mutating routes and memory mutation routes are outside read-only evidence checks",
+        "result": "preserved",
+        "evidence": "Only Cockpit chat response assembly and tests were changed; no mutation route or persistence store was edited."
+      }
+    ]
+  }
+}

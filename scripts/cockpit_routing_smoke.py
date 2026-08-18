@@ -50,10 +50,14 @@ def _request_json(
     url: str,
     *,
     payload: dict[str, Any] | None = None,
+    api_key: str = "",
     timeout: float = 30.0,
 ) -> dict[str, Any]:
     body = None
     headers = {"Accept": "application/json"}
+    api_key = str(api_key or "").strip()
+    if api_key:
+        headers["X-API-Key"] = api_key
     if payload is not None:
         body = json.dumps(payload).encode("utf-8")
         headers["Content-Type"] = "application/json"
@@ -178,6 +182,7 @@ def validate_generic_prompt_response(result: SmokeResult, data: dict[str, Any]) 
 
 def run_smoke(args: argparse.Namespace) -> SmokeResult:
     backend_url = str(args.backend_url or DEFAULT_BACKEND_URL).rstrip("/")
+    api_key = str(args.api_key or "").strip()
     result = SmokeResult()
 
     health = _request_json("GET", f"{backend_url}/api/health", timeout=args.timeout)
@@ -189,10 +194,16 @@ def run_smoke(args: argparse.Namespace) -> SmokeResult:
     )
 
     config = _request_json(
-        "GET", f"{backend_url}/api/cockpit/config", timeout=args.timeout
+        "GET",
+        f"{backend_url}/api/cockpit/config",
+        api_key=api_key,
+        timeout=args.timeout,
     )
     preferences = _request_json(
-        "GET", f"{backend_url}/api/cockpit/preferences", timeout=args.timeout
+        "GET",
+        f"{backend_url}/api/cockpit/preferences",
+        api_key=api_key,
+        timeout=args.timeout,
     )
     validate_api_only_config(
         result,
@@ -212,6 +223,7 @@ def run_smoke(args: argparse.Namespace) -> SmokeResult:
                 "session_id": session_id,
                 "stream": False,
             },
+            api_key=api_key,
             timeout=args.chat_timeout,
         )
         validate_generic_prompt_response(result, _chat_data(generic))
@@ -230,6 +242,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout", type=float, default=10.0)
     parser.add_argument("--chat-timeout", type=float, default=90.0)
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("COCKPIT_API_KEY") or os.environ.get("LOCAL_API_KEY") or "",
+        help="Optional backend X-API-Key, default: COCKPIT_API_KEY or LOCAL_API_KEY.",
+    )
     parser.add_argument(
         "--allow-non-api-only",
         action="store_true",

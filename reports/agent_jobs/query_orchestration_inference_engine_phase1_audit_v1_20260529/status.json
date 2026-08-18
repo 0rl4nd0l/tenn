@@ -1,0 +1,28 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/query_orchestration_inference_engine_phase1_audit_v1_20260529.json",
+  "agent": "Gemini/Codex",
+  "allowed_files": [
+    "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md",
+    "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_v1_20260529/**"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-29T07:44:04.840227Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-29T07:44:04.840227Z",
+  "job_id": "query_orchestration_inference_engine_phase1_audit_v1_20260529",
+  "lane": "Query Orchestration",
+  "last_seen_at": "2026-05-31T12:29:33.463036Z",
+  "output_dir": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_v1_20260529",
+  "owner": "Gemini/Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-31T12:29:33.463036Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3431854:query_orchestration_inference_engine_phase1_audit_v1_20260529",
+  "started_at": "2026-05-29T07:44:04.840227Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md",
+  "updated_at": "2026-05-31T12:29:33.463036Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

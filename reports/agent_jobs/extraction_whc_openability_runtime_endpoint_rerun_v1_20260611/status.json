@@ -1,0 +1,16 @@
+{
+  "job_id": "extraction_whc_openability_runtime_endpoint_rerun_v1_20260611",
+  "status": "DONE_WITH_RISK",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "github_mutation_allowed": false,
+  "code_changes_allowed": false,
+  "persistent_runtime_config_changes_allowed": false,
+  "runtime_endpoint_found": true,
+  "runtime_endpoint_used": "http://127.0.0.1:11434",
+  "result_status": "failed",
+  "result_error": "validation_gate:missing_period_end",
+  "non_null_metric_count": 9,
+  "accepted_canonical_metrics": false,
+  "next_blocker": "openability diagnostic period evidence is not propagated into period_end binding"
+}

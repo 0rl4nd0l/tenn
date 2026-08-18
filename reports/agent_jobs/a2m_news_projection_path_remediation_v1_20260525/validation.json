@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_path_remediation_v1_20260525",
+  "status": "pass",
+  "commands": [
+    {
+      "name": "task_card_help",
+      "command": "python3 scripts/agent_job_contract.py --help",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_validate_help",
+      "command": "python3 scripts/agent_job_contract.py validate --help",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_check_diff_help",
+      "command": "python3 scripts/agent_job_contract.py check-diff --help",
+      "result": "pass"
+    },
+    {
+      "name": "registry_help",
+      "command": "python3 scripts/agent_job_registry.py --help",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_list_active_pre_claim",
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "pass_no_active_jobs"
+    },
+    {
+      "name": "registry_check_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+      "result": "pass_no_overlap"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+      "result": "pass"
+    },
+    {
+      "name": "json_validation",
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/news_projection_path_map.json reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/a2m_evidence_route_matrix.json reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/validation.json",
+      "result": "pass"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_release",
+      "command": "python3 scripts/agent_job_registry.py release a2m_news_projection_path_remediation_v1_20260525",
+      "result": "pass"
+    },
+    {
+      "name": "final_registry_list_active",
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "pass_own_job_released_unrelated_active_job_present"
+    },
+    {
+      "name": "final_registry_check_overlap_after_release",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+      "result": "reported_nonblocking_failure_due_unrelated_post_release_query_orchestration_job"
+    },
+    {
+      "name": "final_git_status",
+      "command": "git status --short --untracked-files=all",
+      "result": "pass_clean_after_audit_commit"
+    }
+  ],
+  "no_forbidden_mutation_observed": true,
+  "notes": [
+    "SQLite inspections used read-only sqlite3 URI/query_only mode.",
+    "Qdrant inspections used read-only collection/count/scroll calls with vectors disabled for sample scroll.",
+    "No ingestion, refresh, backfill, reindex, resync, projection rebuild, Qdrant load, service restart, or DB write command was run."
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/chat/terminal-message.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/news/news-screen.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/news/news-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-chat-actionability.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-chat-actionability.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-news-actionability.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-news-actionability.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-types.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+        "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/README.md",
+        "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/status.json",
+        "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/validation.json",
+        "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/diff-check.json",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+        "cockpit-ui/lib/cockpit-chat-actionability.ts",
+        "cockpit-ui/lib/cockpit-types.ts",
+        "cockpit-ui/components/cockpit/news/news-screen.tsx",
+        "cockpit-ui/lib/cockpit-news-actionability.ts",
+        "cockpit-ui/components/cockpit/chat/terminal-message.test.tsx",
+        "cockpit-ui/components/cockpit/news/news-screen.test.tsx",
+        "cockpit-ui/lib/cockpit-chat-actionability.test.ts",
+        "cockpit-ui/lib/cockpit-news-actionability.test.ts"
+      ],
+      "approval_required": false,
+      "forbidden": [
+        "db_qdrant_news_or_memory_mutation",
+        "canonical_financial_truth_changes",
+        "backend_source_label_relaxation",
+        "parser_routing_changes",
+        "extraction_prompt_changes",
+        "gold_label_changes",
+        "runtime_model_gpu_or_service_config_changes",
+        "broad_ui_redesign",
+        "treating_context_only_no_hit_degraded_or_data_missing_evidence_as_claim_verified",
+        "unrelated_route_rewrites"
+      ],
+      "job_id": "cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601",
+      "owner": "Codex",
+      "primary_lane": "Reporting",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Cockpit UI evidence envelope visibility gaps"
+    },
+    "ok": true
+  }
+}

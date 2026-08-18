@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Search, Newspaper, ChevronDown, ChevronUp, Database, ExternalLink, Calendar, CheckCircle2, AlertTriangle, CircleHelp } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import {
+  getNewsEvidenceEnvelopeLabels,
   getNewsReadiness,
   getNewsResultReadiness,
   type NewsActionabilityResult,
@@ -20,6 +21,23 @@ import {
 } from '@/lib/cockpit-news-actionability'
 import { cn } from '@/lib/utils'
 import { Field, FieldLabel } from '@/components/ui/field'
+
+type NewsLookback = '24h' | '7d' | '30d' | 'all'
+
+const LOOKBACK_DURATION_MS: Record<Exclude<NewsLookback, 'all'>, number> = {
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+}
+
+export function resolveNewsLookbackDateFrom(lookback: NewsLookback, now = new Date()): string | undefined {
+  if (lookback === 'all') return undefined
+  return new Date(now.getTime() - LOOKBACK_DURATION_MS[lookback]).toISOString()
+}
+
+function isNewsLookback(value: string): value is NewsLookback {
+  return value === '24h' || value === '7d' || value === '30d' || value === 'all'
+}
 
 function formatTimeAgo(date: Date): string {
   const now = new Date()
@@ -42,6 +60,43 @@ function actionabilityIcon(tone: NewsActionabilityTone) {
   if (tone === 'error') return <AlertTriangle className="h-3.5 w-3.5" />
   if (tone === 'warning') return <AlertTriangle className="h-3.5 w-3.5" />
   return <CircleHelp className="h-3.5 w-3.5" />
+}
+
+function stringArray(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return value.trim() ? [value.trim()] : []
+  }
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.map((item) => String(item || '').trim()).filter(Boolean)
+}
+
+function optionalString(value: unknown): string | undefined {
+  const text = String(value || '').trim()
+  return text || undefined
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function formatEvidenceEnvelopeLabel(label: string): string {
+  if (label === 'DATA_MISSING:evidence_envelope') {
+    return 'DATA_MISSING evidence envelope'
+  }
+  return label
+    .replace(/:/g, ': ')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function NewsReadinessPanel({ readiness }: { readiness: NewsReadiness }) {
@@ -103,6 +158,8 @@ interface NewsResultProps {
 function NewsResult({ result, results }: NewsResultProps) {
   const [isOpen, setIsOpen] = useState(false)
   const readiness = getNewsResultReadiness(result, results)
+  const evidenceEnvelopeLabels = getNewsEvidenceEnvelopeLabels(result)
+  const primaryEnvelopeLabel = evidenceEnvelopeLabels[0]
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -137,6 +194,20 @@ function NewsResult({ result, results }: NewsResultProps) {
                   {(result.relevanceScore * 100).toFixed(0)}%
                 </Badge>
                 <NewsResultActionabilityBadge readiness={readiness} />
+                {primaryEnvelopeLabel && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'hidden text-[10px] font-mono sm:inline-flex',
+                      primaryEnvelopeLabel.startsWith('DATA_MISSING')
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                        : 'border-border bg-muted text-muted-foreground',
+                    )}
+                    title="Evidence envelope"
+                  >
+                    {formatEvidenceEnvelopeLabel(primaryEnvelopeLabel)}
+                  </Badge>
+                )}
                 {isOpen ? (
                   <ChevronUp className="h-4 w-4 text-muted-foreground" />
                 ) : (
@@ -156,6 +227,23 @@ function NewsResult({ result, results }: NewsResultProps) {
             <p className="text-xs text-muted-foreground leading-relaxed mb-3">
               {readiness.detail}
             </p>
+            <div aria-label="Evidence envelope" className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase text-muted-foreground">Evidence envelope</span>
+              {evidenceEnvelopeLabels.map((label) => (
+                <Badge
+                  key={label}
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] font-mono',
+                    label.startsWith('DATA_MISSING')
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : 'border-border bg-muted text-muted-foreground',
+                  )}
+                >
+                  {formatEvidenceEnvelopeLabel(label)}
+                </Badge>
+              ))}
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {result.publishedAtMissing
@@ -184,7 +272,7 @@ export function NewsScreen() {
   
   const [query, setQuery] = useState('')
   const [ticker, setTicker] = useState('')
-  const [lookback, setLookback] = useState('7d')
+  const [lookback, setLookback] = useState<NewsLookback>('7d')
   const [isSearching, setIsSearching] = useState(false)
   const [results, setResults] = useState<NewsActionabilityResult[] | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
@@ -208,6 +296,12 @@ export function NewsScreen() {
       provider?: string
       published_at?: string
       chunk_id?: string
+      source_label?: string
+      evidence_label?: string
+      evidence_labels?: unknown
+      source_coverage_status?: string
+      source_label_taxonomy_version?: string
+      claim_verified_source_count?: number | string
     }
   }
 
@@ -224,6 +318,11 @@ export function NewsScreen() {
         ticker: h.payload.ticker || undefined,
         content: h.payload.text || undefined,
         url: h.payload.url || undefined,
+        sourceLabel: optionalString(h.payload.source_label || h.payload.evidence_label),
+        evidenceLabels: stringArray(h.payload.evidence_labels),
+        sourceCoverageStatus: optionalString(h.payload.source_coverage_status),
+        sourceLabelTaxonomyVersion: optionalString(h.payload.source_label_taxonomy_version),
+        claimVerifiedSourceCount: optionalNumber(h.payload.claim_verified_source_count),
         publishedAtMissing,
       }
     })
@@ -239,6 +338,7 @@ export function NewsScreen() {
     setSearchError(null)
 
     try {
+      const dateFrom = resolveNewsLookbackDateFrom(lookback)
       const res = await fetch('/rag/query', {
         method: 'POST',
         headers: {
@@ -250,6 +350,7 @@ export function NewsScreen() {
           source: 'news',
           ticker: ticker || undefined,
           top_k: 20,
+          date_from: dateFrom,
         }),
       })
 
@@ -291,6 +392,7 @@ export function NewsScreen() {
           <CardContent className="space-y-4">
             <div className="flex gap-3">
               <Input
+                aria-label="News search query"
                 placeholder="Search news articles..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -305,8 +407,9 @@ export function NewsScreen() {
 
             <div className="flex flex-wrap gap-4">
               <Field className="w-[150px]">
-                <FieldLabel>Ticker Filter</FieldLabel>
+                <FieldLabel htmlFor="news-ticker-filter">Ticker Filter</FieldLabel>
                 <Input
+                  id="news-ticker-filter"
                   placeholder="e.g., BHP"
                   value={ticker}
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
@@ -315,9 +418,9 @@ export function NewsScreen() {
               </Field>
 
               <Field className="w-[150px]">
-                <FieldLabel>Lookback</FieldLabel>
-                <Select value={lookback} onValueChange={setLookback}>
-                  <SelectTrigger>
+                <FieldLabel htmlFor="news-lookback-select">Lookback</FieldLabel>
+                <Select value={lookback} onValueChange={(value) => isNewsLookback(value) && setLookback(value)}>
+                  <SelectTrigger id="news-lookback-select" aria-label="News lookback">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

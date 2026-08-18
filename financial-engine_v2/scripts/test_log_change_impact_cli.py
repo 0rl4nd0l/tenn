@@ -1,6 +1,11 @@
 import importlib.util
+import io
+import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_PATH = ROOT / "scripts" / "log_change_impact.py"
@@ -12,6 +17,23 @@ spec.loader.exec_module(mod)
 
 
 class TestLogChangeImpactCli(unittest.TestCase):
+    def test_main_rejects_defaults_before_creating_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "change_impact_log.md"
+            stdout = io.StringIO()
+            with (
+                mock.patch.object(mod, "LOG_PATH", log_path),
+                mock.patch.object(sys, "argv", [str(MOD_PATH)]),
+                mock.patch.object(mod, "_changed_files") as changed_files,
+                redirect_stdout(stdout),
+            ):
+                result = mod.main()
+
+            self.assertEqual(result, 2)
+            self.assertFalse(log_path.exists())
+            changed_files.assert_not_called()
+            self.assertIn("Missing required change-impact fields", stdout.getvalue())
+
     def test_validate_required_detects_missing(self):
         parser = mod.build_parser()
         args = parser.parse_args([])

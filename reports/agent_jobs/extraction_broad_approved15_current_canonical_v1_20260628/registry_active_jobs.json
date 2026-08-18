@@ -1,0 +1,24 @@
+{
+  "command": [
+    "python3",
+    "scripts/agent_job_registry.py",
+    "list-active",
+    "--read-only",
+    "--repo-root",
+    "."
+  ],
+  "json": {
+    "active_jobs": [],
+    "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+    "lock_acquired": false,
+    "ok": true,
+    "read_only": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "repo_root": "/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628",
+    "warnings": []
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-extraction-broad-approved15-current-canonical-v1-20260628\",\n  \"warnings\": []\n}\n"
+}

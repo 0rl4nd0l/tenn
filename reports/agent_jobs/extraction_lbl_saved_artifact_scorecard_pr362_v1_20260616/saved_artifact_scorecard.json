@@ -1,0 +1,143 @@
+{
+  "aggregate_saved_artifact_delta": {
+    "accepted_document_delta": 4,
+    "non_null_metric_delta": 30,
+    "source": "prior_guard_packet_plus_current_lbl_repair_artifact"
+  },
+  "branch": "safe/extraction-lbl-income-row-ref-repair-v1-20260616",
+  "cases": [
+    {
+      "accepted_metric_count": 8,
+      "case_id": "WHC_9640d9f1_openability_period_binding",
+      "current_status": "ok",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+      "ticker": "WHC",
+      "verdict": "preserved_pass_guard"
+    },
+    {
+      "accepted_metric_count": 6,
+      "case_id": "CTN_dec0b5f1_quarterly_source_precedence",
+      "current_status": "ok",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+      "ticker": "CTN",
+      "verdict": "preserved_pass_guard"
+    },
+    {
+      "accepted_metric_count": 9,
+      "case_id": "HUB_419bcca8_half_year_source_period_binding",
+      "current_status": "ok",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+      "ticker": "HUB",
+      "verdict": "preserved_pass_guard"
+    },
+    {
+      "case_id": "LBL_551c6b84_income_row_ref_repair",
+      "current": {
+        "accepted_metric_count": 7,
+        "currency": "AUD",
+        "error": null,
+        "field_provenance_row_refs": {
+          "ebit": "EBIT",
+          "np_attributable": "NPAT For",
+          "revenue": "Sales Revenue"
+        },
+        "metric_source_scales": {
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands"
+        },
+        "non_null_metrics": [
+          "cash_end",
+          "ebit",
+          "financing_cf",
+          "investing_cf",
+          "np_attributable",
+          "operating_cf",
+          "revenue"
+        ],
+        "period_end": "2025-12-31",
+        "period_source_role": "results_announcement",
+        "period_type": "H",
+        "row_refs": {
+          "ebit": "EBIT",
+          "np_attributable": "NPAT For",
+          "revenue": "Sales Revenue"
+        },
+        "scale": "thousands",
+        "source_period_end_reason": "half_year_ended_explicit_date",
+        "status": "ok"
+      },
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "observed_delta_vs_prior_guard": {
+        "accepted_document_delta": 1,
+        "non_null_metric_delta": 7,
+        "target_row_ref_gap_resolved": true
+      },
+      "prior_guard": {
+        "accepted_metric_count": 0,
+        "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+        "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+        "status": "failed",
+        "verdict": "pass_negative_guard"
+      },
+      "source_artifact": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json",
+      "ticker": "LBL",
+      "verdict": "pass_repaired_guard"
+    },
+    {
+      "case_id": "AZJ_488d6f1a_scale_table_path_closed",
+      "current_status": "ok",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+      "ticker": "AZJ",
+      "verdict": "preserved_pass_guard_no_repair"
+    },
+    {
+      "case_id": "NSR_f2240712_scale_control_clean",
+      "current_status": "ok",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "source_artifact": "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+      "ticker": "NSR",
+      "verdict": "preserved_pass_guard"
+    }
+  ],
+  "data_missing": [
+    "This is a saved-artifact scorecard only; no count-24/count-32/random sample/broad extraction was run.",
+    "It does not measure current production canonical-write behavior.",
+    "It does not replace human review of the code diff."
+  ],
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "canonical writes",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "schema mutation",
+    "runtime/model/GPU config mutation",
+    "GitHub mutation",
+    "PR #318 use"
+  ],
+  "head": "1ef230f0133a53ad50e8613ba8dbb3e2338912db",
+  "job_id": "extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+  "mode": "saved_artifact_scorecard_report_only_no_extraction",
+  "pr_number": 362,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/362",
+  "scorecard_status": "passed",
+  "worktree": "/home/l4nd0/tenn-lbl-income-row-ref-repair-v1-20260616"
+}

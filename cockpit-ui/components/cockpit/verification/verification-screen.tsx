@@ -16,9 +16,11 @@ import {
   getExtractionReviewSessions,
   getExtractionReviewSession,
   getTickerDocuments,
+  getVerificationRuns,
   processDocument,
   runVerificationContext,
   submitExtractionReviewDecision,
+  withApiKey,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
@@ -606,8 +608,16 @@ export function VerificationScreen() {
     }
   }, [reviewItems, selectedReviewItemId])
 
+  const handleReviewSessionRefresh = useCallback((session: ExtractionReviewSession, itemId: string | null) => {
+    setReviewSession(session)
+    setSelectedReviewItemId((current) => (
+      itemId && session.items.some((item) => item.item_id === itemId) ? itemId : current
+    ))
+  }, [])
+
   const {
     snippetImageState,
+    snippetImageUrl,
     beginSessionSwap,
     handleSnippetImageLoad,
     handleSnippetImageError,
@@ -619,12 +629,7 @@ export function VerificationScreen() {
     currentEvidenceQuality,
     reviewSessionId: reviewSession?.session_id || null,
     getReviewSession: getExtractionReviewSession,
-    onSessionRefresh: (session, itemId) => {
-      setReviewSession(session)
-      setSelectedReviewItemId((current) => (
-        itemId && session.items.some((item) => item.item_id === itemId) ? itemId : current
-      ))
-    },
+    onSessionRefresh: handleReviewSessionRefresh,
   })
 
   const currentSnippetRenderKey = `${currentEvidenceKey || 'no-evidence'}:${snippetImageState.retryAttempted ? 'retry' : 'initial'}`
@@ -681,7 +686,10 @@ export function VerificationScreen() {
     const attachMonitor = async () => {
       try {
         appendProgress({ scope: 'monitor', message: 'Loading active extraction run metadata from backend config' })
-        const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+        const response = await fetch('/api/cockpit/config', {
+          cache: 'no-store',
+          headers: withApiKey(),
+        })
         if (!response.ok) {
           throw new Error(`Failed to load active extraction runs (HTTP ${response.status})`)
         }
@@ -994,10 +1002,8 @@ export function VerificationScreen() {
   useEffect(() => {
     setVerificationHistoryLoading(true)
     appendProgress({ scope: 'verify', message: 'Loading recent verification run history', detail: 'limit=10' })
-    fetch('/api/context/verification/runs?limit=10')
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        const payload = data as { ok?: boolean; runs?: unknown[] }
+    getVerificationRuns(10)
+      .then((payload) => {
         if (payload.ok && Array.isArray(payload.runs)) {
           setVerificationRunHistory(payload.runs as VerificationRunHistory[])
           appendProgress({
@@ -1314,6 +1320,8 @@ export function VerificationScreen() {
           limit: resolvedLimit,
           method: extractionMethod,
           strict_method: strictMethod,
+          corpus_classification: 'non_holdout',
+          access_mode: 'development',
         }),
       })
 
@@ -1821,6 +1829,7 @@ export function VerificationScreen() {
                   matchedEvidenceText={matchedEvidenceText}
                   currentSnippetPath={currentSnippetPath}
                   currentSnippetUrl={currentSnippetUrl}
+                  currentSnippetImageSrc={snippetImageUrl}
                   currentSnippetRenderKey={currentSnippetRenderKey}
                   currentRowRef={currentRowRef}
                   reviewItems={reviewItems}
@@ -1896,6 +1905,7 @@ export function VerificationScreen() {
                       matchedEvidenceText={matchedEvidenceText}
                       currentSnippetPath={currentSnippetPath}
                       currentSnippetUrl={currentSnippetUrl}
+                      currentSnippetImageSrc={snippetImageUrl}
                       currentSnippetRenderKey={currentSnippetRenderKey}
                       currentRowRef={currentRowRef}
                       reviewItems={reviewItems}

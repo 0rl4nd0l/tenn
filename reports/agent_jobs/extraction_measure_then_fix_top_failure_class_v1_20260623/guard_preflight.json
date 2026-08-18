@@ -1,0 +1,38 @@
+{
+  "base": {
+    "merge_base": "d8be998e0d1aae992c12b1d5bf7ca42229f46508",
+    "origin_migration_clean_runtime_baseline_reconstruct_v1": "d8be998e0d1aae992c12b1d5bf7ca42229f46508"
+  },
+  "canonical_write": false,
+  "generated_at": "2026-06-23T07:56:18.462234Z",
+  "github_mutation": false,
+  "github_trackers": [
+    {
+      "number": 96,
+      "state": "OPEN",
+      "title": "[Query Orchestration] Most PDF-path documents lack terminal extraction",
+      "updatedAt": "2026-06-16T07:52:15Z"
+    },
+    {
+      "number": 97,
+      "state": "OPEN",
+      "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage",
+      "updatedAt": "2026-06-01T17:27:55Z"
+    }
+  ],
+  "ledger": {
+    "committed_entry_count": 5,
+    "entry_count": 20,
+    "live_entry_count": 15,
+    "ok": true,
+    "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl"
+  },
+  "registry": {
+    "active_jobs": [],
+    "ok": true,
+    "read_only": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "repo_root": "/home/l4nd0/tenn-extraction-measure-then-fix-top-failure-class-v1-20260623"
+}

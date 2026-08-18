@@ -1,0 +1,21 @@
+{
+  "changed_files_before_staging": [
+    "docs/agent_tasks/extraction_guard_saved_artifact_scorecard_replay_v1_20260611.md"
+  ],
+  "disallowed_files": [],
+  "forbidden_surface_path_audit": "PASS",
+  "git_diff_check": "PASS",
+  "ignored_report_artifacts_to_force_add": [
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/README.md",
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/status.json",
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/live_git_status.json",
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/guard_scorecard_replay.json",
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/validation.json",
+    "reports/agent_jobs/extraction_guard_saved_artifact_scorecard_replay_v1_20260611/diff-check.json"
+  ],
+  "job_id": "extraction_guard_saved_artifact_scorecard_replay_v1_20260611",
+  "json_validation": "PASS",
+  "status": "PASS",
+  "task_card_check_diff": "PASS",
+  "task_card_validate": "PASS"
+}

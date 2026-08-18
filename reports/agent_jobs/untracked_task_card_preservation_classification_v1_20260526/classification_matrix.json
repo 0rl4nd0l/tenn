@@ -1,0 +1,138 @@
+{
+  "generated_at": "2026-05-26T06:41:24Z",
+  "job_id": "untracked_task_card_preservation_classification_v1_20260526",
+  "github_issue": {
+    "number": 94,
+    "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards",
+    "state": "OPEN",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/94"
+  },
+  "classification_options_from_issue_94": [
+    "valid uncommitted artifact to commit",
+    "already represented by committed report/issue/memory",
+    "stale but needs preservation elsewhere",
+    "foreign work to leave untouched",
+    "DATA_MISSING"
+  ],
+  "targets": [
+    {
+      "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "sha256": "64962317b609358f80dde057fe44338d74de329a2f3f0152cc01513f5ac8d97a",
+      "git_tracked": false,
+      "task_card_validate": "PASS",
+      "matching_report_dir": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+      "matching_report_files": [
+        "README.md",
+        "status.json",
+        "runtime_reload_trace.json",
+        "diff-check.json"
+      ],
+      "matching_report_status": "runtime_smoke_complete",
+      "matching_report_validation": {
+        "json_validation": "PASS",
+        "task_card_validate_returncode": 0,
+        "git_diff_check_returncode": 0,
+        "task_card_check_diff_returncode": 0,
+        "task_card_check_diff_ok": true,
+        "final_registry_list_active_ok": true
+      },
+      "github_exact_artifact_coverage": {
+        "issues": [],
+        "prs": []
+      },
+      "github_adjacent_or_downstream_coverage": [
+        {
+          "number": 83,
+          "state": "OPEN",
+          "title": "[Query] News projection materialization/parity repair planning v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/83"
+        },
+        {
+          "number": 84,
+          "state": "OPEN",
+          "title": "[Provenance] Audit missing cockpit_announcement_context runtime schema",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/84"
+        },
+        {
+          "number": 87,
+          "state": "OPEN",
+          "title": "[Query Orchestration] A2M recall chat answer lacks required visible evidence",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/87"
+        }
+      ],
+      "classification": "valid uncommitted artifact to commit",
+      "recommendation": "commit/preserve under a scoped artifact-preservation task with the matching report bundle; use git add -f for ignored reports; do not delete, stash, reset, move, or rewrite"
+    },
+    {
+      "path": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "sha256": "371720ddf81fb850d26ee44476aae26a03d4ab2f40288c3f95bee161d8cf0e73",
+      "git_tracked": false,
+      "task_card_validate": "PASS",
+      "matching_report_dir": "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525",
+      "matching_report_files": [
+        "README.md",
+        "status.json",
+        "issue_drafts.md",
+        "duplicate_check.md",
+        "data_missing.md",
+        "diff-check.json"
+      ],
+      "matching_report_status": "PASS_REPORT_ONLY_WITH_REGISTRY_BLOCKERS",
+      "matching_report_validation": {
+        "task_card_validate": "PASS",
+        "registry_list_active": "PASS",
+        "check_overlap": "FAIL_DUE_ACTIVE_REPORTING_JOB_AND_UNRELATED_A2M_CARD_AT_ORIGINAL_RUN",
+        "status_json": "PASS",
+        "git_diff_check": "PASS",
+        "task_card_check_diff": "FAIL_DUE_UNRELATED_A2M_CARD_AT_ORIGINAL_RUN"
+      },
+      "github_exact_artifact_coverage": {
+        "issues": [],
+        "prs": []
+      },
+      "github_underlying_finding_coverage": [
+        {
+          "number": 79,
+          "state": "OPEN",
+          "title": "[Ops] Automation topology reconciliation audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/79"
+        },
+        {
+          "number": 80,
+          "state": "CLOSED",
+          "title": "[Repo Hygiene] Registry read-only no-lock list-active mode v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/80"
+        },
+        {
+          "number": 81,
+          "state": "OPEN",
+          "title": "[Ops/News] Nightly news cron observability and systemd migration audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/81"
+        },
+        {
+          "number": 82,
+          "state": "OPEN",
+          "title": "[Runtime] llama-server :8001 ownership/provenance audit v1",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/82"
+        },
+        {
+          "number": 85,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Integrate registry read-only no-lock list-active fix",
+          "url": "https://github.com/0rl4nd0l/tenn/issues/85"
+        }
+      ],
+      "classification": "valid uncommitted artifact to commit",
+      "recommendation": "commit/preserve under a scoped artifact-preservation task with the matching report bundle; use git add -f for ignored reports; do not delete, stash, reset, move, or rewrite"
+    }
+  ],
+  "out_of_scope_context": [
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "sha256": "44032109b04a0bd9dd7c67ab751cc2145b913365fb3b0c951644dcf3300d860a",
+      "classification": "out_of_scope_current_dirty_context",
+      "recommendation": "leave untouched unless a separate task authorizes preservation of the GitHub issue-creation task card and report bundle"
+    }
+  ],
+  "exact_next_action": "Create a separate scoped artifact-preservation task that stages and commits the two target task cards plus their matching report bundles, using git add -f for reports/ paths after fresh validation and check-diff."
+}

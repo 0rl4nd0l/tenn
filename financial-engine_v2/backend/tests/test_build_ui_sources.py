@@ -247,6 +247,95 @@ def test_agent_format_search_news() -> None:
     assert len(sources) == 1
     assert sources[0]["kind"] == "news"
     assert sources[0]["url"] == "https://news.example.com/bhp"
+    assert sources[0]["claim_verified"] is False
+    assert "context_only" in sources[0]["evidence_labels"]
+
+
+def test_direct_news_search_marks_successful_local_news_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "news_search",
+                "details": {
+                    "hits": [
+                        {
+                            "title": "BHP operational update",
+                            "url": "https://news.example.com/bhp-update",
+                            "snippet": "BHP released an operational update.",
+                            "published_at": "2026-05-24T00:00:00Z",
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["kind"] == "news"
+    assert sources[0]["claim_verified"] is True
+    assert "claim_verified" in sources[0]["evidence_labels"]
+    assert "local_news_context" in sources[0]["evidence_labels"]
+    assert "context_only" not in sources[0]["evidence_labels"]
+
+
+def test_agent_search_news_ok_result_marks_local_news_claim_verified() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "ok": True,
+                "hits": [
+                    {
+                        "title": "CSL research update",
+                        "url": "https://news.example.com/csl-research",
+                        "snippet": "CSL shares moved after a research update.",
+                        "published_at": "2026-05-23T00:00:00Z",
+                    }
+                ],
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="CSL latest news was a research update.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert sources[0]["claim_verified"] is True
+    assert "context_only" not in sources[0]["evidence_labels"]
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["source_coverage_status"] == "claim_verified"
+
+
+def test_agent_search_news_data_insufficient_hits_stay_context_only() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "ok": False,
+                "data_insufficient": True,
+                "hits": [
+                    {
+                        "title": "A2M historical wrap",
+                        "url": "https://news.example.com/a2m-wrap",
+                        "snippet": "A2M was mentioned in older historical context.",
+                        "published_at": "2026-04-01T00:00:00Z",
+                    }
+                ],
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+
+    assert len(sources) == 1
+    assert sources[0]["claim_verified"] is False
+    assert "context_only" in sources[0]["evidence_labels"]
+    assert "local_news_context" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
 
 
 def test_agent_format_search_news_zero_hits_emits_operational_source_item() -> None:
@@ -1368,3 +1457,107 @@ def test_chat_ui_metadata_summarizes_labels_and_degraded_runtime() -> None:
     assert metadata["claim_verified_source_count"] == 1
     assert "degraded_runtime" in metadata["evidence_labels"]
     assert metadata["source_coverage_status"] == "degraded_runtime"
+
+
+def test_recent_news_event_source_counts_as_claim_verified_for_recent_update() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "hits": [
+                    {
+                        "title": "BHP announces completed transaction",
+                        "url": "https://example.com/bhp-transaction",
+                        "snippet": "BHP announced a completed transaction this week.",
+                        "evidence_labels": ["local_news_context", "claim_verified"],
+                        "published_at": "2026-05-24T00:00:00Z",
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest news update this week was a transaction event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["source_coverage_status"] == "claim_verified"
+    assert "insufficient_for_recent_news" not in metadata["evidence_labels"]
+
+
+def test_context_only_recent_news_label_does_not_increment_verified_count() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "hits": [
+                    {
+                        "title": "BHP broad market wrap",
+                        "url": "https://example.com/bhp-market-wrap",
+                        "snippet": "BHP was mentioned in a broad market wrap.",
+                        "evidence_labels": [
+                            "local_news_context",
+                            "claim_verified",
+                            "context_only",
+                        ],
+                        "claim_verified": True,
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest news update this week was caused by an event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_financial_truth_recent_news_context_does_not_increment_verified_count() -> None:
+    evidence = [
+        {
+            "type": "financial_truth",
+            "details": {
+                "financials": [
+                    {
+                        "ticker": "BHP",
+                        "period_type": "HY",
+                        "period_end": "2026-12-31",
+                        "revenue": 55000,
+                        "source_document_id": "doc-bhp-hy",
+                        "evidence_labels": ["financial_truth", "claim_verified"],
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest update this week was driven by a recent event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]

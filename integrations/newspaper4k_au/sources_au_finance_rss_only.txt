@@ -1,3 +1,7 @@
-# Deterministic RSS-only source list for stable runs.
-rss:https://www.abc.net.au/news/feed/51120/rss.xml
+# Deterministic RSS-only source list for stable daily runs.
+rss:https://www.abc.net.au/news/feed/104217374/rss.xml
 rss:https://www.theguardian.com/au/business/rss
+rss:https://stockhead.com.au/feed
+rss:https://stockhead.com.au/category/resources/feed/
+rss:https://stockhead.com.au/category/tech/feed/
+rss:https://stockhead.com.au/category/health/feed/

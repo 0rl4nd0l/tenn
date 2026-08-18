@@ -1,5 +1,10 @@
 # Current System
 
+Documentation status: runtime snapshot/reference. For agent navigation and the
+current active/archive docs map, start with `docs/README.md`. Runtime claims in
+this file, especially host paths, services, models, ports, and validation state,
+must be reverified in the current turn before being treated as current evidence.
+
 The active system is `financial-engine_v2`.
 
 ## Quick Start (after `git pull`)
@@ -30,7 +35,11 @@ scripts/opencode-server attach          # interactive TUI client
 The agent-orchestrator's OpenCode adapter auto-detects `OPENCODE_SERVER_URL` and uses `opencode attach` instead of `opencode run`. See `agent-orchestrator/README.md` for details.
 
 ## Local Backend API Status
-Verified current local backend workflow lives under `financial-engine_v2/`.
+Documented local backend workflow lives under `financial-engine_v2/`.
+
+The 2026-06-23 docs audit did not prove backend runtime functionality. Treat
+the profile details below as configured/documented state until a runtime task
+revalidates endpoints and backing stores.
 
 Profiles:
 - `LOCAL_BACKEND_PROFILE=isolated`
@@ -38,8 +47,8 @@ Profiles:
   - embeddings/Qdrant/extraction disabled
   - `/chat` degrades safely instead of returning `500`
 - `LOCAL_BACKEND_PROFILE=full`
-  - verified working with:
-    - configured runtime DB/data roots (host-local `.env.local` may point at `/mnt/nvme/tenn/runtime-data`; isolated validation can still fall back to `/tmp/financial-engine_v2-fe_local_runtime.db`)
+  - configured/documented for:
+    - runtime DB/data roots (2026-06-23 launcher/verifier evidence points at `/mnt/tenn-nvme2/tenn/financial-engine_v2/data`; isolated validation can still fall back to `/tmp/financial-engine_v2-fe_local_runtime.db`)
     - local Qdrant on `127.0.0.1:6333`
     - local llama.cpp on `127.0.0.1:8001/v1`
   - `/chat` returns grounded answers when `commentary_chunks` has data
@@ -48,7 +57,7 @@ Operational notes:
 - `/chat` uses `commentary_chunks` with optional `commentary_chunks_v2` fallback support
 - `asx_docs` is not the commentary chat collection
 - local launcher precedence is `.env` then `.env.local`, with explicit shell env overriding both
-- current host-local storage layout uses `/mnt/nvme/tenn/runtime-data` for runtime data and `/mnt/nvme/tenn/models` for llama.cpp GGUFs
+- 2026-06-23 checked launcher/verifier evidence points runtime data at `/mnt/tenn-nvme2/tenn/financial-engine_v2/data` and llama.cpp GGUFs at `/mnt/tenn-nvme2/tenn/models`; reverify before runtime work
 - llama.cpp launcher defaults no longer force quantized KV cache; on Tesla M40, enable `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V` only after verifying the target model can load without Flash Attention errors
 - root Ollama store has been pruned to `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `.archives/ollama-root-store-2026-04-07`
 

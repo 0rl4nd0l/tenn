@@ -17,7 +17,12 @@ from typing import Any, Dict, List, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_NEWS_ARTICLES_DB = REPO_ROOT / "reports" / "qual_context" / "news_articles.sqlite"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB  # noqa: E402
+
 DEFAULT_TICKERS_FILE = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
 DEFAULT_FULL_HISTORY_SCRIPT = REPO_ROOT / "financial-engine_v2" / "scripts" / "full_history_ticker_sync.py"
 DEFAULT_FULL_HISTORY_HEALTH_JSON = REPO_ROOT / "reports" / "research_engine_health.json"
@@ -389,9 +394,17 @@ def _attach_fresh_full_history_report(
         execution["full_history_report_ignored"] = "unchanged_since_command_start"
         return
     try:
-        execution["full_history_report_payload"] = json.loads(
+        payload = json.loads(
             full_history_report.read_text(encoding="utf-8")
         )
+        execution["full_history_report_payload"] = payload
+        marketindex_summary = payload.get("marketindex_headed_recovery") or {}
+        if isinstance(marketindex_summary, dict):
+            count = int(marketindex_summary.get("requires_headed_recovery_count") or 0)
+            command = str(marketindex_summary.get("recommended_command") or "").strip()
+            execution["requires_headed_recovery_count"] = count
+            if command:
+                execution["marketindex_headed_recovery_command"] = command
     except Exception as exc:
         execution["full_history_report_load_error"] = str(exc)
 

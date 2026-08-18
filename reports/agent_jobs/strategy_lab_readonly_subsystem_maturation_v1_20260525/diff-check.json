@@ -1,0 +1,200 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-artifacts-server.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-artifacts.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-artifacts.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-review-queue-server.ts",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-review-queue.test.ts",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-review-queue.ts",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-status.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-status.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/README.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/experiment_session_envelope_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/experiment_session_envelope_v1.schema.json",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/readonly_subsystem_boundaries_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/review_packets_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/review_queue_contract_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/strategy_lab/review_queue_v1.schema.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/artifact_provenance_packet.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/cleanup_revoke_audit_packet.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/experiment_review_packet.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/repeatability_summary_packet.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/risk_summary_packet.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/artifact_consistency_scout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/provenance_ux_scout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/review_queue_scout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/runtime_boundary_scout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/validation_regression_scout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/strategy_lab/test_strategy_lab_readonly_subsystem_maturation.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_readonly_subsystem_maturation_v1_20260525.md",
+        "docs/strategy_lab/README.md",
+        "docs/strategy_lab/experiment_session_envelope_v1.md",
+        "docs/strategy_lab/experiment_session_envelope_v1.schema.json",
+        "docs/strategy_lab/readonly_subsystem_boundaries_v1.md",
+        "docs/strategy_lab/review_queue_contract_v1.md",
+        "docs/strategy_lab/review_queue_v1.schema.json",
+        "docs/strategy_lab/review_packets_v1.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/README.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/status.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/validation.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/diff-check.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/review_queue_scout.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/provenance_ux_scout.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/artifact_consistency_scout.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/validation_regression_scout.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/scouts/runtime_boundary_scout.md",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/experiment_review_packet.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/repeatability_summary_packet.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/risk_summary_packet.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/artifact_provenance_packet.json",
+        "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525/packets/cleanup_revoke_audit_packet.json",
+        "cockpit-ui/lib/strategy-lab-status.ts",
+        "cockpit-ui/lib/strategy-lab-status-server.ts",
+        "cockpit-ui/lib/strategy-lab-status.test.ts",
+        "cockpit-ui/lib/strategy-lab-artifacts.ts",
+        "cockpit-ui/lib/strategy-lab-artifacts-server.ts",
+        "cockpit-ui/lib/strategy-lab-artifacts.test.ts",
+        "cockpit-ui/lib/strategy-lab-review-queue.ts",
+        "cockpit-ui/lib/strategy-lab-review-queue-server.ts",
+        "cockpit-ui/lib/strategy-lab-review-queue.test.ts",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+        "tests/strategy_lab/test_strategy_lab_readonly_subsystem_maturation.py"
+      ],
+      "approval_required": true,
+      "job_id": "strategy_lab_readonly_subsystem_maturation_v1_20260525",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/strategy_lab_readonly_subsystem_maturation_v1_20260525",
+      "owner": "Codex",
+      "primary_lane": "Query Orchestration",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Provenance",
+        "Evaluation"
+      ],
+      "timeout_seconds": 10800,
+      "title": "Strategy Lab read-only subsystem maturation",
+      "user_approval_captured": true
+    },
+    "ok": true
+  }
+}

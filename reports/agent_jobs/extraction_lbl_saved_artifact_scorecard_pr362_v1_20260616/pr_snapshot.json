@@ -1,0 +1,39 @@
+{
+  "additions": 1448,
+  "baseRefName": "migration/clean-runtime-baseline-reconstruct-v1",
+  "changedFiles": 24,
+  "commits": [
+    {
+      "messageHeadline": "fix(extraction): preserve LBL income row refs",
+      "oid": "d16c630af158ce3e5bcb3d7180adb7d3cb23273c"
+    },
+    {
+      "messageHeadline": "docs(extraction): add LBL row-ref post-repair validation",
+      "oid": "1ef230f0133a53ad50e8613ba8dbb3e2338912db"
+    }
+  ],
+  "createdAt": "2026-06-16T11:11:16Z",
+  "deletions": 0,
+  "headRefName": "safe/extraction-lbl-income-row-ref-repair-v1-20260616",
+  "isDraft": true,
+  "mergeStateStatus": "CLEAN",
+  "mergeable": "MERGEABLE",
+  "number": 362,
+  "reviewDecision": "",
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "conclusion": "SUCCESS",
+      "name": "lint-and-test",
+      "status": "COMPLETED"
+    },
+    {
+      "conclusion": "SUCCESS",
+      "name": "scan",
+      "status": "COMPLETED"
+    }
+  ],
+  "title": "[codex] Preserve LBL income row refs",
+  "updatedAt": "2026-06-16T11:19:47Z",
+  "url": "https://github.com/0rl4nd0l/tenn/pull/362"
+}

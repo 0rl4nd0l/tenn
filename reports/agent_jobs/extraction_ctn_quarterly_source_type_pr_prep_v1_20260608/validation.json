@@ -1,0 +1,128 @@
+{
+  "job_id": "extraction_ctn_quarterly_source_type_pr_prep_v1_20260608",
+  "state": "DONE",
+  "worktree": "/home/l4nd0/tenn-ctn-quarterly-source-type-pr-v1-20260608",
+  "branch": "safe/extraction-ctn-quarterly-source-type-precedence-pr-v1-20260608",
+  "base_ref": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "d97b3a2a1e9c755b536bb862ce3b47b9e28266db",
+  "source_commit": "c7a80b8c9677950310180493d81423e8f1b816ee",
+  "cherry_pick_commit": "25a0f7b25e72fff541aea6ba6f8d8505c4f624f5",
+  "github_mutation_allowed": "draft_pr_only",
+  "duplicate_pr_check": {
+    "branch_search_result_count": 0,
+    "commit_search_result_count": 0
+  },
+  "validation": {
+    "task_card_validate": {
+      "exit_code": 0
+    },
+    "registry_read_only": {
+      "ok": true,
+      "read_only": true,
+      "lock_acquired": false,
+      "active_jobs": []
+    },
+    "focused_pytest": {
+      "exit_code": 0,
+      "summary": "19 passed, 1 warning in 0.81s"
+    },
+    "ci_followup": {
+      "initial_github_lint_and_test": {
+        "status": "completed",
+        "conclusion": "failure",
+        "details_url": "https://github.com/0rl4nd0l/tenn/actions/runs/27137884823/job/80094884451",
+        "failure": "test_source_document_classifier_preserves_valid_report_candidates expected quarterly_source_phrase but got appendix_5b_source_phrase"
+      },
+      "local_fix": {
+        "file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "summary": "Preserve legacy quarterly_source_phrase ordering for mixed quarterly/Appendix 5B classifier reason while retaining Appendix 5B and quarterly activity hits for CTN precedence."
+      },
+      "targeted_pytest_after_fix": {
+        "exit_code": 0,
+        "summary": "10 passed, 1 warning in 0.29s"
+      },
+      "expanded_local_pytest_after_fix": {
+        "exit_code": 0,
+        "summary": "203 passed, 1 warning in 2.74s",
+        "command_scope": [
+          "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+          "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py"
+        ]
+      }
+    },
+    "ctn_saved_artifact_replay": {
+      "exit_code": 0,
+      "previous_status": "failed",
+      "previous_error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "replay_status": "ok",
+      "replay_error": null,
+      "observed_gain": {
+        "documents": 1,
+        "blocked_non_null_canonical_metrics": 6,
+        "metric_names": [
+          "capex",
+          "cash_end",
+          "financing_cf",
+          "investing_cf",
+          "operating_cf",
+          "shares_outstanding"
+        ]
+      }
+    },
+    "json_validation": {
+      "exit_code": 0
+    },
+    "git_diff_check": {
+      "exit_code": 0
+    },
+    "task_card_check_diff": {
+      "exit_code": 0,
+      "disallowed_files": []
+    },
+    "forbidden_surface_audit": {
+      "status": "passed",
+      "changed_files": [
+        "docs/agent_tasks/extraction_ctn_quarterly_source_type_pr_prep_v1_20260608.md",
+        "docs/agent_tasks/extraction_ctn_quarterly_source_type_precedence_v1_20260608.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/README.md",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/validation.json",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_pr_prep_v1_20260608/README.md",
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_pr_prep_v1_20260608/validation.json"
+      ],
+      "note": "Report files are under ignored reports/ and require git add -f for preservation."
+    }
+  },
+  "pr": {
+    "status": "draft_opened",
+    "number": 331,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/331",
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/extraction-ctn-quarterly-source-type-precedence-pr-v1-20260608"
+  },
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "full ticker extraction",
+    "service routes",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "runtime/service/model/GPU config mutation",
+    "schema mutation",
+    "production data mutation",
+    "issue mutation",
+    "PR merge",
+    "ready-for-review transition"
+  ],
+  "data_missing": []
+}

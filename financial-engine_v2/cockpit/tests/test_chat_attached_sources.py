@@ -73,7 +73,7 @@ def test_keyword_chat_inlines_attached_source_context(tmp_path, monkeypatch) -> 
         else:
             os.environ["COCKPIT_AGENT_MODE"] = old_agent_mode
 
-    prompt = controller.ollama_client.chat.call_args.args[0]
+    prompt = controller.ollama_client.chat.call_args.kwargs["prompt"]
     assert "Attached source evidence provided by the user" in prompt
     assert "2018 Excavator" in prompt
     attached_evidence = [

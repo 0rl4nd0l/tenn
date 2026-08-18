@@ -1,0 +1,80 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/chat_retrieval_precision_current_base_v2_20260626.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/chat_quality_scorer.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/tests/test_chat_quality_scorer.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/PR_BODY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/VALIDATION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/chat_retrieval_precision_current_base_v2_20260626.md",
+        "financial-engine_v2/backend/app/services/chat_quality_scorer.py",
+        "financial-engine_v2/backend/app/services/tests/test_chat_quality_scorer.py",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/README.md",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/STATE.md",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/VALIDATION.md",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/status.json",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/diff-check.json",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/PR_BODY.md",
+        "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626/REVIEW.md"
+      ],
+      "approval_reference": "User requested safe issue fixing and closeout.",
+      "approval_required": true,
+      "github_mutation_allowed": "push_branch_open_pr_and_close_issue257_if_gated",
+      "job_id": "chat_retrieval_precision_current_base_v2_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/chat_retrieval_precision_current_base_v2_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

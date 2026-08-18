@@ -1,0 +1,265 @@
+{
+  "classification": "MERGED_AND_VALIDATED",
+  "pre_smoke": {
+    "news_status_http_status": 200,
+    "news_status_summary": {
+      "status": "ok",
+      "qdrant_retrieval": "ok",
+      "canonical_sqlite_projection": "missing",
+      "chat_synthesis": "DATA_MISSING"
+    },
+    "config_http_status": 200,
+    "config_summary": {
+      "runtime_target": "local",
+      "routing_policy": "api_preferred",
+      "profile": "ops",
+      "rented_gpu_configured": false
+    },
+    "openapi_cockpit_paths": {
+      "/api/cockpit/chat": [
+        "post"
+      ],
+      "/api/cockpit/chat/attachments/upload": [
+        "post"
+      ],
+      "/api/cockpit/chat/sessions": [
+        "get",
+        "post"
+      ],
+      "/api/cockpit/chat/sessions/{session_id}": [
+        "delete",
+        "get"
+      ],
+      "/api/cockpit/config": [
+        "get"
+      ],
+      "/api/cockpit/news/status": [
+        "get"
+      ]
+    },
+    "backend_started_before_restart": "2026-05-26T02:06:53.889065839Z",
+    "backend_serving_integrated_code_before_restart": false,
+    "pre_restart_strict_bhp_result": {
+      "http_status": 200,
+      "latency_seconds": 28.827,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 2,
+      "classification": "DATA_MISSING"
+    },
+    "cockpit_announcement_context_warnings": [
+      "relation cockpit_announcement_context does not exist"
+    ]
+  },
+  "restart": {
+    "performed": true,
+    "command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+    "backend_started_after_restart": "2026-05-26T02:34:30.151593406Z",
+    "health_after_restart": {
+      "route": "GET /api/health",
+      "http_status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "services_not_restarted": [
+      "fe_qdrant",
+      "fe_postgres",
+      "fe_worker",
+      "fe_gpu_worker",
+      "Next",
+      "llama-server"
+    ]
+  },
+  "smokes": [
+    {
+      "name": "strict_a2m",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "Use only local_news_context for A2M",
+        "ticker": "A2M",
+        "stream": false,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 0.82,
+      "source_coverage_status": "claim_verified",
+      "claim_verified_source_count": 4,
+      "local_news_context_count": 4,
+      "claim_verified_local_news_count": 4,
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "retrieved_local_news_in_source_pack": true,
+      "final_text_aligns_with_local_news_context": true,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": false,
+      "degraded_runtime_schema_warnings": null,
+      "classification": "PASS"
+    },
+    {
+      "name": "strict_bhp",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "Use only local_news_context for BHP",
+        "ticker": "BHP",
+        "stream": false,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 0.877,
+      "source_coverage_status": "claim_verified",
+      "claim_verified_source_count": 5,
+      "local_news_context_count": 5,
+      "claim_verified_local_news_count": 5,
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "retrieved_local_news_in_source_pack": true,
+      "final_text_aligns_with_local_news_context": true,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": false,
+      "degraded_runtime_schema_warnings": null,
+      "classification": "PASS"
+    },
+    {
+      "name": "strict_csl",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "Use only local_news_context for CSL",
+        "ticker": "CSL",
+        "stream": false,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 0.945,
+      "source_coverage_status": "claim_verified",
+      "claim_verified_source_count": 5,
+      "local_news_context_count": 5,
+      "claim_verified_local_news_count": 5,
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "retrieved_local_news_in_source_pack": true,
+      "final_text_aligns_with_local_news_context": true,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": false,
+      "degraded_runtime_schema_warnings": null,
+      "classification": "PASS"
+    },
+    {
+      "name": "strict_coh_control",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "Use only local_news_context for COH",
+        "ticker": "COH",
+        "stream": false,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 1.173,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 0,
+      "claim_verified_local_news_count": 0,
+      "source_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace"
+      ],
+      "source_kinds": [
+        "context"
+      ],
+      "retrieved_local_news_in_source_pack": false,
+      "final_text_aligns_with_local_news_context": false,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": true,
+      "degraded_runtime_schema_warnings": null,
+      "classification": "DATA_MISSING"
+    },
+    {
+      "name": "direct_bhp_news",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "news for BHP",
+        "ticker": "BHP",
+        "stream": false,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 0.343,
+      "source_coverage_status": "claim_verified",
+      "claim_verified_source_count": 5,
+      "local_news_context_count": null,
+      "claim_verified_local_news_count": null,
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "retrieved_local_news_in_source_pack": true,
+      "final_text_aligns_with_local_news_context": true,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": false,
+      "degraded_runtime_schema_warnings": null,
+      "classification": "PASS"
+    },
+    {
+      "name": "sse_strict_bhp",
+      "route": "POST /api/cockpit/chat",
+      "request_body": {
+        "message": "Use only local_news_context for BHP",
+        "ticker": "BHP",
+        "stream": true,
+        "rag": true,
+        "web_search": false,
+        "stateless_smoke": true
+      },
+      "http_status": 200,
+      "latency_seconds": 0.351,
+      "source_coverage_status": "claim_verified",
+      "claim_verified_source_count": 5,
+      "local_news_context_count": 5,
+      "claim_verified_local_news_count": 5,
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "retrieved_local_news_in_source_pack": true,
+      "final_text_aligns_with_local_news_context": true,
+      "documents_filings_price_context_separate": true,
+      "guarded_data_missing": false,
+      "degraded_runtime_schema_warnings": null,
+      "sse_event_count": 6,
+      "classification": "PASS"
+    }
+  ],
+  "overall": "passed"
+}

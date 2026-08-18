@@ -1,0 +1,220 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/a2m_news_projection_path_discovery_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/eval_spine_normalizer_usage_followup_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/memory_fanout_suppression_quarantine_design_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/recent_news_positive_claim_verified_fixture_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/trust_foundation_next_phase_longrun_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_build_ui_sources.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/no_mutation_attestation.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/read_only_checks.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/metric_expectations.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/normalized_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/scorecards.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/fanout_suppression_design.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/reporting/README.md",
+      "status": "A"
+    },
+    {
+      "path": "scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/trust_foundation_next_phase_longrun_v1_20260524.md",
+        "docs/agent_tasks/recent_news_positive_claim_verified_fixture_v1_20260524.md",
+        "docs/agent_tasks/memory_fanout_suppression_quarantine_design_v1_20260524.md",
+        "docs/agent_tasks/a2m_news_projection_path_discovery_v1_20260524.md",
+        "docs/agent_tasks/eval_spine_normalizer_usage_followup_v1_20260524.md",
+        "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/README.md",
+        "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/status.json",
+        "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/preflight.json",
+        "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/validation.json",
+        "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524/diff-check.json",
+        "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/README.md",
+        "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/status.json",
+        "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/validation.json",
+        "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/diff-check.json",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/README.md",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/status.json",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/fanout_suppression_design.md",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.json",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.csv",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/validation.json",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/diff-check.json",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/README.md",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/status.json",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.json",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.csv",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/read_only_checks.json",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/validation.json",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/no_mutation_attestation.md",
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/diff-check.json",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/README.md",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/status.json",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/normalized_manifest.json",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/scorecards.csv",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/metric_expectations.csv",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/validation.json",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/diff-check.json",
+        "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+        "financial-engine_v2/backend/tests/test_build_ui_sources.py",
+        "scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py",
+        "scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+        "scripts/reporting/README.md"
+      ],
+      "approval_required": false,
+      "job_id": "trust_foundation_next_phase_longrun_v1_20260524",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/trust_foundation_next_phase_longrun_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 21600
+    },
+    "ok": true
+  }
+}

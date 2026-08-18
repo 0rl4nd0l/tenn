@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/strategy_lab/review_queue_v1.schema.json",
+  "title": "Strategy Lab Review Queue v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source_mode",
+    "review_status",
+    "current_sidecar_available",
+    "execution_allowed",
+    "canonical_financial_truth",
+    "real_transport",
+    "review_queue"
+  ],
+  "properties": {
+    "schema_version": {"const": "strategy_lab_review_queue_v1"},
+    "source_mode": {"const": "repo_artifacts_only"},
+    "review_status": {"const": "PENDING_REVIEW"},
+    "current_sidecar_available": {"const": false},
+    "execution_allowed": {"const": false},
+    "canonical_financial_truth": {"const": false},
+    "real_transport": {"const": false},
+    "review_queue": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "group",
+          "source_path",
+          "source_label",
+          "provenance_label",
+          "priority",
+          "sort_key",
+          "filter_tags",
+          "review_status",
+          "decision_state",
+          "availability",
+          "promotion_blockers",
+          "unresolved_risks",
+          "data_missing"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "group": {
+            "enum": [
+              "repeatability_artifacts",
+              "transport_contract_artifacts",
+              "runtime_proof_artifacts",
+              "degraded_state_artifacts",
+              "cleanup_revoke_proof",
+              "review_decisions",
+              "promotion_blockers",
+              "unresolved_risks"
+            ]
+          },
+          "source_path": {"type": "string", "minLength": 1},
+          "source_label": {"type": "string", "minLength": 1},
+          "provenance_label": {"type": "string", "minLength": 1},
+          "priority": {"enum": ["P0", "P1", "P2", "P3"]},
+          "sort_key": {"type": "string", "minLength": 1},
+          "filter_tags": {"type": "array", "items": {"type": "string"}},
+          "review_status": {"enum": ["PENDING_REVIEW", "BLOCKED", "DATA_MISSING"]},
+          "decision_state": {"enum": ["PENDING_REVIEW", "PROMOTION_BLOCKED", "DATA_MISSING"]},
+          "availability": {"enum": ["available", "missing"]},
+          "promotion_blockers": {"type": "array", "items": {"type": "string"}},
+          "unresolved_risks": {"type": "array", "items": {"type": "string"}},
+          "data_missing": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

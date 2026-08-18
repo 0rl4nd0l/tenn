@@ -1,0 +1,65 @@
+[
+  {
+    "closed_issues": 0,
+    "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+    "due_on": null,
+    "number": 1,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M0 — Control Plane Hardening"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Evidence, source provenance, trust boundaries, and DATA_MISSING discipline.",
+    "due_on": null,
+    "number": 2,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M1 — Trust / Provenance Foundation"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Evaluation harnesses, baselines, drift checks, and validation coverage.",
+    "due_on": null,
+    "number": 3,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M2 — Evaluation Spine"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+    "due_on": null,
+    "number": 4,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M3 — Query + Memory Integrity"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Canonical financial truth, parser coverage, and numeric evidence expansion.",
+    "due_on": null,
+    "number": 5,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M4 — Financial Truth Expansion"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+    "due_on": null,
+    "number": 6,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M5 — Cockpit Analyst Workflow"
+  },
+  {
+    "closed_issues": 0,
+    "description": "Runtime services, local automation, schedulers, and operational readiness.",
+    "due_on": null,
+    "number": 7,
+    "open_issues": 0,
+    "state": "open",
+    "title": "M6 — Runtime / Local Automation"
+  }
+]

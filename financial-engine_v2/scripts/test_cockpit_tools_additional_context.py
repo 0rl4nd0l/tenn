@@ -88,6 +88,61 @@ class _FileIndexerStub:
 class _BackendApiStub:
     RANGE_POINTS = {"3mo": 70, "1y": 260, "3y": 780, "5y": 1260, "10y": 2520}
 
+    def get_ticker_context(  # noqa: ARG002
+        self,
+        ticker: str,
+        docs_limit: int = 10,
+        financials_limit: int = 5,
+        announcements_limit: int = 10,
+        failures_limit: int = 8,
+        low_confidence_threshold: float = 0.4,
+        low_confidence_limit: int = 8,
+    ):
+        return {
+            "docs": [
+                {
+                    "document_id": "doc-1",
+                    "ticker": ticker,
+                    "published_at": "2026-02-18 00:00:00.000000",
+                    "title": f"{ticker} Interim Results",
+                    "source_url": "https://www.asx.com.au/markets/announcements",
+                    "pdf_path": "",
+                }
+            ],
+            "announcement_context": [],
+            "financials": [
+                {
+                    "ticker": ticker,
+                    "period_end": "2025-12-31",
+                    "period_type": "HY",
+                    "revenue": 1000.0,
+                    "ebit": 220.0,
+                    "np_attributable": 130.0,
+                }
+            ],
+            "extraction_failures": [
+                {
+                    "ticker": ticker,
+                    "published_at": "2026-02-18",
+                    "title": f"{ticker} Interim Results",
+                    "status": "failed",
+                    "error": "parse error",
+                    "created_at": "2026-02-18T02:00:00Z",
+                    "document_id": "doc-1",
+                }
+            ],
+            "low_confidence_financials": [
+                {
+                    "ticker": ticker,
+                    "period_end": "2025-12-31",
+                    "period_type": "HY",
+                    "confidence_metrics": 0.21,
+                    "source_document_id": "doc-1",
+                }
+            ],
+            "errors": [],
+        }
+
     def get_price(
         self,
         ticker: str,
@@ -388,6 +443,154 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
                     if isinstance(row, dict)
                 )
             )
+
+    def test_get_news_context_uses_sqlite_path_fallback_when_reader_absent(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news.sqlite"
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    """
+                    CREATE TABLE context_chunks (
+                        chunk_id TEXT PRIMARY KEY,
+                        corpus TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        published_at TEXT NOT NULL,
+                        doc_date TEXT NOT NULL,
+                        ticker TEXT NOT NULL,
+                        company TEXT NOT NULL
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO context_chunks(
+                        chunk_id, corpus, title, text, source, url, published_at, doc_date, ticker, company
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "news_newspaper4k:art_bhp_direct:0",
+                        "news_newspaper4k",
+                        "BHP guidance update",
+                        "BHP issued an updated production and guidance outlook.",
+                        "afr.com",
+                        "https://example.com/bhp-direct",
+                        "2026-03-04T01:00:00Z",
+                        "2026-03-04",
+                        "|BHP|",
+                        "BHP",
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            router = self._router(
+                company_reader=None,
+                news_reader=None,
+                news_context_db_path=db_path,
+                news_context_corpus_filter="news",
+            )
+            payload = router.get_news_context(
+                "latest BHP guidance update", top_k=3, ticker="BHP"
+            )
+
+            self.assertTrue(payload.get("ok"))
+            self.assertEqual(payload.get("_source"), "sqlite_fallback")
+            hits = payload.get("hits", [])
+            self.assertEqual(len(hits), 1)
+            self.assertEqual(hits[0].get("title"), "BHP guidance update")
+
+    def test_get_news_context_sqlite_path_fallback_honors_date_bounds(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news.sqlite"
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    """
+                    CREATE TABLE context_chunks (
+                        chunk_id TEXT PRIMARY KEY,
+                        corpus TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        published_at TEXT NOT NULL,
+                        doc_date TEXT NOT NULL,
+                        ticker TEXT NOT NULL,
+                        company TEXT NOT NULL
+                    )
+                    """
+                )
+                conn.executemany(
+                    """
+                    INSERT INTO context_chunks(
+                        chunk_id, corpus, title, text, source, url, published_at, doc_date, ticker, company
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            "news_newspaper4k:art_bhp_old:0",
+                            "news_newspaper4k",
+                            "BHP January update",
+                            "Older BHP news outside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-old",
+                            "2026-01-15T01:00:00Z",
+                            "2026-01-15",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                        (
+                            "news_newspaper4k:art_bhp_march:0",
+                            "news_newspaper4k",
+                            "BHP March guidance update",
+                            "BHP guidance update inside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-march",
+                            "2026-03-04T01:00:00Z",
+                            "2026-03-04",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                        (
+                            "news_newspaper4k:art_bhp_april:0",
+                            "news_newspaper4k",
+                            "BHP April update",
+                            "Future BHP news outside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-april",
+                            "2026-04-02T01:00:00Z",
+                            "2026-04-02",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                    ],
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            router = self._router(
+                company_reader=None,
+                news_reader=None,
+                news_context_db_path=db_path,
+                news_context_corpus_filter="news",
+            )
+            payload = router.get_news_context(
+                "BHP guidance",
+                top_k=5,
+                ticker="BHP",
+                date_from="2026-03-01",
+                date_to="2026-03-31",
+            )
+
+            self.assertTrue(payload.get("ok"))
+            hits = payload.get("hits", [])
+            self.assertEqual([hit.get("title") for hit in hits], ["BHP March guidance update"])
 
     def test_news_sqlite_fallback_ranks_primary_company_above_broad_sector_mention(
         self,

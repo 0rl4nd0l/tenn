@@ -1,0 +1,17 @@
+{
+  "branch": "safe/extraction-lbl-income-row-ref-repair-v1-20260616",
+  "canonical_base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "forbidden_mutation": false,
+  "github_mutation": false,
+  "head": "1ef230f0133a53ad50e8613ba8dbb3e2338912db",
+  "job_id": "extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+  "mutation_mode": "audit_only",
+  "output_dir": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+  "primary_decision": "READY_FOR_REVIEW_MERGE",
+  "pr_number": 362,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/362",
+  "registry_active_jobs": [],
+  "saved_artifact_scorecard_status": "passed",
+  "status": "DONE",
+  "worktree": "/home/l4nd0/tenn-lbl-income-row-ref-repair-v1-20260616"
+}

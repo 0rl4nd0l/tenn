@@ -30,8 +30,10 @@ from news_pipeline.cli_common import (  # noqa: E402
     add_common_gdelt_args,
     add_common_provider_args,
     build_provider,
+    describe_news_artifact_paths,
     gdelt_kwargs_from_args,
     load_tickers,
+    newspaper4k_kwargs_from_args,
     parse_provider_list,
     parse_ticker_list,
     resolve_path,
@@ -213,6 +215,7 @@ def main(argv: List[str] | None = None) -> int:
         or str(os.getenv("EODHD_API_KEY") or "").strip()
     )
     gdelt_kwargs = gdelt_kwargs_from_args(args)
+    newspaper4k_kwargs = newspaper4k_kwargs_from_args(args)
 
     explicit_tickers = parse_ticker_list(args.tickers)
     if bool(args.asx_wide):
@@ -291,6 +294,7 @@ def main(argv: List[str] | None = None) -> int:
                             ),
                             worldmonitor_capture_path=worldmonitor_capture_path,
                             gdelt_kwargs=gdelt_kwargs,
+                            newspaper4k_kwargs=newspaper4k_kwargs,
                         )
                     except Exception as exc:
                         log.warning(
@@ -351,6 +355,11 @@ def main(argv: List[str] | None = None) -> int:
         "mode": "daily",
         "incremental_fetch": bool(args.incremental_fetch),
         "skip_gdelt_doc_api": bool(args.skip_gdelt_doc_api),
+        "paths": describe_news_artifact_paths(
+            news_articles_db=news_articles_db,
+            news_context_db=resolve_path(str(DEFAULT_NEWS_CONTEXT_DB)),
+            news_runs_root=runs_root,
+        ),
         "news_articles_db": str(news_articles_db),
         "providers": providers,
         "runs": runs,

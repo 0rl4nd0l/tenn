@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+  "generated_at": "2026-05-25T14:03:15+10:00",
+  "no_mutation_performed": true,
+  "gaps": [
+    {
+      "id": "a2m-qdrant-retrieval",
+      "category": "qdrant_retrieval",
+      "status_label": "ok",
+      "classification": "Confirmed",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_readonly_smoke_matrix.json",
+      "user_visible": true,
+      "required_reporting_behavior": "Report Qdrant-backed news retrieval health separately from SQLite projection health."
+    },
+    {
+      "id": "a2m-canonical-sqlite-projection",
+      "category": "canonical_sqlite_projection",
+      "status_label": "missing",
+      "classification": "Confirmed",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_readonly_smoke_matrix.json",
+      "user_visible": false,
+      "required_reporting_behavior": "Report the canonical NVMe projection as missing without implying Qdrant retrieval is missing."
+    },
+    {
+      "id": "a2m-legacy-sqlite-provenance",
+      "category": "legacy_sqlite_projection",
+      "status_label": "evidence_present_not_current_consumer",
+      "classification": "Confirmed",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json",
+      "user_visible": false,
+      "required_reporting_behavior": "Treat /mnt/sdb2 SQLite as provenance only; do not copy, symlink, or present it as canonical."
+    },
+    {
+      "id": "a2m-cockpit-query-route",
+      "category": "cockpit_query_route",
+      "status_label": "ok_via_rag_query",
+      "classification": "Confirmed",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+      "user_visible": true,
+      "required_reporting_behavior": "Report Cockpit query reachability through /rag/query separately from missing Cockpit status endpoints."
+    },
+    {
+      "id": "a2m-cockpit-status-routes",
+      "category": "cockpit_status_routes",
+      "status_label": "missing_404",
+      "classification": "Confirmed",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+      "user_visible": "DATA_MISSING",
+      "required_reporting_behavior": "Do not rely on /api/cockpit/news/status or /api/cockpit/status until a separate route implementation task creates them."
+    },
+    {
+      "id": "a2m-chat-synthesis",
+      "category": "chat_synthesis",
+      "status_label": "DATA_MISSING",
+      "classification": "DATA_MISSING",
+      "evidence_source": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+      "user_visible": "DATA_MISSING",
+      "required_reporting_behavior": "Do not claim live chat synthesis can answer A2M until a separate safe smoke proves it without write side effects."
+    },
+    {
+      "id": "a2m-projection-repair",
+      "category": "projection_repair",
+      "status_label": "not_run",
+      "classification": "Confirmed",
+      "evidence_source": "this report-only child task",
+      "user_visible": false,
+      "required_reporting_behavior": "Do not imply projection repair, rebuild, resync, ingestion, or DB/Qdrant mutation occurred."
+    }
+  ]
+}

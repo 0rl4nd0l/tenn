@@ -1,0 +1,49 @@
+{
+  "result": {
+    "changes_summary": [
+      "Openability cache reuse now requires cached diagnostic_pages to match the requested page set; mismatched or malformed page metadata is rebuilt.",
+      "Synthetic openability selected tables now ignore OCR records whose period_phrases payload is not a list, matching the existing period source-text guard.",
+      "Added regression coverage for both conditions using mocked/local fixtures only."
+    ],
+    "deferred": [
+      "No canonical extraction changes beyond the existing PR #343 sidecar stack.",
+      "No PR #340 closeout; superseding remains an explicit operator decision."
+    ],
+    "test_suggestion": "After push, wait for GitHub lint-and-test and Sloppy Scan/scan on PR #343 to complete before merge."
+  },
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Only the two code-review warnings are in scope.",
+      "PR #343 may be updated; PR #340 must not be closed or merged.",
+      "Openability diagnostics remain provenance-sidecar and must not change canonical output by default."
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/docling_extract.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/docling_extract.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "sources_used": [
+      "code-reviewer warnings from prior pass",
+      "docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+      "existing WHC openability tests in tests/test_docling_extract.py and tests/test_multipass_extraction.py"
+    ],
+    "validation_checks": [
+      "focused new pytest cases: 2 passed",
+      "modified test files: 219 passed",
+      "py_compile: passed",
+      "ruff check: passed",
+      "task-card validate: passed",
+      "registry/list-active --read-only: ok, active_jobs=[]",
+      "git diff --check: passed",
+      "task-card check-diff: passed"
+    ]
+  }
+}

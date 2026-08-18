@@ -1,0 +1,79 @@
+/bin/bash: line 1: pytest: command not found
+--- retry with uv run
+warning: Ignoring `--extra-index-url` from requirements file: `https://download.pytorch.org/whl/cu118`. Instead, use the `--extra-index-url` command-line argument, or set `extra-index-url` in a `uv.toml` or `pyproject.toml` file.`
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_pass3a_expands_lbl_income_combined_metric_name_row_refs _________
+
+    def test_pass3a_expands_lbl_income_combined_metric_name_row_refs():
+        """LBL-style presentation tables must preserve per-metric source row labels."""
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _extract_single_table
+    
+        table = DoclingTable(
+            page_number=21,
+            caption="Income statement",
+            headers=["A$000", "FY22", "FY23", "FY24", "FY25", "1HFY26"],
+            rows=[
+                ["A$000", "FY22", "FY23", "FY24", "FY25", "1HFY26"],
+                ["Sales Revenue", "30,711.1", "38,612.4", "41,983.6", "43,475.6", "23,008.9"],
+                ["Grossprofit only", "16,701.2", "20,463.0", "21,642.0", "22,786.9", "12,350.3"],
+                ["OperatingExpenses", "(8,024.8)", "(10,266.1)", "(12,192.1)", "(13,778.3)", "(7,161.9)"],
+                ["EBITDA use", "8,676.4", "10,196.9", "9,449.7", "9,008.6", "5,188.4"],
+                ["D&A", "(2,902.2)", "(3,267.6)", "(3,494.7)", "(3,196.4)", "(1,520.7)"],
+                ["EBIT", "5,774.2", "6,929.3", "5,985.8", "5,812.2", "213,677.7"],
+                ["Interest", "(442.8)", "(562.2)", "(790.2)", "(824.7)", "(394.5)"],
+                ["NPBT personal", "5,331.4", "6,367.1", "5,164.8", "4,987.4", "3,273.2"],
+                ["NPAT For", "3,628.8", "4,758.5", "3,482.3", "3,844.8", "2,215.9"],
+            ],
+        )
+        raw_response = {
+            "metrics": {
+                "revenue": 230_089,
+                "ebit": 213_677,
+                "np_attributable": 22_159,
+            },
+            "row_refs": {
+                "metric_name": "Sales Revenue,EBIT,NPAT For",
+            },
+            "pass3_confidence": 0.9,
+        }
+    
+        with patch(
+            "app.services.multipass_extraction._llm_json_call",
+            return_value=raw_response,
+        ):
+            result = _extract_single_table(
+                "income_statement",
+                table,
+                {
+                    "report_type": "H",
+                    "period_end": "2025-12-31",
+                    "currency": "AUD",
+                },
+                "unknown",
+                1,
+                llm_client=None,
+            )
+    
+        assert result is not None
+        assert result["revenue"] == 230_089_000
+        assert result["ebit"] == 213_677_000
+        assert result["np_attributable"] == 22_159_000
+>       assert result["row_refs"] == {
+            "revenue": "Sales Revenue",
+            "ebit": "EBIT",
+            "np_attributable": "NPAT For",
+            "metric_name": "Sales Revenue,EBIT,NPAT For",
+        }
+E       AssertionError: assert {'metric_name...BIT,NPAT For'} == {'revenue': '...BIT,NPAT For'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Right contains 3 more items:
+E         {'ebit': 'EBIT', 'np_attributable': 'NPAT For', 'revenue': 'Sales Revenue'}
+E         Use -v to get more diff
+
+financial-engine_v2/backend/tests/test_multipass_extraction.py:2865: AssertionError
+=========================== short test summary info ============================
+FAILED financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_lbl_income_combined_metric_name_row_refs
+1 failed in 0.65s

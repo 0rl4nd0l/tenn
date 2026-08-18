@@ -1,0 +1,337 @@
+{
+  "artifact_type": "approved_15_failure_classes_current_canonical_v1",
+  "blocking_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_expected_metric": 5,
+    "not_evaluated_no_actual_payload": 18,
+    "present_wrong_value": 2
+  },
+  "gate_decision": "blocked",
+  "gate_status": "fail",
+  "ranked_fixture_classes": [
+    {
+      "count": 10,
+      "fixture": "ANZ_H_2025-03-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "AZJ_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "CSL_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "FMG_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "TCL_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "TLS_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 10,
+      "fixture": "WOW_H_2026-01-04.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 9,
+      "fixture": "BHP_A_2021-06-30.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 9,
+      "fixture": "DXS_H_2025-12-31.json",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 9,
+      "fixture": "EQR_Q_2025-12-31.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 9,
+      "fixture": "GRE_Q_2024-12-31.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 9,
+      "fixture": "MIN_H_2025-12-31.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 9,
+      "fixture": "QBE_H_2025-06-30.json",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 6,
+      "fixture": "RMS_H_2025-12-31.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 6,
+      "fixture": "SEG_H_2025-12-31.json",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 4,
+      "fixture": "RMS_H_2025-12-31.json",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "fixture": "BHP_A_2021-06-30.json",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "count": 1,
+      "fixture": "DXS_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 1,
+      "fixture": "MIN_H_2025-12-31.json",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "count": 1,
+      "fixture": "QBE_H_2025-06-30.json",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 1,
+      "fixture": "SEG_H_2025-12-31.json",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "fixture": "SEG_H_2025-12-31.json",
+      "result_class": "ambiguous_quarantined"
+    }
+  ],
+  "ranked_metric_classes": [
+    {
+      "count": 10,
+      "metric_name": "net_debt",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "revenue",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "ebit",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "np_attributable",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "operating_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "investing_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "financing_cf",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "capex",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "cash_end",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 7,
+      "metric_name": "shares_outstanding",
+      "result_class": "ambiguous_quarantined"
+    },
+    {
+      "count": 6,
+      "metric_name": "revenue",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 6,
+      "metric_name": "cash_end",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "ebit",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "operating_cf",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "investing_cf",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "financing_cf",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "shares_outstanding",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 5,
+      "metric_name": "net_debt",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 4,
+      "metric_name": "np_attributable",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 2,
+      "metric_name": "np_attributable",
+      "result_class": "present_wrong_value"
+    },
+    {
+      "count": 2,
+      "metric_name": "capex",
+      "result_class": "present_correct"
+    },
+    {
+      "count": 2,
+      "metric_name": "revenue",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "ebit",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "np_attributable",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "operating_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "investing_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "financing_cf",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "capex",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "cash_end",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 2,
+      "metric_name": "shares_outstanding",
+      "result_class": "not_evaluated_no_actual_payload"
+    },
+    {
+      "count": 1,
+      "metric_name": "operating_cf",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "metric_name": "investing_cf",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "metric_name": "financing_cf",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "metric_name": "capex",
+      "result_class": "missing_expected_metric"
+    },
+    {
+      "count": 1,
+      "metric_name": "shares_outstanding",
+      "result_class": "missing_expected_metric"
+    }
+  ],
+  "replay_summary": {
+    "accepted_case_ids": [
+      "AZJ_H_2025-12-31",
+      "BHP_A_2021-06-30",
+      "EQR_Q_2025-12-31",
+      "FMG_H_2025-12-31",
+      "GRE_Q_2024-12-31",
+      "MIN_H_2025-12-31",
+      "RMS_H_2025-12-31",
+      "SEG_H_2025-12-31",
+      "TCL_H_2025-12-31",
+      "TLS_H_2025-12-31",
+      "WOW_H_2026-01-04"
+    ],
+    "accepted_payload_count": 11,
+    "fail_closed_case_ids": [
+      "ANZ_H_2025-03-31",
+      "CSL_H_2025-12-31",
+      "DXS_H_2025-12-31",
+      "QBE_H_2025-06-30"
+    ],
+    "fail_closed_error_summary": {
+      "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high": 3,
+      "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale": 1
+    },
+    "fail_closed_payload_count": 4,
+    "failed_case_ids": [],
+    "failed_payload_count": 0
+  },
+  "scorecard_result_class_summary": {
+    "ambiguous_quarantined": 73,
+    "missing_expected_metric": 5,
+    "not_evaluated_no_actual_payload": 18,
+    "present_correct": 48,
+    "present_wrong_value": 2
+  },
+  "source_proven_fix_candidate_rule": "Only blocker rows with source_exists=true, support_status=scored, replay fail-closed or present_wrong_value/missing_expected_metric, and a PDF/source row proving the extractor is wrong can justify one code fix."
+}

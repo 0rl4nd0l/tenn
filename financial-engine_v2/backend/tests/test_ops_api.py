@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import pytest
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
+from app.api import routes
+from app.core import config
 from app.routes import ops_api
 from app.services.job_tracker import JobTracker, init_tracker
 from app.services.ops_store import OpsStore
@@ -34,6 +37,72 @@ def client(tmp_path, monkeypatch):
 
     with TestClient(app) as c:
         yield c, tracker
+
+
+def _ops_route(path: str, method: str) -> APIRoute:
+    for candidate in ops_api.router.routes:
+        if (
+            isinstance(candidate, APIRoute)
+            and candidate.path == path
+            and method in candidate.methods
+        ):
+            return candidate
+    raise AssertionError(f"route not found: {method} {path}")
+
+
+def _has_api_key_dependency(route: APIRoute) -> bool:
+    return any(
+        dependency.call is routes.require_api_key
+        for dependency in route.dependant.dependencies
+    )
+
+
+# ── API-key guard coverage ─────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("path", "method"),
+    [
+        ("/jobs", "GET"),
+        ("/jobs/active", "GET"),
+        ("/jobs/{job_id}", "GET"),
+        ("/jobs/{job_id}/events", "GET"),
+        ("/jobs/{job_id}/artifacts", "GET"),
+        ("/stream", "GET"),
+    ],
+)
+def test_ops_read_routes_register_api_key_dependency(path, method):
+    assert _has_api_key_dependency(_ops_route(path, method))
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_ops_read_routes_reject_missing_or_wrong_key_when_configured(
+    client,
+    monkeypatch,
+    headers,
+):
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    c, _ = client
+
+    resp = c.get("/api/ops/jobs", headers=headers)
+
+    assert resp.status_code == 401
+    assert resp.json() == {"detail": "Invalid or missing API key"}
+
+
+def test_ops_read_routes_accept_matching_key_when_configured(client, monkeypatch):
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    c, tracker = client
+    tracker.create_job(
+        job_type="extraction",
+        job_family="pipeline",
+        title="Guarded read",
+    )
+
+    resp = c.get("/api/ops/jobs", headers={"X-API-Key": "local-secret"})
+
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
 
 
 # ── GET /api/ops/jobs ──────────────────────────────────────────────────────

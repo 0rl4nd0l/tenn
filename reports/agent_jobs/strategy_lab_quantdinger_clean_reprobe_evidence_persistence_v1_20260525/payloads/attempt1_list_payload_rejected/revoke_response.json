@@ -1,0 +1,24 @@
+{
+  "duration_seconds": 0.003,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "DELETE",
+    "params": {},
+    "path": "/api/agent/v1/admin/tokens/1",
+    "url": "http://127.0.0.1:15080/api/agent/v1/admin/tokens/1"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": {
+        "id": 1,
+        "status": "revoked"
+      },
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}

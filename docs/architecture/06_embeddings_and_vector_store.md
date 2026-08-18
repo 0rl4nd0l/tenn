@@ -30,7 +30,23 @@ and then executed through an OpenAI-compatible `/v1/embeddings` API path.
 - collection distance: cosine
 - vector dimension must match the active collection schema
 - payload validation remains strict for `asx_docs`
-- vector IDs remain deterministic under the broader system contract
+- logical vector IDs remain deterministic under the broader system contract
+- physical Qdrant point IDs may be deterministic UUIDv5 storage mappings of
+  logical vector IDs
+
+The SQLite prohibition for this layer means: do not use SQLite as a vector
+store, canonical financial-truth store, embedding cache of record, or hidden
+runtime retrieval fallback. It does not ban explicitly documented SQLite-backed
+qualitative memory, operational state, feedback, or news-projection stores; see
+`22_memory_ownership_map.md`.
+
+Logical vector/chunk IDs must be deterministic `document_id:chunk_index`
+strings and must be preserved in Qdrant payloads as `logical_vector_id`.
+The backend Qdrant adapter may convert that logical ID to a deterministic UUIDv5
+physical point ID for storage. Random UUIDs and UUIDv4 remain forbidden for
+vector/chunk identity.
+Operational/task/session IDs are outside the vector ID contract, provided they
+do not become vector IDs, canonical financial IDs, or reproducibility keys.
 
 ## Runtime guards
 

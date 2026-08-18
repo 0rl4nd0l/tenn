@@ -1,0 +1,88 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/eval_source_assets/README.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/eval_source_assets/confirmed_metric_coverage_source_assets.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/source_asset_resolution_sample.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/eval_source_assets/README.md",
+        "financial-engine_v2/backend/tests/eval_source_assets/confirmed_metric_coverage_source_assets.json",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/README.md",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/status.json",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/source_asset_resolution_sample.json",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/validation.json",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/diff-check.json"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/eval_source_assets/**",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/**"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "issue_comment_only",
+      "job_id": "extraction_source_asset_manifest_metadata_safe_extension_v1_20260526",
+      "lane": "Provenance",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 99,
+      "supporting_lanes": [
+        "Evaluation",
+        "Financial Truth"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

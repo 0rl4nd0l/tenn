@@ -18,8 +18,10 @@ from news_pipeline.cli_common import (  # noqa: E402
     add_common_gdelt_args,
     add_common_provider_args,
     build_provider,
+    describe_news_artifact_paths,
     gdelt_kwargs_from_args,
     load_tickers,
+    newspaper4k_kwargs_from_args,
     parse_ticker_list,
     parse_provider_list,
     provider_settings,
@@ -40,6 +42,16 @@ def _install_termination_handlers() -> None:
         signum = getattr(signal, name, None)
         if signum is not None:
             signal.signal(signum, _raise_on_termination)
+
+
+def _jsonable_mapping(raw: dict[str, object]) -> dict[str, object]:
+    out: dict[str, object] = {}
+    for key, value in raw.items():
+        if isinstance(value, Path):
+            out[key] = str(value)
+        else:
+            out[key] = value
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -82,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     runs_root = resolve_path(args.news_runs_root)
     eodhd_key = str(args.eodhd_api_key or "").strip() or str(os.getenv("EODHD_API_KEY") or "").strip()
     gdelt_kwargs = gdelt_kwargs_from_args(args)
+    newspaper4k_kwargs = newspaper4k_kwargs_from_args(args)
 
     explicit_tickers = parse_ticker_list(args.tickers)
     asx_wide = bool(args.asx_wide)
@@ -95,17 +108,25 @@ def main(argv: list[str] | None = None) -> int:
         print("No tickers resolved for ingest.", file=sys.stderr)
         return 2
     if bool(args.dry_run):
+        provider_options: dict[str, object] = {}
+        if "newspaper4k" in providers:
+            provider_options["newspaper4k"] = _jsonable_mapping(newspaper4k_kwargs)
         payload = {
             "dry_run": True,
             "mode": "daily",
             "providers": providers,
             "since_hours": int(args.since_hours),
             "lane": str(args.lane),
+            "paths": describe_news_artifact_paths(
+                news_articles_db=news_articles_db,
+                news_runs_root=runs_root,
+            ),
             "news_articles_db": str(news_articles_db),
             "news_runs_root": str(runs_root),
             "asx_wide": asx_wide,
             "tickers_count": len(tickers),
             "tickers_sample": tickers[:20],
+            "provider_options": provider_options,
         }
         print(json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True))
         return 0
@@ -147,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
                     worldmonitor_capture_path=worldmonitor_capture_path,
                     worldmonitor_theater_map_path=worldmonitor_theater_map_path,
                     gdelt_kwargs=gdelt_kwargs,
+                    newspaper4k_kwargs=newspaper4k_kwargs,
                 )
                 cfg = provider_settings(provider)
                 capture_policy = cfg.get("capture_policy") if isinstance(cfg, dict) else None
@@ -187,6 +209,10 @@ def main(argv: list[str] | None = None) -> int:
 
         payload = {
             "mode": "daily",
+            "paths": describe_news_artifact_paths(
+                news_articles_db=news_articles_db,
+                news_runs_root=runs_root,
+            ),
             "news_articles_db": str(news_articles_db),
             "providers": providers,
             "runs": runs,

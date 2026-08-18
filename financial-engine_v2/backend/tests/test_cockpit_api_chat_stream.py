@@ -4,14 +4,17 @@ import asyncio
 import json
 import sys
 import threading
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from app.services.memory_events import emit_memory_read_event, suppress_memory_read_events
@@ -279,6 +282,427 @@ def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
     ]
 
 
+def test_cockpit_chat_local_news_only_accepts_verified_news_shortcircuit_prompts(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "Recent BHP-linked news:\n"
+                    "- BHP local news update\n"
+                    "  published: 2026-05-24"
+                ),
+                evidence=[
+                    {
+                        "type": "news_search",
+                        "details": {
+                            "ticker": "BHP",
+                            "hits": [
+                                {
+                                    "title": "BHP local news update",
+                                    "source_id": "news:bhp-local-news",
+                                    "url": "https://news.example.com/bhp-local-news",
+                                    "snippet": "BHP was covered in local market news.",
+                                    "published_at": "2026-05-24T03:00:00Z",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    for message in (
+        "Use only local_news_context for BHP",
+        "latest local news for BHP",
+    ):
+        response = client.post(
+            "/api/cockpit/chat",
+            json={
+                "message": message,
+                "ticker": "BHP",
+                "stream": False,
+                "rag": True,
+                "web_search": False,
+                "stateless_smoke": True,
+            },
+            headers={"X-Tenn-Stateless-Smoke": "1"},
+        )
+
+        assert response.status_code == 200
+        payload = response.json()["data"]
+        metadata = payload["routing_metadata"]
+        final_text = payload["text"]
+        assert not final_text.startswith("DATA_MISSING")
+        assert "BHP local news update" in final_text
+        source = payload["sources"][0]
+        assert source["source_id"] == "news:bhp-local-news"
+        assert source["kind"] == "news"
+        assert source["claim_verified"] is True
+        assert "claim_verified" in source["evidence_labels"]
+        assert "local_news_context" in source["evidence_labels"]
+        assert "context_only" not in source["evidence_labels"]
+        assert metadata["source_coverage_status"] == "claim_verified"
+        assert metadata["claim_verified_source_count"] == 1
+        assert metadata["local_news_context_count"] == 1
+        assert metadata["claim_verified_local_news_count"] == 1
+
+
+def test_cockpit_chat_local_news_only_news_shortcircuit_no_hit_stays_data_missing(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "I couldn't find recent indexed news for COH. That is not "
+                    "evidence there is no news."
+                ),
+                evidence=[
+                    {
+                        "type": "news_search",
+                        "details": {
+                            "ticker": "COH",
+                            "hits": [],
+                            "data_insufficient": True,
+                        },
+                    }
+                ],
+                action_preview={
+                    "action_id": "daily_news_ingest",
+                    "args": {"tickers": "COH", "since_hours": 24},
+                },
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "Use only local_news_context for COH",
+            "ticker": "COH",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "no relevant local_news_context" in final_text
+    assert payload["sources"][0]["source_id"] == "search_news:no_hits:coh"
+    assert payload["sources"][0]["claim_verified"] is False
+    assert "no_hit" in payload["sources"][0]["evidence_labels"]
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 0
+    assert metadata["claim_verified_local_news_count"] == 0
+
+
+def test_cockpit_chat_local_news_only_guard_blocks_filing_synthesis(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text=(
+                    "Here is the latest local news for A2M: the class action "
+                    "settlement and dividend update were lodged with the ASX."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "A2M",
+                            "qual_context_news": {
+                                "hits": [
+                                    {
+                                        "title": "A2M infant formula recall uncertainty",
+                                        "source_id": "news:a2m-recall:1",
+                                        "snippet": (
+                                            "A2M was covered in relation to infant "
+                                            "formula recall uncertainty."
+                                        ),
+                                        "published_at": "2026-05-17T22:01:00Z",
+                                        "evidence_labels": [
+                                            "context_only",
+                                            "local_news_context",
+                                        ],
+                                        "claim_verified": False,
+                                    }
+                                ]
+                            },
+                            "docs": [
+                                {
+                                    "title": "A2M dividend update",
+                                    "source_id": "asx:A2M:dividend",
+                                    "doc_type": "asx_announcement",
+                                    "snippet": "A2M lodged a dividend update.",
+                                    "evidence_labels": ["context_only"],
+                                    "claim_verified": False,
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": (
+                "What is the latest local news for A2M? Use local news evidence "
+                "only. If no relevant local_news_context is available, say "
+                "DATA_MISSING."
+            ),
+            "ticker": "A2M",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    assert captured["persist_chat"] is False
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "context-only and not claim-verified" in final_text
+    assert "A2M infant formula recall uncertainty" in final_text
+    assert "class action" not in final_text.lower()
+    assert "dividend update were lodged" not in final_text.lower()
+    news_source = next(
+        source for source in payload["sources"] if source["source_id"].startswith("news:")
+    )
+    assert "local_news_context" in news_source["evidence_labels"]
+    assert "context_only" in news_source["evidence_labels"]
+    assert news_source["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 1
+    assert metadata["claim_verified_local_news_count"] == 0
+    assert metadata["local_news_only_guard"]["applied"] is True
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_cockpit_chat_local_news_only_guard_blocks_document_only_control(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "COH latest local news includes a substantial holder notice "
+                    "and dividend filing."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "COH",
+                            "docs": [
+                                {
+                                    "title": "COH substantial holder notice",
+                                    "source_id": "asx:COH:holder",
+                                    "doc_type": "asx_announcement",
+                                    "snippet": "COH lodged a substantial holder notice.",
+                                    "evidence_labels": ["context_only"],
+                                    "claim_verified": False,
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "What is the latest local news for COH? Use local news evidence only.",
+            "ticker": "COH",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "no relevant local_news_context" in final_text
+    assert "substantial holder" not in final_text.lower()
+    assert "dividend filing" not in final_text.lower()
+    assert payload["sources"][0]["source_id"] == "asx:COH:holder"
+    assert payload["sources"][0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 0
+    assert metadata["local_news_only_guard"]["applied"] is True
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_cockpit_chat_local_news_only_stream_suppresses_unguarded_chunks(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, on_chunk=None, **kwargs):
+            if on_chunk is not None:
+                on_chunk(
+                    "Here is the latest local news for A2M: class action settlement."
+                )
+            return SimpleNamespace(
+                text=(
+                    "Here is the latest local news for A2M: class action "
+                    "settlement from an ASX filing."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "A2M",
+                            "qual_context_news": {
+                                "hits": [
+                                    {
+                                        "title": "A2M infant formula recall uncertainty",
+                                        "source_id": "news:a2m-recall:1",
+                                        "snippet": "A2M appeared in a recall context item.",
+                                        "evidence_labels": [
+                                            "context_only",
+                                            "local_news_context",
+                                        ],
+                                        "claim_verified": False,
+                                    }
+                                ]
+                            },
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={
+            "message": "What is the latest local news for A2M? Use local news evidence only.",
+            "ticker": "A2M",
+            "stream": True,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    chunk_events = [event for event in data_events if event.get("type") == "chunk"]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+
+    assert chunk_events == []
+    assert done_events[-1]["data"]["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "class action" not in done_events[-1]["data"]["text"].lower()
+    assert done_events[-1]["data"]["routing_metadata"]["local_news_only_guard"][
+        "applied"
+    ] is True
+
+
 def test_cockpit_chat_stream_metadata_marks_price_trend_missing_market_evidence(
     monkeypatch,
 ) -> None:
@@ -470,16 +894,20 @@ def test_cockpit_chat_stateless_smoke_non_stream_skips_persistence_and_auto_flag
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "market_data_missing" in metadata["evidence_labels"]
     assert "metric_extraction_missing" in metadata["evidence_labels"]
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
     assert "unsupported_or_not_verified" in metadata["evidence_labels"]
     assert metadata["missing_evidence_categories"] == [
         "market_data",
         "metric_extraction",
+        "recent_news",
     ]
     assert metadata["unsupported_claim_families"] == [
-        "market_price_or_technical_trend"
+        "market_price_or_technical_trend",
+        "recent_news_or_update",
     ]
     assert payload["text"].startswith("DATA_MISSING / evidence gaps:")
     assert "metric_extraction_missing: canonical metric" in payload["text"]
+    assert "insufficient_for_recent_news: recent-news or recent-update claims" in payload["text"]
     assert (
         "Context-only company memory (not verified market/technical evidence):"
         in payload["text"]
@@ -3087,6 +3515,100 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
     assert payload["resolution_commit_sha"] is None
 
 
+def _feedback_flag_request() -> dict:
+    return {
+        "session_id": "session-123",
+        "ticker": "BHP",
+        "flagged_message": {
+            "id": "assistant-1",
+            "role": "assistant",
+            "content": "Bad answer",
+        },
+        "transcript": [
+            {"id": "user-1", "role": "user", "content": "Tell me about BHP"},
+            {"id": "assistant-1", "role": "assistant", "content": "Bad answer"},
+        ],
+        "frontend_context": {"source": "cockpit-ui-chat"},
+    }
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+@pytest.mark.parametrize(
+    ("path", "json_body"),
+    [
+        ("/api/cockpit/feedback/flag", _feedback_flag_request()),
+        (
+            "/api/cockpit/feedback/flags/flag_20260409_abc123/resolve",
+            {
+                "commit_sha": "abc1234",
+                "resolved_by": "codex",
+                "note": "fixed prompt guard",
+            },
+        ),
+    ],
+)
+def test_cockpit_feedback_write_routes_require_api_key_before_service(
+    monkeypatch,
+    headers,
+    path,
+    json_body,
+) -> None:
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    get_instance = Mock(side_effect=AssertionError("service should not initialize"))
+    monkeypatch.setattr(
+        CockpitService,
+        "get_instance",
+        classmethod(lambda cls: get_instance()),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(path, headers=headers, json=json_body)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    get_instance.assert_not_called()
+
+
+def test_cockpit_feedback_flag_route_accepts_matching_api_key(monkeypatch) -> None:
+    class FakeService:
+        def flag_chat_feedback(self, **kwargs):
+            assert kwargs["session_id"] == "session-123"
+            return {
+                "ok": True,
+                "report_id": "flag_20260409_abc123",
+                "feedback_type": "poor",
+                "capture_kind": "chat_feedback",
+                "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123",
+                "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/bundle.json",
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "analysis_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/analysis.json",
+                "read_api_path": "/api/cockpit/feedback/flags/flag_20260409_abc123",
+                "codex_prompt": "Investigate this flagged cockpit response.",
+                "analysis_summary": None,
+            }
+
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flag",
+        headers={"X-API-Key": "local-secret"},
+        json=_feedback_flag_request(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["report_id"] == "flag_20260409_abc123"
+
+
 def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> None:
     class FakeService:
         def list_flagged_reports(self, limit, status):
@@ -3242,6 +3764,47 @@ def test_cockpit_feedback_flag_resolve_route_persists_commit_sha(monkeypatch) ->
     assert payload["resolution_status"] == "resolved"
     assert payload["resolution_commit_sha"] == "abc1234"
     assert payload["resolved_by"] == "codex"
+
+
+def test_cockpit_feedback_flag_resolve_route_accepts_matching_api_key(monkeypatch) -> None:
+    class FakeService:
+        def resolve_flagged_report(self, report_id, *, commit_sha, resolved_by, note):
+            return {
+                "ok": True,
+                "report_id": report_id,
+                "resolution_status": "resolved",
+                "resolved_at": "2026-04-22T10:00:00+00:00",
+                "resolution_commit_sha": commit_sha,
+                "resolved_by": resolved_by,
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "read_api_path": f"/api/cockpit/feedback/flags/{report_id}",
+            }
+
+    async def _fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(cockpit_api.settings, "local_api_key", "local-secret", raising=False)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+    monkeypatch.setattr(asyncio, "to_thread", _fake_to_thread)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flags/flag_20260409_abc123/resolve",
+        headers={"X-API-Key": "local-secret"},
+        json={
+            "commit_sha": "abc1234",
+            "resolved_by": "codex",
+            "note": "fixed prompt guard",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["resolution_commit_sha"] == "abc1234"
 
 
 def test_cockpit_feedback_flag_route_supports_good_feedback(monkeypatch) -> None:

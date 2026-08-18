@@ -47,18 +47,12 @@ class DbReader:
         )
 
     def get_financials(self, ticker: str, limit: int = 10) -> list[dict[str, Any]]:
-        return self._run_read_query(
-            """SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-                      operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-                      shares_outstanding, confidence_metrics, source_document_id
-               FROM asx_periodic_financials WHERE ticker = :ticker
-               ORDER BY period_end DESC LIMIT :limit""",
-            {"ticker": (ticker or "").upper(), "limit": limit},
-        )
+        """Return no rows; financial truth is available only from BackendApiClient."""
+        return []
 
     def get_latest_financial_snapshot(self, ticker: str) -> dict[str, Any] | None:
-        rows = self.get_financials(ticker=ticker, limit=1)
-        return rows[0] if rows else None
+        """Return no snapshot; financial truth is available only from BackendApiClient."""
+        return None
 
     def get_announcement_context(self, ticker: str, limit: int = 10) -> list[dict[str, Any]]:
         rows = self._run_read_query(
@@ -90,22 +84,8 @@ class DbReader:
         )
 
     def get_low_confidence_financials(self, threshold: float = 0.4, limit: int = 100, ticker: str | None = None) -> list[dict[str, Any]]:
-        if ticker:
-            return self._run_read_query(
-                """SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-                   FROM asx_periodic_financials
-                   WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-                     AND ticker = :ticker
-                   ORDER BY confidence_metrics ASC LIMIT :limit""",
-                {"threshold": threshold, "ticker": ticker.upper(), "limit": limit},
-            )
-        return self._run_read_query(
-            """SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-               FROM asx_periodic_financials
-               WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-               ORDER BY confidence_metrics ASC LIMIT :limit""",
-            {"threshold": threshold, "limit": limit},
-        )
+        """Return no rows; confidence diagnostics are backend-owned."""
+        return []
 
     # ------------------------------------------------------------------
     # Shared query runner

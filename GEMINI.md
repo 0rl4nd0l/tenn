@@ -1,93 +1,37 @@
-# GEMINI.md — Gemini CLI Operating Identity
+# GEMINI.md - Gemini Tool Notes
 
-This file defines Gemini's agent-specific operating identity in this repository.
-Read this first, then read [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md).
+`AGENTS.md` is the Tenn repo constitution. If this file conflicts with
+`AGENTS.md`, follow `AGENTS.md`.
 
----
+This file records Gemini-specific operation notes only. It is not an independent
+source of truth for commits, runtime startup, skills, hooks, or validation.
 
-## Identity and Posture
+## Gemini Role
 
-Gemini is a **Senior Software Engineer** and **Strategic Orchestrator**.
-- **High-Signal Output**: Focus on intent and technical rationale. Avoid filler.
-- **Independence**: Think independently from Claude and Codex.
-- **Verification-First**: Trust but verify. Use code, tests, and logs as ground truth.
-- **Surgical Updates**: Apply precise changes and follow all project conventions.
+Gemini is a strategic engineering peer. It should keep outputs concise, verify
+current evidence, and preserve unrelated dirty state.
 
----
+## Hooks
 
-## Mandatory Compliance (Inherited Rules)
+Gemini has repo-local `BeforeTool` hooks in `.gemini/settings.json`. With an
+active task card, the hook validates the card and checks the current diff against
+`allowed_files` using the repo hook wrapper. Final validation should still be
+run explicitly by the agent when closing out work.
 
-Gemini MUST comply with the following authoritative documents:
-1. **[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md)**: Non-negotiable system invariants.
-2. **[CLAUDE.md](CLAUDE.md)**: Operating rules, safety checks, and behavioral constraints.
-3. **[AGENTS.md](AGENTS.md)**: Skill definitions and parallel agent coordination.
+## Skills
 
-## MULTI-AGENT LIVE REPO CONTROL
+Repo-backed Tenn skills live under `.agents/skills`; see
+`docs/agents/skill-registry.md`. Treat `.codex/skills` as legacy/custom unless a
+current task card explicitly says otherwise.
 
-Gemini must follow the canonical shared policy in [AGENTS.md](AGENTS.md#multi-agent-live-repo-control) before implementation. The repo may be live with Gemini, Codex, Claude, or other sessions active; do not treat HEAD drift as inherently bad except for fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility-validation tasks.
+## Runtime
 
-Every Gemini implementation report must declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision before editing, then list files actually touched in the final report. If unresolved HIGH overlap risk exists, stop in BLOCKED MODE and output report only.
+Use `docs/entrypoints.md` only for tasks that actually require runtime startup
+or runtime validation. Repo-hygiene, docs, reports, hooks, and task-card work
+should not start services by default.
 
----
+## Validation
 
-## Core Behavioral Rules (Gemini-Specific)
-
-### 1. Milestone Commit Protocol (MANDATORY)
-Every discrete unit of functionality must be committed with:
-```
-milestone(<subsystem>): <what works now>
-
-Working: <confirmed-working behavior>
-Tested: <how verified - test name, curl output, etc.>
-```
-Never end a session with uncommitted state. Use `wip(<subsystem>): ...` if incomplete.
-
-### 2. Hook Emulation and Task-Card Enforcement
-Gemini has repo-local `BeforeTool` hooks in `.gemini/settings.json`.
-- **Task cards**: Before `write_file`, `replace`, or `run_shell_command`, Gemini runs `python3 scripts/agent_job_hook.py --platform gemini --event BeforeTool`. With no active card it allows the tool call. With `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` set, it validates the card, checks active registry overlap, and checks that the current diff stays inside `allowed_files`.
-- **Final task-card check**: Before the final report for a task-card job, still run `python scripts/agent_job_contract.py check-diff <task_card>` and release the claim with `python scripts/agent_job_registry.py release <job_id>`.
-
-Gemini MUST manually:
-- **Lint**: Run `financial-engine_v2/.venv/bin/ruff check --fix <file>` after editing Python files.
-- **Test**: Run `financial-engine_v2/.venv/bin/pytest <relevant_test_path>` after changes.
-- **Permissions**: `chmod +x <file>` after creating shell scripts.
-- **Sensitive Paths**: STOP and confirm before editing `embeddings.py`, `alembic/versions/`, or `.env`.
-
-### 3. Using Skills
-Repo-local skills are defined in `.codex/skills/`.
-- **Trigger**: If a task matches a skill description in `AGENTS.md`, read its `SKILL.md` first.
-- **Workflow**: Follow the internal workflow defined in the skill (e.g., `/architecture-check` steps).
-
-### 4. Accessing MCP Tools
-Gemini can access MCP tools via `run_shell_command`:
-- **Tenn Tools**: `scripts/mcp/tenn.sh` (Search, fetch, health, memory, OpenClaw ops).
-- **Qdrant/Redis**: `scripts/mcp/qdrant.sh`, `scripts/mcp/redis.sh` (Requires Docker).
-- **Usage Example**: `scripts/mcp/tenn.sh tools/call tenn_health '{}'`
-
----
-
-## Standard Entrypoints
-
-- **System Bootstrap**: `financial-engine_v2/scripts/run_local_backend.sh`
-- **OpenClaw Ops**: `scripts/openclaw-autodev analyze "request"`
-- **Venv Path**: `financial-engine_v2/.venv/bin/python`
-
----
-
-## Pre-Merge Checklist (Gemini)
-
-- [ ] SYSTEM_CONTRACT.md reviewed — no violations.
-- [ ] Task-card `check-diff` executed and registry claim released if this was a task-card job.
-- [ ] Manual `ruff --fix` executed on changed Python files.
-- [ ] Tests executed and passing.
-- [ ] Milestone commit created with `Working:` and `Tested:` fields.
-- [ ] Documentation updated in `docs/claude/` if infrastructure/config changed.
-
-## graphify
-
-This project has a graphify knowledge graph at graphify-out/.
-
-Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+Follow the risk-based validation policy in `AGENTS.md`. Run focused tests or
+checks that exercise the files changed; do not run broad suites merely because a
+tool identity file says so.

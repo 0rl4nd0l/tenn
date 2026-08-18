@@ -1,0 +1,124 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/normalize_jam_captured_github_issues_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/before_after_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/before_after_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/duplicate_search_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/github_readback.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_106_closeout_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_40.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_41.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_53.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_55.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_61.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_decisions.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/normalize_jam_captured_github_issues_v1_20260526.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/README.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/status.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/before_after_matrix.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/before_after_matrix.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/duplicate_search_matrix.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_decisions.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/github_readback.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/validation.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/diff-check.json",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_40.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_41.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_53.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_55.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_61.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/issue_body_updates/issue_106_closeout_comment.md"
+      ],
+      "allowed_github_mutation": [
+        "edit issue bodies for #40, #41, #53, #55, and #61 only",
+        "apply existing labels to #40, #41, #53, #55, and #61 only",
+        "remove obsolete generic bug label from #41 only after replacing with contract labels",
+        "apply existing milestones to #40, #41, #53, #55, and #61 only",
+        "add a closeout comment to #106 only if every target issue is classified",
+        "close #106 only if every target issue is normalized, linked, superseded, or explicitly DATA_MISSING",
+        "update #106 labels only for closeout state if it closes"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/normalize_jam_captured_github_issues_v1_20260526.md",
+        "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526/**"
+      ],
+      "approval_required": false,
+      "job_id": "normalize_jam_captured_github_issues_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/normalize_jam_captured_github_issues_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "github_issue_normalization",
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Reporting",
+        "Evaluation"
+      ],
+      "timeout_seconds": 10800
+    },
+    "ok": true
+  }
+}

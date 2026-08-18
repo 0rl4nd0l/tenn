@@ -29,6 +29,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 import build_qualitative_context_db as ctx  # noqa: E402
 from health_guard import assert_healthy, get_overall_status, load_health_snapshot  # noqa: E402
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
 from news_pipeline.entity_linker import EntityLinker  # noqa: E402
 from news_pipeline.relevance import choose_primary_ticker, infer_ticker_relevance_from_text, serialize_ticker_relevance  # noqa: E402
 
@@ -1689,7 +1690,7 @@ def main() -> int:
     ap.add_argument("--dataset-cache-dir", default="", help="Hugging Face cache directory")
     ap.add_argument("--hf-token-env", default="HF_TOKEN", help="Env var containing HF token for gated access")
     ap.add_argument("--db", choices=["sqlite", "faiss", "chroma"], default="sqlite", help="Vector storage backend")
-    ap.add_argument("--out", default="reports/qual_context/news.sqlite", help="Output DB path")
+    ap.add_argument("--out", default=str(DEFAULT_NEWS_CONTEXT_DB), help="Output DB path")
     ap.add_argument("--normalized-jsonl", default="", help="Optional path to write normalized row JSONL")
     ap.add_argument("--corpus", default="news", help="Corpus label (default: news)")
     ap.add_argument("--doc-type", default="news_article", help="doc_type label (default: news_article)")
@@ -1901,7 +1902,7 @@ def main() -> int:
     args._asx_company_names = asx_company_names
     args._ticker_name_linker = ticker_name_linker
 
-    out_path = Path(args.out).expanduser()
+    out_path = resolve_path(args.out)
     if args.db == "sqlite" and out_path.suffix != ".sqlite":
         out_path = out_path / "news.sqlite"
 

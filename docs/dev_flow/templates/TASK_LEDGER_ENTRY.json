@@ -1,0 +1,29 @@
+{
+  "task_id": "dev_flow_agent_task_ledger_v1_20260616",
+  "parent_task_id": null,
+  "workflow": "tenn-fix",
+  "status": "claimed",
+  "started_at": "2026-06-16T00:00:00Z",
+  "updated_at": "2026-06-16T00:00:00Z",
+  "owner": "Codex",
+  "session_id": "DATA_MISSING",
+  "thread_id": "DATA_MISSING",
+  "codex_goal_id": "DATA_MISSING",
+  "source_session_ref": "DATA_MISSING",
+  "issue_refs": [],
+  "pr_refs": [],
+  "branch": "control-plane/dev-flow-agent-task-ledger-v1-20260616",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "files_touched": [],
+  "artifacts": [],
+  "summary": "One sentence summary of the work and its current state.",
+  "validation": {
+    "status": "not_run",
+    "commands": []
+  },
+  "next_action": "continue",
+  "owner_boundary": false,
+  "supersedes": [],
+  "superseded_by": []
+}

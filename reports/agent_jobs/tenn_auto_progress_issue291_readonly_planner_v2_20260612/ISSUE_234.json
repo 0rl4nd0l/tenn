@@ -1,0 +1,64 @@
+{
+  "body": "## Task\n`extraction_contract_parity_diff_check_dirt_classification_v1_20260602`\n\n## Lane\nPrimary lane: Repo Hygiene\nSupporting lanes: Evaluation\nMode: audit / result_review\n\n## GitHub Tracking\nRecommended labels: `lane:repo-hygiene`, `lane:evaluation`, `mode:audit`, `priority:p2`, `risk:medium`, `state:ready`, `type:control-plane`, `type:validation-gap`\nRecommended milestone: M0 \u2014 Control Plane Hardening\nProject fields: Lane=Repo Hygiene; Mode=audit/result-review; Risk=medium; Priority=P2; Status=Ready; Task Card=`docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md`; Report Path=`reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/`; Blocked By=none; Root Cause Fixed=NO; Follow-up Required=YES; Production Data Access=NO\n\n## Finding\nThe shared migration worktree currently has a tracked generated report artifact dirty outside any active task-card claim: `reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json`.\n\n## Summary\nIn plain language:\n- What the issue is or was: a historical #98 task-card `diff-check.json` report was rewritten in the shared checkout after #98 had already been implemented, reviewed, and closed.\n- What it impacted: later task-card validation and extraction-readiness audits see pre-existing report dirt before they can produce a clean validation state.\n- How it restricted Tenn: agents cannot truthfully claim a clean task-card diff without first classifying whether this artifact should be preserved, parked, committed, or intentionally regenerated.\n- Why fixing it is a meaningful step forward: it removes ambiguity from the shared agent workflow without changing product code, financial truth, extraction logic, or runtime data.\n\n## Evidence\n- `git status --short --branch --untracked-files=all` on 2026-06-02: branch `migration/clean-runtime-baseline-reconstruct-v1` at `2465754a2cf842f970de65c77eddd90b5bc2079a` has `M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json`.\n- `git diff -- reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json`: the file changed from listing the original parity-guard task-card/code/test/report files to `\"changed_files\": []` while retaining `ok: true`.\n- `jq . reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json`: the dirty artifact is valid JSON and still points at `reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json` with the #98 task-card metadata.\n- `find reports/agent_jobs/extraction_contract_parity_guard_v1_20260526 -maxdepth 1 -type f -printf ...`: the sibling report artifacts are timestamped 2026-05-27, while only `diff-check.json` is updated on 2026-06-02.\n- `gh issue view 98 --comments`: #98 is closed as contract alignment complete and does not own or mention this later dirty artifact rewrite.\n- `python3 scripts/agent_job_registry.py list-active`: active registry was empty during this audit pass, so no active task-card claim currently owns this dirty artifact.\n- GitHub duplicate check: searched open/closed issues and PRs for `extraction contract parity diff-check`, `diff-check dirty artifact`, `historical diff-check report artifact`, and `task-card check-diff rewrite`. Adjacent issues #64, #94, #96, #98, and #140 do not cover this exact #98 report-artifact classification.\n\n## Why this matters\nThis is a repo-control and validation-trust issue, not a product behavior issue. The artifact can make subsequent task-card jobs look dirty before their own work starts. Because the file is a generated report from a closed Financial Truth/Evaluation task, agents should not silently revert, regenerate, stash, or commit it without a bounded ownership decision.\n\n## Required task card\n`docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md`\n\n## Required output\n`reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/`\n\n## Allowed files / surfaces\n- `docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md`\n- `reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/**`\n- GitHub issue/PR comments needed to link the classification result\n- The existing parity diff-check artifact only if the task card explicitly allows a preserve/restore/commit decision after classification\n\n## Forbidden files / surfaces\n- production DB/Qdrant/news/memory\n- canonical financial truth\n- parser routing\n- extraction prompts\n- gold labels\n- runtime/model/GPU/service config\n- product backend/frontend code\n- unrelated dirty work\n- destructive cleanup, reset, stash, checkout, or revert without explicit approval\n\n## Acceptance criteria\n- The current dirty `diff-check.json` state is classified as intentional, accidental, superseded, parked, restored-with-approval, or `DATA_MISSING`.\n- The classification explains whether the 2026-06-02 rewrite came from a required `check-diff` run, a closeout review, or an unknown session.\n- The task records whether the artifact should remain dirty, be committed as evidence, be restored, or be parked for a separate preservation task.\n- Any action touching the existing #98 artifact is explicitly allowed by the task card and does not alter product code or financial truth.\n- Final validation includes task-card validate/check-diff, active registry inspection, and `git status --short --branch --untracked-files=all`.\n\n## Definition of done\n- The artifact ownership decision is documented and linked here.\n- Validation passes or blockers are explicitly documented.\n- Required follow-ups are linked, created, parked, `NO_FOLLOWUP`, or `DATA_MISSING`.\n- PR link text uses `refs #X` or `audit for #X` unless validated remediation lands.\n- No forbidden surfaces are changed.\n\n## Validation\n- `python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md`\n- `python3 scripts/agent_job_registry.py list-active`\n- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_contract_parity_diff_check_dirt_classification_v1_20260602.md`\n- `jq . reports/agent_jobs/extraction_contract_parity_diff_check_dirt_classification_v1_20260602/*.json`\n- `git diff --check`\n\n## Hard stops\n- duplicate tracker found\n- HIGH collision risk\n- an active job claims the same artifact or task-card/report bundle\n- classifying the artifact requires production data access\n- classifying the artifact requires product code, financial truth, extraction prompt, gold-label, runtime, or service-config mutation\n",
+  "labels": [
+    {
+      "color": "ededed",
+      "description": "",
+      "id": "LA_kwDORRPz_M8AAAACkj1qig",
+      "name": "mode:audit"
+    },
+    {
+      "color": "ededed",
+      "description": "",
+      "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+      "name": "lane:evaluation"
+    },
+    {
+      "color": "C5DEF5",
+      "description": "Lane: repository hygiene, worktree state, and merge parking.",
+      "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+      "name": "lane:repo-hygiene"
+    },
+    {
+      "color": "FBCA04",
+      "description": "Priority: P2 normal planned work.",
+      "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+      "name": "priority:p2"
+    },
+    {
+      "color": "D93F0B",
+      "description": "Risk: medium blast radius or uncertainty.",
+      "id": "LA_kwDORRPz_M8AAAACklh6QA",
+      "name": "risk:medium"
+    },
+    {
+      "color": "0E8A16",
+      "description": "State: ready for scoped execution.",
+      "id": "LA_kwDORRPz_M8AAAACklh6tw",
+      "name": "state:ready"
+    },
+    {
+      "color": "FBCA04",
+      "description": "Type: missing or insufficient validation coverage.",
+      "id": "LA_kwDORRPz_M8AAAACklh-HA",
+      "name": "type:validation-gap"
+    },
+    {
+      "color": "5319E7",
+      "description": "Type: control-plane, agent, task, or issue-system work.",
+      "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+      "name": "type:control-plane"
+    }
+  ],
+  "milestone": {
+    "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+    "dueOn": null,
+    "number": 1,
+    "title": "M0 \u2014 Control Plane Hardening"
+  },
+  "number": 234,
+  "state": "OPEN",
+  "title": "[Repo Hygiene] Classify stale extraction contract parity diff-check dirt",
+  "updatedAt": "2026-06-02T05:04:19Z",
+  "url": "https://github.com/0rl4nd0l/tenn/issues/234"
+}

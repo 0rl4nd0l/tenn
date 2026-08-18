@@ -1,0 +1,80 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/README.md",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/status.json",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/dirty_work_matrix.json",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/child_task_priority.md",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/preservation_recommendation.md",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/diff-check.json",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/**"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+        "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/**"
+      ],
+      "approval_required": false,
+      "forbidden": [
+        "editing PR39 audit artifacts unless a later explicit preservation task allows it",
+        "implementing or fixing any of the 13 clusters",
+        "editing product/backend/frontend/runtime/test/dependency/workflow files",
+        "cleaning, stashing, resetting, deleting, restoring, or overwriting unrelated dirty work",
+        "committing, merging, rebasing, cherry-picking, force-pushing, or closing GitHub issues",
+        "production DB/Qdrant/news/memory access",
+        "canonical financial truth",
+        "parser routing",
+        "extraction prompts",
+        "gold labels",
+        "runtime/model/GPU/service config"
+      ],
+      "github_mutation_allowed": false,
+      "issue_number": 105,
+      "job_id": "pr39_ci_split_audit_preservation_review_v1_20260527",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527",
+      "owner": "Codex",
+      "pr_number": 39,
+      "production_data_access": false,
+      "read_only_inspection_allowed": [
+        "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+        "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/**",
+        "current git status/diff metadata",
+        "registry/list-active/check-overlap outputs",
+        "PR #39 and issue #105 GitHub state, if gh is available"
+      ],
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

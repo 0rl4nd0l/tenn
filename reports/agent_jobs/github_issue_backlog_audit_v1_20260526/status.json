@@ -1,0 +1,3071 @@
+{
+  "allowed_dirty_added_by_this_task": [
+    "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md",
+    "reports/agent_jobs/github_issue_backlog_audit_v1_20260526/**"
+  ],
+  "audit_closure_risks_found": [
+    "#64 closed with worktree/task-card hygiene findings and no explicit follow-up link in closeout; #94/#115 now partially cover."
+  ],
+  "blocked_count": 5,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "classification_counts": {
+    "BLOCKED": 5,
+    "DATA_MISSING": 5,
+    "DUPLICATE_CANDIDATE": 2,
+    "HIGH_RISK_NEEDS_AUDIT_FIRST": 2,
+    "NEEDS_FOLLOWUP": 8,
+    "NEEDS_REVIEW": 4,
+    "PARKED": 3,
+    "READY_TO_RUN": 22,
+    "STALE_NEEDS_REVALIDATION": 2
+  },
+  "closed_issue_safety": [
+    {
+      "closed_at": "2026-05-26T09:11:26Z",
+      "comments": 1,
+      "done_state": [
+        "state:done-remediated"
+      ],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "mode:safe-extension",
+        "priority:p1",
+        "risk:medium",
+        "state:done-remediated",
+        "type:control-plane",
+        "type:automation"
+      ],
+      "milestone": "M6 — Runtime / Local Automation",
+      "number": 111,
+      "refs": [
+        79,
+        111
+      ],
+      "risk": "LOW",
+      "title": "[Repo Hygiene] Reconcile Tenn Codex automation docs and runner defaults"
+    },
+    {
+      "closed_at": "2026-05-26T07:57:16Z",
+      "comments": 2,
+      "done_state": [
+        "state:done-remediated"
+      ],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "mode:result-review",
+        "priority:p1",
+        "risk:medium",
+        "state:done-remediated",
+        "type:control-plane"
+      ],
+      "milestone": "M0 — Control Plane Hardening",
+      "number": 85,
+      "refs": [
+        80,
+        85
+      ],
+      "risk": "LOW",
+      "title": "[Repo Hygiene] Integrate registry read-only no-lock list-active fix"
+    },
+    {
+      "closed_at": "2026-05-26T07:35:54Z",
+      "comments": 1,
+      "done_state": [
+        "state:done-audit-only"
+      ],
+      "finding": "Audit-only closure links follow-up issue(s): #113",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p2",
+        "risk:medium",
+        "state:done-audit-only",
+        "type:automation"
+      ],
+      "milestone": "M6 — Runtime / Local Automation",
+      "number": 82,
+      "refs": [
+        113
+      ],
+      "risk": "LOW",
+      "title": "[Runtime] llama-server :8001 ownership/provenance audit v1"
+    },
+    {
+      "closed_at": "2026-05-26T07:35:49Z",
+      "comments": 1,
+      "done_state": [
+        "state:done-audit-only"
+      ],
+      "finding": "Audit-only closure links follow-up issue(s): #112",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "lane:query-orchestration",
+        "lane:runtime",
+        "priority:p1",
+        "risk:medium",
+        "state:done-audit-only",
+        "type:validation-gap",
+        "type:automation"
+      ],
+      "milestone": "M6 — Runtime / Local Automation",
+      "number": 81,
+      "refs": [
+        112
+      ],
+      "risk": "LOW",
+      "title": "[Ops/News] Nightly news cron observability and systemd migration audit v1"
+    },
+    {
+      "closed_at": "2026-05-26T02:34:22Z",
+      "comments": 1,
+      "done_state": [
+        "state:done-remediated"
+      ],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [
+        "lane:repo-hygiene",
+        "mode:safe-extension",
+        "priority:p1",
+        "risk:medium",
+        "state:done-remediated",
+        "type:control-plane"
+      ],
+      "milestone": "M0 — Control Plane Hardening",
+      "number": 80,
+      "refs": [
+        80
+      ],
+      "risk": "LOW",
+      "title": "[Repo Hygiene] Registry read-only no-lock list-active mode v1"
+    },
+    {
+      "closed_at": "2026-05-26T07:35:45Z",
+      "comments": 2,
+      "done_state": [
+        "state:done-audit-only"
+      ],
+      "finding": "Audit-only closure links follow-up issue(s): #111, #112, #113, #114",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "risk:medium",
+        "state:done-audit-only",
+        "type:automation"
+      ],
+      "milestone": "M6 — Runtime / Local Automation",
+      "number": 79,
+      "refs": [
+        79,
+        80,
+        111,
+        112,
+        113,
+        114
+      ],
+      "risk": "LOW",
+      "title": "[Ops] Automation topology reconciliation audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T08:19:48Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed after integration, but closed issue still carries state:needs-review/state:parked labels.",
+      "is_audit": false,
+      "labels": [
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "mode:result-review",
+        "priority:p1",
+        "risk:medium",
+        "state:needs-review",
+        "state:parked",
+        "type:control-plane"
+      ],
+      "milestone": "M0 — Control Plane Hardening",
+      "number": 77,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Repo Hygiene] Integrate GitHub issue templates slice"
+    },
+    {
+      "closed_at": "2026-05-25T08:19:21Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed after integration, but closed issue still carries state:needs-review/state:parked labels.",
+      "is_audit": false,
+      "labels": [
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "mode:result-review",
+        "priority:p1",
+        "risk:medium",
+        "state:needs-review",
+        "state:parked",
+        "type:control-plane"
+      ],
+      "milestone": "M0 — Control Plane Hardening",
+      "number": 75,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Repo Hygiene] Integrate parked branch hygiene issue visibility slice"
+    },
+    {
+      "closed_at": "2026-05-25T05:54:42Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 70,
+      "refs": [
+        54
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Evaluation] Real Signal scorecard manifest v1"
+    },
+    {
+      "closed_at": "2026-05-25T05:05:15Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [
+        "task:codex-ready",
+        "lane:reporting"
+      ],
+      "milestone": "none",
+      "number": 69,
+      "refs": [],
+      "risk": "LOW",
+      "title": "[Reporting] Review and integrate repo-native goal schema slice"
+    },
+    {
+      "closed_at": "2026-05-25T04:59:14Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [
+        "task:codex-ready",
+        "lane:reporting"
+      ],
+      "milestone": "none",
+      "number": 68,
+      "refs": [],
+      "risk": "LOW",
+      "title": "[Reporting] Merge parking docs and validation slice v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:06:39Z",
+      "comments": 2,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready"
+      ],
+      "milestone": "none",
+      "number": 67,
+      "refs": [
+        67
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Repo Contract] Graphify artifact contract audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:27:38Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 66,
+      "refs": [
+        39
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[CI] PR #39 failure root-cause audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:06:39Z",
+      "comments": 2,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready"
+      ],
+      "milestone": "none",
+      "number": 65,
+      "refs": [
+        65
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Repo Hygiene] Merge parking registry surface audit/design v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:06:39Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed worktree/task-card hygiene audit records branch/task-card findings without explicit follow-up refs in closeout; current #94/#115 partially cover later risk.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready"
+      ],
+      "milestone": "none",
+      "number": 64,
+      "refs": [],
+      "risk": "MEDIUM",
+      "title": "[Repo Hygiene] Worktree and loose task-card hygiene audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:51:46Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation",
+        "lane:financial-truth"
+      ],
+      "milestone": "none",
+      "number": 63,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Financial Truth] Confirmed metric extracted-payload scoring audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:34:28Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 62,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Evaluation] Current evidence manifest audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:20:35Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:reporting"
+      ],
+      "milestone": "none",
+      "number": 60,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Ops] Production hardening gate audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:20:35Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:reporting"
+      ],
+      "milestone": "none",
+      "number": 59,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Ops] Redis role audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T04:20:35Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:reporting"
+      ],
+      "milestone": "none",
+      "number": 58,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Reporting] Worker runtime provenance audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T06:26:58Z",
+      "comments": 2,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:financial-truth"
+      ],
+      "milestone": "none",
+      "number": 57,
+      "refs": [
+        57,
+        72
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Financial Truth] Appendix 4C deterministic sidecar parser prototype v1"
+    },
+    {
+      "closed_at": "2026-05-25T06:01:25Z",
+      "comments": 2,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:provenance"
+      ],
+      "milestone": "none",
+      "number": 56,
+      "refs": [
+        56,
+        71
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Provenance] Source label fixture expansion v1"
+    },
+    {
+      "closed_at": "2026-05-25T05:49:52Z",
+      "comments": 2,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 54,
+      "refs": [
+        54,
+        70
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Evaluation] Real Signal calibrated scorecard v1"
+    },
+    {
+      "closed_at": "2026-05-25T03:45:28Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [],
+      "milestone": "none",
+      "number": 52,
+      "refs": [],
+      "risk": "LOW",
+      "title": "Marketplace capture helper enables a dead bookmarklet when opened without a token"
+    },
+    {
+      "closed_at": "2026-05-25T05:30:17Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 50,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Evaluation] Eval Spine normalizer surfacing v1"
+    },
+    {
+      "closed_at": "2026-05-25T03:45:26Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [],
+      "milestone": "none",
+      "number": 48,
+      "refs": [],
+      "risk": "LOW",
+      "title": "Verification sidebar clips saved review content on desktop due long document titles"
+    },
+    {
+      "closed_at": "2026-05-25T03:45:30Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [],
+      "milestone": "none",
+      "number": 44,
+      "refs": [],
+      "risk": "LOW",
+      "title": "Cockpit Home PARTIAL banner truncates missing signals without showing remaining gaps"
+    },
+    {
+      "closed_at": "2026-05-25T03:53:02Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "No audit-closeout risk found from available body/comments.",
+      "is_audit": false,
+      "labels": [],
+      "milestone": "none",
+      "number": 43,
+      "refs": [],
+      "risk": "LOW",
+      "title": "Cockpit landing page mobile status/header chips overflow off-screen"
+    },
+    {
+      "closed_at": "2026-05-25T05:21:04Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "priority:p0",
+        "task:codex-ready",
+        "lane:query-orchestration",
+        "seed-regression"
+      ],
+      "milestone": "none",
+      "number": 38,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Query Orchestration] A2M news trace and retrieval blast-radius audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T05:15:42Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "mode:audit",
+        "priority:p0",
+        "task:codex-ready",
+        "lane:evaluation"
+      ],
+      "milestone": "none",
+      "number": 37,
+      "refs": [
+        37,
+        62,
+        63
+      ],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Evaluation] Gold Metric Coverage Audit v1"
+    },
+    {
+      "closed_at": "2026-05-25T05:25:18Z",
+      "comments": 1,
+      "done_state": [],
+      "finding": "Closed audit predates current state:done-* label policy; review only if using as current truth.",
+      "is_audit": true,
+      "labels": [
+        "lane:memory",
+        "mode:audit",
+        "risk:high",
+        "priority:p0",
+        "task:codex-ready"
+      ],
+      "milestone": "none",
+      "number": 36,
+      "refs": [],
+      "risk": "LABEL_HYGIENE",
+      "title": "[Memory] Audit company memory contamination root cause v1"
+    }
+  ],
+  "current_branch_remote_delta": {
+    "ahead": 2,
+    "behind": 0,
+    "risk": "local branch work not on origin; issues #112/#114/#115 reference these local commits"
+  },
+  "data_missing": [
+    "GitHub Project field schema/access was not queried; issue bodies provide recommended Project fields but current Project truth is DATA_MISSING.",
+    "GitHub issue timeline/state_reason was unavailable through gh issue list JSON fields; closure reasons are inferred from labels/comments only.",
+    "Jam evidence for raw #40/#41 was not opened in this audit; exact duplicate/supersession needs Jam evidence extraction.",
+    "Exhaustive branch-to-issue mapping for all 248 worktrees was not proven; #115/lock-up branch_matrix is the right bounded follow-up.",
+    "Open PR CI/log details were not fully inspected; PR alignment uses metadata/merge state, not Actions log root cause except existing issue #105/#66 evidence.",
+    "Local ahead commits a7da52d2 and 3725591c are not on origin/migration/clean-runtime-baseline-reconstruct-v1; remote publication/merge status remains pending by policy."
+  ],
+  "dirty_state_at_preflight": [
+    "?? docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+  ],
+  "duplicate_candidate_count": 2,
+  "flag_counts": {
+    "DATA_MISSING": 2,
+    "HIGH_RISK_NEEDS_AUDIT_FIRST": 18,
+    "NEEDS_FOLLOWUP": 1,
+    "NEEDS_REVIEW": 11,
+    "STALE_NEEDS_REVALIDATION": 5
+  },
+  "generated_at_local": "2026-05-27T10:41:11+10:00 to 2026-05-27",
+  "github_target": "0rl4nd0l/tenn",
+  "github_url": "https://github.com/0rl4nd0l/tenn",
+  "head": "3725591cf76ec1a56428a476e23dbd1ebc4050fc",
+  "inventory_counts": {
+    "closed_issues_reviewed": 31,
+    "closed_prs_reviewed": 15,
+    "labels": 59,
+    "milestones": 7,
+    "open_issues": 53,
+    "open_prs": 21,
+    "prunable_worktree_entries": 22,
+    "worktrees": 248
+  },
+  "issue_templates_exist": true,
+  "issues": [
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#119"
+      ],
+      "classification": "BLOCKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_FOLLOWUP"
+      ],
+      "labels": [
+        "mode:audit",
+        "lane:query-orchestration",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:query-orchestration,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 120,
+      "priority": "priority:p1",
+      "reason": "Blocked by #119 in issue body; do not run until #119 routing/action-state root cause is clear.",
+      "report_path": "reports/agent_jobs/chat_pending_action_state_audit_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "NO - blocked by #119",
+      "source_refs": "commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/chat_pending_action_state_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Query Orchestration] Pending action proposal can block the next normal chat prompt",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#107"
+      ],
+      "classification": "BLOCKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:query-orchestration",
+        "lane:reporting",
+        "priority:p1",
+        "state:ready",
+        "type:bug",
+        "type:usability",
+        "type:automation",
+        "product-value"
+      ],
+      "lane": "lane:evaluation,lane:query-orchestration,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 119,
+      "priority": "priority:p1",
+      "reason": "Blocked by #107 in issue body; depends on visible context routing audit.",
+      "report_path": "reports/agent_jobs/chat_ticker_intent_misclassification_audit_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - blocked by #107",
+      "source_refs": "commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/chat_ticker_intent_misclassification_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Query Orchestration] Chat treats audit/context prefix as ticker and proposes news ingest",
+      "type": "type:bug,type:usability,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:validation-gap",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 118,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/thesis_audit_first_run_workflow_audit_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/thesis_audit_first_run_workflow_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Audit Thesis Audit first-run guidance and source selection workflow",
+      "type": "type:validation-gap,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:validation-gap",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 117,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/marketplace_home_location_setup_audit_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/marketplace_home_location_setup_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Investigate Marketplace home-location setup gap in mission flow",
+      "type": "type:validation-gap,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:validation-gap",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:query-orchestration,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 116,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/news_empty_state_value_audit_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/news_empty_state_value_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Audit News empty-state value and proactive context handoff",
+      "type": "type:validation-gap,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "pre-existing unrelated dirty task card in current checkout",
+        "unrelated pre-existing dirty file `docs/agent_tasks/github_outstanding_issue_creation_v1_20260526"
+      ],
+      "classification": "PARKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:control-plane",
+        "type:automation"
+      ],
+      "lane": "lane:evaluation,lane:reporting,lane:repo-hygiene",
+      "linked_prs": [],
+      "milestone": "M0 — Control Plane Hardening",
+      "mode": "mode:audit",
+      "number": 115,
+      "priority": "priority:p1",
+      "reason": "First report-only run exists in local ahead commit; needs operator review/closeout or follow-up, not another blind implementation.",
+      "report_path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "commits: 3725591cf76e",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/codex_nightly_lockup_report_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Repo Hygiene] Add report-only Codex nightly lock-up audit",
+      "type": "type:control-plane,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#112"
+      ],
+      "classification": "PARKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "risk:high",
+        "lane:query-orchestration",
+        "lane:reporting",
+        "lane:runtime",
+        "mode:safe-extension",
+        "priority:p1",
+        "state:ready",
+        "type:bug",
+        "type:automation"
+      ],
+      "lane": "lane:query-orchestration,lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M6 — Runtime / Local Automation",
+      "mode": "mode:safe-extension",
+      "number": 114,
+      "priority": "priority:p1",
+      "reason": "Local fix evidence exists at commit 3725591c, but branch is ahead of origin and issue remains open.",
+      "report_path": "reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "commits: 3725591cf76e",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/nightly_news_ticker_universe_input_repair_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Runtime] Nightly news fetch fails because canonical ASX ticker universe is missing",
+      "type": "type:bug,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#82"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:control-plane",
+        "type:automation"
+      ],
+      "lane": "lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M6 — Runtime / Local Automation",
+      "mode": "mode:audit",
+      "number": 113,
+      "priority": "priority:p2",
+      "reason": "Follow-up from closed #82; no current hard blocker found in registry.",
+      "report_path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "branches: codex/long-running-issue-resolution-batch-v1-20260526; commits: 20260526",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Runtime] Resolve remaining llama-server :8001 owner evidence gap",
+      "type": "type:control-plane,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#81"
+      ],
+      "classification": "PARKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "lane:query-orchestration",
+        "lane:reporting",
+        "lane:runtime",
+        "mode:safe-extension",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:validation-gap",
+        "type:automation"
+      ],
+      "lane": "lane:query-orchestration,lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M6 — Runtime / Local Automation",
+      "mode": "mode:safe-extension",
+      "number": 112,
+      "priority": "priority:p1",
+      "reason": "Local fix evidence exists at commit 3725591c, but branch is ahead of origin and issue remains open.",
+      "report_path": "reports/agent_jobs/nightly_news_observability_followup_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "branches: codex/long-running-issue-resolution-batch-v1-20260526; commits: 20260526, 3725591cf76e",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/nightly_news_observability_followup_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Runtime] Add final-status observability for nightly news scheduling",
+      "type": "type:validation-gap,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:evaluation,lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 110,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/operations_route_readiness_contract_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/operations_route_readiness_contract_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Operations route renders but never reaches idle during live UI smoke",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 109,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Global Cockpit chrome exposes raw host/GPU/config internals to analyst users",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:query-orchestration",
+        "lane:reporting",
+        "priority:p1",
+        "state:ready",
+        "type:usability",
+        "type:automation",
+        "product-value"
+      ],
+      "lane": "lane:evaluation,lane:query-orchestration,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 108,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/chat_operator_diagnostics_visibility_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/chat_operator_diagnostics_visibility_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Hide auto-diagnostic Codex repair controls from normal chat users",
+      "type": "type:usability,type:automation"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p1",
+        "state:ready",
+        "type:bug",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:query-orchestration,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 107,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/chat_visible_context_bridge_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/chat_visible_context_bridge_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Query Orchestration] Chat cannot use visible Holdings and Watchlist context for analyst workflows",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none known"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:control-plane"
+      ],
+      "lane": "lane:reporting,lane:repo-hygiene",
+      "linked_prs": [],
+      "milestone": "M0 — Control Plane Hardening",
+      "mode": "mode:audit",
+      "number": 106,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/raw_jam_issue_contract_normalization_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/raw_jam_issue_contract_normalization_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Repo Hygiene] Normalize raw Jam-captured GitHub issues into Tenn issue contract",
+      "type": "type:control-plane"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "PR #39, closed #66"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap",
+        "type:control-plane"
+      ],
+      "lane": "lane:evaluation,lane:repo-hygiene",
+      "linked_prs": [
+        39
+      ],
+      "milestone": "M2 — Evaluation Spine",
+      "mode": "mode:audit",
+      "number": 105,
+      "priority": "priority:p1",
+      "reason": "Targets PR #39 failure split; PR #39 is the work target, not a blocker.",
+      "report_path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 26379324415",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[CI] Split PR #39 lint-and-test failure clusters after closed CI audit",
+      "type": "type:validation-gap,type:control-plane"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#83,#84,#87,#95"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:query-orchestration,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M2 — Evaluation Spine",
+      "mode": "mode:audit",
+      "number": 104,
+      "priority": "priority:p1",
+      "reason": "Evidence-envelope matrix references #83/#84/#87/#95 but can run as an audit coordinator.",
+      "report_path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Evaluation] Cross-route evidence-envelope regression matrix for chat, news, Home, and source drawer",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#100"
+      ],
+      "classification": "BLOCKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "lane:memory",
+        "risk:high",
+        "lane:provenance",
+        "lane:reporting",
+        "mode:safe-extension",
+        "priority:p1",
+        "state:ready",
+        "type:usability",
+        "product-value"
+      ],
+      "lane": "lane:memory,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:safe-extension",
+      "number": 103,
+      "priority": "priority:p1",
+      "reason": "Blocked by parent audit #100 in Project field.",
+      "report_path": "reports/agent_jobs/home_commentary_memory_candidate_queue_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - run after #100",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/home_commentary_memory_candidate_queue_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Add Home memory-candidate queue for commentary takeaways",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#100"
+      ],
+      "classification": "BLOCKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "lane:memory",
+        "risk:high",
+        "lane:evaluation",
+        "lane:provenance",
+        "mode:safe-extension",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap",
+        "product-value"
+      ],
+      "lane": "lane:memory,lane:evaluation,lane:provenance",
+      "linked_prs": [],
+      "milestone": "M2 — Evaluation Spine",
+      "mode": "mode:safe-extension",
+      "number": 102,
+      "priority": "priority:p1",
+      "reason": "Blocked by parent audit #100 in Project field.",
+      "report_path": "reports/agent_jobs/youtube_intake_quality_gates_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - run after #100",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/youtube_intake_quality_gates_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Evaluation] Add YouTube intake quality gates for low-signal and speculative transcripts",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "#100"
+      ],
+      "classification": "BLOCKED",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "lane:memory",
+        "risk:high",
+        "lane:provenance",
+        "mode:safe-extension",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap",
+        "product-value"
+      ],
+      "lane": "lane:memory,lane:provenance",
+      "linked_prs": [],
+      "milestone": "M1 — Trust / Provenance Foundation",
+      "mode": "mode:safe-extension",
+      "number": 101,
+      "priority": "priority:p1",
+      "reason": "Blocked by parent audit #100 in Project field.",
+      "report_path": "reports/agent_jobs/youtube_provenance_metadata_through_chunks_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - run after #100",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Provenance] Persist YouTube source metadata and transcript timing through commentary chunks",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "lane:memory",
+        "mode:audit",
+        "risk:high",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap",
+        "type:automation",
+        "product-value"
+      ],
+      "lane": "lane:memory,lane:query-orchestration,lane:provenance,lane:reporting,lane:runtime",
+      "linked_prs": [
+        1
+      ],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 100,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/youtube_transcription_strategy_memory_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Memory] Audit YouTube transcription to strategy-memory integration",
+      "type": "type:validation-gap,type:automation"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "DATA_MISSING",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:provenance",
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "risk:medium",
+        "state:data-missing",
+        "state:needs-review",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:provenance,lane:reporting,lane:repo-hygiene",
+      "linked_prs": [],
+      "milestone": "M1 — Trust / Provenance Foundation",
+      "mode": "mode:audit",
+      "number": 99,
+      "priority": "priority:p1",
+      "reason": "Labels explicitly carry state:data-missing and state:needs-review.",
+      "report_path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "none found",
+      "state": "state:data-missing,state:needs-review",
+      "task_card_path": "docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Provenance] Make real-gold source PDFs reviewable without committing raw filings",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "NEEDS_REVIEW",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:provenance",
+        "lane:financial-truth",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:needs-review",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:provenance,lane:financial-truth,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M4 — Financial Truth Expansion",
+      "mode": "mode:audit",
+      "number": 98,
+      "priority": "priority:p1",
+      "reason": "Needs result review; active Financial Truth registry job may overlap adjacent extraction-contract work.",
+      "report_path": "reports/agent_jobs/persisted_metric_schema_extractor_contract_alignment_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "none found",
+      "state": "state:needs-review",
+      "task_card_path": "docs/agent_tasks/persisted_metric_schema_extractor_contract_alignment_v1_20260526.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Financial Truth] Align persisted metric schema with extractor contract",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "DATA_MISSING",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW",
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:provenance",
+        "lane:financial-truth",
+        "lane:reporting",
+        "priority:p1",
+        "state:data-missing",
+        "state:needs-review",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:provenance,lane:financial-truth,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M2 — Evaluation Spine",
+      "mode": "mode:audit",
+      "number": 97,
+      "priority": "priority:p1",
+      "reason": "Labels explicitly carry state:data-missing and state:needs-review.",
+      "report_path": "reports/agent_jobs/confirmed_metric_extracted_payload_scorecard_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "branches: safe/extraction-payload-scorecard-builder-v1-20260526; commits: 20260526, bb833aa8f916",
+      "state": "state:data-missing,state:needs-review",
+      "task_card_path": "docs/agent_tasks/confirmed_metric_extracted_payload_scorecard_v1_20260526.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "DATA_MISSING",
+      "cleanup_needed": "none",
+      "flags": [
+        "NEEDS_REVIEW",
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:query-orchestration",
+        "lane:financial-truth",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p1",
+        "state:data-missing",
+        "state:needs-review",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:query-orchestration,lane:financial-truth,lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M4 — Financial Truth Expansion",
+      "mode": "mode:audit",
+      "number": 96,
+      "priority": "priority:p1",
+      "reason": "Labels explicitly carry state:data-missing and state:needs-review.",
+      "report_path": "reports/agent_jobs/metric_extraction_runtime_coverage_repair_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "none found",
+      "state": "state:data-missing,state:needs-review",
+      "task_card_path": "docs/agent_tasks/metric_extraction_runtime_coverage_repair_v1_20260526.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Query Orchestration] Most PDF-path documents lack terminal extraction",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:validation-gap"
+      ],
+      "lane": "lane:query-orchestration,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M1 — Trust / Provenance Foundation",
+      "mode": "mode:audit",
+      "number": 95,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_source_drawer_semantics_audit_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_source_drawer_semantics_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:control-plane"
+      ],
+      "lane": "lane:reporting,lane:repo-hygiene",
+      "linked_prs": [],
+      "milestone": "M0 — Control Plane Hardening",
+      "mode": "mode:audit",
+      "number": 94,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards",
+      "type": "type:control-plane"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 93,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_marketplace_empty_state_actionability_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "Marketplace Matches and Alerts empty states do not explain mission state or next action",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 92,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_watchlist_empty_state_actionability_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_watchlist_empty_state_actionability_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "Watchlist empty state does not turn existing portfolio or chat context into useful next actions",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:evaluation",
+        "lane:reporting",
+        "priority:p1",
+        "state:ready",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:evaluation,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 91,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 1779773749727",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_history_timestamp_truth_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "History screen turns documents without job timestamps into Just now 0ms completed jobs",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "active Query Orchestration task if it still owns cockpit_api.py"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:reporting",
+        "lane:runtime",
+        "priority:p1",
+        "state:ready",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:reporting,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M6 — Runtime / Local Automation",
+      "mode": "mode:audit",
+      "number": 90,
+      "priority": "priority:p1",
+      "reason": "Issue body has a conditional active-task blocker; current registry shows only a Financial Truth job, so revalidate before claiming.",
+      "report_path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_gpu_activity_process_visibility_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "GPU Activity reports no GPU processes while llama-server is healthy",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M2 — Evaluation Spine",
+      "mode": "mode:audit",
+      "number": 89,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "Cockpit UI lint gate fails in Thesis Audit and Marketplace screens",
+      "type": "type:bug,type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "lane:memory",
+        "mode:audit",
+        "risk:high",
+        "task:codex-ready",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap"
+      ],
+      "lane": "lane:memory",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 88,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Memory] System fitness and improvement audit v1",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "DATA_MISSING",
+      "cleanup_needed": "missing mode",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "lane:evaluation",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:data-missing",
+        "state:needs-review",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:query-orchestration,lane:provenance,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "MISSING",
+      "number": 87,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:data-missing.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:medium",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "branches: migration/clean-runtime-baseline-reconstruct-v1; commits: 1a758c6e",
+      "state": "state:data-missing,state:needs-review",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "[Query Orchestration] A2M recall chat answer lacks required visible evidence",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "DATA_MISSING",
+      "cleanup_needed": "missing mode",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "lane:reporting",
+        "lane:cockpit",
+        "priority:p1",
+        "risk:medium",
+        "state:data-missing",
+        "state:needs-review",
+        "type:bug"
+      ],
+      "lane": "lane:reporting,lane:cockpit",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "MISSING",
+      "number": 86,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:data-missing.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:medium",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "none found",
+      "state": "state:data-missing,state:needs-review",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "[Cockpit] Home portfolio panel shows no data",
+      "type": "type:bug"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "a schema/materialization gap",
+        "none known"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:validation-gap"
+      ],
+      "lane": "lane:query-orchestration,lane:provenance",
+      "linked_prs": [],
+      "milestone": "M1 — Trust / Provenance Foundation",
+      "mode": "mode:audit",
+      "number": 84,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/cockpit_announcement_context_runtime_schema_audit_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Provenance] Audit missing cockpit_announcement_context runtime schema",
+      "type": "type:bug,type:validation-gap"
+    },
+    {
+      "acceptance_quality": "strong",
+      "blocked_by": [
+        "none known"
+      ],
+      "classification": "READY_TO_RUN",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:runtime",
+        "priority:p1",
+        "state:ready",
+        "type:validation-gap"
+      ],
+      "lane": "lane:query-orchestration,lane:provenance,lane:runtime",
+      "linked_prs": [],
+      "milestone": "M3 — Query + Memory Integrity",
+      "mode": "mode:audit",
+      "number": 83,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:ready and no obvious blocker.",
+      "report_path": "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:ready",
+      "task_card_path": "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260526.md",
+      "task_card_ready": "YES",
+      "template_match": "matches markdown contract",
+      "title": "[Query] News projection materialization/parity repair planning v1",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "NEEDS_REVIEW",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "lane:reporting",
+        "lane:repo-hygiene",
+        "mode:safe-extension",
+        "priority:p2",
+        "risk:medium",
+        "state:needs-review",
+        "type:control-plane",
+        "type:docs"
+      ],
+      "lane": "lane:reporting,lane:repo-hygiene",
+      "linked_prs": [],
+      "milestone": "M0 — Control Plane Hardening",
+      "mode": "mode:safe-extension",
+      "number": 78,
+      "priority": "priority:p2",
+      "reason": "Docs/control-plane refresh issue is open with state:needs-review.",
+      "report_path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/",
+      "risk": "risk:medium",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "none found",
+      "state": "state:needs-review",
+      "task_card_path": "docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Repo Hygiene] Refresh agent markdown and Codex repo documentation",
+      "type": "type:control-plane,type:docs"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "STALE_NEEDS_REVALIDATION",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone; legacy/plain labels query-orchestration,reporting",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "quantdinger",
+        "strategy-lab",
+        "query-orchestration",
+        "future",
+        "reporting",
+        "product-value"
+      ],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 76,
+      "priority": "MISSING",
+      "reason": "Clear analyst-workflow goal but missing standard label families, milestone, task card, and validation fields.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "NO - revalidate metadata first",
+      "source_refs": "none found",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "[Strategy Lab] Convert QuantDinger from infrastructure proof into analyst-useful read-only workflow",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "task:codex-ready",
+        "lane:evaluation",
+        "lane:financial-truth",
+        "priority:p1",
+        "state:needs-followup",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:financial-truth",
+      "linked_prs": [],
+      "milestone": "M4 — Financial Truth Expansion",
+      "mode": "mode:audit",
+      "number": 74,
+      "priority": "priority:p1",
+      "reason": "Open state:needs-followup for Appendix 5B no-regression gate refresh.",
+      "report_path": "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/README.md",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:needs-followup",
+      "task_card_path": "docs/agent_tasks/appendix5b_report_only_no_regression_gate_refresh_v1_20260525.md",
+      "task_card_ready": "YES",
+      "template_match": "partial contract",
+      "title": "[Evaluation] Appendix 5B report-only no-regression gate refresh v1",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [
+        "none known"
+      ],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "task:codex-ready",
+        "lane:evaluation",
+        "lane:financial-truth",
+        "priority:p1",
+        "state:needs-followup",
+        "type:validation-gap"
+      ],
+      "lane": "lane:evaluation,lane:financial-truth",
+      "linked_prs": [],
+      "milestone": "M4 — Financial Truth Expansion",
+      "mode": "mode:audit",
+      "number": 73,
+      "priority": "priority:p1",
+      "reason": "Open state:needs-followup for ASX evidence-bound extraction parent tracker.",
+      "report_path": "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/README.md",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:needs-followup",
+      "task_card_path": "docs/agent_tasks/asx_deterministic_extraction_extension_audit_v1_20260519.md",
+      "task_card_ready": "YES",
+      "template_match": "partial contract",
+      "title": "[Financial Truth] ASX evidence-bound extraction redesign parent tracker",
+      "type": "type:validation-gap"
+    },
+    {
+      "acceptance_quality": "partial",
+      "blocked_by": [],
+      "classification": "HIGH_RISK_NEEDS_AUDIT_FIRST",
+      "cleanup_needed": "missing state,type; missing milestone",
+      "flags": [
+        "STALE_NEEDS_REVALIDATION"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "priority:p0",
+        "task:codex-ready",
+        "lane:financial-truth"
+      ],
+      "lane": "lane:financial-truth",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "mode:audit",
+      "number": 72,
+      "priority": "priority:p0",
+      "reason": "P0 Financial Truth parser-adjacent issue lacks state/type/milestone; run only with fresh task card and registry proof.",
+      "report_path": "reports/agent_jobs/appendix4c_candidate_sidecar_parser_v1/**",
+      "risk": "risk:high",
+      "safe_to_run_next": "AUDIT FIRST ONLY",
+      "source_refs": "commits: 5c22ade1153fa90d96f150f4bc66be179f535cdb",
+      "state": "MISSING",
+      "task_card_path": "docs/agent_tasks/appendix4c_candidate_sidecar_parser_v1.md",
+      "task_card_ready": "NO",
+      "template_match": "partial contract",
+      "title": "[Financial Truth] Appendix 4C candidate sidecar parser v1",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "STALE_NEEDS_REVALIDATION",
+      "cleanup_needed": "missing priority,risk,state,type; missing milestone",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [
+        "mode:audit",
+        "task:codex-ready",
+        "lane:provenance"
+      ],
+      "lane": "lane:provenance",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "mode:audit",
+      "number": 71,
+      "priority": "MISSING",
+      "reason": "Pre-template follow-up lacks priority/risk/state/type/milestone labels.",
+      "report_path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/README.md",
+      "risk": "MISSING",
+      "safe_to_run_next": "NO - revalidate metadata first",
+      "source_refs": "none found",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "[Provenance] Source label fixture matrix v1",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_REVIEW",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone",
+      "flags": [
+        "STALE_NEEDS_REVALIDATION"
+      ],
+      "labels": [],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 61,
+      "priority": "MISSING",
+      "reason": "Detailed raw runtime/UI issue but no label family or milestone; covered by #106 normalization scope.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "branches: migration/clean-runtime-baseline-reconstruct-v1; commits: 3959547, 6eb30d3f0988, 8ca6f48a",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Cockpit should default visible GPU to the llama-server GPU",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "HIGH_RISK_NEEDS_AUDIT_FIRST",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone",
+      "flags": [
+        "NEEDS_REVIEW"
+      ],
+      "labels": [],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 55,
+      "priority": "MISSING",
+      "reason": "Security-sensitive restart route issue has no labels/milestone; audit first before any remediation.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "AUDIT FIRST ONLY",
+      "source_refs": "none found",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Cockpit backend restart route has no local auth or CSRF guard while frontend is LAN-bound",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_REVIEW",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone",
+      "flags": [
+        "STALE_NEEDS_REVALIDATION"
+      ],
+      "labels": [],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 53,
+      "priority": "MISSING",
+      "reason": "Detailed UI/accessibility issue but no label family or milestone; covered by #106 normalization scope.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "REVIEW FIRST",
+      "source_refs": "none found",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Production Cockpit forms rely on placeholders and unlabeled icon controls",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [
+        "HIGH_RISK_NEEDS_AUDIT_FIRST"
+      ],
+      "labels": [
+        "mode:audit",
+        "risk:high",
+        "lane:reporting",
+        "priority:p1",
+        "state:needs-followup",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 51,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:high",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "High-impact Cockpit actions can run from one click without confirmation or review state",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:needs-followup",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 49,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "none found",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "News lookback filter is visible but ignored by the production search request",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:evaluation",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:needs-followup",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:evaluation,lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 47,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "reports/agent_jobs/reporting_ui_safe_issue_fixes_v1_20260525/README.md",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "branches: migration/clean-runtime-baseline-reconstruct-v1; commits: 1779773749727, 1a758c6eeca9a541a08138c8136e2b6721cd54f0, 20260525",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Verification page emits controlled/uncontrolled Select warning in production UI",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:needs-followup",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 46,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 1779773749727",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Cockpit production UI does not automatically switch to a mobile-safe layout on narrow viewports",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p2",
+        "risk:medium",
+        "state:needs-followup",
+        "type:bug",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 45,
+      "priority": "priority:p2",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "reports/agent_jobs/reporting_ui_safe_issue_fixes_v1_20260525/README.md",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "branches: migration/clean-runtime-baseline-reconstruct-v1; commits: 1779773749727, 1a758c6eeca9a541a08138c8136e2b6721cd54f0, 20260525",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Disable Vercel Analytics script in local Cockpit runtime to avoid 404 console noise",
+      "type": "type:bug,type:usability"
+    },
+    {
+      "acceptance_quality": "weak",
+      "blocked_by": [],
+      "classification": "NEEDS_FOLLOWUP",
+      "cleanup_needed": "none",
+      "flags": [],
+      "labels": [
+        "mode:audit",
+        "lane:reporting",
+        "priority:p1",
+        "risk:medium",
+        "state:needs-followup",
+        "type:usability"
+      ],
+      "lane": "lane:reporting",
+      "linked_prs": [],
+      "milestone": "M5 — Cockpit Analyst Workflow",
+      "mode": "mode:audit",
+      "number": 42,
+      "priority": "priority:p1",
+      "reason": "Open issue has state:needs-followup.",
+      "report_path": "DATA_MISSING",
+      "risk": "risk:medium",
+      "safe_to_run_next": "YES - after task-card/registry",
+      "source_refs": "commits: 1779773749727",
+      "state": "state:needs-followup",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "does not match current template",
+      "title": "Cockpit landing page buries core Home panels below Strategy Lab audit cards",
+      "type": "type:usability"
+    },
+    {
+      "acceptance_quality": "raw-jam weak",
+      "blocked_by": [],
+      "classification": "DUPLICATE_CANDIDATE",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone; legacy/plain labels bug",
+      "flags": [
+        "DATA_MISSING",
+        "STALE_NEEDS_REVALIDATION"
+      ],
+      "labels": [
+        "bug"
+      ],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 41,
+      "priority": "MISSING",
+      "reason": "Raw Jam-only issue; likely covered by #106 normalization and may overlap Home missing-data issues.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "commits: 2b7f3bfc, 3ca558e01ab4, 6d5fb6a2f7e3",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "raw capture, not template",
+      "title": "missing data",
+      "type": "MISSING"
+    },
+    {
+      "acceptance_quality": "raw-jam weak",
+      "blocked_by": [],
+      "classification": "DUPLICATE_CANDIDATE",
+      "cleanup_needed": "missing lane,mode,priority,risk,state,type; missing milestone",
+      "flags": [
+        "DATA_MISSING",
+        "STALE_NEEDS_REVALIDATION"
+      ],
+      "labels": [],
+      "lane": "MISSING",
+      "linked_prs": [],
+      "milestone": "none",
+      "mode": "MISSING",
+      "number": 40,
+      "priority": "MISSING",
+      "reason": "Raw Jam-only issue; likely covered by #106 normalization and may overlap chat/search routing issues.",
+      "report_path": "DATA_MISSING",
+      "risk": "MISSING",
+      "safe_to_run_next": "NO - evidence/normalization first",
+      "source_refs": "commits: 18e05d5e12ea22ec6d5372e810ba4365, 26e269974812, 438df5f2",
+      "state": "MISSING",
+      "task_card_path": "DATA_MISSING",
+      "task_card_ready": "NO",
+      "template_match": "raw capture, not template",
+      "title": "failure to request a search",
+      "type": "MISSING"
+    }
+  ],
+  "job_id": "github_issue_backlog_audit_v1_20260526",
+  "label_hygiene": {
+    "closed_state_needs_review_or_parked_count": 2,
+    "closed_state_ready_count": 0,
+    "open_inconsistent_done_state_count": 0,
+    "open_missing_family_counts": {
+      "lane": 6,
+      "mode": 8,
+      "priority": 7,
+      "risk": 7,
+      "state": 8,
+      "type": 8
+    },
+    "open_missing_milestone_count": 8
+  },
+  "milestone_health": {
+    "M0 — Control Plane Hardening": {
+      "closed": 4,
+      "open": 4,
+      "state": "open"
+    },
+    "M1 — Trust / Provenance Foundation": {
+      "closed": 0,
+      "open": 4,
+      "state": "open"
+    },
+    "M2 — Evaluation Spine": {
+      "closed": 0,
+      "open": 5,
+      "state": "open"
+    },
+    "M3 — Query + Memory Integrity": {
+      "closed": 0,
+      "open": 8,
+      "state": "open"
+    },
+    "M4 — Financial Truth Expansion": {
+      "closed": 0,
+      "open": 4,
+      "state": "open"
+    },
+    "M5 — Cockpit Analyst Workflow": {
+      "closed": 0,
+      "open": 16,
+      "state": "open"
+    },
+    "M6 — Runtime / Local Automation": {
+      "closed": 4,
+      "open": 4,
+      "state": "open"
+    }
+  },
+  "mode": "audit_only / issue_inventory",
+  "open_pr_alignment": [
+    {
+      "base": "migration/clean-runtime-baseline-reconstruct-base-36130cbd",
+      "changed_files": 346,
+      "draft": true,
+      "head": "migration/clean-runtime-baseline-reconstruct-v1",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "UNSTABLE",
+      "number": 39,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK",
+        "LARGE_PR",
+        "CURRENT_BRANCH_REMOTE_BEHIND_LOCAL_AHEAD_COMMITS"
+      ],
+      "state": "OPEN",
+      "title": "[codex] integrate trust foundation next phase"
+    },
+    {
+      "base": "main",
+      "changed_files": 3,
+      "draft": true,
+      "head": "cursor/technical-documentation-updates-aaac",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 34,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "docs: align backend startup and API documentation"
+    },
+    {
+      "base": "main",
+      "changed_files": 4,
+      "draft": true,
+      "head": "cursor/documentation-automation-system-a9ff",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 33,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "Document agent startup wrappers and price API"
+    },
+    {
+      "base": "main",
+      "changed_files": 3,
+      "draft": true,
+      "head": "cursor/codebase-documentation-alignment-475f",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 32,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "Clarify canonical backend startup docs"
+    },
+    {
+      "base": "main",
+      "changed_files": 2,
+      "draft": true,
+      "head": "cursor/documentation-automation-system-906e",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 31,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "docs: clarify canonical agent startup"
+    },
+    {
+      "base": "plan/ideation-combinations-2026-04-11",
+      "changed_files": 2,
+      "draft": false,
+      "head": "cloud/c2-cockpit-routing-regression-tests-20260421-122136",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "UNSTABLE",
+      "number": 30,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK"
+      ],
+      "state": "OPEN",
+      "title": "hold(c2): cockpit routing regression tests (blocked by baseline import issue)"
+    },
+    {
+      "base": "main",
+      "changed_files": 2,
+      "draft": true,
+      "head": "cursor/codebase-documentation-alignment-f3de",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 25,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "docs: align canonical startup docs with wrapper contracts"
+    },
+    {
+      "base": "cloud/session-20260319",
+      "changed_files": 8,
+      "draft": false,
+      "head": "codex/fix-issues-from-pr-review-comments",
+      "issue_refs": [],
+      "labels": [
+        "codex"
+      ],
+      "merge": "UNSTABLE",
+      "number": 24,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK"
+      ],
+      "state": "OPEN",
+      "title": "Add date filters to QualContextReader; harden preboot routing and extraction runtime startup; improve llama-server launcher and add tests"
+    },
+    {
+      "base": "main",
+      "changed_files": 3,
+      "draft": true,
+      "head": "cursor/codebase-documentation-alignment-d407",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 23,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "DOCS_DUPLICATE_CLUSTER"
+      ],
+      "state": "OPEN",
+      "title": "docs: align canonical startup and validation runbooks"
+    },
+    {
+      "base": "cloud/session-20260319",
+      "changed_files": 37,
+      "draft": true,
+      "head": "cursor/provably-correct-financial-pdf-extraction-system-b0c9",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "DIRTY",
+      "number": 22,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK"
+      ],
+      "state": "OPEN",
+      "title": "Bootstrap reproducible PDF extraction environment (two venvs + audit)"
+    },
+    {
+      "base": "main",
+      "changed_files": 532,
+      "draft": false,
+      "head": "recovery/reconstruction",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "DIRTY",
+      "number": 19,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK",
+        "LARGE_PR"
+      ],
+      "state": "OPEN",
+      "title": "Recovery/reconstruction"
+    },
+    {
+      "base": "main",
+      "changed_files": 4,
+      "draft": true,
+      "head": "cursor/development-environment-setup-8547",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 17,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "feat: add /api/chat endpoint with LLM agent loop and tool calling"
+    },
+    {
+      "base": "main",
+      "changed_files": 5,
+      "draft": true,
+      "head": "cursor/codebase-documentation-alignment-f3f3",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 16,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "docs: align ingestion runbooks with current runtime behavior"
+    },
+    {
+      "base": "main",
+      "changed_files": 3,
+      "draft": true,
+      "head": "cursor/development-environment-setup-e9b8",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 15,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Add .venv to .gitignore and Cockpit TUI instructions to AGENTS.md"
+    },
+    {
+      "base": "main",
+      "changed_files": 8,
+      "draft": false,
+      "head": "codex/locate-last-hit-update-date",
+      "issue_refs": [],
+      "labels": [
+        "codex"
+      ],
+      "merge": "CLEAN",
+      "number": 14,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Harden script runtime, extraction accounting, zero-row quality gate, and test stubs"
+    },
+    {
+      "base": "main",
+      "changed_files": 1,
+      "draft": false,
+      "head": "codex/conduct-code-review-and-optimization-plan",
+      "issue_refs": [],
+      "labels": [
+        "codex"
+      ],
+      "merge": "CLEAN",
+      "number": 13,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Add optimization plan and codebase review doc (2026-03-18)"
+    },
+    {
+      "base": "main",
+      "changed_files": 6,
+      "draft": true,
+      "head": "cursor/system-bug-scan-c80b",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 12,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "System bug scan hardening: CLIs, stubs, and quality gates"
+    },
+    {
+      "base": "cursor/cockpit-agent-testing-1c9c",
+      "changed_files": 2,
+      "draft": true,
+      "head": "cursor/environment-update-status-ef1a",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 11,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Environment update status"
+    },
+    {
+      "base": "cursor/cockpit-agent-testing-1c9c",
+      "changed_files": 16,
+      "draft": true,
+      "head": "cursor/deep-analysis-environment-f6f1",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 10,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Deep analysis environment"
+    },
+    {
+      "base": "main",
+      "changed_files": 2,
+      "draft": true,
+      "head": "cursor/cockpit-agent-testing-1c9c",
+      "issue_refs": [],
+      "labels": [],
+      "merge": "CLEAN",
+      "number": 9,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK"
+      ],
+      "state": "OPEN",
+      "title": "Cockpit agent testing"
+    },
+    {
+      "base": "main",
+      "changed_files": 4,
+      "draft": false,
+      "head": "codex/develop-youtube-transcript-scraper",
+      "issue_refs": [],
+      "labels": [
+        "codex"
+      ],
+      "merge": "DIRTY",
+      "number": 1,
+      "review": "none",
+      "risk": [
+        "NO_EXPLICIT_ISSUE_LINK",
+        "MERGE_OR_CI_RISK"
+      ],
+      "state": "OPEN",
+      "title": "Add YouTube transcript ingest workflow and docs"
+    }
+  ],
+  "parked_count": 3,
+  "protocol_exists": true,
+  "registry_read_only_preflight": {
+    "active_job_note": "extraction_contract_parity_guard_v1_20260526 active in separate worktree; no apparent overlap with this report-only file set",
+    "active_jobs_count_after_task_card_validation": 1,
+    "active_jobs_count_initial": 0,
+    "ok": true
+  },
+  "remote_head_migration_clean_runtime_baseline_reconstruct_v1": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "skill_mirrors_exist": true,
+  "stale_needs_revalidation_count": 7,
+  "superseded_candidate_count": 0,
+  "top_10_next_issues": [
+    {
+      "bucket": "run now",
+      "issue": 106,
+      "rank": 1,
+      "reason": "M0/control-plane unblocker: normalizes raw #40/#41/#53/#55/#61 so future agents can safely act or close duplicates.",
+      "title": "[Repo Hygiene] Normalize raw Jam-captured GitHub issues into Tenn issue contract"
+    },
+    {
+      "bucket": "review now",
+      "issue": 115,
+      "rank": 2,
+      "reason": "Branch/worktree loss-risk control: first local lock-up report exists; decide closeout or runner follow-up before branch evidence drifts.",
+      "title": "[Repo Hygiene] Add report-only Codex nightly lock-up audit"
+    },
+    {
+      "bucket": "review/publish now",
+      "issue": 112,
+      "rank": 3,
+      "reason": "Local final-status observability fix exists on current branch ahead of origin; issue remains open and should not be lost.",
+      "title": "[Runtime] Add final-status observability for nightly news scheduling"
+    },
+    {
+      "bucket": "review/publish now",
+      "issue": 114,
+      "rank": 4,
+      "reason": "Local ticker-universe repair exists on current branch ahead of origin; issue remains open and should not be lost.",
+      "title": "[Runtime] Nightly news fetch fails because canonical ASX ticker universe is missing"
+    },
+    {
+      "bucket": "run now",
+      "issue": 105,
+      "rank": 5,
+      "reason": "Unblocks PR #39, the largest current draft/unstable PR and the current branch PR head.",
+      "title": "[CI] Split PR #39 lint-and-test failure clusters after closed CI audit"
+    },
+    {
+      "bucket": "run now",
+      "issue": 104,
+      "rank": 6,
+      "reason": "High-risk evidence-envelope regression matrix across chat/news/Home/source drawer; foundational for trust and UI claims.",
+      "title": "[Evaluation] Cross-route evidence-envelope regression matrix for chat, news, Home, and source drawer"
+    },
+    {
+      "bucket": "run now",
+      "issue": 107,
+      "rank": 7,
+      "reason": "Blocks #119 and directly affects analyst chat usefulness using visible Holdings/Watchlist context.",
+      "title": "[Query Orchestration] Chat cannot use visible Holdings and Watchlist context for analyst workflows"
+    },
+    {
+      "bucket": "run now",
+      "issue": 95,
+      "rank": 8,
+      "reason": "Trust/provenance source-drawer semantics; ready and bounded audit with clear acceptance path.",
+      "title": "[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence"
+    },
+    {
+      "bucket": "run now",
+      "issue": 100,
+      "rank": 9,
+      "reason": "Parent audit for YouTube transcription to strategy-memory integration; unblocks #101/#102/#103.",
+      "title": "[Memory] Audit YouTube transcription to strategy-memory integration"
+    },
+    {
+      "bucket": "run now",
+      "issue": 113,
+      "rank": 10,
+      "reason": "Runtime owner/provenance follow-up from #82; bounded read-only evidence gap with M6 value.",
+      "title": "[Runtime] Resolve remaining llama-server :8001 owner evidence gap"
+    }
+  ],
+  "validation": {
+    "status": "VALIDATED_WITH_KNOWN_CHECK_DIFF_BLOCKER",
+    "jq_empty": "PASS",
+    "task_card_validate": "PASS",
+    "task_card_check_diff": "FAIL_PREEXISTING_UNRELATED_UNTRACKED_FILE docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+    "git_diff_check": "PASS",
+    "final_registry_read_only": "PASS active_jobs_empty",
+    "final_git_status": "reports ignored; task card untracked plus pre-existing unrelated task card"
+  }
+}

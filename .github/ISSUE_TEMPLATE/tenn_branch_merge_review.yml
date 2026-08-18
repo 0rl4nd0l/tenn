@@ -1,0 +1,229 @@
+name: Tenn branch or merge review
+description: Visibility for unmerged branches, worktrees, parked work, and PR review candidates.
+title: "[Tenn Branch Review]: "
+labels:
+  - "lane:repo-hygiene"
+  - "state:needs-review"
+  - "type:control-plane"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for unmerged branch, worktree, or PR visibility. It does not grant merge approval.
+        Keep labels and milestone values as recommendations unless a task card explicitly approves live GitHub mutation.
+  - type: dropdown
+    id: branch_classification
+    attributes:
+      label: Branch classification
+      description: Classify the branch, worktree, or PR before review or archive decisions.
+      options:
+        - "ACTIVE_LINKED"
+        - "PARKED_READY_FOR_REVIEW"
+        - "PARKED_NEEDS_REBASE"
+        - "BLOCKED_BY_CI"
+        - "BLOCKED_BY_DEPENDENCY"
+        - "SUPERSEDED"
+        - "STALE_UNKNOWN_NEEDS_AUDIT"
+        - "SAFE_TO_ARCHIVE_CANDIDATE"
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: Select the primary ownership lane label.
+      options:
+        - "lane:repo-hygiene"
+        - "lane:reporting"
+        - "lane:evaluation"
+        - "lane:financial-truth"
+        - "lane:provenance"
+        - "lane:query-orchestration"
+        - "lane:memory"
+        - "lane:runtime"
+        - "lane:cockpit"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Select the expected execution mode label.
+      options:
+        - "mode:result-review"
+        - "mode:audit"
+        - "mode:issue-closeout"
+        - "mode:safe-extension"
+        - "mode:implementation"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority label.
+      options:
+        - "priority:p2"
+        - "priority:p1"
+        - "priority:p0"
+        - "priority:p3"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Select the risk label.
+      options:
+        - "risk:medium"
+        - "risk:high"
+        - "risk:low"
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Type
+      description: Select the type label.
+      options:
+        - "type:control-plane"
+        - "type:automation"
+        - "type:validation-gap"
+        - "type:ci"
+        - "type:docs"
+        - "type:bug"
+        - "type:regression-seed"
+        - "type:security"
+        - "type:usability"
+    validations:
+      required: true
+  - type: dropdown
+    id: state_recommendation
+    attributes:
+      label: State recommendation
+      description: Select the current state label.
+      options:
+        - "state:needs-review"
+        - "state:parked"
+        - "state:blocked"
+        - "state:superseded"
+        - "state:ready"
+        - "state:data-missing"
+        - "state:needs-followup"
+        - "state:duplicate"
+        - "state:done-audit-only"
+        - "state:done-remediated"
+        - "state:running"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone_recommendation
+    attributes:
+      label: Milestone recommendation
+      description: Recommend an existing activated milestone, or choose no milestone.
+      options:
+        - "M0 — Control Plane Hardening"
+        - "M2 — Evaluation Spine"
+        - "M6 — Runtime / Local Automation"
+        - "M1 — Trust / Provenance Foundation"
+        - "M3 — Query + Memory Integrity"
+        - "M4 — Financial Truth Expansion"
+        - "M5 — Cockpit Analyst Workflow"
+        - "No milestone recommendation"
+    validations:
+      required: true
+  - type: textarea
+    id: branch_worktree_pr_refs
+    attributes:
+      label: Branch / worktree / PR refs
+      description: Provide branch names, worktree paths, PR links, commit hashes, and known parking issue links.
+      placeholder: |
+        Branch:
+        Worktree:
+        PR:
+        HEAD:
+        Parking issue:
+    validations:
+      required: true
+  - type: textarea
+    id: source_evidence
+    attributes:
+      label: Source evidence
+      description: Include current repo evidence, git status, diff summary, CI state, report links, or duplicate/supersession proof.
+    validations:
+      required: true
+  - type: textarea
+    id: why_it_matters
+    attributes:
+      label: Why it matters
+      description: Explain why this branch or merge candidate must remain visible, be reviewed, be rebased, be superseded, or be archived.
+    validations:
+      required: true
+  - type: input
+    id: task_card_path
+    attributes:
+      label: Required task card path
+      description: Repo-relative path for the branch review or merge task card.
+      placeholder: docs/agent_tasks/<job_id>.md
+    validations:
+      required: true
+  - type: input
+    id: report_path
+    attributes:
+      label: Required report path
+      description: Repo-relative report directory or primary branch-review artifact.
+      placeholder: reports/agent_jobs/<job_id>/
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_surfaces
+    attributes:
+      label: Allowed files / surfaces
+      description: List every branch, file, report, PR, worktree, or GitHub surface the review may inspect or touch.
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_surfaces
+    attributes:
+      label: Forbidden files / surfaces
+      description: List files, data stores, runtime surfaces, GitHub mutations, branch cleanup, and merge actions that must not occur.
+      placeholder: |
+        - No merge, cherry-pick, rebase, reset, stash, prune, delete, or archive unless explicitly approved by a later task card.
+        - No product/runtime/data mutation unless explicitly allowed.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List required branch/PR checks, diff review, test evidence, check-diff gates, CI status, or archive proof.
+    validations:
+      required: true
+  - type: textarea
+    id: hard_stops
+    attributes:
+      label: Hard stops
+      description: List conditions that require stopping and reporting instead of widening scope.
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      description: State closeout evidence and the decision path for review, rebase, blocker, supersession, archive candidacy, or parking.
+    validations:
+      required: true
+  - type: textarea
+    id: data_missing
+    attributes:
+      label: DATA_MISSING
+      description: "Keep unknowns visible. Write DATA_MISSING with exact evidence needed, or DATA_MISSING: none."
+    validations:
+      required: true
+  - type: textarea
+    id: followup_parking_dependency_links
+    attributes:
+      label: Follow-up / parking / dependency links
+      description: Link parking issue, branch-review report, dependency issue, CI run, PR, or superseding branch. Write none only when no links exist.
+    validations:
+      required: true

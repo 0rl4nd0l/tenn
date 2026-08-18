@@ -10,11 +10,12 @@ import threading
 import uuid
 import time
 from contextlib import nullcontext
-from uuid import UUID
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 from urllib.parse import urlparse
+from uuid import UUID
 
 import httpx
 from sqlalchemy import func
@@ -28,6 +29,10 @@ from app.services.cockpit_auto_flagger import (
     build_auto_flag_fingerprint,
     build_auto_flag_note,
     detect_auto_flag_findings,
+)
+from app.services.financial_observations import (
+    stable_financial_profile,
+    stable_financial_profiles,
 )
 from app.services.memory_events import suppress_memory_read_events
 from app.services.query_orchestrator import QueryOrchestrator
@@ -199,14 +204,18 @@ def _detect_api_provider_error(
     }
 
 
-# Recent ASXPeriodicFinancial rows used for population / trust metrics (not total table size).
+# Recent accepted-observation projection rows used for population / trust metrics.
 _PULSE_FINANCIAL_SAMPLE_LIMIT = 24
 
 
-def _diluted_eps_value(row: ASXPeriodicFinancial) -> float | None:
+def _projected_value(row: Any, field: str) -> Any:
+    return row.get(field) if isinstance(row, dict) else getattr(row, field, None)
+
+
+def _diluted_eps_value(row: Any) -> float | None:
     """EPS proxy: np_attributable / shares_outstanding when both are present."""
-    np_ = row.np_attributable
-    sh = row.shares_outstanding
+    np_ = _projected_value(row, "np_attributable")
+    sh = _projected_value(row, "shares_outstanding")
     if np_ is None or sh is None:
         return None
     try:
@@ -241,12 +250,10 @@ def _matrix_cell_state(
 
     if populated_rows:
         if stage == "evaluation":
-            high_confidence_rows = [
-                r
-                for r in populated_rows
-                if float(r.confidence_metrics or 0.0) >= 0.85
-            ]
-            return "populated" if high_confidence_rows else "abstain"
+            # These rows come from stable_financial_profile(), whose only input
+            # is active accepted statutory observations.  Its intentionally-null
+            # legacy confidence placeholder is not evidence of low confidence.
+            return "populated"
         return "populated"
 
     if not financial_rows:
@@ -1168,6 +1175,15 @@ class CockpitService:
         rag_cfg = cfg.get("rag") if isinstance(cfg.get("rag"), dict) else {}
         qual_company = None
         qual_news = None
+        news_cfg = (
+            rag_cfg.get("news_context")
+            if isinstance(rag_cfg.get("news_context"), dict)
+            else None
+        )
+        news_context_db_path = str((news_cfg or {}).get("db_path") or "").strip()
+        news_context_corpus_filter = str(
+            (news_cfg or {}).get("corpus_filter") or "news"
+        ).strip()
         if self.backend_api_client is not None:
             qc_cfg = (
                 rag_cfg.get("qualitative_context")
@@ -1187,11 +1203,6 @@ class CockpitService:
                         "CockpitService: qual_context (company) disabled: %s", exc
                     )
 
-            news_cfg = (
-                rag_cfg.get("news_context")
-                if isinstance(rag_cfg.get("news_context"), dict)
-                else None
-            )
             if context_enabled(news_cfg, default=False):
                 try:
                     qual_news = build_qual_context_reader(
@@ -1214,6 +1225,8 @@ class CockpitService:
             backend_api_client=self.backend_api_client,
             qual_context_company_reader=qual_company,
             qual_context_news_reader=qual_news,
+            news_context_db_path=news_context_db_path,
+            news_context_corpus_filter=news_context_corpus_filter,
             state_store=self.state_store,
         )
         self.config["cockpit_llm"] = self._effective_cockpit_llm_config(
@@ -2659,33 +2672,26 @@ class CockpitService:
         db = SessionLocal()
         try:
             doc_query = db.query(func.count(Document.document_id))
-            financial_query = db.query(ASXPeriodicFinancial)
             failure_query = db.query(ExtractionRun).filter(ExtractionRun.status == "failed")
             runs_total_query = db.query(func.count(ExtractionRun.run_id))
-            periodic_total_query = db.query(func.count(ASXPeriodicFinancial.ticker))
 
             if normalized_ticker:
                 doc_query = doc_query.filter(Document.ticker == normalized_ticker)
-                financial_query = financial_query.filter(
-                    ASXPeriodicFinancial.ticker == normalized_ticker
-                )
                 failure_query = failure_query.join(
                     Document, ExtractionRun.document_id == Document.document_id
                 ).filter(Document.ticker == normalized_ticker)
                 runs_total_query = runs_total_query.join(
                     Document, ExtractionRun.document_id == Document.document_id
                 ).filter(Document.ticker == normalized_ticker)
-                periodic_total_query = periodic_total_query.filter(
-                    ASXPeriodicFinancial.ticker == normalized_ticker
-                )
 
             doc_count = int(doc_query.scalar() or 0)
-            periodic_financial_rows_total = int(periodic_total_query.scalar() or 0)
             extraction_runs_total = int(runs_total_query.scalar() or 0)
 
-            financial_rows = financial_query.order_by(
-                ASXPeriodicFinancial.period_end.desc()
-            ).limit(_PULSE_FINANCIAL_SAMPLE_LIMIT).all()
+            projected_rows = stable_financial_profiles(
+                db, ticker=normalized_ticker
+            )
+            periodic_financial_rows_total = len(projected_rows)
+            financial_rows = list(projected_rows[:_PULSE_FINANCIAL_SAMPLE_LIMIT])
             financial_count = len(financial_rows)
             failed_count = int(failure_query.count() or 0)
 
@@ -2694,16 +2700,12 @@ class CockpitService:
             signal_count = 0
             memory_count = 0
 
-            confidence_values = [
-                float(row.confidence_metrics or 0.0)
-                for row in financial_rows
-                if row.confidence_metrics is not None
-            ]
-            avg_confidence = (
-                sum(confidence_values) / len(confidence_values)
-                if confidence_values
-                else 0.0
-            )
+            # stable_financial_profiles() contains only active accepted
+            # statutory truth.  Do not reinterpret its null compatibility
+            # confidence field as model confidence.  The public numeric field
+            # is retained as an accepted-truth coverage score: a projected row
+            # is trusted by construction, while no projected truth scores 0.
+            accepted_truth_score = 1.0 if financial_rows else 0.0
 
             metric_fields = [
                 "revenue",
@@ -2723,7 +2725,7 @@ class CockpitService:
                 1
                 for row in financial_rows
                 for field in metric_fields
-                if getattr(row, field, None) is not None
+                if _projected_value(row, field) is not None
             )
             total_metric_slots = len(financial_rows) * len(metric_fields)
             population_index = (
@@ -2736,7 +2738,9 @@ class CockpitService:
             )
             quarantine_rate = extraction_failure_rate_pct
 
-            overview_health = round((population_index + avg_confidence * 100) / 2, 1)
+            overview_health = round(
+                (population_index + accepted_truth_score * 100) / 2, 1
+            )
             overview_status = (
                 "nominal"
                 if extraction_failure_rate_pct <= 10.0 and overview_health >= 50.0
@@ -2754,7 +2758,7 @@ class CockpitService:
                     "signal_count": signal_count,
                     "memory_count": memory_count,
                     "population_index": round(population_index, 1),
-                    "trust_score_avg": round(avg_confidence, 2),
+                    "trust_score_avg": round(accepted_truth_score, 2),
                     "quarantine_rate": round(quarantine_rate, 1),
                     "extraction_failure_rate_pct": round(extraction_failure_rate_pct, 1),
                 },
@@ -2774,8 +2778,10 @@ class CockpitService:
                     {
                         "id": "evaluation",
                         "label": "EVALUATION",
-                        "health": round(avg_confidence * 100, 1),
-                        "status": "nominal" if avg_confidence > 0.8 else "degraded",
+                        "health": round(accepted_truth_score * 100, 1),
+                        "status": (
+                            "nominal" if accepted_truth_score > 0.0 else "degraded"
+                        ),
                     },
                     {
                         "id": "signals",
@@ -2863,13 +2869,19 @@ class CockpitService:
             stage_l = stage.lower()
             entities: list[dict[str, Any]] = []
             for comp in companies:
-                financial_rows = (
-                    db.query(ASXPeriodicFinancial)
-                    .filter(ASXPeriodicFinancial.ticker == comp)
-                    .order_by(ASXPeriodicFinancial.period_end.desc())
-                    .limit(12)
-                    .all()
-                )
+                financial_rows = [
+                    SimpleNamespace(
+                        **{
+                            **row,
+                            "source_document_id": (
+                                UUID(row["source_document_id"])
+                                if row.get("source_document_id")
+                                else None
+                            ),
+                        }
+                    )
+                    for row in stable_financial_profile(db, ticker=comp)[:12]
+                ]
                 doc_ids = {r.source_document_id for r in financial_rows}
                 failed_doc_ids: set[UUID] = set()
                 if doc_ids:

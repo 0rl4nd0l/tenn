@@ -1,0 +1,41 @@
+{
+  "agent": "Codex",
+  "branch": "safe/extraction-payload-scorecard-builder-v1-20260526",
+  "base_head": "3725591cf76ec1a56428a476e23dbd1ebc4050fc",
+  "data_missing": [
+    "approved actual extracted payloads for all confirmed metric coverage expectations",
+    "approved confirmed-coverage payload accuracy threshold",
+    "#98 contract parity for broader metric families",
+    "#99 durable source asset manifest/resolver",
+    "live broad extracted-payload accuracy across annual, half-year, 4D, and 4E filings"
+  ],
+  "forbidden_surfaces_touched": false,
+  "generated_artifacts": [
+    "reports/agent_jobs/extraction_payload_scorecard_builder_v1_20260526/payload_scorecard_sample.json"
+  ],
+  "github_issue": 97,
+  "job_id": "extraction_payload_scorecard_builder_v1_20260526",
+  "lane": "Evaluation",
+  "mode": "safe_extension_report_local_eval_only",
+  "production_data_access": false,
+  "registry": {
+    "claim": "PASS",
+    "final_read_only_list_active": "PASS",
+    "release": "PASS",
+    "scope": "shared"
+  },
+  "report": "reports/agent_jobs/extraction_payload_scorecard_builder_v1_20260526/README.md",
+  "result": "implemented_report_local_payload_scorecard_builder",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Provenance"
+  ],
+  "tests": {
+    "git_diff_check": "PASS",
+    "json_tool_payload_scorecard_sample": "PASS",
+    "py_compile": "PASS",
+    "pytest": "PASS: 9 passed, 1 warning in 0.13s",
+    "ruff": "PASS"
+  },
+  "worktree": "/home/l4nd0/tenn-extraction-payload-scorecard-builder-v1-20260526"
+}

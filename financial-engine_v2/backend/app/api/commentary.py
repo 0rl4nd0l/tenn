@@ -51,6 +51,11 @@ RECENT_COMMENTARY_SOURCE_TYPES = {
     "podcast_transcript",
     "market_commentary",
 }
+RECENT_COMMENTARY_SOURCE_KIND_BY_TYPE = {
+    "youtube_transcript": "ephemeral",
+    "podcast_transcript": "ephemeral",
+    "market_commentary": "concat",
+}
 
 
 def _validate_source_id(source_id: str) -> str:
@@ -493,6 +498,7 @@ def _recent_commentary_items(
             "source_id": source_id,
             "source_name": source_name or source_id,
             "source_type": source_type,
+            "source_kind": RECENT_COMMENTARY_SOURCE_KIND_BY_TYPE[source_type],
             "approved_at": approved_at,
             "review_status": review_status,
         }
@@ -537,7 +543,10 @@ class TranscriptReviewUpdateRequest(BaseModel):
 # GET /api/commentary/transcripts/pending
 # ---------------------------------------------------------------------------
 
-@router.get("/transcripts/pending")
+@router.get(
+    "/transcripts/pending",
+    dependencies=[Depends(require_api_key)],
+)
 def get_pending_transcripts(
     include_takeaways: bool = False,
     takeaway_limit: int = 5,

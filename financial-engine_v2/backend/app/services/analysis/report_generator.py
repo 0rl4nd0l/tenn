@@ -198,12 +198,16 @@ def generate(
             {
                 "evidence_id": "fin_metrics",
                 "source_type": "financial_statement",
-                "source_id": f"{context.get('ticker')}_periodic_financials",
+                "source_id": (
+                    f"{context.get('ticker')}_accepted_financial_observation_projection"
+                ),
                 "confidence": min(
                     1.0,
                     max(0.0, (context.get("metrics") or {}).get("financial_health_score", 50) / 100)
                 ),
-                "content": "Periodic financial data from asx_periodic_financials.",
+                "content": (
+                    "Financial data from accepted_financial_observation_projection."
+                ),
             },
             {
                 "evidence_id": "risk_notes",

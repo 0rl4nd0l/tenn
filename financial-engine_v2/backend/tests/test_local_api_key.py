@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from unittest.mock import Mock
+
 import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 
 import app.core.config as config
 import app.main as main
+from app.api import commentary
 from app.api import routes
 
 
@@ -28,11 +32,31 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
         ("/api/system/capabilities", "GET"),
         ("/api/system/proposals/apply", "POST"),
         ("/api/system/status", "GET"),
+        ("/api/cockpit/docs", "GET"),
+        ("/api/cockpit/pulse", "GET"),
+        ("/api/cockpit/matrix", "GET"),
+        ("/api/commentary/transcripts/pending", "GET"),
+        ("/chat", "POST"),
+        ("/api/chat", "POST"),
         ("/api/ingest/transcript", "POST"),
         ("/api/ingest/book", "POST"),
         ("/ingest/transcript", "POST"),
         ("/ingest/book", "POST"),
         ("/rag/query", "POST"),
+        ("/api/cockpit/marketplace/missions", "GET"),
+        ("/api/cockpit/marketplace/missions", "POST"),
+        ("/api/cockpit/marketplace/missions/{mission_id}", "GET"),
+        ("/api/cockpit/marketplace/missions/{mission_id}", "PATCH"),
+        ("/api/cockpit/marketplace/missions/{mission_id}", "DELETE"),
+        ("/api/cockpit/marketplace/missions/{mission_id}/link-product", "POST"),
+        ("/api/cockpit/marketplace/missions/{mission_id}/link-product", "DELETE"),
+        ("/api/cockpit/marketplace/matches", "GET"),
+        ("/api/cockpit/marketplace/matches/{match_id}", "GET"),
+        ("/api/cockpit/marketplace/matches/{match_id}", "PATCH"),
+        ("/api/cockpit/marketplace/matches/{match_id}/feedback", "PATCH"),
+        ("/api/cockpit/marketplace/matches/{match_id}/benchmark-review", "PATCH"),
+        ("/api/cockpit/marketplace/alerts", "GET"),
+        ("/api/cockpit/marketplace/alerts/{alert_id}", "PATCH"),
     ],
 )
 def test_protected_routes_register_api_key_dependency(path, method):
@@ -68,3 +92,45 @@ def test_require_api_key_accepts_matching_key(monkeypatch):
     monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
 
     assert routes.require_api_key("local-secret") is None
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-secret"}])
+def test_pending_transcripts_rejects_missing_or_wrong_api_key_before_loading_index(
+    monkeypatch, headers
+):
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    load_index = Mock(side_effect=AssertionError("pending index should not load"))
+    monkeypatch.setattr(commentary, "_load_index", load_index)
+
+    response = TestClient(main.app).get(
+        "/api/commentary/transcripts/pending",
+        headers=headers,
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    load_index.assert_not_called()
+
+
+def test_pending_transcripts_accepts_matching_api_key(monkeypatch):
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+    monkeypatch.setattr(
+        commentary,
+        "_load_index",
+        lambda: {
+            "src-001": {
+                "staged_at": "2026-06-01T00:00:00Z",
+                "path": "/tmp/src-001.jsonl",
+            }
+        },
+    )
+
+    response = TestClient(main.app).get(
+        "/api/commentary/transcripts/pending",
+        headers={"X-API-Key": "local-secret"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["pending"][0]["source_id"] == "src-001"

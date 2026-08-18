@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "task_id": "reporting_console_verification_news_current_base_v1_20260627",
+  "status": "implementation_started",
+  "issue_refs": ["#45", "#47", "#49"],
+  "pr_refs": ["#133"],
+  "summary": "Current-base replacement for conflicting PR #133 started; registry claim active."
+}

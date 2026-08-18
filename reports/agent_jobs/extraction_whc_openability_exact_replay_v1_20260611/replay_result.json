@@ -1,0 +1,48 @@
+{
+  "accepted_canonical_metrics": false,
+  "confidence_metrics": 0.0,
+  "currency": null,
+  "debug_capture": {},
+  "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+  "job_id": "extraction_whc_openability_exact_replay_v1_20260611",
+  "metric_scale_sources": null,
+  "metric_source_scales": null,
+  "mode": "exact_single_document_openability_selected_table_replay",
+  "non_null_metric_count": 0,
+  "non_null_metrics": {},
+  "parameters": {
+    "extraction_parallel": "0",
+    "openability_pages": [
+      57,
+      58,
+      60,
+      61
+    ],
+    "openability_selected_tables": true,
+    "parser_backend": "pymupdf",
+    "skip_narrative": true
+  },
+  "period_end": null,
+  "period_start": null,
+  "period_type": null,
+  "provenance": {},
+  "result_error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+  "result_status": "failed",
+  "row_refs": null,
+  "scale": null,
+  "scale_validation": null,
+  "source_bound": null,
+  "source_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+  "source_pdf_readable": true,
+  "source_period_end_evidence": null,
+  "source_period_evidence": null,
+  "status": "DONE",
+  "structured_extraction": null,
+  "temporary_cache_file_count_before_cleanup": 1,
+  "temporary_cache_files_before_cleanup": [
+    "reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+  ],
+  "temporary_data_root": "/tmp/tenn_whc_openability_exact_replay_data_2461480",
+  "temporary_data_root_removed": true,
+  "ticker": "WHC"
+}

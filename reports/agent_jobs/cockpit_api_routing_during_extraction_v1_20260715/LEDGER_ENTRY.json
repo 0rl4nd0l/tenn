@@ -1,0 +1,62 @@
+{
+  "task_id": "cockpit_api_routing_during_extraction_v1_20260715",
+  "parent_task_id": null,
+  "workflow": "tenn-fix",
+  "status": "pr_opened",
+  "started_at": "2026-07-15T03:03:34Z",
+  "updated_at": "2026-07-16T05:48:53Z",
+  "owner": "Codex",
+  "session_id": "l4nd0-System-Product-Name:1144973:cockpit_api_routing_during_extraction_v1_20260715",
+  "thread_id": "DATA_MISSING",
+  "codex_goal_id": "DATA_MISSING",
+  "source_session_ref": "interactive Codex session",
+  "issue_refs": [],
+  "pr_refs": [
+    "https://github.com/0rl4nd0l/tenn/pull/512"
+  ],
+  "branch": "fix/cockpit-start-config-portable-engine-root-v1-20260715",
+  "worktree": "/home/l4nd0/tenn-cockpit-start-config-portable-engine-root-v1-20260715",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@af1b33eb2a5e203b21338eaa0a7e1de95362ed58",
+  "files_touched": [
+    "docs/agent_tasks/cockpit_api_routing_during_extraction_v1_20260715.md",
+    "docs/architecture/SYSTEM_CONTRACT.md",
+    "financial-engine_v2/cockpit/core/chat.py",
+    "financial-engine_v2/cockpit/core/config.py",
+    "financial-engine_v2/cockpit/core/agent/anthropic_client.py",
+    "financial-engine_v2/config/cockpit_llm.yaml",
+    "financial-engine_v2/backend/app/services/llm.py",
+    "financial-engine_v2/backend/app/services/news_memo_extractor.py",
+    "financial-engine_v2/cockpit/tests/test_chat_keyword_api_routing.py",
+    "financial-engine_v2/cockpit/tests/test_anthropic_client.py",
+    "financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py",
+    "financial-engine_v2/cockpit/tests/test_chat_attached_sources.py",
+    "financial-engine_v2/cockpit/tests/test_llm_backend_readonly_format.py",
+    "financial-engine_v2/backend/tests/test_llm_fallback_policy.py",
+    "financial-engine_v2/backend/tests/test_news_memo_extractor.py"
+  ],
+  "artifacts": [
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/STATE.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/VALIDATION.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/CODE_REVIEW.json",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUNTIME_FUNCTIONALITY_PROOF.md",
+    "reports/agent_jobs/cockpit_api_routing_during_extraction_v1_20260715/RUN_OUTCOME.json"
+  ],
+  "summary": "Implemented, activated, and live-proved Claude routing; repaired PR #512's sole stale attached-source test assertion; repair head 7126f6a1 passed both required checks.",
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "focused Cockpit and backend pytest suites",
+      "PR #512 attached-source RED/GREEN and 99-test focused routing suite",
+      "normal and GPU-exclusive live Anthropic routing proof",
+      "ruff check",
+      "python3 -m py_compile",
+      "git diff --check",
+      "agent_job_contract validate/check-diff/check-report-artifacts/check-closeout"
+    ]
+  },
+  "next_action": "push_final_report_state_then_mark_pr_512_ready_and_merge_after_checks",
+  "owner_boundary": true,
+  "supersedes": [],
+  "superseded_by": [],
+  "evidence_grade": "VERIFIED"
+}

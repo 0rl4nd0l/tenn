@@ -1,3 +1,5 @@
+import type { StrategyLabReviewWorkflow } from './strategy-lab-review-queue';
+
 export type StrategyLabReviewEvidenceKind =
   | 'strategy_lab_artifact_v1'
   | 'helper_pre_envelope'
@@ -8,6 +10,7 @@ export type StrategyLabReviewAvailability = 'available' | 'missing' | 'invalid_j
 export type StrategyLabHistoricalEvidenceStatus =
   | 'historical_partial_milestone'
   | 'historical_smoke_proof'
+  | 'verified_readonly_sandbox_viability'
   | 'DATA_MISSING';
 
 export interface StrategyLabReviewSource {
@@ -21,6 +24,11 @@ export interface StrategyLabReviewSource {
   historical_status?: StrategyLabHistoricalEvidenceStatus;
   current_runtime_available?: false;
   paper_order_placement?: false;
+  review_status?: 'PENDING_REVIEW';
+  result_status?: string;
+  canonical_financial_truth?: false;
+  execution_allowed?: false;
+  store_writes?: false;
   what_it_proves: string[];
   what_it_does_not_prove: string[];
   data_missing: string[];
@@ -59,6 +67,7 @@ export interface StrategyLabArtifactsResponse {
   artifact_review_route: '/api/cockpit/strategy-lab/artifacts';
   source_mode: 'repo_artifacts_only';
   artifacts: StrategyLabReviewArtifact[];
+  review_workflow: StrategyLabReviewWorkflow;
   boundary_flags: {
     pending_review: true;
     read_only: true;
@@ -193,6 +202,30 @@ export const STRATEGY_LAB_REVIEW_SOURCES: StrategyLabReviewSource[] = [
     data_missing: ['current_sidecar_runtime', 'current_transport_probe', 'review_owner_decision'],
   },
   {
+    id: 'quantdinger_verified_readonly_sandbox_proof',
+    label: 'QuantDinger verified read-only sandbox proof',
+    evidence_kind: 'report_evidence',
+    authoritative: false,
+    source_path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+    historical_status: 'verified_readonly_sandbox_viability',
+    current_runtime_available: false,
+    paper_order_placement: false,
+    review_status: 'PENDING_REVIEW',
+    result_status: 'VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY',
+    canonical_financial_truth: false,
+    execution_allowed: false,
+    store_writes: false,
+    what_it_proves: [
+      'The clean re-probe records VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY and remains PENDING_REVIEW.',
+      'Exact status, runtime, cleanup, no-mutation, zero-order, revoke, and sanitized request/response artifacts are available.',
+    ],
+    what_it_does_not_prove: [
+      'It does not prove current sidecar availability because the sandbox was cleaned up after execution.',
+      'It does not enable transport integration, live trading, paper orders, store writes, or canonical financial truth.',
+    ],
+    data_missing: ['current_sidecar_runtime', 'transport_integration', 'review_owner_decision'],
+  },
+  {
     id: 'quantdinger_readonly_sidecar_smoke_proof',
     label: 'QuantDinger read-only sidecar smoke proof',
     evidence_kind: 'report_evidence',
@@ -203,6 +236,10 @@ export const STRATEGY_LAB_REVIEW_SOURCES: StrategyLabReviewSource[] = [
     historical_status: 'historical_smoke_proof',
     current_runtime_available: false,
     paper_order_placement: false,
+    review_status: 'PENDING_REVIEW',
+    canonical_financial_truth: false,
+    execution_allowed: false,
+    store_writes: false,
     what_it_proves: [
       'A later preserved commit records a bounded loopback read-only smoke that passed and remains PENDING_REVIEW.',
       'The smoke evidence supports historical last_readonly_sidecar_smoke=SMOKE_PASSED only.',
@@ -218,9 +255,11 @@ export const STRATEGY_LAB_REVIEW_SOURCES: StrategyLabReviewSource[] = [
 export function buildStrategyLabArtifactsResponse({
   generatedAt,
   artifacts,
+  reviewWorkflow,
 }: {
   generatedAt: string;
   artifacts: StrategyLabReviewArtifact[];
+  reviewWorkflow: StrategyLabReviewWorkflow;
 }): StrategyLabArtifactsResponse {
   return {
     ok: true,
@@ -229,6 +268,7 @@ export function buildStrategyLabArtifactsResponse({
     artifact_review_route: '/api/cockpit/strategy-lab/artifacts',
     source_mode: 'repo_artifacts_only',
     artifacts,
+    review_workflow: reviewWorkflow,
     boundary_flags: {
       pending_review: true,
       read_only: true,
@@ -241,7 +281,7 @@ export function buildStrategyLabArtifactsResponse({
     },
     data_missing: [
       'No real QuantDinger sidecar transport, auth, retry, timeout, or unavailable behavior is confirmed.',
-      'The read-only smoke proof is preserved at commit 0ee837f7 but its report bundle is not checked out in this worktree.',
+      'The verified read-only sandbox proof does not prove a current online sidecar or real Cockpit transport.',
       'No Cockpit artifact persistence store, review decision queue, or promotion workflow is implemented.',
       'No DB, Qdrant, memory, news, canonical financial truth, paper trading, or live trading write path is used.',
     ],

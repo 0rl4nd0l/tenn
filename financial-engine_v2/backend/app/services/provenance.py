@@ -57,6 +57,11 @@ def _infer_synthetic(texts: list[str | None]) -> bool:
     )
 
 
+def _is_unknown_evidence(value: Any) -> bool:
+    text = _clean_str(value)
+    return text is not None and text.lower() == "unknown"
+
+
 def _maybe_source_document_id(value: Any) -> str | None:
     text = _clean_str(value)
     if not text:
@@ -187,10 +192,133 @@ def from_extraction_provenance(
     )
 
 
+def _field_provenance_record(
+    metric_name: str,
+    field_provenance: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    source_document_id: str | None = None,
+) -> ProvenanceRecord:
+    metric = _clean_str(metric_name) or _clean_str(
+        field_provenance.get("metric")
+    ) or "metric"
+    source = _clean_str(field_provenance.get("source")) or _clean_str(
+        field_provenance.get("table_label")
+    )
+    page_tag = _clean_str(field_provenance.get("page_tag"))
+    if not page_tag:
+        page_number = _clean_str(field_provenance.get("page_number"))
+        page_tag = f"page_{page_number}" if page_number else None
+    row_ref = field_provenance.get("row_ref")
+    excerpt = field_provenance.get("excerpt")
+    evidence = _clean_str(excerpt) or _clean_str(row_ref)
+    period_ref = _compose_period_ref(
+        field_provenance.get("period_end") or payload.get("period_end"),
+        field_provenance.get("period_type") or payload.get("period_type"),
+    )
+    doc_id = (
+        _clean_str(source_document_id)
+        or _clean_str(field_provenance.get("source_document_id"))
+        or _clean_str(payload.get("source_document_id"))
+    )
+    source_label = source or metric
+    if source_label.startswith("derived:"):
+        status = _DERIVED
+        parents = tuple(dict.fromkeys(re.findall(r"([a-z_]+)\(", evidence or "")))
+        summary = f"{metric} was derived from upstream extracted values."
+    elif source_label == "prose_note":
+        status = _LOW_TRACEABILITY
+        parents = ()
+        summary = f"{metric} extracted from prose-note fallback."
+    else:
+        unknown_evidence = _is_unknown_evidence(row_ref) or _is_unknown_evidence(
+            excerpt
+        )
+        status = (
+            _LOW_TRACEABILITY
+            if unknown_evidence
+            else (_PRECISE if page_tag else _PARTIAL)
+        )
+        parents = ()
+        if unknown_evidence:
+            summary = f"{metric} has structured provenance with unknown row evidence."
+        elif status == _PRECISE:
+            summary = f"{metric} extracted directly from {source_label}."
+        else:
+            summary = (
+                f"{metric} has structured provenance with partial location evidence."
+            )
+
+    return ProvenanceRecord(
+        source_type="financial_statement",
+        source_document_id=doc_id,
+        source_label=source_label,
+        location_ref=page_tag,
+        period_ref=period_ref,
+        evidence_text=evidence,
+        evidence_summary=summary,
+        provenance_status=status,
+        confidence=_clean_float(payload.get("confidence_metrics")),
+        parent_reference_ids=parents,
+        raw_reference=dict(field_provenance),
+    )
+
+
+def from_extraction_payload_metric(
+    payload: Mapping[str, Any],
+    metric_name: str,
+    *,
+    source_document_id: str | None = None,
+) -> ProvenanceRecord:
+    field_provenance = payload.get("field_provenance")
+    if isinstance(field_provenance, Mapping):
+        metric_provenance = field_provenance.get(metric_name)
+        if isinstance(metric_provenance, Mapping):
+            return _field_provenance_record(
+                metric_name,
+                metric_provenance,
+                payload=payload,
+                source_document_id=source_document_id,
+            )
+
+    provenance = payload.get("provenance")
+    provenance = provenance if isinstance(provenance, Mapping) else {}
+    period_ref = _compose_period_ref(
+        payload.get("period_end"), payload.get("period_type")
+    )
+    doc_id = _clean_str(source_document_id) or _clean_str(
+        payload.get("source_document_id")
+    )
+    return from_extraction_provenance(
+        metric_name=str(metric_name),
+        provenance=_clean_str(provenance.get(metric_name)),
+        source_document_id=doc_id,
+        period_ref=period_ref,
+        confidence=payload.get("confidence_metrics"),
+    )
+
+
 def from_extraction_payload(
     payload: Mapping[str, Any], *, source_document_id: str | None = None
 ) -> list[ProvenanceRecord]:
+    field_provenance = payload.get("field_provenance")
     provenance = payload.get("provenance")
+    if isinstance(field_provenance, Mapping):
+        metric_names: list[str] = []
+        for source_map in (field_provenance, provenance):
+            if not isinstance(source_map, Mapping):
+                continue
+            for metric_name in source_map:
+                metric_names.append(str(metric_name))
+        return [
+            from_extraction_payload_metric(
+                payload,
+                metric_name,
+                source_document_id=source_document_id,
+            )
+            for metric_name in dict.fromkeys(metric_names)
+        ]
+
     if not isinstance(provenance, Mapping):
         return []
 

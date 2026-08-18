@@ -1,0 +1,93 @@
+{
+  "job_id": "trust_foundation_next_phase_integrate_canonical_v1_20260524",
+  "status": "complete_committed_registry_released",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Provenance",
+    "Query Orchestration",
+    "Memory",
+    "Reporting",
+    "Financial Truth"
+  ],
+  "mode": "merge_integration_review_safe_canonical_apply",
+  "production_data_access": false,
+  "canonical": {
+    "path": "/home/l4nd0/tenn",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_at_preflight": "594df2dd19d72d8a047f581e7793204b9d873f7f",
+    "head_at_apply": "36130cbdb98e7084e8396d125a1d6f8d3ab48bc7",
+    "mid_run_head_advance": true,
+    "mid_run_head_advance_subject": "milestone(strategy-lab): prove QuantDinger regime guard fix",
+    "source_commit_present_before_apply": false
+  },
+  "source": {
+    "worktree": "/home/l4nd0/tenn-trust-foundation-next-phase-longrun-v1-20260524",
+    "branch": "safe/trust-foundation-next-phase-longrun-v1-20260524",
+    "commit": "f18fdc2d7f9a766a26ac724122d091bbabbaf0e8",
+    "subject": "milestone(evaluation): advance trust foundation next phase"
+  },
+  "integration": {
+    "method": "git cherry-pick --no-commit f18fdc2d7f9a766a26ac724122d091bbabbaf0e8",
+    "conflicts": false,
+    "staged_source_file_count": 38,
+    "commit_created": true,
+    "commit_subject": "milestone(evaluation): integrate trust foundation next phase",
+    "source_commit_object_is_ancestor": false,
+    "source_paths_match_source_commit": true
+  },
+  "child_outcomes": {
+    "recent_news_positive_claim_verified_fixture_v1_20260524": {
+      "status": "complete_safe_extension",
+      "validation": "PASS"
+    },
+    "memory_fanout_suppression_quarantine_design_v1_20260524": {
+      "status": "complete_design_no_mutation",
+      "validation": "PASS_REPORT_ARTIFACTS"
+    },
+    "a2m_news_projection_path_discovery_v1_20260524": {
+      "status": "complete_with_data_missing_classified",
+      "validation": "PASS_READ_ONLY_WITH_DATA_MISSING"
+    },
+    "eval_spine_normalizer_usage_followup_v1_20260524": {
+      "status": "complete_safe_extension",
+      "validation": "PASS"
+    }
+  },
+  "forbidden_surfaces": {
+    "production_db_files": false,
+    "memory_store_files": false,
+    "qdrant_storage": false,
+    "news_sqlite_store_files": false,
+    "parser_extraction_routing": false,
+    "docker_cron_systemd_model_gpu_runtime_topology": false,
+    "broad_frontend_rewrite": false,
+    "unrelated_task_cards": false
+  },
+  "validation_result": "PASS",
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "release_exit_code": 0,
+    "final_active_jobs": [
+      {
+        "job_id": "merge_parking_docs_validation_slice_v1_20260524",
+        "lane": "Reporting",
+        "worktree": "/home/l4nd0/tenn-merge-parking-docs-validation-slice-v1-20260524",
+        "overlaps_this_task": false
+      }
+    ]
+  },
+  "data_missing": [
+    ".cursor/rules architecture rule files were absent; docs/architecture invariants were checked instead.",
+    "No live chat/runtime proof was run because this integration did not require live synthesis.",
+    "The final self commit hash is reported in terminal closeout because it is produced after report finalization."
+  ],
+  "open_followups": [
+    "memory fanout suppression/quarantine implementation decision",
+    "A2M projection path remediation if path absence is confirmed",
+    "Eval Spine normalizer Cockpit/report surfacing decision",
+    "broader source-label positive/negative fixture expansion"
+  ],
+  "save_recommendation": "SAVE_RECOMMENDED"
+}

@@ -1,0 +1,75 @@
+{
+  "job_id": "pr39_c01_reconciliation_preservation_v1_20260527",
+  "related_job_id": "pr39_backend_architecture_invariant_reconciliation_v1_20260527",
+  "issue_number": 105,
+  "pr_number": 39,
+  "cluster_id": "C01",
+  "agent": "Codex",
+  "lane": "Reporting",
+  "supporting_lanes": [
+    "Evaluation",
+    "Reporting"
+  ],
+  "mutation_mode_used": "safe_extension_preservation_only",
+  "production_data_access": false,
+  "github_mutation": false,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "head_before_preservation": "2d9067f0c5b75025886ab782f993bcb532492b48",
+  "pr39_github_head": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+  "pr39_lint_and_test_run": 26439822448,
+  "pr39_lint_and_test_conclusion": "failure",
+  "registry_status": {
+    "claimed": true,
+    "released": true,
+    "claim_job_id": "pr39_c01_reconciliation_preservation_v1_20260527",
+    "released_at": "2026-05-29T06:11:45.118224Z",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "dirty_work_assessment": {
+    "unrelated_dirty_files_present": false,
+    "all_visible_dirty_files_within_allowlist": true,
+    "isolated_worktree_required": false
+  },
+  "files_preserved": [
+    "docs/agent_tasks/pr39_backend_architecture_invariant_reconciliation_v1_20260527.md",
+    "docs/agent_tasks/pr39_c01_reconciliation_preservation_v1_20260527.md",
+    "docs/architecture/06_embeddings_and_vector_store.md",
+    "docs/architecture/22_memory_ownership_map.md",
+    "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+    "financial-engine_v2/backend/tests/test_cursor_rule_compliance.py",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/README.md",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/c01_decision_record.md",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/diff-check.json",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/invariant_matrix.json",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/status.json",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/validation_summary.md",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/README.md",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/artifact_inventory.json",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/diff-check.json",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/dirty_work_blockers.md",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/next_child_task_recommendation.md",
+    "reports/agent_jobs/pr39_c01_reconciliation_preservation_v1_20260527/status.json"
+  ],
+  "validation": {
+    "task_card_validate_preservation": "passed",
+    "task_card_validate_c01": "passed",
+    "focused_invariant_tests": "13 passed in 5.37s",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed",
+    "task_card_check_diff": "passed",
+    "json_parse": "passed"
+  },
+  "preservation_result": "local_commit_created",
+  "preservation_commit": "see final git HEAD for amended commit hash",
+  "pr39_ready": false,
+  "issue_105_stays_open": true,
+  "data_missing": [
+    "fresh_pr39_ci_after_preservation_commit",
+    "operator_approval_to_push_or_update_pr39",
+    "c02_to_c13_remediation_status"
+  ]
+}

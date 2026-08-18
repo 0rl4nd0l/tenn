@@ -41,6 +41,36 @@ export interface NewsResultReadiness {
   duplicateCount: number
 }
 
+export function hasNewsEvidenceEnvelope(result: NewsActionabilityResult): boolean {
+  return Boolean(
+    result.sourceLabel
+    || result.sourceCoverageStatus
+    || result.sourceLabelTaxonomyVersion
+    || result.evidenceLabels?.length
+    || typeof result.claimVerifiedSourceCount === 'number',
+  )
+}
+
+export function getNewsEvidenceEnvelopeLabels(result: NewsActionabilityResult): string[] {
+  const labels = new Set<string>()
+  if (result.sourceCoverageStatus) {
+    labels.add(`coverage:${result.sourceCoverageStatus}`)
+  }
+  if (result.sourceLabel) {
+    labels.add(`source:${result.sourceLabel}`)
+  }
+  for (const label of result.evidenceLabels || []) {
+    labels.add(label)
+  }
+  if (result.sourceLabelTaxonomyVersion) {
+    labels.add(`taxonomy:${result.sourceLabelTaxonomyVersion}`)
+  }
+  if (typeof result.claimVerifiedSourceCount === 'number') {
+    labels.add(`claim_verified_sources:${result.claimVerifiedSourceCount}`)
+  }
+  return labels.size > 0 ? Array.from(labels) : ['DATA_MISSING:evidence_envelope']
+}
+
 export function getNewsReadiness(input: {
   query: string
   isSearching: boolean
@@ -110,9 +140,12 @@ export function getNewsReadiness(input: {
   const staleCount = input.results.filter((result) => isNewsResultStale(result, now)).length
   const missingDateCount = input.results.filter((result) => result.publishedAtMissing).length
   const missingUrlCount = input.results.filter((result) => !hasSourceUrl(result)).length
+  const missingEnvelopeCount = input.results.filter((result) => !hasNewsEvidenceEnvelope(result)).length
   const stats = [
     `${input.results.length} results`,
     `${input.results.length - missingUrlCount} source links`,
+    `${input.results.length - missingEnvelopeCount} evidence envelopes`,
+    `${missingEnvelopeCount} envelope missing`,
     `${missingDateCount} date missing`,
     `${staleCount} stale`,
   ]

@@ -21,6 +21,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.config import settings  # noqa: E402
+from app.services.embeddings import coerce_qdrant_point_id  # noqa: E402
 
 
 def _get_distance_name(distance) -> str:
@@ -110,7 +111,8 @@ def main() -> None:
     duplicate_ids: list[str | int] = []
     doc_chunks: dict[str, list[int]] = defaultdict(list)
     document_id_not_canonical = []  # (point_id_str, document_id_value)
-    id_prefix_mismatch = []  # (point_id_str, document_id)
+    logical_vector_id_mismatch = []  # (point_id_str, expected_logical_id, payload_logical_id)
+    physical_point_id_mismatch = []  # (point_id_str, expected_logical_id)
 
     for point_id, payload in _scroll_all_points(client, collection_name):
         point_id_str = str(point_id)
@@ -128,14 +130,32 @@ def main() -> None:
         else:
             seen_ids.add(point_id)
 
-        # document_id must be canonical UUID; point.id must start with document_id + ":"
+        # document_id must be canonical UUID. The logical vector ID remains
+        # document_id:chunk_index even when the physical Qdrant point ID is a
+        # deterministic UUIDv5 storage ID.
         doc_id_raw = payload.get("document_id")
         if doc_id_raw is None or not _is_canonical_uuid(str(doc_id_raw)):
             document_id_not_canonical.append((point_id_str, str(doc_id_raw) if doc_id_raw is not None else None))
         else:
             doc_id = str(doc_id_raw)
-            if not point_id_str.startswith(doc_id + ":"):
-                id_prefix_mismatch.append((point_id_str, doc_id))
+            chunk_idx_raw = payload.get("chunk_index")
+            try:
+                chunk_idx_int = int(chunk_idx_raw)
+            except (TypeError, ValueError):
+                chunk_idx_int = None
+            if chunk_idx_int is not None:
+                expected_logical_id = f"{doc_id}:{chunk_idx_int}"
+                payload_logical_id = str(payload.get("logical_vector_id") or "").strip()
+                if payload_logical_id != expected_logical_id:
+                    logical_vector_id_mismatch.append(
+                        (point_id_str, expected_logical_id, payload_logical_id or "<missing>")
+                    )
+                accepted_physical_ids = {
+                    expected_logical_id,
+                    str(coerce_qdrant_point_id(expected_logical_id)),
+                }
+                if point_id_str not in accepted_physical_ids:
+                    physical_point_id_mismatch.append((point_id_str, expected_logical_id))
 
         # Chunk indices per document
         doc_id = payload.get("document_id")
@@ -200,15 +220,32 @@ def main() -> None:
             print(f"  ... and {len(document_id_not_canonical) - 30} more (total {len(document_id_not_canonical)} violations)")
     print()
 
-    # point.id prefix mismatch (id does not start with document_id + ":")
-    print("=== point.id prefix mismatch (id does not start with document_id + \":\") ===")
-    if not id_prefix_mismatch:
-        print("  None (all point IDs start with their payload document_id + \":\").")
+    # logical_vector_id missing or mismatch
+    print("=== logical_vector_id missing or mismatch ===")
+    if not logical_vector_id_mismatch:
+        print("  None (all payload logical_vector_id values match document_id:chunk_index).")
     else:
-        for point_id_str, doc_id in id_prefix_mismatch[:30]:
-            print(f"  point_id={point_id_str!r}  document_id={doc_id!r}")
-        if len(id_prefix_mismatch) > 30:
-            print(f"  ... and {len(id_prefix_mismatch) - 30} more (total {len(id_prefix_mismatch)} violations)")
+        for point_id_str, expected, actual in logical_vector_id_mismatch[:30]:
+            print(f"  point_id={point_id_str!r}  expected_logical_id={expected!r}  logical_vector_id={actual!r}")
+        if len(logical_vector_id_mismatch) > 30:
+            print(
+                f"  ... and {len(logical_vector_id_mismatch) - 30} more "
+                f"(total {len(logical_vector_id_mismatch)} violations)"
+            )
+    print()
+
+    # physical point ID mismatch
+    print("=== physical point ID mismatch ===")
+    if not physical_point_id_mismatch:
+        print("  None (all point IDs are literal logical IDs or deterministic UUIDv5 physical IDs).")
+    else:
+        for point_id_str, expected in physical_point_id_mismatch[:30]:
+            print(f"  point_id={point_id_str!r}  expected_logical_id={expected!r}")
+        if len(physical_point_id_mismatch) > 30:
+            print(
+                f"  ... and {len(physical_point_id_mismatch) - 30} more "
+                f"(total {len(physical_point_id_mismatch)} violations)"
+            )
     print()
 
     # Summary table
@@ -218,7 +255,8 @@ def main() -> None:
     print(f"  Duplicate IDs:       {len(duplicate_ids)}")
     print(f"  Documents with gaps: {len(doc_gaps)}")
     print(f"  document_id not canonical UUID: {len(document_id_not_canonical)}")
-    print(f"  point.id prefix mismatch:       {len(id_prefix_mismatch)}")
+    print(f"  logical_vector_id mismatch:     {len(logical_vector_id_mismatch)}")
+    print(f"  physical point ID mismatch:     {len(physical_point_id_mismatch)}")
     print(f"  Tickers:             {len(ticker_counts)}")
 
 

@@ -1,0 +1,30 @@
+{
+  "_source": "Hand-verified from local source PDF front matter plus rendered statement pages. The report states year ended 31 December 2025, the financial statements use US$ raw units, revenue is US$187,743, NPAT is US$1,100,860, and the cash-flow statement reports operating, investing, financing, and ending-cash values.",
+  "_verification": "hand-verified-pdftotext-and-rendered-pdf",
+  "_verification_confidence": "high",
+  "document_id": "aau_a_2025-12-31_canary_regression",
+  "ticker": "AAU",
+  "source_document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+  "source_file": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+  "period_type": "A",
+  "period_end": "2025-12-31",
+  "currency": "USD",
+  "scale": "units",
+  "metrics": {
+    "revenue": 187743,
+    "np_attributable": 1100860,
+    "operating_cf": -854114,
+    "investing_cf": 301155,
+    "financing_cf": 4103422,
+    "cash_end": 3956993
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.01
+  },
+  "expected_trust": "trusted"
+}

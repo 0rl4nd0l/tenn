@@ -1,0 +1,30 @@
+{
+  "job_id": "cockpit_recent_sources_source_kind_current_base_v1_20260627",
+  "status": "DONE_WITH_RISK",
+  "issue": 213,
+  "branch": "safe/issue213-recent-source-kind-current-base-v1-20260627",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1@b92133455871f2a9be1f9030b2ef4abc995dfb9d",
+  "updated_at": "2026-06-26T16:32:31Z",
+  "summary": "Recent commentary endpoint now exposes source_kind; Cockpit Recent sources reattach preserves sourceKind instead of hardcoding ephemeral.",
+  "validation_status": "partial",
+  "passed": [
+    "task-card validate",
+    "registry overlap check",
+    "registry claim",
+    "backend recent endpoint pytest",
+    "ruff check touched Python",
+    "py_compile touched Python",
+    "git diff --check",
+    "task-card check-diff"
+  ],
+  "blocked": [
+    "local SourcesDrawer Vitest: vitest not found",
+    "local Cockpit lint: eslint not found"
+  ],
+  "unsafe_actions_avoided": [
+    "dependency install",
+    "runtime/service start",
+    "production data mutation",
+    "DB/Qdrant/Redis/news/memory mutation"
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525",
+  "status": "complete_pending_commit",
+  "branch": "safe/a2m-news-projection-integration-readonly-smoke-controller-v1-20260525",
+  "head_before": "6eb30d3f098849c501d2239a188374bd822d6000",
+  "head_after_phase1_cherry_pick": "2d1e810bcb978cc062d5de81d2c6b6198a76b8a4",
+  "head_at_report_generation": "2d1e810bcb978cc062d5de81d2c6b6198a76b8a4",
+  "head_after_report_commit": "pending_commit_containing_this_report",
+  "worktree": "/home/l4nd0/tenn-a2m-news-projection-controller-v1-20260525",
+  "canonical_repo": "/home/l4nd0/tenn",
+  "canonical_resolved_repo": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "integrated_commit": {
+    "source_commit": "3eb87220b3834ecd510202118d0c1820d7f9aa36",
+    "local_cherry_pick_commit": "2d1e810bcb978cc062d5de81d2c6b6198a76b8a4",
+    "subject": "milestone(query): audit A2M news projection path gap"
+  },
+  "integration_status": "parked_in_isolated_branch_due_canonical_dirty_file_overlap_blocker",
+  "smoke_status": "complete",
+  "optional_child_status": "deferred_recommend_a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+  "registry_status": {
+    "canonical_check_overlap": "failed_due_unrelated_untracked_task_cards",
+    "isolated_check_overlap": "pass",
+    "claim": "pass",
+    "release": "pass",
+    "released_at": "2026-05-25T03:51:13.383612Z",
+    "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525.json",
+    "final_active_external_jobs": [
+      {
+        "job_id": "strategy_lab_quantdinger_repeatability_harness_v1_20260525",
+        "lane": "Evaluation",
+        "overlap": false
+      }
+    ]
+  },
+  "validation": {
+    "controller_task_card_validate": "pass",
+    "registry_list_active": "pass",
+    "registry_check_overlap": "pass_in_isolated_worktree",
+    "registry_claim": "pass",
+    "audit_task_card_validate": "pass",
+    "audit_json_validation": "pass",
+    "audit_git_diff_check": "pass",
+    "smoke_task_card_validate": "pass",
+    "smoke_json_validation": "pass",
+    "smoke_readonly_checks": "pass",
+    "final_json_validation": "pass",
+    "final_git_diff_check": "pass",
+    "final_check_diff": "pass",
+    "final_registry_release": "pass",
+    "final_registry_list_active": "pass"
+  },
+  "changed_files": [
+    "docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/news_projection_path_map.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/a2m_evidence_route_matrix.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/recommended_child_task_card.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/validation.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/diff-check.json",
+    "docs/agent_tasks/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525/validation.json",
+    "reports/agent_jobs/a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525/diff-check.json",
+    "docs/agent_tasks/a2m_news_projection_readonly_smoke_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_readonly_smoke_matrix.json",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_next_fix_decision.md",
+    "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/validation.json"
+  ],
+  "save_recommendation": "Save to Project Memory: A2M is currently reachable through Qdrant-backed /rag/query even while canonical NVMe SQLite projection files are absent; future status/reporting must distinguish Qdrant retrieval health, canonical SQLite projection health, and legacy /mnt/sdb2 provenance.",
+  "forbidden_mutation_performed": false,
+  "updated_at": "2026-05-25T13:52:00+10:00"
+}

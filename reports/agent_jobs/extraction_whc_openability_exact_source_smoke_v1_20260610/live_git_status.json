@@ -1,0 +1,13 @@
+{
+  "job_id": "extraction_whc_openability_exact_source_smoke_v1_20260610",
+  "status": "DONE",
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "head_before_followup_commit": "d93c935882f038863110214e92b36e2ac3606710",
+  "github_mutation_allowed": false,
+  "registry": {
+    "ok": true,
+    "active_jobs": []
+  },
+  "updated_at": "2026-06-10T15:46:11+10:00"
+}

@@ -1,0 +1,548 @@
+{
+  "dirty_repo_file_after": {},
+  "dirty_repo_file_before": {},
+  "dirty_repo_file_mutations": false,
+  "forbidden_surface_clean": true,
+  "forbidden_surface_mutation": {
+    "backfill": false,
+    "broad_extraction": false,
+    "count_sample": false,
+    "db_write": false,
+    "github_mutation": false,
+    "gold_label_write": false,
+    "memory_write": false,
+    "news_write": false,
+    "normal_parser_cache_write": false,
+    "prompt_write": false,
+    "qdrant_write": false,
+    "redis_write": false,
+    "registry_write": false,
+    "repo_worktree_write": false,
+    "runtime_config_write": false,
+    "service_start": false,
+    "source_pdf_write": false
+  },
+  "git_status_after": [
+    " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json"
+  ],
+  "git_status_before": [
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+    " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json"
+  ],
+  "isolated_cache_contained": true,
+  "isolated_cache_files": [],
+  "isolated_cache_root": "/tmp/tenn-extraction-no-write-replay-bvrh983h/reports/extraction_cache/docling_extract",
+  "isolated_runtime_contained": true,
+  "isolated_runtime_files": [],
+  "isolated_runtime_root": "/tmp/tenn-extraction-no-write-replay-bvrh983h",
+  "normal_cache_after": {
+    "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": [],
+    "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": [
+      {
+        "mtime_ns": 1780307500623995088,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "relative_path": "0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "sha256": "ef27c2f313dd668ea477b773b962959723ac9222202094894299be5612dc69b3",
+        "size": 172791
+      },
+      {
+        "mtime_ns": 1780307052332078533,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "relative_path": "0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "sha256": "62ef25c446eabd7618fa3940881ac906bb692a8321a78c9124e58587966ce2fc",
+        "size": 44198
+      },
+      {
+        "mtime_ns": 1780221444263726766,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "relative_path": "163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "sha256": "9e7e59892c7d79daaad46b88d8e523a5049074c518632eedd6d620bb52ab7580",
+        "size": 947986
+      },
+      {
+        "mtime_ns": 1780219707470838652,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "relative_path": "22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "sha256": "3549c84cbfa2b78038e0c6392e7ae1a7c4f2956f90287da7745fbb829b5a97e2",
+        "size": 222873
+      },
+      {
+        "mtime_ns": 1780221792681478664,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "relative_path": "23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "sha256": "4db6db869539144efbb7f876764dbaa8d1a0de6f02905c750852aa61dac6f52a",
+        "size": 79970
+      },
+      {
+        "mtime_ns": 1780305690165276483,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "relative_path": "2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "sha256": "191048d3197fe6073b096da6be2a98b3985016b0c939fe73f23793f5eab41829",
+        "size": 15177
+      },
+      {
+        "mtime_ns": 1780308031601292572,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "relative_path": "3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "sha256": "915927261b3aadf3c7991f9968c56d04b93d9ac99ec414b0c5c880e22773c508",
+        "size": 209231
+      },
+      {
+        "mtime_ns": 1780306293336595203,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "relative_path": "30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "sha256": "eab7c97c0a856ecfe25b5ec29006ff3bbcf8c881f0c846d8122059d9e66b4e7d",
+        "size": 366202
+      },
+      {
+        "mtime_ns": 1780307837704560904,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "relative_path": "58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "sha256": "5176805e52df4ef183ac0dcab54c53fbcada39a305cd4db4b494fb09c2c07eeb",
+        "size": 111028
+      },
+      {
+        "mtime_ns": 1780224786293698295,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "relative_path": "613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "sha256": "5bf00a4bbe46041cfcb2fdf248125dcbfca5cf731c89f60ced7b3a058a0b1772",
+        "size": 227634
+      },
+      {
+        "mtime_ns": 1780306992638795588,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "relative_path": "6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "sha256": "38446bd4d5b7d7f144e9feaee9cb438c30aed67a661b7f6d0310abc4be1ed2a8",
+        "size": 57793
+      },
+      {
+        "mtime_ns": 1780305632613102566,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "relative_path": "731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "sha256": "eb9961262dafa6b8676a055d74c3d29f4b33c8493ca8792e6e95ecc27e2101bd",
+        "size": 46301
+      },
+      {
+        "mtime_ns": 1780307350596503296,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "relative_path": "7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "sha256": "439f8798011feacfcdf2789a7e3bbfda6c8bd98d4c3362c8cf8affd1526eadfc",
+        "size": 121131
+      },
+      {
+        "mtime_ns": 1780306841717084750,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "relative_path": "86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "sha256": "234ddf93cdb20c9c08cf13c43e3501d4518a5546ba57cf3ace40ceb1a992430a",
+        "size": 1700157
+      },
+      {
+        "mtime_ns": 1780307194641756329,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "relative_path": "aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "sha256": "c03eb480a540dc3e55731d7618fa51be2c3282a14dbf6c1e4412e384863a0b3e",
+        "size": 161307
+      },
+      {
+        "mtime_ns": 1780221611148094544,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "relative_path": "ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "sha256": "741d79d76a869a026cd25bf293ffaa31c6c9342814190a7adcec5f03f186a285",
+        "size": 89638
+      },
+      {
+        "mtime_ns": 1780306075982682244,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "relative_path": "b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "sha256": "39e7371eb2a3538792bc0f0dd6131235591613508ecc68ec3cfeeba7dc0d8ae7",
+        "size": 76259
+      },
+      {
+        "mtime_ns": 1780221950640619849,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "relative_path": "b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "sha256": "4a9b28188db91563c0c01c3ce8180e186ba4091829fe3d271d6be2c0748e62da",
+        "size": 63148
+      },
+      {
+        "mtime_ns": 1780222143861959245,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "relative_path": "ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "sha256": "e3989da562c9405a4e19e27f138f3763c35b1ee524a3adbb7f8875c47d0ffa8f",
+        "size": 11412
+      },
+      {
+        "mtime_ns": 1780307675049062186,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "relative_path": "e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "sha256": "ad435af3b52a682e629671f3410d2c3079f0c848c8a3dad560d382e4fde31bdf",
+        "size": 174752
+      },
+      {
+        "mtime_ns": 1780305919707071362,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "relative_path": "f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "sha256": "fb79be53c40d96ba49de61771dc9dd022b2d57dd416ab5a65e125f44a71c6532",
+        "size": 539376
+      },
+      {
+        "mtime_ns": 1780307114209372724,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "relative_path": "f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "sha256": "4b61504c4f8326e6e59679bc018491b377f2031021a06555ecb139da05debb8a",
+        "size": 51325
+      }
+    ]
+  },
+  "normal_cache_before": {
+    "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": [],
+    "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": [
+      {
+        "mtime_ns": 1780307500623995088,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "relative_path": "0baa911f1b2b3e94765993e1d2d2fa44f4d3f38f20e93fd15be6d882700b0e45-2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf.docling.json",
+        "sha256": "ef27c2f313dd668ea477b773b962959723ac9222202094894299be5612dc69b3",
+        "size": 172791
+      },
+      {
+        "mtime_ns": 1780307052332078533,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "relative_path": "0fc9fd2f601664dbf70ebc804ed977d795390ee7561b15b8b0f0505c01bc1d09-2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd61983.docling.json",
+        "sha256": "62ef25c446eabd7618fa3940881ac906bb692a8321a78c9124e58587966ce2fc",
+        "size": 44198
+      },
+      {
+        "mtime_ns": 1780221444263726766,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "relative_path": "163cd9af07d1bf540685ff2358b55f4cfdcf775ad67c77a1c1f496656299f322-2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf.docling.json",
+        "sha256": "9e7e59892c7d79daaad46b88d8e523a5049074c518632eedd6d620bb52ab7580",
+        "size": 947986
+      },
+      {
+        "mtime_ns": 1780219707470838652,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "relative_path": "22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.docling.json",
+        "sha256": "3549c84cbfa2b78038e0c6392e7ae1a7c4f2956f90287da7745fbb829b5a97e2",
+        "size": 222873
+      },
+      {
+        "mtime_ns": 1780221792681478664,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "relative_path": "23cb247285f159b58353be70eb9cc84dfcd13c6eda007fdc96362a5d7a2639a6-2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf.docling.json",
+        "sha256": "4db6db869539144efbb7f876764dbaa8d1a0de6f02905c750852aa61dac6f52a",
+        "size": 79970
+      },
+      {
+        "mtime_ns": 1780305690165276483,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "relative_path": "2a6d9cfc82bc3c47db7e687f087cc0f28dea9d85efc29ae72a1df5f06a860d81-2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf.docling.json",
+        "sha256": "191048d3197fe6073b096da6be2a98b3985016b0c939fe73f23793f5eab41829",
+        "size": 15177
+      },
+      {
+        "mtime_ns": 1780308031601292572,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "relative_path": "3081550ca30ef6f9ae43212855f4342707960b4be445940b3ec6a54ad95e41cd-2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400.docling.json",
+        "sha256": "915927261b3aadf3c7991f9968c56d04b93d9ac99ec414b0c5c880e22773c508",
+        "size": 209231
+      },
+      {
+        "mtime_ns": 1780306293336595203,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "relative_path": "30fbe9c7729f9d00cd175e14053b6f3f1ed7642d7bc3583f2e37b1c58d55d507-2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf.docling.json",
+        "sha256": "eab7c97c0a856ecfe25b5ec29006ff3bbcf8c881f0c846d8122059d9e66b4e7d",
+        "size": 366202
+      },
+      {
+        "mtime_ns": 1780307837704560904,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "relative_path": "58aa0e5a514b846eaa39270f041b8e1ad0f320f19515009070d00abb52b9b117-2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-48.docling.json",
+        "sha256": "5176805e52df4ef183ac0dcab54c53fbcada39a305cd4db4b494fb09c2c07eeb",
+        "size": 111028
+      },
+      {
+        "mtime_ns": 1780224786293698295,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "relative_path": "613ce771f4267b03b3ec0d8070f54e73c1f218b5c1d4ffe4d8a101986b91b94d-2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf.docling.json",
+        "sha256": "5bf00a4bbe46041cfcb2fdf248125dcbfca5cf731c89f60ced7b3a058a0b1772",
+        "size": 227634
+      },
+      {
+        "mtime_ns": 1780306992638795588,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "relative_path": "6d6d92fc92769c721ba274a7b17ff9bd8182aa25c9ac3d67d1e5ac1c02abb6c1-2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-ca.docling.json",
+        "sha256": "38446bd4d5b7d7f144e9feaee9cb438c30aed67a661b7f6d0310abc4be1ed2a8",
+        "size": 57793
+      },
+      {
+        "mtime_ns": 1780305632613102566,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "relative_path": "731ca3d804d057648ee3fd64ea2c8f0ac2c7338a1e163a8dcd1feedf9e2ac7a4-2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23c.docling.json",
+        "sha256": "eb9961262dafa6b8676a055d74c3d29f4b33c8493ca8792e6e95ecc27e2101bd",
+        "size": 46301
+      },
+      {
+        "mtime_ns": 1780307350596503296,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "relative_path": "7c23a64e5a8ef4dce9988ee57772a03e6b0fe37aacc4297834b8ef33c239bfd4-2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440..docling.json",
+        "sha256": "439f8798011feacfcdf2789a7e3bbfda6c8bd98d4c3362c8cf8affd1526eadfc",
+        "size": 121131
+      },
+      {
+        "mtime_ns": 1780306841717084750,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "relative_path": "86328190466296962f2761f1973f06b57c702f25a382acbe7ea08342c2f96715-2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf.docling.json",
+        "sha256": "234ddf93cdb20c9c08cf13c43e3501d4518a5546ba57cf3ace40ceb1a992430a",
+        "size": 1700157
+      },
+      {
+        "mtime_ns": 1780307194641756329,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "relative_path": "aab192be61cfe81ce9a99204b77008cca0e6fd8bead90b74e6b068739de066ba-2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb..docling.json",
+        "sha256": "c03eb480a540dc3e55731d7618fa51be2c3282a14dbf6c1e4412e384863a0b3e",
+        "size": 161307
+      },
+      {
+        "mtime_ns": 1780221611148094544,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "relative_path": "ab4f64b9fcaf65ae5c20cd65f377a6e6f4b8411a182b04089fc8086e03a5ec41-2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-800.docling.json",
+        "sha256": "741d79d76a869a026cd25bf293ffaa31c6c9342814190a7adcec5f03f186a285",
+        "size": 89638
+      },
+      {
+        "mtime_ns": 1780306075982682244,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "relative_path": "b0e3fa121471bfeafdf5219269454b7555a0b9653707c0f6625a3971287a8dc4-2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf.docling.json",
+        "sha256": "39e7371eb2a3538792bc0f0dd6131235591613508ecc68ec3cfeeba7dc0d8ae7",
+        "size": 76259
+      },
+      {
+        "mtime_ns": 1780221950640619849,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "relative_path": "b21d21efbe4d00ac929727585495ae8781732a2f7a88349e417b2f7890bccc2d-2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf.docling.json",
+        "sha256": "4a9b28188db91563c0c01c3ce8180e186ba4091829fe3d271d6be2c0748e62da",
+        "size": 63148
+      },
+      {
+        "mtime_ns": 1780222143861959245,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "relative_path": "ba50e19ea4b0188353286ac400ae6258ab61f9b4af169aafbaa9cdbb974c246b-2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf.docling.json",
+        "sha256": "e3989da562c9405a4e19e27f138f3763c35b1ee524a3adbb7f8875c47d0ffa8f",
+        "size": 11412
+      },
+      {
+        "mtime_ns": 1780307675049062186,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "relative_path": "e0fd863292e3a73fb575027d81506cbddd6d77853021d08f147ee412572f1664-2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf.docling.json",
+        "sha256": "ad435af3b52a682e629671f3410d2c3079f0c848c8a3dad560d382e4fde31bdf",
+        "size": 174752
+      },
+      {
+        "mtime_ns": 1780305919707071362,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "relative_path": "f36edf20711227eda8a75710783e5b907ad0d54ad72559b988fc963ca019ab7d-2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf.docling.json",
+        "sha256": "fb79be53c40d96ba49de61771dc9dd022b2d57dd416ab5a65e125f44a71c6532",
+        "size": 539376
+      },
+      {
+        "mtime_ns": 1780307114209372724,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "relative_path": "f9de520a268aa2d4661ad48795988909945b833fecc8dcf8bf4b1801a1a37912-2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b82.docling.json",
+        "sha256": "4b61504c4f8326e6e59679bc018491b377f2031021a06555ecb139da05debb8a",
+        "size": 51325
+      }
+    ]
+  },
+  "report_dir": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619",
+  "report_files": [
+    {
+      "mtime_ns": 1781855173776649748,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
+      "relative_path": "PR_REVIEW.md",
+      "size": 1079
+    },
+    {
+      "mtime_ns": 1781855161650592712,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
+      "relative_path": "README.md",
+      "size": 2072
+    },
+    {
+      "mtime_ns": 1781855185164703462,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
+      "relative_path": "diff-check.json",
+      "size": 3726
+    },
+    {
+      "mtime_ns": 1781855259566057732,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 11477
+    },
+    {
+      "mtime_ns": 1781855259566057732,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 54
+    },
+    {
+      "mtime_ns": 1781851717848622109,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/status.json",
+      "relative_path": "status.json",
+      "size": 996
+    }
+  ],
+  "report_files_after_artifact_write": [
+    {
+      "mtime_ns": 1781855173776649748,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
+      "relative_path": "PR_REVIEW.md",
+      "size": 1079
+    },
+    {
+      "mtime_ns": 1781855161650592712,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
+      "relative_path": "README.md",
+      "size": 2072
+    },
+    {
+      "mtime_ns": 1781855185164703462,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
+      "relative_path": "diff-check.json",
+      "size": 3726
+    },
+    {
+      "mtime_ns": 1781855259566057732,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 11477
+    },
+    {
+      "mtime_ns": 1781855259566057732,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 54
+    },
+    {
+      "mtime_ns": 1781855259620057991,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
+      "relative_path": "replay_results.json",
+      "size": 171
+    },
+    {
+      "mtime_ns": 1781855259621057996,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+      "relative_path": "side_effect_audit.json",
+      "size": 37171
+    },
+    {
+      "mtime_ns": 1781851717848622109,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/status.json",
+      "relative_path": "status.json",
+      "size": 996
+    },
+    {
+      "mtime_ns": 1781855259621057996,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
+      "relative_path": "validation.json",
+      "size": 533
+    }
+  ],
+  "report_files_snapshot_note": "report_files is the safety snapshot used for status; report_files_after_artifact_write records final report-local artifacts after replay_results, validation, and side_effect_audit were written.",
+  "report_only_durable_writes": true,
+  "source_pdf_after": {
+    "AZJ": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "sha256": "5d672fa9712d96ebc632f43744fcda84908d46fe75604d52a8e53338ed8f8c73",
+      "size": 8592702
+    },
+    "CTN": {
+      "exists": true,
+      "mtime_ns": 1772348298322599987,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "sha256": "f14d1c9abf52c98ae5de63c01248e7e85961a8055b24c5c0f21d717ad79bc1f1",
+      "size": 4991947
+    },
+    "HUB": {
+      "exists": true,
+      "mtime_ns": 1772352832649095579,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "sha256": "b40ecaa4935febdb5ac58cf6a3f1b758cdd5dcdb7b4050798a4b380cd9ebe085",
+      "size": 972473
+    },
+    "LBL": {
+      "exists": true,
+      "mtime_ns": 1771562545285415182,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "sha256": "1ded9a9307f6932e51c42b3bdb5870868849e3f72cb348a3bde9afc6f4305299",
+      "size": 4669656
+    },
+    "NSR": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "sha256": "e228ee088561b0d07bcbdec8c35ddb07502d1808a583bbd74213f6910c67472f",
+      "size": 716803
+    },
+    "WHC": {
+      "exists": true,
+      "mtime_ns": 1771429412811554480,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "sha256": "0cbfc7196c8bc4f92940a42f31ac549205ec43837743caf8430c1efb4812cba5",
+      "size": 19212620
+    }
+  },
+  "source_pdf_before": {
+    "AZJ": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "sha256": "5d672fa9712d96ebc632f43744fcda84908d46fe75604d52a8e53338ed8f8c73",
+      "size": 8592702
+    },
+    "CTN": {
+      "exists": true,
+      "mtime_ns": 1772348298322599987,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "sha256": "f14d1c9abf52c98ae5de63c01248e7e85961a8055b24c5c0f21d717ad79bc1f1",
+      "size": 4991947
+    },
+    "HUB": {
+      "exists": true,
+      "mtime_ns": 1772352832649095579,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "sha256": "b40ecaa4935febdb5ac58cf6a3f1b758cdd5dcdb7b4050798a4b380cd9ebe085",
+      "size": 972473
+    },
+    "LBL": {
+      "exists": true,
+      "mtime_ns": 1771562545285415182,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "sha256": "1ded9a9307f6932e51c42b3bdb5870868849e3f72cb348a3bde9afc6f4305299",
+      "size": 4669656
+    },
+    "NSR": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "sha256": "e228ee088561b0d07bcbdec8c35ddb07502d1808a583bbd74213f6910c67472f",
+      "size": 716803
+    },
+    "WHC": {
+      "exists": true,
+      "mtime_ns": 1771429412811554480,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "sha256": "0cbfc7196c8bc4f92940a42f31ac549205ec43837743caf8430c1efb4812cba5",
+      "size": 19212620
+    }
+  },
+  "unexpected_git_status_changes": []
+}

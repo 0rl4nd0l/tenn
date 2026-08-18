@@ -1,0 +1,52 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/services/source_weighting.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/chat_recency_malformed_date_current_base_v2_20260626.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/chat_recency_malformed_date_current_base_v2_20260626.md",
+        "financial-engine_v2/backend/app/services/source_weighting.py",
+        "financial-engine_v2/backend/tests/test_tenn_chat_and_weighting.py",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/README.md",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/STATE.md",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/VALIDATION.md",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/status.json",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/diff-check.json",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/PR_BODY.md",
+        "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626/REVIEW.md"
+      ],
+      "approval_reference": "User requested safe issue fixing and closeout; PR #419 is blocked by conflicts after adjacent merges.",
+      "approval_required": true,
+      "github_mutation_allowed": "push_branch_open_replacement_pr_supersede_pr419_and_close_issue261_if_gated",
+      "job_id": "chat_recency_malformed_date_current_base_v2_20260626",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/chat_recency_malformed_date_current_base_v2_20260626",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,216 @@
+name: Tenn audit finding
+description: Audit-only findings that need explicit follow-up policy before audit closeout.
+title: "[Tenn Audit Finding]: "
+labels:
+  - "mode:audit"
+  - "state:needs-followup"
+  - "type:validation-gap"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for audit-only findings. Audit closure is allowed only when every unresolved actionable finding is linked, parked, marked NO_FOLLOWUP with reason, or preserved as DATA_MISSING with exact evidence needed.
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: Select the primary ownership lane label.
+      options:
+        - "lane:reporting"
+        - "lane:evaluation"
+        - "lane:repo-hygiene"
+        - "lane:financial-truth"
+        - "lane:provenance"
+        - "lane:query-orchestration"
+        - "lane:memory"
+        - "lane:runtime"
+        - "lane:cockpit"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Select the expected execution mode label.
+      options:
+        - "mode:audit"
+        - "mode:result-review"
+        - "mode:issue-closeout"
+        - "mode:safe-extension"
+        - "mode:implementation"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority label.
+      options:
+        - "priority:p2"
+        - "priority:p1"
+        - "priority:p0"
+        - "priority:p3"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Select the risk label.
+      options:
+        - "risk:medium"
+        - "risk:high"
+        - "risk:low"
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Type
+      description: Select the type label.
+      options:
+        - "type:validation-gap"
+        - "type:bug"
+        - "type:regression-seed"
+        - "type:control-plane"
+        - "type:automation"
+        - "type:ci"
+        - "type:security"
+        - "type:usability"
+        - "type:docs"
+    validations:
+      required: true
+  - type: dropdown
+    id: state_recommendation
+    attributes:
+      label: State recommendation
+      description: Select the current state label.
+      options:
+        - "state:needs-followup"
+        - "state:data-missing"
+        - "state:ready"
+        - "state:blocked"
+        - "state:needs-review"
+        - "state:parked"
+        - "state:superseded"
+        - "state:duplicate"
+        - "state:done-audit-only"
+        - "state:done-remediated"
+        - "state:running"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone_recommendation
+    attributes:
+      label: Milestone recommendation
+      description: Recommend an existing activated milestone, or choose no milestone.
+      options:
+        - "No milestone recommendation"
+        - "M0 — Control Plane Hardening"
+        - "M1 — Trust / Provenance Foundation"
+        - "M2 — Evaluation Spine"
+        - "M3 — Query + Memory Integrity"
+        - "M4 — Financial Truth Expansion"
+        - "M5 — Cockpit Analyst Workflow"
+        - "M6 — Runtime / Local Automation"
+    validations:
+      required: true
+  - type: textarea
+    id: source_evidence
+    attributes:
+      label: Source evidence
+      description: Provide audit evidence, commands, report paths, issue references, screenshots, or code references supporting the finding.
+    validations:
+      required: true
+  - type: textarea
+    id: why_it_matters
+    attributes:
+      label: Why it matters
+      description: Explain why this audit finding matters and what could regress if it disappears after audit closure.
+    validations:
+      required: true
+  - type: dropdown
+    id: followup_policy
+    attributes:
+      label: Follow-up policy
+      description: Required audit-closeout disposition for this finding.
+      options:
+        - "FOLLOWUP_REQUIRED"
+        - "FOLLOWUP_RECOMMENDED"
+        - "PARK_FOR_MERGE_OR_REVIEW"
+        - "NO_FOLLOWUP_WITH_REASON"
+        - "DATA_MISSING_NEEDS_EVIDENCE"
+    validations:
+      required: true
+  - type: textarea
+    id: followup_policy_reason
+    attributes:
+      label: Follow-up policy reason
+      description: Explain why the selected policy is correct and how the finding stays visible.
+    validations:
+      required: true
+  - type: input
+    id: task_card_path
+    attributes:
+      label: Required task card path
+      description: Repo-relative path for the audit or follow-up task card.
+      placeholder: docs/agent_tasks/<job_id>.md
+    validations:
+      required: true
+  - type: input
+    id: report_path
+    attributes:
+      label: Required report path
+      description: Repo-relative report directory or primary audit artifact.
+      placeholder: reports/agent_jobs/<job_id>/
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_surfaces
+    attributes:
+      label: Allowed files / surfaces
+      description: List every file, directory, runtime surface, data surface, or GitHub surface the audit may inspect or touch.
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_surfaces
+    attributes:
+      label: Forbidden files / surfaces
+      description: List files, data stores, runtime surfaces, GitHub mutations, and cleanup actions that must not occur.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List the evidence and checks required before this finding can be closed, superseded, parked, or converted into remediation.
+    validations:
+      required: true
+  - type: textarea
+    id: hard_stops
+    attributes:
+      label: Hard stops
+      description: List conditions that require stopping and reporting instead of widening scope.
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      description: State closeout evidence and the follow-up tracker, parking link, NO_FOLLOWUP reason, or DATA_MISSING proof required.
+    validations:
+      required: true
+  - type: textarea
+    id: data_missing
+    attributes:
+      label: DATA_MISSING
+      description: "Keep unknowns visible. Write DATA_MISSING with exact evidence needed, or DATA_MISSING: none."
+    validations:
+      required: true
+  - type: textarea
+    id: followup_parking_dependency_links
+    attributes:
+      label: Follow-up / parking / dependency links
+      description: Link follow-up issues, PRs, parked branches, reports, blockers, or dependency issues. Write none only when justified by the follow-up policy.
+    validations:
+      required: true

@@ -1,0 +1,10 @@
+{
+  "worktree": "/home/l4nd0/tenn-lbl-income-row-ref-repair-v1-20260616",
+  "branch": "safe/extraction-lbl-income-row-ref-repair-v1-20260616",
+  "head": "85250db58bc4ebd5b3e46790311afc7ec7e5b910",
+  "upstream": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "registry_read_only_active_jobs": [],
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "live_task_ledger": "DATA_MISSING",
+  "committed_task_ledger": "DATA_MISSING"
+}

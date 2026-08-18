@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import {
   STRATEGY_LAB_BASELINE_REFS,
+  VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS,
   buildStrategyLabStatusResponse,
+  type StrategyLabEvidenceArtifactRef,
   type StrategyLabArtifactRef,
   type StrategyLabStatusResponse,
 } from './strategy-lab-status';
@@ -35,6 +37,15 @@ export function readStrategyLabStatus(
     ...ref,
     availability: existsSync(path.join(workspaceRoot, ref.path)) ? 'available' : 'missing',
   }));
+  const verifiedReadonlySandboxEvidenceRefs: StrategyLabEvidenceArtifactRef[] =
+    VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS.map((ref) => ({
+      ...ref,
+      availability: existsSync(path.join(workspaceRoot, ref.path)) ? 'available' : 'missing',
+    }));
 
-  return buildStrategyLabStatusResponse({ generatedAt, artifactRefs });
+  return buildStrategyLabStatusResponse({
+    generatedAt,
+    artifactRefs,
+    verifiedReadonlySandboxEvidenceRefs,
+  });
 }

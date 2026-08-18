@@ -20,8 +20,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
 DEFAULT_OUT_PATH = REPO_ROOT / "reports" / "research_engine_health.json"
-DEFAULT_NEWS_DB = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
+DEFAULT_NEWS_DB = DEFAULT_NEWS_CONTEXT_DB
 DEFAULT_COMPANY_DB = REPO_ROOT / "reports" / "qual_context" / "company.sqlite"
 DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
 DEFAULT_NEWS_CORPUS = "news"
@@ -591,7 +597,7 @@ def main() -> int:
     )
     payload = build_health_snapshot(
         database_url=str(args.database_url),
-        news_db_path=Path(str(args.news_db_path)).expanduser().resolve(),
+        news_db_path=resolve_path(str(args.news_db_path)),
         company_db_path=Path(str(args.company_db_path)).expanduser().resolve(),
         out_json=Path(str(args.out_json)).expanduser().resolve(),
         news_corpus=str(args.news_corpus or DEFAULT_NEWS_CORPUS),

@@ -1,0 +1,27 @@
+{
+  "audit_result": {
+    "AZJ": "ok but report-only; rounding-policy issue",
+    "DXC": "needs quarantine; scale-binding bug plus net operating income used as ebit",
+    "LBL": "needs quarantine; selected-table/period mismatch and scale-binding risk"
+  },
+  "count24_justified": false,
+  "data_missing": [
+    "sample_results.json omits row_refs/provenance/markdown_tables/metric_source_scales for accepted rows",
+    "post-fix runtime outcome for DXC/LBL/AZJ not measured",
+    "safe read-only registry proof unavailable; list-active reports read_only=false",
+    "Docling structured table objects were not inspected for LBL hidden PowerPoint chart data to avoid parser/cache side effects"
+  ],
+  "forbidden_actions_avoided": [
+    "no count-24/count-32",
+    "no random sample rerun",
+    "no broad extraction/backfill",
+    "no production DB/Qdrant/news/memory mutation",
+    "no source PDF edits",
+    "no prompt/gold-label/runtime/schema changes"
+  ],
+  "generated_at": "2026-06-07T03:36:26Z",
+  "integration_result": "integrated_clean_local_fast_forward",
+  "narrow_fix_implemented": "metric_label_mismatch now rejects net operating income as ebit source",
+  "risk_reason": "DXC and LBL accepted rows in the committed count-16 artifact are unsafe; count-24 is not justified until containment or repair is complete.",
+  "state": "DONE_WITH_RISK"
+}

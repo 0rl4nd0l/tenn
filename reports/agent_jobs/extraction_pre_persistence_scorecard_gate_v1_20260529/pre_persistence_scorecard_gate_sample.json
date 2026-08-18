@@ -1,0 +1,69 @@
+{
+  "actual_payload_document_count": 1,
+  "actual_payload_supplied": true,
+  "allowed_noncanonical_abstention_count": 0,
+  "allowed_result_classes": [
+    "present_correct",
+    "unsupported_correctly_abstained"
+  ],
+  "artifact_type": "pre_persistence_scorecard_gate_v1",
+  "blockers": [
+    {
+      "code": "present_wrong_value",
+      "count": 1,
+      "policy": "result class blocks pre-persistence promotion"
+    }
+  ],
+  "blocking_examples": [
+    {
+      "canonical_field": "revenue",
+      "document_id": "sample_confirmed_doc",
+      "metric_name": "revenue",
+      "reason": "Actual payload value does not match expectation within tolerance",
+      "result_class": "present_wrong_value"
+    }
+  ],
+  "blocking_result_class_summary": {
+    "present_wrong_value": 1
+  },
+  "blocking_result_classes": [
+    "missing_expected_metric",
+    "present_wrong_value",
+    "wrong_unit_currency_scale",
+    "wrong_period",
+    "missing_evidence",
+    "ambiguous_quarantined",
+    "not_evaluated_no_actual_payload"
+  ],
+  "broad_backfill_authorized": false,
+  "canonical_write_allowed": false,
+  "decision": "blocked",
+  "gate_status": "fail",
+  "gate_version": "pre_persistence_scorecard_gate_v1",
+  "input_artifact_type": "confirmed_metric_payload_scorecard_v1",
+  "metric_result_count": 3,
+  "operator_approval_required_for_canary": true,
+  "passed": false,
+  "policy_assertions": {
+    "mutates_canonical_truth": false,
+    "mutates_db_qdrant_news_memory": false,
+    "mutates_gold_labels": false,
+    "runs_extraction": false,
+    "source_openability_is_correctness": false
+  },
+  "profile": "confirmed_metric_coverage",
+  "result_class_summary": {
+    "ambiguous_quarantined": 0,
+    "missing_evidence": 0,
+    "missing_expected_metric": 0,
+    "not_evaluated_no_actual_payload": 0,
+    "present_correct": 2,
+    "present_wrong_value": 1,
+    "unsupported_correctly_abstained": 0,
+    "wrong_period": 0,
+    "wrong_unit_currency_scale": 0
+  },
+  "scorecard_scope": "report_local_actual_payloads_only",
+  "scored_metric_expectations": 3,
+  "total_metric_expectations": 3
+}

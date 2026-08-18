@@ -1,0 +1,52 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/marketplace_capture_missing_token_disabled_v1_20260602.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+    "cockpit-ui/app/marketplace-capture/page.tsx",
+    "cockpit-ui/tests/marketplace-capture-helper.spec.ts",
+    "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/README.md",
+    "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/status.json",
+    "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/validation.json",
+    "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602/diff-check.json"
+  ],
+  "branch": "safe/marketplace-capture-missing-token-disabled-v1-20260602",
+  "claimed_at": "2026-06-02T04:07:16.224217Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-02T04:07:16.224217Z",
+  "job_id": "marketplace_capture_missing_token_disabled_v1_20260602",
+  "lane": "Reporting",
+  "last_seen_at": "2026-06-02T04:12:14.613827Z",
+  "output_dir": "reports/agent_jobs/marketplace_capture_missing_token_disabled_v1_20260602",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-02T04:12:14.613827Z",
+  "repo_root": "/home/l4nd0/tenn-marketplace-capture-missing-token-disabled-v1-20260602",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3111495:marketplace_capture_missing_token_disabled_v1_20260602",
+  "started_at": "2026-06-02T04:07:16.224217Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/marketplace_capture_missing_token_disabled_v1_20260602.md",
+  "updated_at": "2026-06-02T04:12:14.613827Z",
+  "worktree": "/home/l4nd0/tenn-marketplace-capture-missing-token-disabled-v1-20260602",
+  "execution_mode": "safe_extension",
+  "collision_risk": "LOW",
+  "contested_surfaces_touched": [],
+  "github_issue": 52,
+  "target_system_layer": "Reporting / Cockpit Marketplace helper UI",
+  "relevant_contract_rules": [
+    "SYSTEM_CONTRACT.md 1.1 backend remains source of truth",
+    "SYSTEM_CONTRACT.md 1.2 Cockpit remains client/orchestration layer",
+    "SYSTEM_CONTRACT.md 2 mandatory pipeline flow preserved"
+  ],
+  "must_not_change": [
+    "backend routes",
+    "capture token issuance or storage",
+    "DB/Qdrant/news/memory stores",
+    "canonical financial truth",
+    "runtime/model/GPU/service config"
+  ],
+  "gpu_process_check_required": false,
+  "result": "missing-token capture action disabled; valid-token bookmarklet preserved"
+}

@@ -1,0 +1,55 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_aau_period_fixture_integration_v1_20260529.md",
+        "docs/agent_tasks/extraction_period_semantics_aau_missing_period_end_v1_20260529.md",
+        "docs/agent_tasks/extraction_aau_canary_failure_gold_fixture_v1_20260529.md",
+        "docs/claude/STATE.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "financial-engine_v2/backend/tests/fixtures/extraction_gold/aau_a_2025-12-31_canary_regression.json",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+        "reports/agent_jobs/extraction_period_semantics_aau_missing_period_end_v1_20260529/README.md",
+        "reports/agent_jobs/extraction_period_semantics_aau_missing_period_end_v1_20260529/status.json",
+        "reports/agent_jobs/extraction_period_semantics_aau_missing_period_end_v1_20260529/diff-check.json",
+        "reports/agent_jobs/extraction_aau_canary_failure_gold_fixture_v1_20260529/README.md",
+        "reports/agent_jobs/extraction_aau_canary_failure_gold_fixture_v1_20260529/source_verification.json",
+        "reports/agent_jobs/extraction_aau_canary_failure_gold_fixture_v1_20260529/status.json",
+        "reports/agent_jobs/extraction_aau_canary_failure_gold_fixture_v1_20260529/diff-check.json",
+        "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/README.md",
+        "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/status.json",
+        "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/diff-check.json",
+        "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/integration_manifest.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_aau_period_fixture_integration_v1_20260529",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

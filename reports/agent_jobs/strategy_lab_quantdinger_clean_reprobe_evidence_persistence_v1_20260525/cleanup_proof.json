@@ -1,0 +1,162 @@
+{
+  "after_cleanup": {
+    "containers": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker ps -a --format '{{.Names}} {{.Status}} {{.Ports}}' | grep -E 'quantdinger|15080|15432|16379|18888' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.018,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "image": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker image inspect tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest --format '{{.Id}}' 2>/dev/null || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.016,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "networks": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker network ls --format '{{.Name}}' | grep -E 'quantdinger|tenn_quantdinger_clean_reprobe_v1_20260525' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.019,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "target_ports": {
+      "command": [
+        "bash",
+        "-lc",
+        "ss -ltnp | awk 'NR==1 || /:15080|:15432|:16379|:18888/'"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.03,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess"
+    },
+    "temp_sandbox_exists": false,
+    "volumes": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker volume ls --format '{{.Name}}' | grep -E 'quantdinger|tenn_quantdinger_clean_reprobe_v1_20260525' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.024,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  },
+  "before_cleanup": {
+    "containers": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker ps -a --format '{{.Names}} {{.Status}} {{.Ports}}' | grep -E 'quantdinger|15080|15432|16379|18888' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.019,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "quantdinger-backend Up 7 minutes (healthy) 127.0.0.1:15080->5000/tcp\nquantdinger-db Up 8 minutes (healthy) 127.0.0.1:15432->5432/tcp\nquantdinger-redis Up 8 minutes (healthy) 127.0.0.1:16379->6379/tcp"
+    },
+    "image": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker image inspect tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest --format '{{.Id}} {{index .RepoTags 0}}' 2>/dev/null || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.018,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "sha256:8f56f6d21304a84f62ba02c6877a6f493ca8416c0fc96cf56a69ff42a130f261 tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest"
+    },
+    "networks": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker network ls --format '{{.Name}}' | grep -E 'quantdinger|tenn_quantdinger_clean_reprobe_v1_20260525' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.017,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "tenn_quantdinger_clean_reprobe_v1_20260525_quantdinger-network"
+    },
+    "target_ports": {
+      "command": [
+        "bash",
+        "-lc",
+        "ss -ltnp | awk 'NR==1 || /:15080|:15432|:16379|:18888/'"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.03,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess                                       \nLISTEN 0      4096                     127.0.0.1:15080      0.0.0.0:*                                                 \nLISTEN 0      4096                     127.0.0.1:15432      0.0.0.0:*                                                 \nLISTEN 0      4096                     127.0.0.1:16379      0.0.0.0:*"
+    },
+    "temp_sandbox_exists": true,
+    "volumes": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker volume ls --format '{{.Name}}' | grep -E 'quantdinger|tenn_quantdinger_clean_reprobe_v1_20260525' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.019,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "tenn_quantdinger_clean_reprobe_v1_20260525_backend_data\ntenn_quantdinger_clean_reprobe_v1_20260525_backend_logs\ntenn_quantdinger_clean_reprobe_v1_20260525_postgres_data"
+    }
+  },
+  "cleanup_commands": [
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.yml",
+        "down",
+        "-v",
+        "--remove-orphans"
+      ],
+      "cwd": "/tmp/tenn-quantdinger-clean-reprobe-v1-20260525/QuantDinger",
+      "duration_seconds": 1.368,
+      "returncode": 0,
+      "stderr": "Container quantdinger-backend  Stopping\n Container quantdinger-backend  Stopped\n Container quantdinger-backend  Removing\n Container quantdinger-backend  Removed\n Container quantdinger-redis  Stopping\n Container quantdinger-db  Stopping\n Container quantdinger-db  Stopped\n Container quantdinger-db  Removing\n Container quantdinger-db  Removed\n Container quantdinger-redis  Stopped\n Container quantdinger-redis  Removing\n Container quantdinger-redis  Removed\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_backend_logs  Removing\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_backend_data  Removing\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_postgres_data  Removing\n Network tenn_quantdinger_clean_reprobe_v1_20260525_quantdinger-network  Removing\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_backend_logs  Removed\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_backend_data  Removed\n Volume tenn_quantdinger_clean_reprobe_v1_20260525_postgres_data  Removed\n Network tenn_quantdinger_clean_reprobe_v1_20260525_quantdinger-network  Removed",
+      "stdout": ""
+    },
+    {
+      "command": [
+        "bash",
+        "-lc",
+        "docker rmi tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest 2>/dev/null || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.021,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Untagged: tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest\nDeleted: sha256:8f56f6d21304a84f62ba02c6877a6f493ca8416c0fc96cf56a69ff42a130f261"
+    }
+  ],
+  "cleanup_passed": true,
+  "generated_at": "2026-05-25T01:54:24Z",
+  "job_id": "strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "schema_version": 1
+}

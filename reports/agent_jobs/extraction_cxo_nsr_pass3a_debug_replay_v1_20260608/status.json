@@ -1,0 +1,53 @@
+{
+  "cache_root": "/tmp/tenn-pass3a-debug-replay-cache-v1-20260608-run-20260608133053/reports/extraction_cache/docling_extract",
+  "data_missing": [],
+  "errors": [],
+  "exact_docs_used": [
+    {
+      "case_id": "control_CXO_36e172ec",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "expected_period_end": "2022-09-30",
+      "expected_period_type": "Q",
+      "expected_scale": "thousands",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "ticker": "CXO",
+      "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "expected_period_end": "2021-12-31",
+      "expected_period_type": "H",
+      "expected_scale": "thousands",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+    }
+  ],
+  "isolated_cache_used": true,
+  "job_id": "extraction_cxo_nsr_pass3a_debug_replay_v1_20260608",
+  "pass3a_field_capture": {
+    "common_metric_source_scale_trace": true,
+    "metric_scale_sources": true,
+    "metric_source_scales": true,
+    "pass3a_outputs": true,
+    "row_refs": true,
+    "selected_table_page": true
+  },
+  "production_repair_implemented": false,
+  "risk_notes": [
+    "task-card check-diff is blocked by pre-existing untracked prior task card docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md outside this task card allowlist",
+    "first bounded attempt wrote an isolated /tmp router_metrics_snapshot.json before router metrics persistence was disabled; second successful attempt wrote only isolated parser cache under /tmp"
+  ],
+  "state": "DONE_WITH_RISK",
+  "two_cases_shared_source_bound_production_root_cause": false,
+  "validation_summary": {
+    "git_diff_check_exit_status": 0,
+    "json_parse_exit_status": 0,
+    "requested_fields_captured_exit_status": 0,
+    "second_tmp_parser_cache_only_exit_status": 0,
+    "source_and_normal_cache_unchanged_exit_status": 0,
+    "task_card_check_diff_exit_status": 1,
+    "task_card_validate_exit_status": 0
+  }
+}

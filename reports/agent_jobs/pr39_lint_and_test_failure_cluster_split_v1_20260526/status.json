@@ -1,0 +1,101 @@
+{
+  "job_id": "pr39_lint_and_test_failure_cluster_split_v1_20260526",
+  "issue_number": 105,
+  "pr_number": 39,
+  "mode": "AUDIT_FIRST / REMEDIATION_PLANNING ONLY",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "730eb0d8fb6d1d1661a87a5076201ab2521ade60",
+  "canonical_checkout": {
+    "active_checkout_is_canonical_tenn_repo": true,
+    "cwd": "/home/l4nd0/tenn-runtime",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "origin": "https://github.com/0rl4nd0l/tenn.git"
+  },
+  "pr_state": {
+    "state": "OPEN",
+    "draft": true,
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "UNSTABLE",
+    "head_ref": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_sha": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+    "base_ref": "migration/clean-runtime-baseline-reconstruct-base-36130cbd",
+    "base_sha": "36130cbdb98e7084e8396d125a1d6f8d3ab48bc7",
+    "commits": 38,
+    "changed_files": 346,
+    "additions": 39618,
+    "deletions": 190
+  },
+  "registry_status": {
+    "list_active_read_only_before_claim": "ok_empty",
+    "check_overlap_before_claim": "ok",
+    "claim": "ok",
+    "check_overlap_before_release": "ok",
+    "release": "ok",
+    "registry_scope": "shared",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "unrelated_active_job_after_claim": "extraction_primary_canary_run_v1_20260527 in Query Orchestration worktree"
+  },
+  "validation_status": {
+    "task_card_validate": "passed",
+    "json_validation": "passed",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "failed_final_due_unrelated_dirty_work",
+    "diff_check_artifact": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/diff-check.json",
+    "note": "An earlier check-diff passed when only the task card was visible. Final check-diff failed after unrelated dirty files appeared outside this task allowlist; those files were not touched or cleaned by this audit."
+  },
+  "unrelated_dirty_work_at_final_check": {
+    "modified": [
+      "financial-engine_v2/cockpit/core/actions.py",
+      "financial-engine_v2/cockpit/core/tools.py",
+      "financial-engine_v2/worker/worker_app/news_tasks.py",
+      "scripts/backfill_news.py",
+      "scripts/fetch_daily_news.py",
+      "scripts/load_news_to_qdrant.py",
+      "scripts/news_pipeline/cli_common.py",
+      "scripts/run_news_pipeline.py"
+    ],
+    "untracked": [
+      "financial-engine_v2/shared/tenn_extraction_active.json"
+    ],
+    "allowed_task_file": [
+      "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md"
+    ]
+  },
+  "ci_run_ids": {
+    "ci_lint_and_test": {
+      "run_id": 26439822448,
+      "job_id": 77831209696,
+      "workflow": "CI",
+      "check_name": "lint-and-test",
+      "conclusion": "failure",
+      "head_sha": "8635833b7d7359ed55daf0495eb49c5457bab91d"
+    },
+    "sloppy_scan": {
+      "run_id": 26439822445,
+      "job_id": 77831209694,
+      "workflow": "Sloppy Scan",
+      "check_name": "scan",
+      "conclusion": "success",
+      "head_sha": "8635833b7d7359ed55daf0495eb49c5457bab91d"
+    },
+    "stale_precursor_run_from_issue_body": {
+      "run_id": 26379324415,
+      "status": "superseded_by_26439822448"
+    }
+  },
+  "cluster_count": 13,
+  "root_cause_fixed": false,
+  "follow_up_required": true,
+  "production_data_access": false,
+  "github_mutation": false,
+  "project_memory_save_recommendation": "RECOMMENDED",
+  "hard_blockers": [
+    "Final task-card check-diff is blocked by unrelated dirty work outside this audit allowlist; dirty state was moving while another registry job was active."
+  ],
+  "data_missing": [
+    "No successful baseline CI run for base sha 36130cbdb98e7084e8396d125a1d6f8d3ab48bc7 with the same dev-dependency install was found during this audit.",
+    "No PR CI rerun was requested or performed after local HEAD advanced to 730eb0d8fb6d1d1661a87a5076201ab2521ade60.",
+    ".cursor/rules architecture files are absent in this checkout; docs/architecture files and mirrored invariant tests were used instead.",
+    "Ignored report artifacts are not visible to default git status/check-diff; they were manually inventoried with --ignored=matching."
+  ]
+}

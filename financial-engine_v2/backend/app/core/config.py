@@ -255,6 +255,7 @@ class Settings(BaseSettings):
     celery_broker_url: str = f"{_default_redis_base_url()}/0"
     celery_result_backend: str = f"{_default_redis_base_url()}/1"
     local_api_key: str = ""
+    tv_webhook_token: str = ""
     qdrant_url: str = "http://127.0.0.1:6333"
     qdrant_timeout_seconds: int = 60
     qdrant_collection: str = "asx_docs"

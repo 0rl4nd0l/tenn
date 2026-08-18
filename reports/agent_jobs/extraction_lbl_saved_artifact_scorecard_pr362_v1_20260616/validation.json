@@ -1,0 +1,85 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616.md",
+      "exit_status": 0,
+      "name": "task_card_validate",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit_status": 0,
+      "name": "registry_list_active_read_only",
+      "status": "passed_no_active_jobs"
+    },
+    {
+      "command": "gh pr view 362 --json number,url,title,state,isDraft,mergeable,mergeStateStatus,headRefName,baseRefName,commits,files,statusCheckRollup,changedFiles,additions,deletions,reviewDecision,updatedAt,createdAt",
+      "exit_status": 0,
+      "name": "live_pr_snapshot",
+      "status": "passed_clean_green_draft"
+    },
+    {
+      "command": "python3 - <<'PY' ... assert prior LBL saved-artifact failure and current repaired LBL replay ... PY",
+      "exit_status": 0,
+      "name": "saved_artifact_lbl_assertions",
+      "status": "passed",
+      "summary": {
+        "new_lbl_currency": "AUD",
+        "new_lbl_error": null,
+        "new_lbl_non_null_metrics": 7,
+        "new_lbl_period_end": "2025-12-31",
+        "new_lbl_period_type": "H",
+        "new_lbl_scale": "thousands",
+        "new_lbl_status": "ok",
+        "new_lbl_target_row_refs": {
+          "ebit": "EBIT",
+          "np_attributable": "NPAT For",
+          "revenue": "Sales Revenue"
+        },
+        "old_lbl_accepted_metric_count": 0,
+        "old_lbl_status": "failed"
+      }
+    },
+    {
+      "command": "python3 - <<'PY' ... audit changed paths for forbidden surfaces ... PY",
+      "exit_status": 0,
+      "name": "forbidden_path_audit",
+      "status": "passed",
+      "summary": {
+        "changed_path_count": 24,
+        "forbidden_match_count": 0
+      }
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "name": "git_diff_check",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616.md --repo-root .",
+      "exit_status": 0,
+      "name": "task_card_check_diff",
+      "status": "passed",
+      "artifact": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/diff-check.json"
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads each report JSON artifact ... PY",
+      "exit_status": 0,
+      "name": "report_json_validation",
+      "status": "passed"
+    }
+  ],
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "canonical writes",
+    "GitHub mutation",
+    "DB/Qdrant/Redis/news/memory/source-PDF/prompt/gold/schema/runtime/model/GPU mutation"
+  ],
+  "job_id": "extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+  "validation_status": "passed"
+}

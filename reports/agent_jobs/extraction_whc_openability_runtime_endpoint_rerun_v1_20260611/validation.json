@@ -1,0 +1,55 @@
+{
+  "job_id": "extraction_whc_openability_runtime_endpoint_rerun_v1_20260611",
+  "status": "DONE_WITH_RISK",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_openability_runtime_endpoint_rerun_v1_20260611.md",
+      "exit_status": 0,
+      "result": "ok=true"
+    },
+    {
+      "name": "registry_list_active_read_only",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "result": "ok=true active_jobs=[]"
+    },
+    {
+      "name": "runtime_endpoint_probe",
+      "command": "short-timeout probes for localhost Ollama and llama.cpp endpoints",
+      "exit_status": 0,
+      "result": "127.0.0.1:11434 live; 127.0.0.1:8080 and 8081 refused"
+    },
+    {
+      "name": "exact_replay_with_process_local_runtime_overrides",
+      "command": "DATA_ROOT=/tmp/... OLLAMA_URL=http://127.0.0.1:11434 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:11434 EXTRACT_MODEL=qwen2.5:32b EXTRACTION_PARALLEL=0 timeout 900 venv python run_multipass_extraction(... openability_selected_tables=True)",
+      "exit_status": 0,
+      "result": "result_status=failed result_error=validation_gate:missing_period_end non_null_metric_count=9",
+      "raw_log": "/tmp/tenn_whc_openability_runtime_endpoint_rerun.log"
+    }
+  ],
+  "negative_controls": [
+    "source PDF read-only",
+    "temporary DATA_ROOT used for parser cache",
+    "temporary DATA_ROOT removed after replay",
+    "production cache not written",
+    "process-local runtime env overrides only",
+    "no persistent runtime config edits",
+    "no canonical metrics accepted because validation failed"
+  ],
+  "forbidden_actions_not_run": [
+    "no service starts",
+    "no count-24/count-32/random sample",
+    "no broad extraction/backfill/full ticker-universe extraction",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory/source-PDF mutation",
+    "no prompt/gold/schema/runtime/model/GPU mutation",
+    "no code changes",
+    "no PR #318 patch mining",
+    "no GitHub write"
+  ],
+  "data_missing": [
+    "Accepted scorecard gain remains DATA_MISSING because validation failed.",
+    "The next exact blocker is period_end binding from openability diagnostic period evidence."
+  ]
+}

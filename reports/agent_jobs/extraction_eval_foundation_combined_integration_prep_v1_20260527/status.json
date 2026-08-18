@@ -1,0 +1,152 @@
+{
+  "artifact_type": "agent_job_status",
+  "job_id": "extraction_eval_foundation_combined_integration_prep_v1_20260527",
+  "generated_at": "2026-05-27T03:28:20Z",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Provenance",
+    "Query Orchestration"
+  ],
+  "mode": "safe_extension_integration_prep_only",
+  "risk": "MEDIUM",
+  "canonical_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "base_canonical_head": "23ee2666f9d037c4405f4c97dac4f33b089523f1",
+  "combined_branch": "safe/extraction-eval-foundation-combined-v1-20260527",
+  "combined_worktree": "/home/l4nd0/tenn-extraction-eval-foundation-combined-v1-20260527",
+  "combined_final_head": "DATA_MISSING_UNTIL_POST_COMMIT",
+  "source_commits_reconciled": [
+    {
+      "issue": 97,
+      "commit": "bb833aa8f916806e7151d0a49a094592644db418",
+      "capability": "build_confirmed_metric_payload_scorecard and PayloadScoreStatus"
+    },
+    {
+      "issue": 98,
+      "commit": "d08a3e96d61d8315491f5efbea61134bbd7735f6",
+      "capability": "build_metric_contract_parity_matrix and MetricContractStatus"
+    },
+    {
+      "issue": 99,
+      "commit": "8f87683c87306267d8280704bf6a0116f4183096",
+      "capability": "metadata-only source asset manifest resolver"
+    },
+    {
+      "issue": 96,
+      "commit": "2f7af32d81d677dfd4eb213bc140c005b5b79e35",
+      "capability": "terminal extraction candidate manifest and classes"
+    }
+  ],
+  "conflict_resolution": {
+    "conflicted_files": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py"
+    ],
+    "cause": "#97 and #98 independently edited the shared helper/test from the same base; #99 also touched the same files and #96 builds on #99.",
+    "resolution": "Used #96/#99 as the source-asset and terminal-state base, inserted #97 payload scorecard and #98 contract parity blocks, and kept shared fixture/evaluator helpers single-copy."
+  },
+  "registry_status": {
+    "claimed": true,
+    "released": true,
+    "release_result": "ok",
+    "final_list_active": "active_jobs: []",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "forbidden_surfaces_touched": false,
+  "canonical_branch_mutated": false,
+  "production_data_access": false,
+  "broad_extraction_or_backfill_run": false,
+  "source_pdfs_staged": false,
+  "ready_for_canonical_integration_review": true,
+  "source_commits_should_be_superseded_by_combined_branch": true,
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_eval_foundation_combined_integration_prep_v1_20260527.md",
+      "result": "passed",
+      "details": "ok: true"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "details": "active_jobs: []"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_eval_foundation_combined_integration_prep_v1_20260527.md --repo-root .",
+      "result": "passed",
+      "details": "ok: true"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_eval_foundation_combined_integration_prep_v1_20260527.md --repo-root .",
+      "result": "passed",
+      "details": "shared registry claim active"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "passed",
+      "details": "no output"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "not_run",
+      "details": "pytest command not found in host shell"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with pytest --with pydantic-settings==2.6.1 --with pydantic==2.9.2 pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "failed_environment",
+      "details": "5 failed, 18 passed because sqlalchemy was absent from the ephemeral uv dependency set"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with pytest --with pydantic-settings==2.6.1 --with pydantic==2.9.2 --with sqlalchemy pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "passed",
+      "details": "23 passed, 1 warning"
+    },
+    {
+      "command": "uv run --python 3.10 --with ruff ruff check financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "passed",
+      "details": "All checks passed!"
+    },
+    {
+      "command": "JSON validation for generated report artifacts and source asset manifest",
+      "result": "passed",
+      "details": "validated_json_files=19"
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "passed",
+      "details": "no output"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_eval_foundation_combined_integration_prep_v1_20260527.md --repo-root .",
+      "result": "passed",
+      "details": "ok: true; disallowed_files: []; changed_count: 33"
+    },
+    {
+      "command": "git diff --cached --name-only | rg '\\\\.pdf$' || true",
+      "result": "passed",
+      "details": "no .pdf paths staged"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release extraction_eval_foundation_combined_integration_prep_v1_20260527 && python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "details": "release ok; final active_jobs: []"
+    }
+  ],
+  "confirmed": [
+    "All four source commits exist.",
+    "The combined helper preserves payload scorecard, metric contract parity, source asset resolver, and terminal candidate manifest APIs.",
+    "Source asset reviewability remains separate from extraction correctness.",
+    "Payload scoreability remains separate from terminal extraction state.",
+    "No forbidden runtime, parser, prompt, DB, source PDF, memory, Qdrant, Cockpit UI, schema, extraction, or backfill surface was touched."
+  ],
+  "inferred": [
+    "The combined branch should supersede the four source commits for canonical integration review because it preserves their validated behavior while resolving shared helper/test conflicts."
+  ],
+  "speculative": [],
+  "data_missing": [
+    "No live DB inspection was performed.",
+    "No broad extraction/backfill/canary was run.",
+    "The final commit hash is reported after commit because a file cannot embed the hash of the commit that contains it."
+  ],
+  "project_memory_save_recommendation": "Save that #96-#99 were reconciled into safe/extraction-eval-foundation-combined-v1-20260527 and that #97/#98 helper conflicts were resolved by preserving both APIs in extraction_gold_eval_scorecard.py."
+}

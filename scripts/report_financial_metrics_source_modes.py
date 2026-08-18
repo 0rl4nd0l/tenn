@@ -12,6 +12,17 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+try:
+    from scripts.reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+    )
+except ModuleNotFoundError:  # pragma: no cover - supports direct `python scripts/...` runs
+    from reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+    )
+
 
 def load_rows(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
@@ -63,6 +74,26 @@ def build_source_mode_report(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def attach_authority_metadata(report: Dict[str, Any], *, canonical_path: Path, out_path: Path) -> Dict[str, Any]:
+    enriched = dict(report)
+    enriched["authority"] = build_authority_metadata(
+        artifact_type="financial_metric_source_mode_report",
+        producer="scripts/report_financial_metrics_source_modes.py",
+        lane="Evaluation",
+        source_artifacts=[
+            artifact_record(canonical_path, "report_local_selected_metric_rows"),
+        ],
+        output_artifacts=[
+            artifact_record(out_path, "source_mode_report_json"),
+        ],
+        extra={
+            "input_label": "canonical_json_report_local",
+            "row_set_authority": "report_local_only",
+        },
+    )
+    return enriched
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Report financial metrics coverage by source_mode.")
     ap.add_argument("--canonical-json", required=True, help="Path to canonical.json from extract_financial_metrics.py")
@@ -74,7 +105,11 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     rows = load_rows(canonical_path)
-    report = build_source_mode_report(rows)
+    report = attach_authority_metadata(
+        build_source_mode_report(rows),
+        canonical_path=canonical_path,
+        out_path=out_path,
+    )
 
     with out_path.open("w") as f:
         json.dump(report, f, indent=2)
@@ -85,4 +120,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

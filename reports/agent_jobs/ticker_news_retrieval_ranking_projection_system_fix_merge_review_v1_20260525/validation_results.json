@@ -1,0 +1,96 @@
+{
+  "architecture_review": {
+    "a2m_only_hardcoding": false,
+    "canonical_financial_truth_writes": false,
+    "chat_evidence_guard_changed": false,
+    "db_mutation": false,
+    "local_news_honesty_guard_weakened": false,
+    "news_store_mutation": false,
+    "parser_routing": false,
+    "qdrant_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "runtime_model_gpu_config_edits": false,
+    "source_label_masking": false,
+    "tenn_memory_writes": false
+  },
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
+  "results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "status": "PASS",
+      "summary": "active claim is this merge-review job"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/rag.py financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "PASS"
+    },
+    {
+      "command": "uv run --python 3.10 --with ruff ruff check app/routes/cockpit_api.py app/services/rag.py tests/test_rag_news_query.py tests/test_build_ui_sources.py",
+      "status": "PASS"
+    },
+    {
+      "command": "uv run --python 3.10 --with-requirements requirements.txt --with-requirements requirements-dev.txt python -m pytest -p no:cacheprovider tests/test_rag_news_query.py tests/test_build_ui_sources.py -q",
+      "status": "PASS",
+      "summary": "65 passed"
+    },
+    {
+      "command": "uv run --python 3.10 --with-requirements requirements.txt --with-requirements requirements-dev.txt python -m pytest -p no:cacheprovider tests/test_chat_evidence_guard.py tests/test_cockpit_news_status.py tests/test_sources.py tests/test_cockpit_api_models.py tests/test_route_parity_contract.py -q",
+      "status": "PASS",
+      "summary": "47 passed, 5 warnings"
+    },
+    {
+      "command": "uv run --python 3.10 --with-requirements requirements.txt --with-requirements requirements-dev.txt python -m pytest -p no:cacheprovider tests/test_cockpit_api_chat_stream.py -q",
+      "status": "PASS",
+      "summary": "62 passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/pre_fix_ticker_matrix.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/post_fix_ticker_matrix.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/root_cause_trace.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/validation_results.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/status.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/post_fix_smoke_results.json",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check HEAD~1..HEAD",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525.md --no-write-report",
+      "status": "PASS",
+      "summary": "current uncommitted merge-review files are within allowed_files"
+    }
+  ],
+  "warnings": [
+    "uv ignored requirements.txt extra-index-url while resolving test env.",
+    "Guard/status/source/route suite emitted existing pydantic/FastAPI deprecation warnings."
+  ]
+}

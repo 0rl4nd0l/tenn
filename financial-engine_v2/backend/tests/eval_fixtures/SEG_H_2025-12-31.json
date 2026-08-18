@@ -19,7 +19,7 @@
   },
   "expected_nulls": [],
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.8
   },
   "tolerances": {
     "revenue": 0.01,
@@ -43,5 +43,21 @@
     "cash_end": "Cash flow statement (page 17): 'Cash and cash equivalents at the end of the half year' = 26,716 ($'000s). Cross-check: 14,954 (start) + 11,619 (ops) + 7,527 (investing) - 7,369 (financing) - 15 (FX) = 26,716. Consistent with Directors' Report 'Cash on hand of $26.7m'.",
     "net_debt": "Balance sheet verified (page 14): Current Borrowings = 482, Non-current Borrowings = 12,758, total financial debt = 13,240 ($'000s). net_debt = 13,240 - 26,716 = -13,476 ($'000s) = net cash position. Expected null because: (a) pipeline B4 derivation fires nondeterministically depending on whether the LLM extracts total_debt from the balance sheet table, and (b) the LLM sometimes includes lease liabilities in total_debt (producing ~13,210 vs correct 13,240). Assert null until pipeline stabilises on balance sheet extraction.",
     "shares_outstanding": "Note 6 Issued Capital (page 24): 'Number of shares on issue = 280,874,770' (actual count, No. column). Share movements table also shows 'Balance at the end of the period = 280,875' in No. '000s column. We assert the exact count (280,874,770). Known issue: _COUNT_METRICS scaling bypass means LLM extraction from the '000s table (280,875) will not be multiplied, producing a 1000x mismatch until the pipeline handles share-count scale separately."
+  },
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "net_debt"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [
+      "net_debt"
+    ],
+    "row_ids": {
+      "net_debt": "AQ043"
+    }
   }
 }

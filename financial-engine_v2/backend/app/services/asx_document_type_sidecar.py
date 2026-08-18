@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from app.services.asx_document_type_classifier import classify_asx_document_type
+from app.services.asx_extraction_contracts import select_extraction_contract
 
 
 ARTIFACT_TYPE = "asx_document_type_sidecar_v1"
@@ -67,7 +68,10 @@ def build_asx_document_type_sidecar(
         raise ValueError("ticker is required for ASX document-type sidecars")
 
     surrogate = fixture["source_text_surrogate"]
-    classification = classify_asx_document_type(surrogate).to_dict()
+    classification_result = classify_asx_document_type(surrogate)
+    classification = classification_result.to_dict()
+    contract_selection = select_extraction_contract(classification_result)
+    contract = contract_selection.contract
     artifact: dict[str, Any] = {
         "artifact_type": ARTIFACT_TYPE,
         "document_id": fixture["document_id"],
@@ -78,6 +82,8 @@ def build_asx_document_type_sidecar(
         "confidence_band": classification["confidence_band"],
         "abstain": classification["abstain"],
         "canonical_write": False,
+        "extraction_contract_id": contract.contract_id if contract else None,
+        "extraction_contract_abstain": contract_selection.abstain,
         "positive_evidence": _compact_evidence(classification.get("positive_evidence", [])),
         "negative_evidence": _compact_evidence(classification.get("negative_evidence", [])),
         "abstain_reasons": list(classification.get("abstain_reasons", [])),

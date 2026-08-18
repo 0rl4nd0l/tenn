@@ -1,0 +1,26 @@
+{
+  "duration_seconds": 0.004,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/agent/v1/markets",
+    "url": "http://127.0.0.1:15080/api/agent/v1/markets"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "label": "Crypto",
+          "value": "Crypto"
+        }
+      ],
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}

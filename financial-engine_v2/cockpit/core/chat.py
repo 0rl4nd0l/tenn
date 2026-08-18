@@ -43,7 +43,8 @@ from cockpit.core.backend_proposals import (
 )
 from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.action_preview import normalize_action_preview
-from cockpit.core.command_router import CommandRoute, route_command
+from cockpit.core.chat_route_decision import build_chat_route_decision
+from cockpit.core.command_router import CommandRoute
 from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.core.request_standards import (
     build_request_standard_prompt_guidance,
@@ -570,7 +571,9 @@ class ChatController:
         self._context_gather_lock = threading.Lock()
 
         # Agent loop — default mode since agent routing is the canonical path.
-        # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
+        # Keyword mode keeps the legacy deterministic intent/tool path, but its
+        # LLM synthesis still goes through HybridRouter so GPU ownership and API
+        # routing policy cannot be bypassed.
         self._agent_loop = None
         self._hybrid_router = None
         self._dossier_service = None
@@ -583,91 +586,26 @@ class ChatController:
             except Exception as exc:
                 logger.warning("StrategyService init failed: %s", exc)
         agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
+        if agent_mode == "keyword":
+            try:
+                self._hybrid_router, api_client = self._build_hybrid_router(
+                    ollama_client
+                )
+                logger.info(
+                    "Keyword chat HybridRouter initialised (api=%s)",
+                    "available" if api_client is not None else "none",
+                )
+            except ImportError:
+                logger.error(
+                    "HybridRouter modules not importable — keyword synthesis will "
+                    "use the legacy local client."
+                )
         if agent_mode == "structured":
             try:
-                from cockpit.core.agent.hybrid_router import HybridRouter
                 from cockpit.core.agent_loop import AgentLoop
                 from cockpit.core.tool_executor import ToolExecutor
 
-                # Build HybridRouter with local llama.cpp client + optional API client.
-                api_client = None
-                anthropic_api_key = effective_anthropic_api_key(self._cockpit_llm)
-                if anthropic_api_key:
-                    try:
-                        from cockpit.core.agent.anthropic_client import AnthropicClient
-
-                        defaults = (
-                            self._cockpit_llm.get("defaults")
-                            if isinstance(self._cockpit_llm.get("defaults"), dict)
-                            else {}
-                        )
-                        anthropic_model = (
-                            os.environ.get("ANTHROPIC_MODEL", "").strip()
-                            or str(defaults.get("anthropic_model") or "").strip()
-                        )
-                        api_client = (
-                            AnthropicClient(
-                                model=anthropic_model,
-                                api_key=anthropic_api_key,
-                            )
-                            if anthropic_model
-                            else AnthropicClient(api_key=anthropic_api_key)
-                        )
-                    except Exception as exc:
-                        logger.warning("AnthropicClient init failed: %s", exc)
-
-                from cockpit.core.llm_profile import resolve_hybrid_router_policy
-
-                # Import GPU activity checker so HybridRouter can route chat
-                # to the cloud API while extraction or another GPU-heavy task
-                # owns the local llama.cpp runtime.
-                gpu_exclusive_checker = None
-                extraction_checker = None
-                try:
-                    from app.services.router_state import is_gpu_exclusive_active
-
-                    gpu_exclusive_checker = is_gpu_exclusive_active
-                except Exception:
-                    pass  # Backend not available (e.g. standalone cockpit)
-                if gpu_exclusive_checker is None:
-                    try:
-                        from app.services.router_state import is_extraction_active
-
-                        extraction_checker = is_extraction_active
-                    except Exception:
-                        pass  # Backend not available (e.g. standalone cockpit)
-
-                gpu_preemption_checker = None
-                try:
-                    from cockpit.integrations.llamacpp_manager import (
-                        check_chat_gpu_preemption,
-                    )
-
-                    llm_base_url = str(getattr(ollama_client, "base_url", "") or "")
-                    chat_port = urlparse(llm_base_url).port or 8001
-
-                    def _gpu_preemption_checker() -> str | None:
-                        state = check_chat_gpu_preemption(str(chat_port))
-                        if bool(state.get("should_defer")):
-                            return str(state.get("reason") or "gpu_preempted")
-                        return None
-
-                    gpu_preemption_checker = _gpu_preemption_checker
-                except Exception:
-                    pass
-
-                hybrid_router = HybridRouter(
-                    llm_client=ollama_client,
-                    api_client=api_client,
-                    policy=resolve_hybrid_router_policy(
-                        api_available=api_client is not None,
-                        cockpit_llm=self._cockpit_llm,
-                    ),
-                    llm_timeout=self.llm_timeout_seconds,
-                    extraction_active_fn=extraction_checker,
-                    gpu_exclusive_active_fn=gpu_exclusive_checker,
-                    gpu_preemption_fn=gpu_preemption_checker,
-                )
+                hybrid_router, api_client = self._build_hybrid_router(ollama_client)
                 self._hybrid_router = hybrid_router
 
                 # Research capabilities — Brave Search, HN, dossier.
@@ -840,6 +778,83 @@ class ChatController:
                     "requires cockpit.core.agent_loop and cockpit.core.tool_executor. "
                     "Falling back to keyword mode."
                 )
+
+    def _build_hybrid_router(self, llm_client):
+        """Build the shared local/API router for every interactive chat mode."""
+        from cockpit.core.agent.hybrid_router import HybridRouter
+        from cockpit.core.llm_profile import resolve_hybrid_router_policy
+
+        api_client = None
+        anthropic_api_key = effective_anthropic_api_key(self._cockpit_llm)
+        if anthropic_api_key:
+            try:
+                from cockpit.core.agent.anthropic_client import AnthropicClient
+
+                defaults = (
+                    self._cockpit_llm.get("defaults")
+                    if isinstance(self._cockpit_llm.get("defaults"), dict)
+                    else {}
+                )
+                anthropic_model = (
+                    os.environ.get("ANTHROPIC_MODEL", "").strip()
+                    or str(defaults.get("anthropic_model") or "").strip()
+                )
+                api_client = (
+                    AnthropicClient(model=anthropic_model, api_key=anthropic_api_key)
+                    if anthropic_model
+                    else AnthropicClient(api_key=anthropic_api_key)
+                )
+            except Exception as exc:
+                logger.warning("AnthropicClient init failed: %s", exc)
+
+        gpu_exclusive_checker = None
+        extraction_checker = None
+        try:
+            from app.services.router_state import is_gpu_exclusive_active
+
+            gpu_exclusive_checker = is_gpu_exclusive_active
+        except Exception:
+            pass  # Backend not available (e.g. standalone cockpit)
+        if gpu_exclusive_checker is None:
+            try:
+                from app.services.router_state import is_extraction_active
+
+                extraction_checker = is_extraction_active
+            except Exception:
+                pass  # Backend not available (e.g. standalone cockpit)
+
+        gpu_preemption_checker = None
+        try:
+            from cockpit.integrations.llamacpp_manager import check_chat_gpu_preemption
+
+            llm_base_url = str(getattr(llm_client, "base_url", "") or "")
+            chat_port = urlparse(llm_base_url).port or 8001
+
+            def _gpu_preemption_checker() -> str | None:
+                state = check_chat_gpu_preemption(str(chat_port))
+                if bool(state.get("should_defer")):
+                    return str(state.get("reason") or "gpu_preempted")
+                return None
+
+            gpu_preemption_checker = _gpu_preemption_checker
+        except Exception:
+            pass
+
+        return (
+            HybridRouter(
+                llm_client=llm_client,
+                api_client=api_client,
+                policy=resolve_hybrid_router_policy(
+                    api_available=api_client is not None,
+                    cockpit_llm=self._cockpit_llm,
+                ),
+                llm_timeout=self.llm_timeout_seconds,
+                extraction_active_fn=extraction_checker,
+                gpu_exclusive_active_fn=gpu_exclusive_checker,
+                gpu_preemption_fn=gpu_preemption_checker,
+            ),
+            api_client,
+        )
 
     # ---------------------------------------------------------------------- #
     # Session ID persistence                                                   #
@@ -1907,6 +1922,24 @@ class ChatController:
         r"^\s*(?:latest\s+)?(?:news(?:\s+for)?\s+(?P<prefix>[A-Za-z0-9]{2,5})|(?P<suffix>[A-Za-z0-9]{2,5})\s+news)\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
+    _STRICT_LOCAL_NEWS_CONTEXT_RE = re.compile(
+        r"\blocal[_ -]news[_ -]context\b",
+        re.IGNORECASE,
+    )
+    _NATURAL_TICKER_NEWS_RE = re.compile(
+        r"\b(?:latest|recent|current|newest|today'?s?|show\s+me|any|"
+        r"what(?:'s|\s+is)?|give\s+me|find|list)\b[\w\s'/-]{0,80}\bnews\b"
+        r"|\b(?:local|company)\s+news\b"
+        r"|\bnews\s+(?:for|on|about|regarding)\b",
+        re.IGNORECASE,
+    )
+    _NEWS_SHORTCIRCUIT_EXCLUSION_RE = re.compile(
+        r"\b(?:appendix\s*4[bcde]?|appendix|4c|4d|4e|filing|document|"
+        r"announcement|annual\s+report|half[-\s]?year|quarterly|results?|"
+        r"financial\s+performance|financials?|valuation|share\s+price|price|"
+        r"cash\s+flow|revenue|ebitda|profit|balance\s+sheet|candlestick|chart)\b",
+        re.IGNORECASE,
+    )
     _DIRECT_FILESTATS_RE = re.compile(
         r"^\s*(?:(?P<ticker_prefix>[A-Za-z0-9]{1,10})\s+filestats?|filestats?\s+(?P<ticker_suffix>[A-Za-z0-9]{1,10}))\s*[?!.]*\s*$",
         re.IGNORECASE,
@@ -1935,7 +1968,12 @@ class ChatController:
     ) -> ChatResponse | None:
         if ticker is None:
             return None
-        if not self._DIRECT_NEWS_RE.fullmatch(message.strip()):
+        stripped_message = message.strip()
+        if not (
+            self._DIRECT_NEWS_RE.fullmatch(stripped_message)
+            or self._STRICT_LOCAL_NEWS_CONTEXT_RE.search(stripped_message)
+            or self._should_use_natural_ticker_news_shortcircuit(stripped_message)
+        ):
             return None
 
         try:
@@ -2018,6 +2056,16 @@ class ChatController:
             ],
             mode=ResponseMode.FAST,
         )
+
+    def _should_use_natural_ticker_news_shortcircuit(self, message: str) -> bool:
+        text = str(message or "").strip()
+        if not text or not re.search(r"\bnews\b", text, re.IGNORECASE):
+            return False
+        if self._is_global_news_request(text):
+            return False
+        if self._NEWS_SHORTCIRCUIT_EXCLUSION_RE.search(text):
+            return False
+        return bool(self._NATURAL_TICKER_NEWS_RE.search(text))
 
     @classmethod
     def _extract_explicit_web_search_query(cls, message: str) -> str | None:
@@ -6770,17 +6818,16 @@ class ChatController:
                 attached_bundle=attached_bundle,
             )
 
-        command_route = route_command(
+        route_decision = build_chat_route_decision(
             effective_message,
             active_ticker=prior_ticker or self.last_ticker,
             recent_youtube_channel=self._recent_youtube_channel_from_context(),
             recent_youtube_videos=self._recent_youtube_video_options_from_context(),
+            query_orchestrator_available=self._query_orchestrator is not None,
         )
+        command_route = route_decision.command_route
         command_response = self._build_command_route_response(command_route)
-        command_is_analysis_fallback = (
-            self._query_orchestrator is not None and command_route.tool == "run_analysis"
-        )
-        if command_response is not None and not command_is_analysis_fallback:
+        if command_response is not None and not route_decision.defer_command_to_orchestrator:
             return command_response
 
         market_update_followup = self._try_market_update_followup(effective_message)

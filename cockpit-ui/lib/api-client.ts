@@ -2,6 +2,7 @@ import { useCockpitStore } from './cockpit-store'
 import type {
   AvailableModelsResponse,
   ClaimVerificationResponse,
+  ChatReadinessResponse,
   ChatResponse,
   ChatRuntimeTarget,
   ContextDocument,
@@ -33,12 +34,28 @@ import type {
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
 
-function withApiKey(headers?: HeadersInit): HeadersInit {
+function browserApiKey(): string {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+  try {
+    return window.localStorage.getItem('cockpit.apiKey')?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function configuredApiKey(): string {
+  return browserApiKey() || API_KEY
+}
+
+export function withApiKey(headers?: HeadersInit): HeadersInit {
   const merged: Record<string, string> = {
     ...(headers as Record<string, string> | undefined),
   }
-  if (API_KEY) {
-    merged['X-API-Key'] = API_KEY
+  const apiKey = configuredApiKey()
+  if (apiKey) {
+    merged['X-API-Key'] = apiKey
   }
   return merged
 }
@@ -113,6 +130,13 @@ export type ChatSessionCreateResponse = {
   ok: boolean
   session_id: string
   created: boolean
+}
+
+export type VerificationRunsResponse = {
+  ok?: boolean
+  runs?: unknown[]
+  count?: number
+  error?: string
 }
 
 export type CockpitPreferences = {
@@ -422,6 +446,13 @@ export function isBackendHealthy(health?: HealthResponse): boolean {
   const backendService = health?.services?.find((service) => service.name === 'backend')
   if (backendService) return isHealthyService(backendService)
   return health?.status === 'healthy'
+}
+
+/** Chat answer readiness – GET /api/cockpit/chat/readiness */
+export async function fetchChatReadiness(ticker?: string | null): Promise<ChatReadinessResponse> {
+  const normalizedTicker = String(ticker || '').trim().toUpperCase()
+  const query = normalizedTicker ? `?ticker=${encodeURIComponent(normalizedTicker)}` : ''
+  return apiFetch<ChatReadinessResponse>(`/api/cockpit/chat/readiness${query}`, undefined, 30_000)
 }
 
 /** Shared chat sessions – GET /api/cockpit/chat/sessions */
@@ -823,7 +854,9 @@ export async function streamChat(params: {
 
 /** Available models – GET /api/cockpit/models */
 export async function fetchAvailableModels(): Promise<AvailableModelsResponse> {
-  return apiFetch<AvailableModelsResponse>("/api/cockpit/models")
+  return apiFetch<AvailableModelsResponse>("/api/cockpit/models", {
+    headers: withApiKey(),
+  })
 }
 
 export async function loadCockpitModel(modelId?: string, runtimeTarget?: ChatRuntimeTarget): Promise<ModelLoadResponse> {
@@ -860,18 +893,25 @@ export async function dryRunPromptLabRoute(
 
 /** System config – GET /api/cockpit/config */
 export async function getSystemStatus(): Promise<SystemStatus> {
-  return apiFetch<SystemStatus>("/api/cockpit/config")
+  return apiFetch<SystemStatus>("/api/cockpit/config", { headers: withApiKey() })
 }
 
 /** Queue status – GET /api/cockpit/queue */
 export async function getQueueStatus(): Promise<QueueStatus> {
-  return apiFetch<QueueStatus>("/api/cockpit/queue")
+  return apiFetch<QueueStatus>("/api/cockpit/queue", { headers: withApiKey() })
 }
 
 /** Restart backend – POST /api/cockpit/restart */
 export async function restartBackend(): Promise<RestartBackendResponse> {
   return apiFetch<RestartBackendResponse>('/api/cockpit/restart', {
     method: 'POST',
+    headers: {
+      'X-Cockpit-Restart-Intent': 'restart-backend',
+    },
+    body: JSON.stringify({
+      intent: 'restart-backend',
+      confirmation: 'RESTART BACKEND',
+    }),
   })
 }
 
@@ -963,12 +1003,14 @@ export async function fetchFinancials(ticker: string): Promise<unknown[]> {
 
 /** Documents list – GET /api/cockpit/docs */
 export async function listDocuments(): Promise<unknown[]> {
-  return apiFetch<unknown[]>("/api/cockpit/docs")
+  return apiFetch<unknown[]>("/api/cockpit/docs", { headers: withApiKey() })
 }
 
 export async function getTickerDocuments(ticker: string, docsLimit: number = 10): Promise<ContextDocument[]> {
+  const normalizedTicker = ticker.trim().toUpperCase()
   const payload = await apiFetch<{ docs?: ContextDocument[] }>(
-    `/api/context/ticker?ticker=${encodeURIComponent(ticker)}&docs_limit=${docsLimit}&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5`
+    `/api/context/ticker?ticker=${encodeURIComponent(normalizedTicker)}&docs_limit=${docsLimit}&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5`,
+    { headers: withApiKey() },
   )
   return Array.isArray(payload.docs) ? payload.docs : []
 }
@@ -1013,6 +1055,7 @@ export async function createExtractionReviewSession(params: {
 export async function getExtractionReviewSession(sessionId: string): Promise<ExtractionReviewSession> {
   return apiFetch<ExtractionReviewSession>(
     `/api/extraction-review/session/${encodeURIComponent(sessionId)}`,
+    { headers: withApiKey() },
   )
 }
 
@@ -1040,7 +1083,10 @@ export async function submitExtractionReviewDecision(params: {
 }
 
 export async function getExtractionReviewErrors(limit: number = 200): Promise<ExtractionReviewErrorQueue> {
-  return apiFetch<ExtractionReviewErrorQueue>(`/api/extraction-review/errors?limit=${limit}`)
+  return apiFetch<ExtractionReviewErrorQueue>(
+    `/api/extraction-review/errors?limit=${limit}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewRuns(ticker?: string, limit: number = 50): Promise<ExtractionReviewRunListResponse> {
@@ -1048,7 +1094,10 @@ export async function getExtractionReviewRuns(ticker?: string, limit: number = 5
   if (ticker?.trim()) {
     params.set('ticker', ticker.trim().toUpperCase())
   }
-  return apiFetch<ExtractionReviewRunListResponse>(`/api/extraction-review/runs?${params.toString()}`)
+  return apiFetch<ExtractionReviewRunListResponse>(
+    `/api/extraction-review/runs?${params.toString()}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewSessions(ticker?: string, limit: number = 50): Promise<ExtractionReviewSessionListResponse> {
@@ -1056,13 +1105,49 @@ export async function getExtractionReviewSessions(ticker?: string, limit: number
   if (ticker?.trim()) {
     params.set('ticker', ticker.trim().toUpperCase())
   }
-  return apiFetch<ExtractionReviewSessionListResponse>(`/api/extraction-review/sessions?${params.toString()}`)
+  return apiFetch<ExtractionReviewSessionListResponse>(
+    `/api/extraction-review/sessions?${params.toString()}`,
+    { headers: withApiKey() },
+  )
 }
 
 export async function getExtractionReviewRunStatus(runId: string, limit: number = 200): Promise<ExtractionReviewRunStatusResponse> {
   return apiFetch<ExtractionReviewRunStatusResponse>(
-    `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`
+    `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`,
+    { headers: withApiKey() },
   )
+}
+
+function extractionReviewSnippetPath(imageUrl: string): string {
+  const prefix = '/api/extraction-review/snippets/'
+  const path = imageUrl.trim()
+  const imageName = path.startsWith(prefix) ? path.slice(prefix.length) : ''
+  if (!imageName || imageName.includes('/') || imageName.includes('\\')) {
+    throw new Error('Invalid extraction review snippet URL')
+  }
+  return path
+}
+
+export async function getExtractionReviewSnippetObjectUrl(imageUrl: string): Promise<string> {
+  const snippetPath = extractionReviewSnippetPath(imageUrl)
+  const response = await fetch(snippetPath, { headers: withApiKey() })
+
+  if (!response.ok) {
+    let body: unknown = `HTTP ${response.status}`
+    try {
+      body = await response.json()
+    } catch {
+      try {
+        body = await response.text()
+      } catch {
+        body = `HTTP ${response.status}`
+      }
+    }
+    throw new ApiError(response.status, response.statusText, body)
+  }
+
+  const blob = await response.blob()
+  return URL.createObjectURL(blob)
 }
 
 export async function runVerificationContext(params: {
@@ -1086,13 +1171,20 @@ export async function runVerificationContext(params: {
   )
 }
 
+export async function getVerificationRuns(limit: number = 10): Promise<VerificationRunsResponse> {
+  return apiFetch<VerificationRunsResponse>(
+    `/api/context/verification/runs?limit=${limit}`,
+    { headers: withApiKey() },
+  )
+}
+
 /** Intel Pulse – GET /api/cockpit/pulse */
 export async function getIntelPulse(ticker?: string): Promise<IntelPulseResponse> {
   const normalizedTicker = ticker?.trim().toUpperCase()
   const url = normalizedTicker
     ? `/api/cockpit/pulse?ticker=${encodeURIComponent(normalizedTicker)}`
     : "/api/cockpit/pulse"
-  return apiFetch<IntelPulseResponse>(url)
+  return apiFetch<IntelPulseResponse>(url, { headers: withApiKey() })
 }
 
 /** Diagnostic Matrix – GET /api/cockpit/matrix */
@@ -1100,5 +1192,5 @@ export async function getDiagnosticMatrix(stage: string, ticker?: string): Promi
   const base = `/api/cockpit/matrix?stage=${encodeURIComponent(stage)}`
   const normalizedTicker = ticker?.trim().toUpperCase()
   const url = normalizedTicker ? `${base}&ticker=${encodeURIComponent(normalizedTicker)}` : base
-  return apiFetch<IntelPulseMatrixResponse>(url)
+  return apiFetch<IntelPulseMatrixResponse>(url, { headers: withApiKey() })
 }

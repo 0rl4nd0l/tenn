@@ -1,0 +1,40 @@
+{
+  "artifact_type": "approved15_blocker_source_evidence_index_v1",
+  "entries": [
+    {
+      "case_id": "RMS_H_2025-12-31",
+      "evidence": "RMS Appendix 4D fixture and focused replay payload; page 23 cash-flow rows recovered.",
+      "fixture": "financial-engine_v2/backend/tests/eval_fixtures/RMS_H_2025-12-31.json",
+      "lane": "A",
+      "source_status": "source_proven"
+    },
+    {
+      "case_id": "QBE_H_2025-06-30",
+      "evidence": "Fixture expects formal Insurance revenue 10875000000 USD; replay selected note-heading 22000000 and failed magnitude gate.",
+      "fixture": "financial-engine_v2/backend/tests/eval_fixtures/QBE_H_2025-06-30.json",
+      "lane": "B",
+      "source_status": "source_proven"
+    },
+    {
+      "case_id": "DXS_H_2025-12-31",
+      "evidence": "Replay failed closed on mixed source scales; source/debug proof for one safe precedence fix remains incomplete.",
+      "fixture": "financial-engine_v2/backend/tests/eval_fixtures/DXS_H_2025-12-31.json",
+      "lane": "C",
+      "source_status": "partial"
+    },
+    {
+      "case_id": "BHP_A_2021-06-30 and MIN_H_2025-12-31",
+      "evidence": "Fixtures expect owner-attributable rows; actual payload selected generic after-tax rows.",
+      "fixture": "financial-engine_v2/backend/tests/eval_fixtures/BHP_A_2021-06-30.json; financial-engine_v2/backend/tests/eval_fixtures/MIN_H_2025-12-31.json",
+      "lane": "D",
+      "source_status": "source_proven"
+    },
+    {
+      "case_id": "multiple",
+      "evidence": "73 ambiguous quarantine rows split into 70 candidate_review_required and 3 ambiguous_label net-debt rows.",
+      "fixture": "payload_scorecard_after_fix.json",
+      "lane": "E",
+      "source_status": "policy_or_evidence_review_required"
+    }
+  ]
+}

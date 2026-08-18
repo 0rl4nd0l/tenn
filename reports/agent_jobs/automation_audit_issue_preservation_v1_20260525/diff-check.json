@@ -1,0 +1,53 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/**",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/README.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/status.json",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/issue_drafts.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/duplicate_check.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/data_missing.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "automation_audit_issue_preservation_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Ops",
+        "Evaluation"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

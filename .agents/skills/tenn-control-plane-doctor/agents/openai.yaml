@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenn Control Plane Doctor"
+  short_description: "Run and explain Tenn control-plane diagnostics"
+  default_prompt: "Use $tenn-control-plane-doctor to run the read-only Tenn control-plane diagnostic and explain its findings."

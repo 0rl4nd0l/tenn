@@ -1,0 +1,9 @@
+{
+  "disallowed_files": [],
+  "git_diff_check": "PASS",
+  "job_id": "extraction_whc_pr340_publish_decision_v1_20260612",
+  "json_validation": "PASS",
+  "status": "PASS",
+  "task_card_check_diff": "PASS",
+  "task_card_validate": "PASS"
+}

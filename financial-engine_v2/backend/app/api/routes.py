@@ -1,20 +1,19 @@
 import base64
 import logging
 import uuid
-from typing import Optional
 
-logger = logging.getLogger(__name__)
-
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
+from app.api.auth import require_api_key
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.db import SessionLocal, get_db
+from app.models.asx_financials import ASXRiskNote
 from app.models.documents import Document
-from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.models.extractions import ExtractionRun
-from app.providers.universe import ASX20
+from app.models.financial_observations import FinancialObservationReview
 from app.providers.market_price_provider import (
     MarketPriceProvider,
     MarketPriceProviderError,
@@ -23,17 +22,25 @@ from app.providers.openbb_sidecar_provider import (
     OpenBBSidecarProvider,
     OpenBBSidecarProviderError,
 )
+from app.providers.universe import ASX20
 from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
+from app.services.extraction_run_observability import initialize_run_status
+from app.services.financial_observations import (
+    accepted_observation_history,
+    decide_financial_observation_review,
+    pending_financial_observation_reviews,
+    stable_financial_profile,
+)
+from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.openbb_staging import (
     persist_fundamental_snapshot,
     persist_price_snapshot,
 )
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
-from app.services.extraction_run_observability import initialize_run_status
-from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.source_registry import ingest_book
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -65,14 +72,11 @@ class ProcessDocumentRequest(BaseModel):
     strict_method: bool = False
 
 
-def require_api_key(
-    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
-) -> None:
-    configured_key = str(getattr(settings, "local_api_key", "") or "").strip()
-    if not configured_key:
-        return
-    if x_api_key != configured_key:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+class FinancialObservationReviewDecision(BaseModel):
+    decision: str
+    actor: str
+    reason_codes: list[str]
+    note: str | None = None
 
 
 def _market_data_mode() -> str:
@@ -144,7 +148,9 @@ def _persist_openbb_fundamental_snapshot(
 
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+    }
 
 
 @router.post("/ingest/transcript", dependencies=[Depends(require_api_key)])
@@ -215,43 +221,75 @@ def docs(ticker: str, db: Session = Depends(get_db)):
 
 @router.get("/financials")
 def financials(ticker: str, db: Session = Depends(get_db)):
-    rows = (
-        db.query(ASXPeriodicFinancial)
-        .filter(ASXPeriodicFinancial.ticker == ticker)
-        .order_by(ASXPeriodicFinancial.period_end.desc())
-        .all()
-    )
+    return stable_financial_profile(db, ticker=ticker)
 
-    def n(x):
-        return str(x) if x is not None else None
 
-    return [
-        {
-            "ticker": r.ticker,
-            "period_end": r.period_end,
-            "period_type": r.period_type,
-            "revenue": n(r.revenue),
-            "ebit": n(r.ebit),
-            "np_attributable": n(r.np_attributable),
-            "operating_cf": n(r.operating_cf),
-            "investing_cf": n(r.investing_cf),
-            "financing_cf": n(r.financing_cf),
-            "capex": n(r.capex),
-            "cash_end": n(r.cash_end),
-            "net_debt": n(r.net_debt),
-            "shares_outstanding": n(r.shares_outstanding),
-            "confidence_metrics": r.confidence_metrics,
-            "source_document_id": str(r.source_document_id),
-        }
-        for r in rows
-    ]
+@router.get(
+    "/financials/history",
+    dependencies=[Depends(require_api_key)],
+)
+def financial_history(ticker: str, db: Session = Depends(get_db)):
+    return accepted_observation_history(db, ticker=ticker)
+
+
+@router.get(
+    "/financials/reviews",
+    dependencies=[Depends(require_api_key)],
+)
+def financial_reviews(
+    ticker: str | None = None, db: Session = Depends(get_db)
+):
+    return pending_financial_observation_reviews(db, ticker=ticker)
+
+
+@router.post(
+    "/financials/reviews/{review_id}/decision",
+    dependencies=[Depends(require_api_key)],
+)
+def financial_review_decision(
+    review_id: uuid.UUID,
+    body: FinancialObservationReviewDecision,
+    db: Session = Depends(get_db),
+):
+    try:
+        observation = decide_financial_observation_review(
+            db,
+            review_id=review_id,
+            decision=body.decision,
+            actor=body.actor,
+            reason_codes=body.reason_codes,
+            note=body.note,
+        )
+        review = db.get(FinancialObservationReview, review_id)
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "review_id": str(review_id),
+        "status": "approved" if observation is not None else "rejected",
+        "observation_id": (
+            str(observation.observation_id)
+            if observation is not None
+            else None
+        ),
+        "decision": review.decision,
+        "decision_actor": review.decision_actor,
+        "decided_at": review.decided_at,
+        "decision_reason_codes": review.decision_reason_codes,
+        "decision_note": review.decision_note,
+    }
 
 
 @router.get("/risk")
 def risk(document_id: str, db: Session = Depends(get_db)):
     r = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == document_id).first()
     if not r:
-        return {"document_id": document_id, "risk_summary": None, "risk_bullets": None}
+        return {
+            "document_id": document_id,
+            "risk_summary": None,
+            "risk_bullets": None,
+        }
     return {
         "document_id": str(r.document_id),
         "risk_summary": r.risk_summary,
@@ -401,7 +439,11 @@ def backfill_asx20(years: int = 1, process_documents: bool = False):
             )
             for t in ASX20
         ]
-        return {"mode": "sync", "processed": len(results), "results": results}
+        return {
+            "mode": "sync",
+            "processed": len(results),
+            "results": results,
+        }
     for t in ASX20:
         celery.send_task(
             "backfill_ticker",
@@ -410,7 +452,11 @@ def backfill_asx20(years: int = 1, process_documents: bool = False):
             queue="ingest",
             routing_key="ingest",
         )
-    return {"mode": "celery", "enqueued": len(ASX20), "tickers": ASX20}
+    return {
+        "mode": "celery",
+        "enqueued": len(ASX20),
+        "tickers": ASX20,
+    }
 
 
 @router.post("/backfill/ticker/{ticker}", dependencies=[Depends(require_api_key)])
@@ -424,7 +470,10 @@ def backfill_ticker(ticker: str, years: int = 1, process_documents: bool = False
                 mode="sync",
             )
         )
-        return {"mode": "sync", **result}
+        return {
+            "mode": "sync",
+            **result,
+        }
     celery.send_task(
         "backfill_ticker",
         args=[ticker.upper()],
@@ -432,7 +481,11 @@ def backfill_ticker(ticker: str, years: int = 1, process_documents: bool = False
         queue="ingest",
         routing_key="ingest",
     )
-    return {"mode": "celery", "enqueued": 1, "ticker": ticker.upper()}
+    return {
+        "mode": "celery",
+        "enqueued": 1,
+        "ticker": ticker.upper(),
+    }
 
 
 @router.post("/process/document/{document_id}", dependencies=[Depends(require_api_key)])
@@ -466,7 +519,11 @@ def process_single_document(
             requested_method=requested_method,
             strict_method=strict_method,
         )
-        return {"mode": "sync", "document_id": document_id, **(result or {})}
+        return {
+            "mode": "sync",
+            "document_id": document_id,
+            **(result or {}),
+        }
     task = celery.send_task(
         "process_document",
         args=[{"document_id": document_id}, document_id],
@@ -547,7 +604,11 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
                 queue="llm_gpu",
                 routing_key="llm_gpu",
             )
-        return {"mode": "celery", "ticker": ticker.upper(), "queued": len(unextracted)}
+        return {
+            "mode": "celery",
+            "ticker": ticker.upper(),
+            "queued": len(unextracted),
+        }
     finally:
         db.close()
 

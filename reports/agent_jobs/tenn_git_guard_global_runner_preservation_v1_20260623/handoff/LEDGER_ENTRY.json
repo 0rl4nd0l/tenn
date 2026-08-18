@@ -1,0 +1,15 @@
+{
+  "job_id": "tenn_git_guard_global_runner_preservation_v1_20260623",
+  "status": "report_local_only",
+  "reason": "Live ledger mutation was not authorized in this run.",
+  "summary": "Repo-backed tenn-git-guard portable runner, tests, and docs were preserved; Greyhound runtime guard support now passes while runtime ledger rows remain DATA_MISSING.",
+  "control_plane_worktree": "/home/l4nd0/tenn-control-plane-task-ledger-status-refresh-v1-20260623",
+  "runtime_worktree": "/mnt/tenn-nvme2/tenn/offloaded-home/l4nd0/greyhound-runtime-master-live-20260621",
+  "guard_smoke": "reports/agent_jobs/tenn_git_guard_global_runner_preservation_v1_20260623/GUARD_SMOKE.json",
+  "runtime_guard_smoke": "reports/agent_jobs/tenn_git_guard_global_runner_preservation_v1_20260623/RUNTIME_GUARD_SMOKE.json",
+  "data_missing": [
+    "Greyhound runtime ledger:committed",
+    "Greyhound runtime ledger:live"
+  ],
+  "promotion_state": "blocked"
+}

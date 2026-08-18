@@ -87,8 +87,26 @@ def test_sidecar_results_match_fixture_expectations_and_never_write_canonically(
     for fixture in _fixtures():
         artifact = _sidecar(fixture)
         assert artifact["canonical_write"] is False, fixture["fixture_id"]
-        assert artifact["document_type"] == fixture["expected_document_type"], fixture["fixture_id"]
-        assert artifact["abstain"] is fixture["expected_abstain"], fixture["fixture_id"]
+        assert artifact["document_type"] == fixture["expected_document_type"], (
+            fixture["fixture_id"]
+        )
+        assert artifact["abstain"] is fixture["expected_abstain"], (
+            fixture["fixture_id"]
+        )
+        if fixture["expected_document_type"] in {
+            "annual_report",
+            "half_year_report",
+            "quarterly_report",
+            "appendix_4c",
+            "appendix_4d",
+            "appendix_4e",
+            "appendix_5b",
+        }:
+            assert artifact["extraction_contract_id"], fixture["fixture_id"]
+            assert artifact["extraction_contract_abstain"] is False
+        else:
+            assert artifact["extraction_contract_id"] is None
+            assert artifact["extraction_contract_abstain"] is True
 
 
 def test_abstain_and_positive_evidence_contract() -> None:
@@ -228,6 +246,7 @@ def test_sidecar_module_imports_only_standard_library_and_pure_classifier() -> N
     assert imported_modules <= {
         "__future__",
         "app.services.asx_document_type_classifier",
+        "app.services.asx_extraction_contracts",
         "collections.abc",
         "datetime",
         "hashlib",

@@ -1,0 +1,1266 @@
+{
+  "metadata": {
+    "base_head": "173a8750caa4602e5791ee072673db17e708c5d3",
+    "branch": "safe/ticker-news-retrieval-ranking-projection-system-fix-v1-20260525",
+    "config_route": {
+      "data_root": "/data",
+      "http_status": 200,
+      "llm_model": "model:qwen3.5-35b-a3b-apex",
+      "ok": true,
+      "runtime_target": "local"
+    },
+    "generated_at_utc": "2026-05-25T08:51:00Z",
+    "head": "safe/ticker-news-retrieval-ranking-projection-system-fix-v1-20260525@HEAD",
+    "head_note": "Exact self-referential commit hash is intentionally reported in final closeout rather than embedded in committed report files.",
+    "job_id": "ticker_news_retrieval_ranking_projection_system_fix_v1_20260525",
+    "openapi_relevant_paths": [
+      "/api/cockpit/chat",
+      "/api/cockpit/chat/attachments/upload",
+      "/api/cockpit/chat/sessions",
+      "/api/cockpit/chat/sessions/{session_id}",
+      "/api/cockpit/news/status"
+    ],
+    "running_backend_code_mount": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend -> /app",
+    "running_backend_serves_changed_code": false,
+    "status_route": {
+      "a2m_news_health": {
+        "canonical_sqlite_projection": "missing",
+        "chat_synthesis": "DATA_MISSING",
+        "cockpit_query_route": "ok_via_rag_query",
+        "cockpit_status_routes": "implemented",
+        "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+        "projection_repair": "not_run",
+        "qdrant_retrieval": "ok"
+      },
+      "canonical_sqlite_projection_paths": [
+        {
+          "exists": false,
+          "path": "reports/qual_context/news.sqlite"
+        },
+        {
+          "exists": false,
+          "path": "reports/qual_context/news_articles.sqlite"
+        }
+      ],
+      "http_status": 200,
+      "ok": true
+    },
+    "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525"
+  },
+  "tickers": [
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 4,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-03T22:52:00Z",
+          "source_id": "news:art_aa13edd261034dba97055d8a:0",
+          "title": "A2 Milk shares plunge after finding toxins in infant formula",
+          "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+        },
+        "local_news_context_count": 4,
+        "source_count": 4,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 4,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 4,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-03T22:52:00Z",
+          "source_id": "news:art_aa13edd261034dba97055d8a:0",
+          "title": "A2 Milk shares plunge after finding toxins in infant formula",
+          "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+        },
+        "hit_count": 4,
+        "local_news_context_count": 4,
+        "ok": true,
+        "source_count": 4,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_aa13edd261034dba97055d8a",
+            "chunk_id": "news:art_aa13edd261034dba97055d8a:0",
+            "primary_ticker": "A2M",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-03T22:52:00Z",
+            "score": 0.5328555,
+            "source_type": "news_article",
+            "ticker": "A2M",
+            "tickers": [
+              "A2M"
+            ],
+            "title": "A2 Milk shares plunge after finding toxins in infant formula",
+            "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+          },
+          {
+            "article_id": "art_2838ecb1f6db7788f830439e",
+            "chunk_id": "news:art_2838ecb1f6db7788f830439e:3",
+            "primary_ticker": "A2M",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-04T06:41:44Z",
+            "score": 0.61108077,
+            "source_type": "news_article",
+            "ticker": "A2M",
+            "tickers": [
+              "A2M",
+              "ALM",
+              "ATT",
+              "EOS",
+              "TMX"
+            ],
+            "title": "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall",
+            "url": "https://stockhead.com.au/news/closing-bell-asx-whacked-by-weak-corporate-updates-and-a2-milk-recall"
+          },
+          {
+            "article_id": "art_62631b4f81acd6fd70efd61c",
+            "chunk_id": "news:art_62631b4f81acd6fd70efd61c:1",
+            "primary_ticker": "AEG",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-08T06:47:16Z",
+            "score": 0.5781518,
+            "source_type": "news_article",
+            "ticker": "AEG",
+            "tickers": [
+              "A2M",
+              "AEG",
+              "BCA",
+              "VMM"
+            ],
+            "title": "ASX Small Caps Weekly Form Guide",
+            "url": "https://stockhead.com.au/experts/asx-small-caps-weekly-form-guide-17"
+          },
+          {
+            "article_id": "art_f3c9e8f4127434214cd36893",
+            "chunk_id": "news:art_f3c9e8f4127434214cd36893:3",
+            "primary_ticker": "A2M",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-04T03:26:52Z",
+            "score": 0.5657344,
+            "source_type": "news_article",
+            "ticker": "A2M",
+            "tickers": [
+              "A2M",
+              "FRS",
+              "VKA",
+              "WDS"
+            ],
+            "title": "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe",
+            "url": "https://stockhead.com.au/news/lunch-wrap-a2-milk-smashed-on-us-recall-accent-dragged-into-asic-probe"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 24,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 16,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "A2M"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-04-22T00:03:31Z",
+          "source_id": "news:art_165d9cd42be201c683686d57:1",
+          "title": "China's state-backed iron ore buyer banned certain BHP iron ore products in September last year in a bid to reshape iron ore pricing, a dispute that has cost BHP hundreds of millions. This article breaks down the dispute and asks: Buy, hold, or sell the Big Australian?",
+          "url": "https://marketindex.com.au/news/bhp-and-chinas-iron-ore-standoff-is-over-is-it-time-to-buy"
+        },
+        "local_news_context_count": 5,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-04-22T00:03:31Z",
+          "source_id": "news:art_165d9cd42be201c683686d57:1",
+          "title": "China's state-backed iron ore buyer banned certain BHP iron ore products in September last year in a bid to reshape iron ore pricing, a dispute that has cost BHP hundreds of millions. This article breaks down the dispute and asks: Buy, hold, or sell the Big Australian?",
+          "url": "https://marketindex.com.au/news/bhp-and-chinas-iron-ore-standoff-is-over-is-it-time-to-buy"
+        },
+        "hit_count": 5,
+        "local_news_context_count": 5,
+        "ok": true,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_165d9cd42be201c683686d57",
+            "chunk_id": "news:art_165d9cd42be201c683686d57:1",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-22T00:03:31Z",
+            "score": 0.5758126,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BHP",
+              "RIO"
+            ],
+            "title": "China's state-backed iron ore buyer banned certain BHP iron ore products in September last year in a bid to reshape iron ore pricing, a dispute that has cost BHP hundreds of millions. This article breaks down the dispute and asks: Buy, hold, or sell the Big Australian?",
+            "url": "https://marketindex.com.au/news/bhp-and-chinas-iron-ore-standoff-is-over-is-it-time-to-buy"
+          },
+          {
+            "article_id": "art_2132e9f66f1ad1f5a7ed42a0",
+            "chunk_id": "news:art_2132e9f66f1ad1f5a7ed42a0:1",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2026-01-28T00:11:41Z",
+            "score": 0.5701462,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BHP",
+              "CSL",
+              "IGO",
+              "RIO",
+              "SFR",
+              "SHV"
+            ],
+            "title": "BHP shares have overtaken Commonwealth Bank to become the ASX's most valuable company. BHP's market cap hit $257 billion on strong iron ore and copper prices.",
+            "url": "https://marketindex.com.au/news/bhp-overtakes-cba-as-asxs-most-valuable-company-should-you-rotate-out-of"
+          },
+          {
+            "article_id": "art_0b669f1f9854b5b29662d9bc",
+            "chunk_id": "news:art_0b669f1f9854b5b29662d9bc:6",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-30T03:06:35Z",
+            "score": 0.56803226,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BHP",
+              "PLS",
+              "SRG"
+            ],
+            "title": "Livewire&#39;s Carl Capolingua and Chris Conway have built a process for identifying growth stocks - they put it into practice here.",
+            "url": "https://livewiremarkets.com/wires/7-asx-growth-stocks-ticking-all-the-boxes-right-now-2026-04-29"
+          },
+          {
+            "article_id": "art_2d93d149b84f848e96da25fc",
+            "chunk_id": "news:art_2d93d149b84f848e96da25fc:14",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2025-04-16T01:31:49Z",
+            "score": 0.5638663,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BCA",
+              "BHP",
+              "BPT",
+              "CRN",
+              "IGO",
+              "LTR",
+              "MIN",
+              "PLS",
+              "RIO",
+              "SFR",
+              "WDS",
+              "WHC"
+            ],
+            "title": "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+            "url": "https://marketindex.com.au/news/bhp-rio-fmg-min-pls-big-brokers-tip-asx-mining-stocks-tariff-collateral"
+          },
+          {
+            "article_id": "art_5cf586d2c6303f73e9f52219",
+            "chunk_id": "news:art_5cf586d2c6303f73e9f52219:14",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-15T16:22:37Z",
+            "score": 0.57345635,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BCA",
+              "BHP",
+              "CBA",
+              "EOS",
+              "EVN",
+              "LTR",
+              "MIN",
+              "NAB",
+              "PPT",
+              "RIO",
+              "VNT",
+              "WBC",
+              "XRO"
+            ],
+            "title": "ASX Slides as Budget Pressure Hits Miners",
+            "url": "https://kalkinemedia.com/au/news/market-updates/asx-slides-as-budget-pressure-hits-miners"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 2155,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 790,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "BHP"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-15T05:12:39Z",
+          "source_id": "news:art_b120ef4f6d0600fec953dc14:0",
+          "title": "Scott Power: CSL bleeds in 'shocking week' for ASX healthcare stocks",
+          "url": "https://stockhead.com.au/food-agriculture/scott-power-csl-bleeds-in-shocking-week-for-asx-healthcare-stocks"
+        },
+        "local_news_context_count": 5,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-15T05:12:39Z",
+          "source_id": "news:art_b120ef4f6d0600fec953dc14:0",
+          "title": "Scott Power: CSL bleeds in 'shocking week' for ASX healthcare stocks",
+          "url": "https://stockhead.com.au/food-agriculture/scott-power-csl-bleeds-in-shocking-week-for-asx-healthcare-stocks"
+        },
+        "hit_count": 5,
+        "local_news_context_count": 5,
+        "ok": true,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_b120ef4f6d0600fec953dc14",
+            "chunk_id": "news:art_b120ef4f6d0600fec953dc14:0",
+            "primary_ticker": "CSL",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-15T05:12:39Z",
+            "score": 0.57137716,
+            "source_type": "news_article",
+            "ticker": "CSL",
+            "tickers": [
+              "CBA",
+              "CSL",
+              "XRO"
+            ],
+            "title": "Scott Power: CSL bleeds in 'shocking week' for ASX healthcare stocks",
+            "url": "https://stockhead.com.au/food-agriculture/scott-power-csl-bleeds-in-shocking-week-for-asx-healthcare-stocks"
+          },
+          {
+            "article_id": "art_934d2902f30a5dc5f6023e1b",
+            "chunk_id": "news:art_934d2902f30a5dc5f6023e1b:2",
+            "primary_ticker": "NCK",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-22T23:00:11Z",
+            "score": 0.6279924,
+            "source_type": "news_article",
+            "ticker": "NCK",
+            "tickers": [
+              "CSL",
+              "GWA",
+              "NCK",
+              "RWC",
+              "SIQ"
+            ],
+            "title": "In today's Scan Lists: Altair Minerals (ALR), Decidr AI Industries (DAI), Global X Hydrogen ETF (HGEN), Kingsgate Consolidated (KCN), Predictive Discovery (PDI), Cochlear (COH), CSL (CSL), Clinuvel Pharmaceuticals (CUV), Ebos (EBO), Generation Development (GDG), Harvey Norman (HVN), IDP Education (IEL), Judo Capital (JDO), Nick Scali (NCK), Resmed (RMD).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-csl-cochlear-resmed-idp-education-harvey-norman-nick-scali-judo-capital-global-x-hydrogen-etf"
+          },
+          {
+            "article_id": "art_be8c6f22df29ac9305b08ac3",
+            "chunk_id": "news:art_be8c6f22df29ac9305b08ac3:3",
+            "primary_ticker": "SIQ",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-29T23:00:06Z",
+            "score": 0.61324847,
+            "source_type": "news_article",
+            "ticker": "SIQ",
+            "tickers": [
+              "CSL",
+              "GEM",
+              "LTR",
+              "NIC",
+              "PPT",
+              "SEK",
+              "SIQ"
+            ],
+            "title": "In today's Scan Lists: APA (APA), Arafura Rare Earths (ARU), Bluescope Steel (BSL), Codan (CDA), Civmec (CVL), Iluka Resources (ILU), Liontown (LTR), Nickel Industries (NIC), Vaneck MSCI International Value ETF (VLUE), A2 Milk Co. (A2M), Cochlear (COH), CSL (CSL), Catalyst Metals (CYL), Ebos (EBO), Flight Centre (FLT), G8 Education (GEM), IDP Education (IEL), National Australia Bank (NAB), Propel Funeral Partners (PFP), Seek (SEK).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-csl-cochlear-codan-iluka-resources-arafura-rare-earths-liontown-nickel-industries-seek"
+          },
+          {
+            "article_id": "art_5f60a07ee5bb3958178dd403",
+            "chunk_id": "news:art_5f60a07ee5bb3958178dd403:0",
+            "primary_ticker": "ASB",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-28T23:00:19Z",
+            "score": 0.61259377,
+            "source_type": "news_article",
+            "ticker": "ASB",
+            "tickers": [
+              "29M",
+              "ASB",
+              "CSL",
+              "DME",
+              "FWD",
+              "PLS"
+            ],
+            "title": "In today's Scan Lists: Arafura Rare Earths (ARU), Codan (CDA), Victory Metals (VTM), Austal (ASB), Bapcor (BAP), Cochlear (COH), CSL (CSL), Cleanaway Waste (CWY), Domino's Pizza (DMP), Harvey Norman (HVN), Pantoro Gold (PNR), SGH (SGH), Stockland (SGP), Supply Network (SNL), Wesfarmers (WES).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-csl-cochlear-wesfarmers-arafura-rare-earths-codan-dominos-pizza-pantoro-gold-stockland"
+          },
+          {
+            "article_id": "art_cd060c703deb8e740aebdffd",
+            "chunk_id": "news:art_cd060c703deb8e740aebdffd:0",
+            "primary_ticker": "CSL",
+            "provider": "newspaper4k",
+            "published_at": "2026-03-24T10:15:47Z",
+            "score": 0.59626603,
+            "source_type": "news_article",
+            "ticker": "CSL",
+            "tickers": [
+              "CSL",
+              "PPT"
+            ],
+            "title": "Covid-19 News and Updates",
+            "url": "https://kalkinemedia.com/au/news/covid-19"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 2184,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 99,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "CSL"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-07T02:47:48Z",
+          "source_id": "news:art_371e726874088851540539ce:0",
+          "title": "Health Check: Global Alzheimer's trials soar as researchers seek missing jigsaw pieces",
+          "url": "https://stockhead.com.au/health/health-check-global-alzheimers-disease-trial-activity-soars-32-as-researchers-seek-the-missing-treatment-jigsaw-pieces"
+        },
+        "local_news_context_count": 5,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-07T02:47:48Z",
+          "source_id": "news:art_371e726874088851540539ce:0",
+          "title": "Health Check: Global Alzheimer's trials soar as researchers seek missing jigsaw pieces",
+          "url": "https://stockhead.com.au/health/health-check-global-alzheimers-disease-trial-activity-soars-32-as-researchers-seek-the-missing-treatment-jigsaw-pieces"
+        },
+        "hit_count": 5,
+        "local_news_context_count": 5,
+        "ok": true,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_371e726874088851540539ce",
+            "chunk_id": "news:art_371e726874088851540539ce:0",
+            "primary_ticker": "XRO",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-07T02:47:48Z",
+            "score": 0.55041945,
+            "source_type": "news_article",
+            "ticker": "XRO",
+            "tickers": [
+              "XRO"
+            ],
+            "title": "Health Check: Global Alzheimer's trials soar as researchers seek missing jigsaw pieces",
+            "url": "https://stockhead.com.au/health/health-check-global-alzheimers-disease-trial-activity-soars-32-as-researchers-seek-the-missing-treatment-jigsaw-pieces"
+          },
+          {
+            "article_id": "art_6b14f77e95a204dd37cdb397",
+            "chunk_id": "news:art_6b14f77e95a204dd37cdb397:0",
+            "primary_ticker": "SMI",
+            "provider": "newspaper4k",
+            "published_at": "2026-03-26T22:00:10Z",
+            "score": 0.60980976,
+            "source_type": "news_article",
+            "ticker": "SMI",
+            "tickers": [
+              "SMI",
+              "XRO"
+            ],
+            "title": "In today's Scan Lists: Echoiq (EIQ), Car (CAR), Gemlife (GLF), IPH (IPH), Kingsgate Consolidated (KCN), Megaport (MP1), Propel Funeral Partners (PFP), Scentre (SCG), Santana Minerals (SMI), Symal (SYL), Treasury Wine (TWE), Webjet (WJL), Xero (XRO).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-car-group-xero-megaport-treasury-wine-estates-propel"
+          },
+          {
+            "article_id": "art_4ab8a84c80fc471fffceaa49",
+            "chunk_id": "news:art_4ab8a84c80fc471fffceaa49:0",
+            "primary_ticker": "DTR",
+            "provider": "newspaper4k",
+            "published_at": "2026-03-17T22:00:10Z",
+            "score": 0.6071831,
+            "source_type": "news_article",
+            "ticker": "DTR",
+            "tickers": [
+              "BRG",
+              "DTR",
+              "NUF",
+              "PPT",
+              "RWC",
+              "TPW",
+              "XRO"
+            ],
+            "title": "In today's Scan Lists: Dateline Resources (DTR), Aristocrat Leisure (ALL), Car Group (CAR), Inghams (ING), McMillan Shakespeare (MMS), Nufarm (NUF), Perpetual (PPT), Temple & Webster (TPW), Wesfarmers (WES), Wisetech Global (WTC), Xero (XRO).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-wesfarmers-wisetech-global-xero-aristocrat-leisure-car"
+          },
+          {
+            "article_id": "art_5e60986843643981f6c5690e",
+            "chunk_id": "news:art_5e60986843643981f6c5690e:2",
+            "primary_ticker": "XRO",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-09T04:47:11Z",
+            "score": 0.5502056,
+            "source_type": "news_article",
+            "ticker": "XRO",
+            "tickers": [
+              "SIQ",
+              "XRO"
+            ],
+            "title": "EBR doubles WiSE CRT cases as momentum builds",
+            "url": "https://stockhead.com.au/health/ebr-doubles-wise-crt-cases-as-momentum-builds"
+          },
+          {
+            "article_id": "art_b120ef4f6d0600fec953dc14",
+            "chunk_id": "news:art_b120ef4f6d0600fec953dc14:0",
+            "primary_ticker": "CSL",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-15T05:12:39Z",
+            "score": 0.57137716,
+            "source_type": "news_article",
+            "ticker": "CSL",
+            "tickers": [
+              "CBA",
+              "CSL",
+              "XRO"
+            ],
+            "title": "Scott Power: CSL bleeds in 'shocking week' for ASX healthcare stocks",
+            "url": "https://stockhead.com.au/food-agriculture/scott-power-csl-bleeds-in-shocking-week-for-asx-healthcare-stocks"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 2452,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 14,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "XRO"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-03-19T22:00:04Z",
+          "source_id": "news:art_c3d05a0af0e8259601352608:0",
+          "title": "In today's Scan Lists: APA Group (APA), BetaShares Aus Equities Bear ETF (BEAR), Karoon Energy (KAR), New Hope (NHC), Santos (STO), Telstra (TLS), Viva Energy (VEA), Woodside Energy (WDS), Woolworths (WOW), Eagers Automotive (APE), Capricorn Metals (CMM), Cochlear (COH), Capstone Copper (CSC), Iperionx (IPX), Metcash (MTS), Northern Star (NST), Pantoro Gold (PNR), Super Retail (SUL), Treasury Wine (TWE), Wisetech (WTC).",
+          "url": "https://marketindex.com.au/news/chartwatch-asx-scans-woodside-energy-santos-viva-energy-karoon-energy-new"
+        },
+        "local_news_context_count": 5,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-03-19T22:00:04Z",
+          "source_id": "news:art_c3d05a0af0e8259601352608:0",
+          "title": "In today's Scan Lists: APA Group (APA), BetaShares Aus Equities Bear ETF (BEAR), Karoon Energy (KAR), New Hope (NHC), Santos (STO), Telstra (TLS), Viva Energy (VEA), Woodside Energy (WDS), Woolworths (WOW), Eagers Automotive (APE), Capricorn Metals (CMM), Cochlear (COH), Capstone Copper (CSC), Iperionx (IPX), Metcash (MTS), Northern Star (NST), Pantoro Gold (PNR), Super Retail (SUL), Treasury Wine (TWE), Wisetech (WTC).",
+          "url": "https://marketindex.com.au/news/chartwatch-asx-scans-woodside-energy-santos-viva-energy-karoon-energy-new"
+        },
+        "hit_count": 5,
+        "local_news_context_count": 5,
+        "ok": true,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_c3d05a0af0e8259601352608",
+            "chunk_id": "news:art_c3d05a0af0e8259601352608:0",
+            "primary_ticker": "CMM",
+            "provider": "newspaper4k",
+            "published_at": "2026-03-19T22:00:04Z",
+            "score": 0.60802543,
+            "source_type": "news_article",
+            "ticker": "CMM",
+            "tickers": [
+              "AEF",
+              "CHN",
+              "CMM",
+              "DME",
+              "NCK",
+              "NST",
+              "PRN",
+              "WDS"
+            ],
+            "title": "In today's Scan Lists: APA Group (APA), BetaShares Aus Equities Bear ETF (BEAR), Karoon Energy (KAR), New Hope (NHC), Santos (STO), Telstra (TLS), Viva Energy (VEA), Woodside Energy (WDS), Woolworths (WOW), Eagers Automotive (APE), Capricorn Metals (CMM), Cochlear (COH), Capstone Copper (CSC), Iperionx (IPX), Metcash (MTS), Northern Star (NST), Pantoro Gold (PNR), Super Retail (SUL), Treasury Wine (TWE), Wisetech (WTC).",
+            "url": "https://marketindex.com.au/news/chartwatch-asx-scans-woodside-energy-santos-viva-energy-karoon-energy-new"
+          },
+          {
+            "article_id": "art_be522426911b8f4288ad35c3",
+            "chunk_id": "news:art_be522426911b8f4288ad35c3:6",
+            "primary_ticker": "KNI",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-05T07:25:40Z",
+            "score": 0.5853064,
+            "source_type": "news_article",
+            "ticker": "KNI",
+            "tickers": [
+              "AQI",
+              "C1X",
+              "CMM",
+              "EVN",
+              "GMD",
+              "IPT",
+              "KNI",
+              "NST",
+              "WGX"
+            ],
+            "title": "Resources Top 5: Regis opens $10.7bn Vault with gold merger",
+            "url": "https://stockhead.com.au/resources/resources-top-5-regis-opens-10-7bn-vault-with-gold-merger"
+          },
+          {
+            "article_id": "art_50ed22329c2588ce71b25198",
+            "chunk_id": "news:art_50ed22329c2588ce71b25198:0",
+            "primary_ticker": "NST",
+            "provider": "newspaper4k",
+            "published_at": "2025-07-09T06:11:10Z",
+            "score": 0.56307626,
+            "source_type": "news_article",
+            "ticker": "NST",
+            "tickers": [
+              "NEM",
+              "NST",
+              "SHV"
+            ],
+            "title": "Northern Star's year-to-date gain has shriveled from 46% to just 6% after its FY26 guidance fell short of market expectations.",
+            "url": "https://marketindex.com.au/news/northern-star-has-erased-most-of-its-year-to-date-gain-where-does-it-go-from"
+          },
+          {
+            "article_id": "art_c0c5d0be48fd29dceebb01cc",
+            "chunk_id": "news:art_c0c5d0be48fd29dceebb01cc:3",
+            "primary_ticker": "WDS",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-09T00:56:12Z",
+            "score": 0.5547584,
+            "source_type": "news_article",
+            "ticker": "WDS",
+            "tickers": [
+              "CMM",
+              "MXT",
+              "NEM",
+              "NST",
+              "ORI",
+              "PPT",
+              "RML",
+              "SRL",
+              "WAF",
+              "WDS",
+              "WGX",
+              "WHC"
+            ],
+            "title": "The prospect of peace in the Middle East means chaos for Aussie investors\u2019 portfolios. On the one hand, there\u2019s relief for gold, resources, technology and banking stocks, and on the other \u2014 heavy losses in Woodside Energy, Santos, and the coal miners.",
+            "url": "https://marketindex.com.au/news/forget-trump-forget-the-middle-east-this-is-how-to-trade-asx-stocks"
+          },
+          {
+            "article_id": "art_f82c119f1544a17edfecc898",
+            "chunk_id": "news:art_f82c119f1544a17edfecc898:3",
+            "primary_ticker": "PLS",
+            "provider": "newspaper4k",
+            "published_at": "2026-04-01T23:00:09Z",
+            "score": 0.55849653,
+            "source_type": "news_article",
+            "ticker": "PLS",
+            "tickers": [
+              "BCA",
+              "BHP",
+              "CSL",
+              "CXO",
+              "IGO",
+              "JNS",
+              "MIN",
+              "NST",
+              "PLS",
+              "RIO",
+              "WAF",
+              "WC8",
+              "WDS",
+              "WHC"
+            ],
+            "title": "Today\u2019s ChartWatch *LIVE* tackled the big question: is this rally sustainable or just another bear market bounce? We unpacked price action, demand vs supply signals, and what it means for investors still sitting on cash.",
+            "url": "https://marketindex.com.au/news/is-is-time-to-buy-the-pullback-in-asx-stocks-yes-no"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 2120,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 18,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "NST"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-15T16:22:37Z",
+          "source_id": "news:art_639d470df8bfee52796d0086:1",
+          "title": "Griffin Mining Gains Attention Amid Fresh Growth Outlook",
+          "url": "https://kalkinemedia.com/uk/stocks/metals-and-mining/griffin-mining-gains-attention-amid-fresh-growth-outlook"
+        },
+        "local_news_context_count": 5,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ]
+      },
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 5,
+        "first_source": {
+          "claim_verified": true,
+          "evidence_labels": [
+            "claim_verified",
+            "local_news_context"
+          ],
+          "kind": "news",
+          "published_at": "2026-05-15T16:22:37Z",
+          "source_id": "news:art_639d470df8bfee52796d0086:1",
+          "title": "Griffin Mining Gains Attention Amid Fresh Growth Outlook",
+          "url": "https://kalkinemedia.com/uk/stocks/metals-and-mining/griffin-mining-gains-attention-amid-fresh-growth-outlook"
+        },
+        "hit_count": 5,
+        "local_news_context_count": 5,
+        "ok": true,
+        "source_count": 5,
+        "source_coverage_status": "claim_verified",
+        "source_labels": [
+          "claim_verified",
+          "local_news_context"
+        ],
+        "top_results": [
+          {
+            "article_id": "art_639d470df8bfee52796d0086",
+            "chunk_id": "news:art_639d470df8bfee52796d0086:1",
+            "primary_ticker": "MIN",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-15T16:22:37Z",
+            "score": 0.5985222,
+            "source_type": "news_article",
+            "ticker": "MIN",
+            "tickers": [
+              "MIN"
+            ],
+            "title": "Griffin Mining Gains Attention Amid Fresh Growth Outlook",
+            "url": "https://kalkinemedia.com/uk/stocks/metals-and-mining/griffin-mining-gains-attention-amid-fresh-growth-outlook"
+          },
+          {
+            "article_id": "art_2d93d149b84f848e96da25fc",
+            "chunk_id": "news:art_2d93d149b84f848e96da25fc:14",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2025-04-16T01:31:49Z",
+            "score": 0.5638663,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BCA",
+              "BHP",
+              "BPT",
+              "CRN",
+              "IGO",
+              "LTR",
+              "MIN",
+              "PLS",
+              "RIO",
+              "SFR",
+              "WDS",
+              "WHC"
+            ],
+            "title": "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+            "url": "https://marketindex.com.au/news/bhp-rio-fmg-min-pls-big-brokers-tip-asx-mining-stocks-tariff-collateral"
+          },
+          {
+            "article_id": "art_5cf586d2c6303f73e9f52219",
+            "chunk_id": "news:art_5cf586d2c6303f73e9f52219:14",
+            "primary_ticker": "BHP",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-15T16:22:37Z",
+            "score": 0.57345635,
+            "source_type": "news_article",
+            "ticker": "BHP",
+            "tickers": [
+              "BCA",
+              "BHP",
+              "CBA",
+              "EOS",
+              "EVN",
+              "LTR",
+              "MIN",
+              "NAB",
+              "PPT",
+              "RIO",
+              "VNT",
+              "WBC",
+              "XRO"
+            ],
+            "title": "ASX Slides as Budget Pressure Hits Miners",
+            "url": "https://kalkinemedia.com/au/news/market-updates/asx-slides-as-budget-pressure-hits-miners"
+          },
+          {
+            "article_id": "art_113f6254e5b68367894babdc",
+            "chunk_id": "news:art_113f6254e5b68367894babdc:2",
+            "primary_ticker": "EDV",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-19T07:25:21Z",
+            "score": 0.603841,
+            "source_type": "news_article",
+            "ticker": "EDV",
+            "tickers": [
+              "BCA",
+              "BGL",
+              "CSL",
+              "EDV",
+              "MIN",
+              "RGN",
+              "RIO"
+            ],
+            "title": "Closing Bell: Price check on aisle three? ASX rebounds as supermarkets clean up",
+            "url": "https://stockhead.com.au/news/closing-bell-price-check-on-aisle-three-asx-rebounds-as-supermarkets-clean-up"
+          },
+          {
+            "article_id": "art_a9a27d878e4b475ff62c9ce4",
+            "chunk_id": "news:art_a9a27d878e4b475ff62c9ce4:1",
+            "primary_ticker": "AEG",
+            "provider": "newspaper4k",
+            "published_at": "2026-05-19T03:15:11Z",
+            "score": 0.5783275,
+            "source_type": "news_article",
+            "ticker": "AEG",
+            "tickers": [
+              "AEG",
+              "BCA",
+              "BGL",
+              "EDV",
+              "EUR",
+              "MIN",
+              "RIO",
+              "TG6",
+              "TMX"
+            ],
+            "title": "Lunch Wrap: ASX jumps as MinRes reminds everyone lithium\u2019s still alive",
+            "url": "https://stockhead.com.au/news/lunch-wrap-asx-jumps-as-minres-reminds-everyone-lithiums-still-alive"
+          }
+        ]
+      },
+      "evidence_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": false,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": true,
+      "local_news_ranked_ahead_of_documents_for_news_intent": true,
+      "local_news_storage_exists": true,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 3621,
+      "qdrant_news_evidence_exists": true,
+      "qdrant_primary_count": 159,
+      "relevant_local_news_retrievable_outside_chat": true,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": true,
+      "runtime_degraded": false,
+      "source_coverage_status": "claim_verified",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "MIN"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 0,
+        "first_source": {
+          "claim_verified": false,
+          "evidence_labels": [
+            "context_only",
+            "no_hit",
+            "operational_trace"
+          ],
+          "kind": "context",
+          "published_at": null,
+          "source_id": "search_news:no_hits:coh",
+          "title": "News search: no hits for COH",
+          "url": null
+        },
+        "local_news_context_count": 0,
+        "source_count": 1,
+        "source_coverage_status": "no_hit",
+        "source_labels": [
+          "context_only",
+          "no_hit",
+          "operational_trace"
+        ]
+      },
+      "claim_verified_source_count": 0,
+      "classification": "DATA_MISSING",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 0,
+        "first_source": {
+          "claim_verified": false,
+          "evidence_labels": [
+            "context_only",
+            "no_hit",
+            "operational_trace"
+          ],
+          "kind": "context",
+          "published_at": null,
+          "source_id": "search_news:no_hits:coh",
+          "title": "News search: no hits for COH",
+          "url": null
+        },
+        "hit_count": 0,
+        "local_news_context_count": 0,
+        "ok": true,
+        "source_count": 1,
+        "source_coverage_status": "no_hit",
+        "source_labels": [
+          "context_only",
+          "no_hit",
+          "operational_trace"
+        ],
+        "top_results": []
+      },
+      "evidence_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": true,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": false,
+      "local_news_ranked_ahead_of_documents_for_news_intent": false,
+      "local_news_storage_exists": false,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 0,
+      "qdrant_news_evidence_exists": false,
+      "qdrant_primary_count": 0,
+      "relevant_local_news_retrievable_outside_chat": false,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": false,
+      "runtime_degraded": false,
+      "source_coverage_status": "no_hit",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "COH"
+    },
+    {
+      "aliases_company_names_discovered_from_existing_local_metadata": "payload_ticker_fields_only",
+      "canonical_sqlite_projection_exists": false,
+      "chat_source_pack_projection": {
+        "claim_verified_source_count": 0,
+        "first_source": {
+          "claim_verified": false,
+          "evidence_labels": [
+            "context_only",
+            "no_hit",
+            "operational_trace"
+          ],
+          "kind": "context",
+          "published_at": null,
+          "source_id": "search_news:no_hits:wow",
+          "title": "News search: no hits for WOW",
+          "url": null
+        },
+        "local_news_context_count": 0,
+        "source_count": 1,
+        "source_coverage_status": "no_hit",
+        "source_labels": [
+          "context_only",
+          "no_hit",
+          "operational_trace"
+        ]
+      },
+      "claim_verified_source_count": 0,
+      "classification": "DATA_MISSING",
+      "company_identity_resolved_correctly": true,
+      "direct_rag_query": {
+        "claim_verified_source_count": 0,
+        "first_source": {
+          "claim_verified": false,
+          "evidence_labels": [
+            "context_only",
+            "no_hit",
+            "operational_trace"
+          ],
+          "kind": "context",
+          "published_at": null,
+          "source_id": "search_news:no_hits:wow",
+          "title": "News search: no hits for WOW",
+          "url": null
+        },
+        "hit_count": 0,
+        "local_news_context_count": 0,
+        "ok": true,
+        "source_count": 1,
+        "source_coverage_status": "no_hit",
+        "source_labels": [
+          "context_only",
+          "no_hit",
+          "operational_trace"
+        ],
+        "top_results": []
+      },
+      "evidence_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_synthesis_returns_guarded_data_missing_where_no_local_news_exists": true,
+      "freshness_status_reporting_honest": true,
+      "legacy_sqlite_projection_evidence_present_not_current_consumer": true,
+      "local_news_context_appears_in_returned_sources": false,
+      "local_news_ranked_ahead_of_documents_for_news_intent": false,
+      "local_news_storage_exists": false,
+      "news_sqlite_evidence_exists_current_consumer": false,
+      "phase": "post_fix_code_level_worktree_not_live_backend",
+      "qdrant_linked_count": 0,
+      "qdrant_news_evidence_exists": false,
+      "qdrant_primary_count": 0,
+      "relevant_local_news_retrievable_outside_chat": false,
+      "relevant_local_news_retrieved_inside_chat_context_assembly": false,
+      "runtime_degraded": false,
+      "source_coverage_status": "no_hit",
+      "source_coverage_status_from_status_route": "missing",
+      "status_route_reports_state_honestly": true,
+      "ticker": "WOW"
+    }
+  ]
+}

@@ -66,6 +66,23 @@ async function copyPrompt(prompt: string): Promise<boolean> {
   }
 }
 
+function buildFeedbackFlagHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  let browserKey = ''
+  try {
+    browserKey = typeof window !== 'undefined'
+      ? window.localStorage.getItem('cockpit.apiKey') || ''
+      : ''
+  } catch {
+    browserKey = ''
+  }
+  const apiKey = (browserKey || process.env.NEXT_PUBLIC_API_KEY || '').trim()
+  if (apiKey) {
+    headers['X-API-Key'] = apiKey
+  }
+  return headers
+}
+
 export function CockpitIssueCapture({
   captureRootRef,
   pageTitle,
@@ -191,7 +208,7 @@ export function CockpitIssueCapture({
     try {
       const response = await fetch('/api/cockpit/feedback/flag', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildFeedbackFlagHeaders(),
         body: JSON.stringify({
           session_id: sessionId,
           ticker: activeTicker || undefined,

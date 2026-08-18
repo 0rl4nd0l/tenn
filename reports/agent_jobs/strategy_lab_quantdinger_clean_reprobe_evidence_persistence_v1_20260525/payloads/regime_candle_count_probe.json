@@ -1,0 +1,34 @@
+{
+  "confidence": 0.99,
+  "feature_keys": [
+    "atrPct",
+    "directionalEfficiency",
+    "emaGapPct",
+    "priceChangePct",
+    "realizedVolPct",
+    "volumeRatio"
+  ],
+  "http_status": 200,
+  "label": "High Volatility",
+  "passed": true,
+  "regime": "high_volatility",
+  "segments_count": 3,
+  "service_actual_end": "2024-03-31 00:00:00",
+  "service_actual_start": "2024-01-01 00:00:00",
+  "service_candle_count_command": {
+    "command": [
+      "docker",
+      "exec",
+      "quantdinger-backend",
+      "python",
+      "-c",
+      "from datetime import datetime; from app.services.backtest import BacktestService; df=BacktestService()._fetch_kline_data('Crypto','BTC/USDT','1D',datetime.strptime('2024-01-01','%Y-%m-%d'),datetime.strptime('2024-03-31','%Y-%m-%d').replace(hour=23,minute=59,second=59)); print('COUNT='+str(len(df))); print('START='+str(df.index.min()) if len(df) else 'START=NONE'); print('END='+str(df.index.max()) if len(df) else 'END=NONE')"
+    ],
+    "cwd": null,
+    "duration_seconds": 8.144,
+    "returncode": 0,
+    "stderr": "Warning: BTC/USDT data is delayed (67744431s, latest_bar_utc=2024-04-01T00:00:00+00:00, threshold=432000s, tf=1D)",
+    "stdout": "COUNT=91\nSTART=2024-01-01 00:00:00\nEND=2024-03-31 00:00:00"
+  },
+  "service_filtered_candle_count": 91
+}

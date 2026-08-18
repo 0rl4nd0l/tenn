@@ -88,6 +88,7 @@ export function DiagnosticMatrix({ stage, _scope, company, onCellSelect }: Diagn
                             <TooltipTrigger asChild>
                               <button
                                 type="button"
+                                aria-label={`Inspect ${stage} matrix cell for ${ent.entity} ${metric}: ${state}`}
                                 onClick={() => onCellSelect?.({ stage, entity: ent.entity, metric, state })}
                                 className={cn(
                                   "h-6 w-full rounded-sm transition-all hover:scale-105 cursor-crosshair",

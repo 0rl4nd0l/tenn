@@ -1,0 +1,85 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_post_pr299_accepted_output_audit_v1_20260606.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/accepted_output_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/integration_review.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/raw_commands.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/source_evidence.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_post_pr299_accepted_output_audit_v1_20260606.md",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/README.md",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/integration_review.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/accepted_output_audit.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/source_evidence.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/status.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/validation.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/diff-check.json",
+        "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/raw_commands.log",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_post_pr299_accepted_output_audit_v1_20260606",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

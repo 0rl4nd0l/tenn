@@ -41,6 +41,14 @@ services:
       COCKPIT_MODELS_HDD_DIR: /models/hdd
       COCKPIT_SHARED_SCRIPTS_ROOT: /workspace/scripts
       COCKPIT_WORKSPACE_ROOT: /workspace
+      TENN_NEWS_ARTIFACT_ROOT: /workspace-reports/qual_context
+      TENN_RESEARCH_MEMORY_ROOT: ${TENN_RESEARCH_MEMORY_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory}
+      NEWS_MEMO_LLM_URL: ${NEWS_MEMO_LLM_URL:-http://127.0.0.1:8001}
+      NEWS_MEMO_LLM_MODEL: ${NEWS_MEMO_LLM_MODEL:-model:qwen2.5-14b-instruct}
+      LLAMACPP_URL: ${LLAMACPP_URL:-http://127.0.0.1:8001}
+      LLAMACPP_MODEL: ${LLAMACPP_MODEL:-model:qwen2.5-14b-instruct}
+      OLLAMA_URL: ${OLLAMA_URL:-http://127.0.0.1:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-local-openai-key}
       TENN_GIT_HEAD: ${TENN_GIT_HEAD:-}
       TENN_GIT_HEAD_SHORT: ${TENN_GIT_HEAD_SHORT:-}
       TENN_GIT_BRANCH: ${TENN_GIT_BRANCH:-}
@@ -58,6 +66,7 @@ services:
       - ./cockpit:/app/cockpit
       - ./config:/config
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory:/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
@@ -85,6 +94,14 @@ services:
       - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      TENN_NEWS_ARTIFACT_ROOT: /reports/qual_context
+      TENN_RESEARCH_MEMORY_ROOT: ${TENN_RESEARCH_MEMORY_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory}
+      NEWS_MEMO_LLM_URL: ${NEWS_MEMO_LLM_URL:-http://127.0.0.1:8001}
+      NEWS_MEMO_LLM_MODEL: ${NEWS_MEMO_LLM_MODEL:-model:qwen2.5-14b-instruct}
+      LLAMACPP_URL: ${LLAMACPP_URL:-http://127.0.0.1:8001}
+      LLAMACPP_MODEL: ${LLAMACPP_MODEL:-model:qwen2.5-14b-instruct}
+      OLLAMA_URL: ${OLLAMA_URL:-http://127.0.0.1:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-local-openai-key}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
@@ -93,7 +110,10 @@ services:
     volumes:
       - ./backend:/app
       - ./shared:/app/shared
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace-reports
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory:/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
@@ -114,6 +134,13 @@ services:
       - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      TENN_RESEARCH_MEMORY_ROOT: ${TENN_RESEARCH_MEMORY_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory}
+      NEWS_MEMO_LLM_URL: ${NEWS_MEMO_LLM_URL:-http://127.0.0.1:8001}
+      NEWS_MEMO_LLM_MODEL: ${NEWS_MEMO_LLM_MODEL:-model:qwen2.5-14b-instruct}
+      LLAMACPP_URL: ${LLAMACPP_URL:-http://127.0.0.1:8001}
+      LLAMACPP_MODEL: ${LLAMACPP_MODEL:-model:qwen2.5-14b-instruct}
+      OLLAMA_URL: ${OLLAMA_URL:-http://127.0.0.1:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-local-openai-key}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
@@ -123,6 +150,7 @@ services:
       - ./backend:/app
       - ./shared:/app/shared
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory:/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
@@ -145,10 +173,18 @@ services:
     environment:
       PYTHONPATH: /app_backend:/app_worker
       BACKEND_APP_ROOT: /app_backend
+      TENN_RESEARCH_MEMORY_ROOT: ${TENN_RESEARCH_MEMORY_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory}
+      NEWS_MEMO_LLM_URL: ${NEWS_MEMO_LLM_URL:-http://127.0.0.1:8001}
+      NEWS_MEMO_LLM_MODEL: ${NEWS_MEMO_LLM_MODEL:-model:qwen2.5-14b-instruct}
+      LLAMACPP_URL: ${LLAMACPP_URL:-http://127.0.0.1:8001}
+      LLAMACPP_MODEL: ${LLAMACPP_MODEL:-model:qwen2.5-14b-instruct}
+      OLLAMA_URL: ${OLLAMA_URL:-http://127.0.0.1:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-local-openai-key}
     volumes:
       - ./backend:/app_backend
       - ./worker:/app_worker
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory:/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro

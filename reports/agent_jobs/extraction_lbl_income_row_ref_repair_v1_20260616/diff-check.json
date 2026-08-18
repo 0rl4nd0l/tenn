@@ -1,0 +1,59 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/README.md",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/status.json",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/validation.json",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/live_git_status.json",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/evidence_summary.json",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/red_test.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/green_test.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/py_compile.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/ruff.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stdout.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stderr.log",
+        "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_lbl_income_row_ref_repair_v1_20260616",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

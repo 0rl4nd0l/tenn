@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "job_id": "ticker_news_source_grounding_system_fix_v1_20260525",
+  "generated_at": "2026-05-25T06:46:00Z",
+  "probe_mode": "read_only_live_backend_and_qdrant",
+  "request_shape": {
+    "chat": {
+      "stream": false,
+      "web_search": false,
+      "rag": true,
+      "stateless_smoke": true,
+      "timeout_seconds": 35,
+      "header": "X-Tenn-Stateless-Smoke: 1"
+    },
+    "rag_query": {
+      "source": "news",
+      "top_k": 5,
+      "language": "en"
+    }
+  },
+  "global_facts": {
+    "canonical_sqlite_news_sqlite_exists": false,
+    "canonical_sqlite_news_articles_sqlite_exists": false,
+    "legacy_sqlite_projection_status": "evidence_present_not_current_consumer",
+    "news_status_route": "GET /api/cockpit/news/status returned status ok",
+    "changed_branch_live_status": "live backend process ownership prevented proving it runs this isolated worktree; live chat probes are treated as current-runtime regression evidence, not post-fix proof"
+  },
+  "basket_rationale": {
+    "A2M": "seed canary with direct Qdrant local news evidence",
+    "BHP": "large ASX ticker with substantial Qdrant-linked local/news context",
+    "CSL": "large ASX healthcare ticker with Qdrant-linked local/news context",
+    "XRO": "large ASX technology ticker with Qdrant-linked local/news context",
+    "NST": "large ASX resources ticker with Qdrant-linked local/news context",
+    "COH": "low/no-local-news control; Qdrant count was zero"
+  },
+  "rows": [
+    {
+      "ticker": "A2M",
+      "local_news_exists": true,
+      "qdrant_news_evidence_present": true,
+      "qdrant_news_count": 24,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": true,
+      "entity_ticker_company_alias_link_appears_correct": true,
+      "relevant_news_retrieved": true,
+      "relevant_news_ranked_high_enough": "partial",
+      "rag_top_result_summary": [
+        "ASX Small Caps Weekly Form Guide - primary AEG, tickers includes A2M",
+        "A2 Milk shares plunge after finding toxins in infant formula - primary A2M",
+        "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall - primary A2M",
+        "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe - primary A2M"
+      ],
+      "local_news_context_appears_in_returned_sources": true,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "local_news_context",
+        "operational_trace",
+        "unknown_unclassified"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": true,
+      "freshness_status_reporting_honest": false,
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "synthesis_honesty_failure",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 21043,
+        "local_news_context_count": 1,
+        "source_count": 5,
+        "text_head": "The latest local news for A2M centers on two key developments: the company has reached an in-principle agreement to settle shareholder class action proceedings, and it confirmed that its recent dividend distribution will be unimputed and fully franked."
+      }
+    },
+    {
+      "ticker": "BHP",
+      "local_news_exists": true,
+      "qdrant_news_evidence_present": true,
+      "qdrant_news_count": 2155,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": false,
+      "entity_ticker_company_alias_link_appears_correct": true,
+      "relevant_news_retrieved": "partial",
+      "relevant_news_ranked_high_enough": false,
+      "rag_top_result_summary": [
+        "Rise and Shine: Everything you need to know before the ASX opens - primary CRS, tickers includes BHP",
+        "ASX 200 broad market wrap - primary SHV, tickers includes BHP",
+        "ASX 200 broad technology/mining wrap - primary C1X, tickers includes BHP"
+      ],
+      "local_news_context_appears_in_returned_sources": true,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "local_news_context",
+        "unknown_unclassified"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": true,
+      "freshness_status_reporting_honest": false,
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "synthesis_honesty_failure",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 23897,
+        "local_news_context_count": 1,
+        "source_count": 10,
+        "text_head": "The latest material local news for BHP is the release of its half-year results for the period ended 31 December 2025."
+      }
+    },
+    {
+      "ticker": "CSL",
+      "local_news_exists": true,
+      "qdrant_news_evidence_present": true,
+      "qdrant_news_count": 2184,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": false,
+      "entity_ticker_company_alias_link_appears_correct": true,
+      "relevant_news_retrieved": "partial",
+      "relevant_news_ranked_high_enough": false,
+      "rag_top_result_summary": [
+        "Scan list including CSL - primary NCK, tickers includes CSL",
+        "Scan list including CSL - primary 29M, tickers includes CSL",
+        "Scan list including CSL - primary SIQ, tickers includes CSL"
+      ],
+      "local_news_context_appears_in_returned_sources": true,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "local_news_context",
+        "unknown_unclassified"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": true,
+      "freshness_status_reporting_honest": "partial_gap_prefix_present_but_answer_still_uses_filings_as_news",
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "synthesis_honesty_failure",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 15282,
+        "local_news_context_count": 2,
+        "source_count": 10,
+        "text_head": "DATA_MISSING / evidence gaps prefix was present, then answer described U.S. trade policy and share buy-back filings as local news."
+      }
+    },
+    {
+      "ticker": "XRO",
+      "local_news_exists": true,
+      "qdrant_news_evidence_present": true,
+      "qdrant_news_count": 2452,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": false,
+      "entity_ticker_company_alias_link_appears_correct": true,
+      "relevant_news_retrieved": "partial",
+      "relevant_news_ranked_high_enough": false,
+      "rag_top_result_summary": [
+        "Scan list including XRO - primary SMI, tickers includes XRO",
+        "Scan list including XRO - primary DTR, tickers includes XRO",
+        "ASX 200 broad market wrap - primary SHV, tickers includes XRO"
+      ],
+      "local_news_context_appears_in_returned_sources": true,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "local_news_context",
+        "operational_trace"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": true,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": false,
+      "freshness_status_reporting_honest": true,
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "PASS",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 7161,
+        "local_news_context_count": 2,
+        "source_count": 3,
+        "text_head": "DATA_MISSING prefix plus statement that current local news snippets or announcements were unavailable."
+      }
+    },
+    {
+      "ticker": "NST",
+      "local_news_exists": true,
+      "qdrant_news_evidence_present": true,
+      "qdrant_news_count": 2120,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": false,
+      "entity_ticker_company_alias_link_appears_correct": true,
+      "relevant_news_retrieved": "partial",
+      "relevant_news_ranked_high_enough": false,
+      "rag_top_result_summary": [
+        "Scan list including NST - primary CMM, tickers includes NST",
+        "Broker moves including NST - primary CRN, tickers includes NST",
+        "ASX 200 broad market wrap - primary SHV, tickers includes NST"
+      ],
+      "local_news_context_appears_in_returned_sources": true,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "local_news_context",
+        "unknown_unclassified"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": true,
+      "freshness_status_reporting_honest": "partial_gap_prefix_present_but_answer_still_uses_filings_as_news",
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "synthesis_honesty_failure",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 24812,
+        "local_news_context_count": 1,
+        "source_count": 10,
+        "text_head": "DATA_MISSING / evidence gaps prefix was present, then answer listed recent filings and current price trend."
+      }
+    },
+    {
+      "ticker": "COH",
+      "local_news_exists": false,
+      "qdrant_news_evidence_present": false,
+      "qdrant_news_count": 0,
+      "news_sqlite_evidence_present": false,
+      "direct_ticker_article_path_evidence_present": false,
+      "entity_ticker_company_alias_link_appears_correct": "not_applicable_for_no_hit_control",
+      "relevant_news_retrieved": false,
+      "relevant_news_ranked_high_enough": false,
+      "rag_top_result_summary": [],
+      "local_news_context_appears_in_returned_sources": false,
+      "source_coverage_status": "no_hit",
+      "claim_verified_source_count": 0,
+      "evidence_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace",
+        "unknown_unclassified"
+      ],
+      "final_synthesis_aligns_with_returned_local_news_context": false,
+      "final_answer_misattributes_document_or_filing_context_as_local_news": true,
+      "freshness_status_reporting_honest": false,
+      "runtime_degraded": false,
+      "schema_runtime_errors": [],
+      "classification": "synthesis_honesty_failure",
+      "chat_probe": {
+        "http_status": 200,
+        "latency_ms": 14501,
+        "local_news_context_count": 0,
+        "source_count": 9,
+        "text_head": "The latest local news for Cochlear Limited centers on a dividend update and recent substantial holder activity."
+      }
+    }
+  ],
+  "blast_radius_summary": {
+    "tickers_probed": 6,
+    "qdrant_local_news_present_for": [
+      "A2M",
+      "BHP",
+      "CSL",
+      "XRO",
+      "NST"
+    ],
+    "low_or_no_local_news_controls": [
+      "COH"
+    ],
+    "systemic_failure_count": 5,
+    "pass_count": 1,
+    "root_failure_class": "synthesis_honesty_failure"
+  }
+}

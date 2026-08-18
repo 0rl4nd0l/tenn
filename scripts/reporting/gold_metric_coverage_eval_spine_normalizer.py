@@ -47,7 +47,101 @@ def _int_value(value: Any, default: int = 0) -> int:
         return default
 
 
+def _metric_name(metric: Any) -> str | None:
+    if not isinstance(metric, dict):
+        return None
+    value = metric.get("metric_name")
+    if not value:
+        return None
+    return str(value)
+
+
+def _classification(metric: dict[str, Any]) -> str:
+    return str(metric.get("classification") or "").strip().upper()
+
+
+def normalize_metric_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
+    """Accept both direct normalizer input and current audit inventory output."""
+    if isinstance(inventory.get("canonical_core"), dict) or isinstance(
+        inventory.get("confirmed_metric_coverage"), dict
+    ):
+        return inventory
+
+    summary = inventory.get("summary")
+    metrics = inventory.get("metrics")
+    if not isinstance(summary, dict) or not isinstance(metrics, list):
+        return inventory
+
+    required_scored: list[str] = []
+    confirmed_unscored: list[str] = []
+    schema_supported_but_not_labelled: list[str] = []
+    extractor_output_but_not_gold: list[str] = []
+    ambiguous_or_derived: list[str] = []
+    unsupported: list[str] = []
+    data_missing: list[str] = []
+
+    for metric in metrics:
+        if not isinstance(metric, dict):
+            continue
+        name = _metric_name(metric)
+        if not name:
+            continue
+        classification = _classification(metric)
+        if classification == "REQUIRED_SCORED":
+            required_scored.append(name)
+        elif classification.startswith("CONFIRMED_UNSCORED"):
+            confirmed_unscored.append(name)
+        elif classification == "SCHEMA_SUPPORTED_BUT_NOT_LABELLED":
+            schema_supported_but_not_labelled.append(name)
+        elif classification == "EXTRACTOR_OUTPUT_BUT_NOT_GOLD":
+            extractor_output_but_not_gold.append(name)
+        elif classification == "AMBIGUOUS_OR_DERIVED":
+            ambiguous_or_derived.append(name)
+        elif classification == "UNSUPPORTED":
+            unsupported.append(name)
+        elif classification == "DATA_MISSING":
+            data_missing.append(name)
+
+    return {
+        "canonical_core": {
+            "document_count": _int_value(summary.get("canonical_core_expected_docs")),
+            "metric_check_count": _int_value(summary.get("canonical_core_expected_metric_checks")),
+            "metrics": required_scored,
+        },
+        "expanded_required": {
+            "document_count": _int_value(summary.get("expanded_required_expected_docs")),
+            "metric_check_count": _int_value(summary.get("expanded_required_expected_metric_checks")),
+            "metrics": required_scored,
+        },
+        "confirmed_metric_coverage": {
+            "fixture_count": _int_value(summary.get("expanded_required_expected_docs")),
+            "total_expectations": _int_value(
+                summary.get("confirmed_metric_coverage_total_expectations")
+            ),
+            "scorable_count": _int_value(
+                summary.get("confirmed_metric_coverage_scored_expectations")
+            ),
+            "candidate_count": _int_value(
+                summary.get("confirmed_metric_coverage_candidate_count")
+            ),
+            "ambiguous_count": _int_value(
+                summary.get("confirmed_metric_coverage_ambiguous_count")
+            ),
+            "unsupported_count": _int_value(
+                summary.get("confirmed_metric_coverage_unsupported_count")
+            ),
+        },
+        "confirmed_unscored": confirmed_unscored,
+        "schema_supported_but_not_labelled": schema_supported_but_not_labelled,
+        "extractor_output_but_not_gold": extractor_output_but_not_gold,
+        "ambiguous_or_derived": ambiguous_or_derived,
+        "unsupported": unsupported,
+        "data_missing_metrics": data_missing,
+    }
+
+
 def build_scorecards(inventory: dict[str, Any]) -> list[dict[str, Any]]:
+    inventory = normalize_metric_inventory(inventory)
     canonical = inventory.get("canonical_core") if isinstance(inventory.get("canonical_core"), dict) else {}
     expanded = inventory.get("expanded_required") if isinstance(inventory.get("expanded_required"), dict) else {}
     confirmed = (
@@ -99,6 +193,7 @@ def build_scorecards(inventory: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def build_metric_rows(inventory: dict[str, Any]) -> list[dict[str, Any]]:
+    inventory = normalize_metric_inventory(inventory)
     rows: list[dict[str, Any]] = []
     for profile in ("canonical_core", "expanded_required"):
         payload = inventory.get(profile) if isinstance(inventory.get(profile), dict) else {}
@@ -126,6 +221,30 @@ def build_metric_rows(inventory: dict[str, Any]) -> list[dict[str, Any]]:
                 "notes": UNSCORED_GUARD,
             }
         )
+    for metric in inventory.get("schema_supported_but_not_labelled") or []:
+        rows.append(
+            {
+                "scorecard_profile": "confirmed_metric_coverage",
+                "metric_name": str(metric),
+                "expectation_class": "schema_supported_but_not_labelled",
+                "accuracy_claim": "none",
+                "document_count": 0,
+                "metric_check_count": 0,
+                "notes": UNSCORED_GUARD,
+            }
+        )
+    for metric in inventory.get("extractor_output_but_not_gold") or []:
+        rows.append(
+            {
+                "scorecard_profile": "confirmed_metric_coverage",
+                "metric_name": str(metric),
+                "expectation_class": "extractor_output_but_not_gold",
+                "accuracy_claim": "none",
+                "document_count": 0,
+                "metric_check_count": 0,
+                "notes": "Extractor output without current gold-label scoring is not an accuracy claim.",
+            }
+        )
     for metric in inventory.get("ambiguous_or_derived") or []:
         rows.append(
             {
@@ -148,6 +267,18 @@ def build_metric_rows(inventory: dict[str, Any]) -> list[dict[str, Any]]:
                 "document_count": 0,
                 "metric_check_count": 0,
                 "notes": "Unsupported in current runtime/gold scoring semantics.",
+            }
+        )
+    for metric in inventory.get("data_missing_metrics") or []:
+        rows.append(
+            {
+                "scorecard_profile": "confirmed_metric_coverage",
+                "metric_name": str(metric),
+                "expectation_class": "data_missing",
+                "accuracy_claim": "none",
+                "document_count": 0,
+                "metric_check_count": 0,
+                "notes": "Metric remains DATA_MISSING for this inventory.",
             }
         )
     return rows

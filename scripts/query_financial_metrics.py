@@ -18,6 +18,19 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+try:
+    from scripts.reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+        write_authority_manifest,
+    )
+except ModuleNotFoundError:  # pragma: no cover - supports direct `python scripts/...` runs
+    from reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+        write_authority_manifest,
+    )
+
 ROOT = Path(__file__).resolve().parents[1]
 BROAD_OUT = ROOT / "reports" / "broad_ticker_test"
 SINGLE_OUT = ROOT / "reports"
@@ -58,11 +71,16 @@ FLOW_METRICS = {
 }
 
 
-def load_canonical(ticker: str) -> list:
-    """Load canonical rows from broad_ticker_test or reports/financial_metrics_<ticker>.json."""
+def resolve_canonical_path(ticker: str) -> Path:
     json_path = BROAD_OUT / ticker / "canonical.json"
     if not json_path.exists():
         json_path = SINGLE_OUT / f"financial_metrics_{ticker.lower()}.json"
+    return json_path
+
+
+def load_canonical(ticker: str) -> list:
+    """Load report-local selected rows from broad_ticker_test or reports/financial_metrics_<ticker>.json."""
+    json_path = resolve_canonical_path(ticker)
     if not json_path.exists():
         return []
     with open(json_path, encoding="utf-8") as f:
@@ -137,12 +155,12 @@ def _dedupe_metric_period(rows: List[Dict[str, object]], include_variants: bool)
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Query canonical financial metrics for a ticker.")
+    ap = argparse.ArgumentParser(description="Query report-local selected financial metric rows for a ticker.")
     ap.add_argument("--ticker", required=True, help="Ticker symbol (e.g. BHP, 10X, A2M)")
     ap.add_argument(
         "--json-path",
         default="",
-        help="Optional explicit canonical JSON path. Overrides default ticker lookup paths.",
+        help="Optional explicit report-local selected-row JSON path. Overrides default ticker lookup paths.",
     )
     ap.add_argument("--metric", default=None, help="Filter by metric name (e.g. revenue, npat)")
     ap.add_argument(
@@ -161,9 +179,22 @@ def parse_args() -> argparse.Namespace:
         "--canonical-tier",
         choices=["strict", "table_promoted"],
         default=None,
-        help="Optional filter by canonical tier provenance.",
+        help="Optional filter by report-local selected-row tier provenance.",
     )
     ap.add_argument("--format", choices=["table", "csv", "json"], default="table", help="Output format")
+    ap.add_argument(
+        "--json-envelope",
+        action="store_true",
+        help=(
+            "When --format=json, wrap rows with report-local authority metadata. "
+            "Default preserves the legacy JSON array output."
+        ),
+    )
+    ap.add_argument(
+        "--authority-json",
+        default="",
+        help="Optional path for a report-local authority sidecar manifest.",
+    )
     ap.add_argument(
         "--include-variants",
         action="store_true",
@@ -185,6 +216,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
+    source_path: Path
     if args.json_path:
         json_path = Path(args.json_path).expanduser().resolve()
         if not json_path.exists():
@@ -195,10 +227,12 @@ def main() -> int:
             print(f"Expected JSON array at {json_path}", file=sys.stderr)
             return 2
         rows = [r for r in obj if isinstance(r, dict)]
+        source_path = json_path
     else:
+        source_path = resolve_canonical_path(args.ticker.upper())
         rows = load_canonical(args.ticker.upper())
     if not rows:
-        print(f"No canonical data for {args.ticker}. Run extraction first:", file=sys.stderr)
+        print(f"No report-local selected metric data for {args.ticker}. Run extraction first:", file=sys.stderr)
         print(
             f"  python scripts/extract_financial_metrics.py --pdf-dir financial-engine_v2/data/asx/docs/{args.ticker} --out-json reports/financial_metrics_{args.ticker.lower()}.json",
             file=sys.stderr,
@@ -251,8 +285,28 @@ def main() -> int:
             file=sys.stderr,
         )
 
+    authority = build_authority_metadata(
+        artifact_type="query_financial_metrics_selection",
+        producer="scripts/query_financial_metrics.py",
+        lane="Evaluation",
+        source_artifacts=[
+            artifact_record(source_path, "report_local_selected_metric_rows"),
+        ],
+        extra={
+            "ticker": args.ticker.strip().upper(),
+            "selected_rows": len(selected_rows),
+            "dropped_conflict_rows": len(dropped_rows),
+            "include_variants": bool(args.include_variants),
+            "include_non_primary": bool(args.include_non_primary),
+            "json_envelope": bool(args.json_envelope),
+        },
+    )
+    if args.authority_json:
+        write_authority_manifest(Path(args.authority_json), authority)
+
     if args.format == "json":
-        print(json.dumps(selected_rows, indent=2))
+        payload = {"authority": authority, "rows": selected_rows} if args.json_envelope else selected_rows
+        print(json.dumps(payload, indent=2))
         return 0
 
     if args.format == "csv":

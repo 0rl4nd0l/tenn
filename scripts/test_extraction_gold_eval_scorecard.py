@@ -17,6 +17,35 @@ spec.loader.exec_module(mod)
 
 
 class TestExtractionGoldEvalScorecardScript(unittest.TestCase):
+    def test_holdout_profile_is_exact_development_aggregate(self):
+        aggregate = {
+            "corpus_version": "opaque-v1",
+            "corpus_digest": "a" * 64,
+            "document_count": 48,
+            "partition_counts": {"diagnostic": 12, "holdout": 36},
+            "bucket_counts": {
+                "annual": 8,
+                "4E": 8,
+                "half-year": 8,
+                "4D": 8,
+                "quarterly": 8,
+                "4C": 8,
+            },
+            "company_count": 12,
+            "sector_count": 6,
+            "scan_image_heavy_count": 6,
+            "non_aud_count": 1,
+            "issuer_size_counts": {"large": 24, "small": 24},
+        }
+        payload = mod._build_profile(
+            "expanded_required",
+            None,
+            corpus_classification="holdout",
+            development_aggregate=aggregate,
+        )
+
+        self.assertEqual(payload, aggregate)
+
     def test_canonical_core_profile_filters_to_ten_doc_anchor(self):
         scorecard = mod._build_canonical_core_scorecard(mod.DEFAULT_FIXTURES_DIR)
 

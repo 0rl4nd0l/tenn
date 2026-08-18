@@ -1019,7 +1019,7 @@ class MarketplacePriceIntelligenceService:
         # Calculate weights for all observations
         weighted_obs_data = []
         for obs in observations:
-            # weight = exp(-0.05 * days_since_observed) -> half_life_days = 1/0.05 = 20
+            # 20-day half-life: observations retain half recency weight after 20 days.
             decay_weight = compute_recency_decay(
                 published_at=obs["observed_at"],
                 half_life_days=20,

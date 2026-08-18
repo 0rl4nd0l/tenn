@@ -1,0 +1,114 @@
+{
+  "artifact_type": "extraction_pre_canary_truth_gate_hardening_status_v1",
+  "generated_at_utc": "2026-05-28T08:31:00Z",
+  "job_id": "extraction_pre_canary_truth_gate_hardening_v1_20260528",
+  "mode": "audit_first_narrow_pre_persistence_guard_hardening",
+  "status": "completed_validated_released",
+  "repo": {
+    "path": "/home/l4nd0/tenn-extraction-canary-output-containment-clv-ctm-v1-20260528",
+    "branch": "contain/extraction-canary-output-containment-clv-ctm-v1-20260528",
+    "base_head": "e90af15e6280c8f4d9d1bb34874b6ad9e45f23c4"
+  },
+  "evidence_sources": {
+    "second_canary_failure_taxonomy": "/home/l4nd0/tenn-extraction-second-canary-failure-taxonomy-audit-v1-20260527/reports/agent_jobs/extraction_second_canary_failure_taxonomy_audit_v1_20260527/",
+    "clv_ctm_exposure_audit": "/home/l4nd0/tenn-extraction-canary-output-exposure-audit-clv-ctm-v1-20260527/reports/agent_jobs/extraction_canary_output_exposure_audit_clv_ctm_v1_20260527/",
+    "clv_ctm_containment": "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/"
+  },
+  "guards_implemented": [
+    {
+      "name": "advisory_only_document_block",
+      "location": "financial-engine_v2/backend/app/services/multipass_extraction.py::run_multipass_extraction",
+      "action": "failed_extraction_before_pass1_llm",
+      "safe_block_now": true,
+      "failure_class_mapping": ["SFR advisory-only document selection mistake safety net"]
+    },
+    {
+      "name": "metric_label_mismatch_ebitda_as_ebit",
+      "location": "financial-engine_v2/backend/app/services/multipass_extraction.py::_validate_gate",
+      "action": "failed_extraction_before_persistence",
+      "safe_block_now": true,
+      "failure_class_mapping": ["CLV EBITDA populated canonical EBIT"]
+    },
+    {
+      "name": "explicit_source_unit_value_mismatch",
+      "location": "financial-engine_v2/backend/app/services/multipass_extraction.py::_validate_gate",
+      "action": "failed_extraction_before_persistence",
+      "safe_block_now": true,
+      "failure_class_mapping": ["CLV million source values over-scaled by 1000x"]
+    },
+    {
+      "name": "explicit_source_period_mismatch",
+      "location": "financial-engine_v2/backend/app/services/multipass_extraction.py::_validate_gate",
+      "action": "failed_extraction_before_persistence",
+      "safe_block_now": true,
+      "failure_class_mapping": ["CTM annual source persisted as period_type H"]
+    }
+  ],
+  "report_only_diagnostics": [
+    "canary candidate selector advisory exclusion",
+    "raw-dollar scale policy for AM5/AQX/CRS-like cases",
+    "non-AUD/Rp trillion scale policy for ATM-like cases",
+    "global ok_low_confidence truth-surface policy"
+  ],
+  "third_canary_batch": {
+    "run_in_this_task": false,
+    "verdict": "needs_explicit_approval",
+    "reason": "CLV/CTM-like unsafe persistence is now guarded, but selector-side and broader scale policy DATA_MISSING remains."
+  },
+  "forbidden_actions_observed": {
+    "third_canary_batch": false,
+    "broad_backfill": false,
+    "production_db_writes": false,
+    "direct_sql_mutation": false,
+    "qdrant_mutation": false,
+    "news_mutation": false,
+    "memory_mutation": false,
+    "source_pdf_mutation": false,
+    "parser_routing_changes": false,
+    "extraction_prompt_changes": false,
+    "gold_label_mutation": false,
+    "runtime_model_gpu_config_changes": false,
+    "service_restart": false,
+    "cockpit_ui_implementation": false,
+    "schema_migration": false
+  },
+  "validation": {
+    "pytest_pre_canary_truth_gates": "7 passed",
+    "pytest_pre_canary_plus_multipass": "161 passed",
+    "pytest_gate_focus_previous": "12 passed, 149 deselected",
+    "py_compile_touched_python": true,
+    "ruff_touched_python": true,
+    "json_artifacts_valid": true,
+    "git_diff_check_ok": true,
+    "task_card_validate_ok": true,
+    "task_card_check_diff_ok": true,
+    "task_card_check_diff_report": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/diff-check.json",
+    "source_pdfs_staged_or_new": false,
+    "registry_released": true,
+    "final_active_jobs": 0
+  },
+  "registry_release": {
+    "released_at_utc": "2026-05-28T08:29:42.375542Z",
+    "active_record_removed": true,
+    "final_list_active_empty": true
+  },
+  "architecture_review": {
+    "skill_used": "architecture-check",
+    "cursor_rules_present": false,
+    "status": "DATA_MISSING for exact rule-file validation; no embedding/vector/schema/runtime invariant changed"
+  },
+  "data_missing": [
+    ".cursor/rules architecture files were absent from this checkout.",
+    "Canary candidate-selection advisory exclusion was not implemented in this task.",
+    "Raw-dollar scale policy for AM5/AQX/CRS-like cases remains unresolved.",
+    "Non-AUD/Rp trillion scale policy remains unresolved.",
+    "Global ok_low_confidence truth-surface policy remains report-only.",
+    "No canary or backfill was run."
+  ],
+  "github_issue_96_comment": {
+    "attempted": true,
+    "posted": true,
+    "url": "https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4562123193"
+  },
+  "project_memory_save_recommended": true
+}

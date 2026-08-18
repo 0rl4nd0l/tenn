@@ -11,6 +11,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cockpit.core.types import ToolResult
+from shared.news_artifacts import (
+    LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES,
+    NEWS_ARTICLES_DB_ENV,
+    NEWS_ARTIFACT_ROOT_ENV,
+    NEWS_CONTEXT_DB_ENV,
+    env_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,16 +79,62 @@ class ToolRouter:
         self._excerpt_cache: dict[str, tuple[float, str]] = {}
 
     def _resolve_news_articles_db_path(self) -> Path | None:
-        candidates = [
-            self.repo_root / "reports" / "qual_context" / "news_articles.sqlite",
+        env_root = env_path(NEWS_ARTIFACT_ROOT_ENV)
+        candidates: list[Path | None] = [
+            env_path(NEWS_ARTICLES_DB_ENV),
+            (env_root / "news_articles.sqlite") if env_root is not None else None,
+            *[
+                root / "news_articles.sqlite"
+                for root in LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES
+            ],
             self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite",
-            Path("/workspace-reports") / "qual_context" / "news_articles.sqlite",
+            self.repo_root / "reports" / "qual_context" / "news_articles.sqlite",
         ]
         for candidate in candidates:
+            if candidate is None:
+                continue
             path = candidate.expanduser().resolve()
             if path.exists() and path.is_file():
                 return path
         return None
+
+    def _resolve_news_context_db_path(self) -> Path | None:
+        configured_raw = str(self.news_context_db_path or "").strip()
+        env_root = env_path(NEWS_ARTIFACT_ROOT_ENV)
+        configured = Path(configured_raw).expanduser() if configured_raw else None
+        configured_is_news_default = (
+            configured is not None
+            and configured.as_posix().endswith("reports/qual_context/news.sqlite")
+        )
+        candidates: list[Path | None] = []
+        if configured is not None and configured.is_absolute():
+            candidates.append(configured)
+        if not configured_raw or configured_is_news_default:
+            candidates.extend(
+                [
+                    env_path(NEWS_CONTEXT_DB_ENV),
+                    (env_root / "news.sqlite") if env_root is not None else None,
+                    *[
+                        root / "news.sqlite"
+                        for root in LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES
+                    ],
+                ]
+            )
+        if configured is not None and not configured.is_absolute():
+            candidates.extend(
+                [
+                    Path.cwd() / configured,
+                    self.repo_root.parent / configured,
+                    self.repo_root / configured,
+                ]
+            )
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            path = candidate.expanduser().resolve()
+            if path.exists() and path.is_file():
+                return path
+        return configured.expanduser().resolve() if configured is not None else None
 
     def get_local_news_article(self, url: str) -> dict[str, Any]:
         target = str(url or "").strip()
@@ -425,6 +478,19 @@ class ToolRouter:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
+
+    @classmethod
+    def _date_filter_yyyy_mm_dd(cls, value: Any) -> str | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        dt = cls._parse_timestamp_utc(text)
+        if dt is not None:
+            return dt.date().isoformat()
+        candidate = text[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", candidate):
+            return candidate
+        return None
 
     @classmethod
     def _compute_price_state(cls, price_payload: dict[str, Any]) -> dict[str, Any]:
@@ -934,13 +1000,15 @@ class ToolRouter:
         ticker: str,
         corpus_filter: str,
         top_k: int = 10,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> dict[str, Any]:
         """Read pre-ranked news chunks from context_chunks SQLite table."""
         import json as _json
         import sqlite3 as _sqlite3
 
-        db = Path(self.news_context_db_path).expanduser().resolve()
-        if not db.exists():
+        db = self._resolve_news_context_db_path()
+        if db is None or not db.exists():
             return {
                 "ok": False,
                 "hits": [],
@@ -955,10 +1023,27 @@ class ToolRouter:
             col_cursor = conn.execute("PRAGMA table_info(context_chunks)")
             columns = {row[1] for row in col_cursor.fetchall()}
             has_relevance = "ticker_relevance_json" in columns
+            if "doc_date" in columns:
+                date_expr = "COALESCE(NULLIF(doc_date, ''), substr(published_at, 1, 10))"
+            else:
+                date_expr = "substr(published_at, 1, 10)"
+
+            where_clauses = ["ticker LIKE ?"]
+            params: list[Any] = [f"%|{ticker_upper}|%"]
+            from_date = self._date_filter_yyyy_mm_dd(date_from)
+            to_date = self._date_filter_yyyy_mm_dd(date_to)
+            if from_date:
+                where_clauses.append(f"{date_expr} >= ?")
+                params.append(from_date)
+            if to_date:
+                where_clauses.append(f"{date_expr} <= ?")
+                params.append(to_date)
 
             rows = conn.execute(
-                "SELECT * FROM context_chunks WHERE ticker LIKE ? ORDER BY published_at DESC",
-                (f"%|{ticker_upper}|%",),
+                "SELECT * FROM context_chunks WHERE "
+                + " AND ".join(where_clauses)
+                + " ORDER BY published_at DESC",
+                tuple(params),
             ).fetchall()
         finally:
             conn.close()
@@ -1302,6 +1387,35 @@ class ToolRouter:
                 }
             except Exception as exc:
                 logger.info("news_context: sqlite fallback failed: %s", exc)
+                return {
+                    "ok": False,
+                    "hits": [],
+                    "_source": "sqlite_fallback",
+                    "error": str(exc)[:400],
+                }
+
+        if self.news_context_db_path and ticker:
+            try:
+                payload = self._query_news_sqlite_context(
+                    ticker=ticker,
+                    corpus_filter=self.news_context_corpus_filter,
+                    top_k=top_k,
+                    date_from=date_from,
+                    date_to=date_to,
+                )
+                hits = payload.get("hits") if isinstance(payload, dict) else []
+                hits = hits if isinstance(hits, list) else []
+                logger.info(
+                    "news_context: source=sqlite_path_fallback results=%d", len(hits)
+                )
+                return {
+                    "ok": bool(payload.get("ok")) if isinstance(payload, dict) else False,
+                    "hits": hits,
+                    "_source": "sqlite_fallback",
+                    "error": payload.get("error") if isinstance(payload, dict) else None,
+                }
+            except Exception as exc:
+                logger.info("news_context: sqlite path fallback failed: %s", exc)
                 return {
                     "ok": False,
                     "hits": [],

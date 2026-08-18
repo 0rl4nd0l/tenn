@@ -19,6 +19,8 @@ import { Separator } from '@/components/ui/separator'
 import { Smartphone, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { shouldUseCompactChrome } from '@/lib/cockpit-mobile-chrome'
 
 interface CockpitLayoutProps {
   children: React.ReactNode
@@ -74,6 +76,11 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   } = useCockpitStore()
 
   const isIPhoneScale = preferences.iphoneScale
+  const isMobileViewport = useIsMobile()
+  const useCompactChrome = shouldUseCompactChrome({
+    iphoneScale: isIPhoneScale,
+    isMobileViewport,
+  })
 
   useEffect(() => {
     installBrowserDebugCollector()
@@ -239,7 +246,10 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   }, [chatCompletionActive])
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      className="overflow-hidden"
+      style={{ minHeight: 0, height: '100dvh', maxHeight: '100dvh' }}
+    >
       <CockpitSidebar 
         backendHealthy={backendHealthy} 
         backendLastHealthyAt={backendLastHealthyAt}
@@ -278,13 +288,13 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
             )}
             <header className={cn(
               "flex h-12 shrink-0 items-center gap-2 border-b border-border transition-all duration-300",
-              isIPhoneScale ? "px-6 pt-2" : "px-4"
+              isIPhoneScale ? "px-6 pt-2" : useCompactChrome ? "px-2" : "px-4"
             )}>
               <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Separator orientation="vertical" className={cn("h-4", useCompactChrome ? "mr-1" : "mr-2")} />
               <div className="flex items-center gap-3 overflow-hidden">
                 <h1 className="text-sm font-medium truncate">{title}</h1>
-                {!isIPhoneScale && (
+                {!useCompactChrome && (
                   <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary shrink-0">
                     {activeTicker}
                   </span>
@@ -313,14 +323,14 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
                 </Suspense>
               </div>
             </header>
-            <main className="flex-1 min-h-0 overflow-hidden relative">
+            <main className={cn("flex-1 min-h-0 relative", useCompactChrome ? "overflow-auto" : "overflow-hidden")}>
               {children}
             </main>
             <CockpitStatusBar
               backendHealthy={backendHealthy}
               backendLastHealthyAt={backendLastHealthyAt}
               backendError={backendError}
-              compact={isIPhoneScale}
+              compact={useCompactChrome}
             />
           </div>
         </div>

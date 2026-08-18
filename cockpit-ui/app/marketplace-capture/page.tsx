@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 import { CockpitLayout } from '@/components/cockpit/cockpit-layout'
@@ -9,24 +9,43 @@ import { buildMarketplaceCaptureBookmarklet } from '@/lib/marketplace-capture-he
 
 function MarketplaceCapturePageContent() {
   const searchParams = useSearchParams()
-  const token = searchParams.get('token') ?? ''
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null)
+  const [clientReady, setClientReady] = useState(false)
+  const token = (searchParams.get('token') ?? '').trim()
   const listingUrl = searchParams.get('url') ?? 'https://www.facebook.com/marketplace/'
+  const hasCaptureToken = token.length > 0
   const submitUrl = useMemo(() => {
-    if (typeof window === 'undefined') {
+    if (!clientReady || typeof window === 'undefined') {
       return ''
     }
     return `${window.location.origin}/api/cockpit/commentary/marketplace-capture/submit`
-  }, [])
+  }, [clientReady])
 
   const bookmarkletHref = useMemo(() => {
-    if (!token || !submitUrl) {
-      return '#'
+    if (!clientReady || !hasCaptureToken || !submitUrl) {
+      return null
     }
     return buildMarketplaceCaptureBookmarklet({
       submitUrl,
       token,
     })
-  }, [submitUrl, token])
+  }, [clientReady, hasCaptureToken, submitUrl, token])
+
+  useEffect(() => {
+    setClientReady(true)
+  }, [])
+
+  useEffect(() => {
+    const bookmarklet = bookmarkletRef.current
+    if (!bookmarklet) {
+      return
+    }
+    if (!bookmarkletHref) {
+      bookmarklet.removeAttribute('href')
+      return
+    }
+    bookmarklet.setAttribute('href', bookmarkletHref)
+  }, [bookmarkletHref])
 
   return (
     <CockpitLayout title="Marketplace Helper">
@@ -48,17 +67,33 @@ function MarketplaceCapturePageContent() {
           <p>5. After the success popup appears, you can minimize or close Facebook. No persistent tab is required.</p>
         </div>
 
+        {!hasCaptureToken ? (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            This helper link is missing a capture token. Return to Cockpit and open a fresh Marketplace helper
+            before bookmarking or capturing a listing.
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-3">
           <Button asChild>
             <a href={listingUrl} target="_blank" rel="noreferrer">
               Open Listing
             </a>
           </Button>
-          <Button asChild variant="secondary">
-            <a href={bookmarkletHref}>
+          {bookmarkletHref ? (
+            <Button asChild variant="secondary">
+              <a ref={bookmarkletRef}>Capture Marketplace Listing</a>
+            </Button>
+          ) : (
+            <Button variant="secondary" disabled>
               Capture Marketplace Listing
-            </a>
-          </Button>
+            </Button>
+          )}
+          {!hasCaptureToken ? (
+            <Button asChild variant="outline">
+              <a href="/full-chat">Return to Cockpit</a>
+            </Button>
+          ) : null}
         </div>
 
         <p className="text-xs leading-5 text-stone-600">

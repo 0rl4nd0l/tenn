@@ -1,18 +1,30 @@
 # 20 — Chat Learning Loop
 
-> Status: **Active** — Implemented 2026-04-08
-> Scope: `financial-engine_v2/backend/app/services/` — quality scoring, preference updating, skill patching
+> Status: **Partially active** — quality scoring is wired; runtime preference
+> writes are inactive as of 2026-06-26
+> Scope: `financial-engine_v2/backend/app/services/` — quality scoring,
+> preference reading/updating utilities, skill patching utilities
 > Related: [17_agentic_chat_architecture.md](17_agentic_chat_architecture.md) (future agent transformation)
 
 ---
 
 ## 1. Overview
 
-The chat learning loop makes the `/chat` endpoint smarter over time by learning from session quality signals. It mirrors the PDF extraction learning loop pattern (Hermes-inspired) but is adapted for chat/RAG quality improvement.
+The chat learning loop currently measures `/chat` quality signals and stores
+bounded telemetry. It does not yet make the live `/chat` endpoint smarter over
+time by writing learned preferences. The updater utilities exist, and Rule 0
+preference readers can consume a valid `chat_preferences.json`, but normal
+`/chat` traffic does not update that file.
 
 **Two-path architecture:**
-1. **Fast path (deterministic, every turn):** Compute composite quality metric → update `chat_preferences.json` with retrieval params + router hints
-2. **Slow path (LLM review, periodic):** Review accumulated session transcripts → patch skill files (`chat_skill.md`, `tenn-learned.md`)
+1. **Quality telemetry path (deterministic, every turn):** Compute composite
+   quality metric → store partial `quality_metrics` with the session turn.
+2. **Preference-writer path (inactive):** `chat_preference_updater.py` can
+   convert fully shaped quality turns into preferences, but no runtime caller
+   currently snapshots or writes `chat_preferences.json`.
+3. **Slow path (LLM review, periodic):** Review accumulated session transcripts
+   → patch skill files (`chat_skill.md`, `tenn-learned.md`). This remains a
+   utility/manual workflow, not a live automatic loop.
 
 ---
 
@@ -44,13 +56,13 @@ User → /chat endpoint
 [Store quality_metrics in session_memory]
   |
   v
-[Fast path: Preference Updater (periodic)]
-  → Read quality turns from memory
-  → Group by (task_type, params)
-  → Update chat_preferences.json with best-performing combos
+[Preference Writer: inactive / not wired]
+  → Runtime-shaped session turns currently lack financial_task_type,
+    retrieval_params, and router_role
+  → No runtime snapshot/write to chat_preferences.json
   |
   v
-[Slow path: Skill Reviewer (manual trigger)]
+[Slow path: Skill Reviewer utility (manual trigger)]
   → Sample last 50 sessions
   → LLM analyzes patterns
   → Patch chat_skill.md or tenn-learned.md
@@ -63,12 +75,12 @@ User → /chat endpoint
 |-----------|------|----------------|
 | Preferences I/O | `chat_preferences.py` | Atomic load/save/snapshot/restore for learned preferences |
 | Quality Scorer | `chat_quality_scorer.py` | Compute composite metric from retrieval/confidence/coherence |
-| Preference Updater | `chat_preference_updater.py` | Convert quality turns → preferences with min sample thresholds |
-| Skill Reviewer | `chat_skill_reviewer.py` | LLM-driven skill patching with rollback |
+| Preference Updater | `chat_preference_updater.py` | Convert fully shaped quality turns → preferences with min sample thresholds; not called by live `/chat` |
+| Skill Reviewer | `chat_skill_reviewer.py` | LLM-driven skill patching with rollback; utility/manual workflow |
 | Skill Files | `chat_skill.md`, `tenn-learned.md` | Qualitative patterns + machine-learned insights |
 | Retrieval Rule 0 | `retrieval_orchestrator.py` | Read learned `top_k` and `commentary_weight` |
 | Router Rule 0 | `router_optimizer.py` | Read learned `preferred_role` per financial_task_type |
-| Integration | `routes/chat.py`, `session_memory.py` | Wire scorer into chat endpoint, store quality metrics |
+| Integration | `routes/chat.py`, `session_memory.py` | Wire scorer into chat endpoint, store partial quality metrics |
 
 ---
 
@@ -144,21 +156,35 @@ High cosine similarity between consecutive queries indicates the user is rephras
 
 ---
 
-## 4. Fast Path: Preference Learning
+## 4. Preference Writer State
 
-### 4.1 Trigger
+### 4.1 Current Trigger
 
-Runs periodically (every N turns, or on-demand via admin endpoint).
+Inactive. No current runtime, cron, admin endpoint, or background worker reads
+session-memory quality turns and writes `chat_preferences.json`.
 
-### 4.2 Logic
+### 4.2 Utility Logic
 
-1. **Read quality turns** from `session_memory` (filter by `composite_metric >= threshold`)
+The updater utility can still be used by tests or a future guarded writer. It
+requires fully shaped quality-turn records:
+
+1. **Read quality turns** from a trusted source (filter by
+   `composite_metric >= threshold`)
 2. **Group by:**
    - `(financial_task_type, retrieval_params)` → top_k, commentary_weight
    - `(financial_task_type, router_role)` → preferred_role
 3. **Compute avg_composite_metric** per group
 4. **Select best-performing** params/role for each task type (min sample count = 10)
 5. **Update `chat_preferences.json`** atomically with snapshot
+
+Runtime-shaped persisted turns are not sufficient for this writer today:
+
+- `session_memory.py` persists `quality_metrics` with `composite_metric`,
+  `retrieval_precision`, and `session_coherence`.
+- Runtime turns do not persist the updater grouping fields
+  `financial_task_type`, `retrieval_params`, or `router_role`.
+- Therefore live `/chat` traffic must be described as quality telemetry only,
+  not adaptive preference learning.
 
 ### 4.3 Preference Schema
 
@@ -193,7 +219,7 @@ Runs periodically (every N turns, or on-demand via admin endpoint).
 
 ### 4.4 Rollback Protection
 
-Before updating `chat_preferences.json`:
+Before any future runtime writer updates `chat_preferences.json`:
 1. Create snapshot: `chat_preferences.json.prev`
 2. Write new preferences atomically (temp file + rename)
 3. If regression detected, restore: `restore_snapshot()`
@@ -219,7 +245,9 @@ if prefs:
         top_k_commentary = int(total_target * commentary_weight)
 ```
 
-**Effect:** Retrieval uses learned parameters instead of hardcoded defaults (8 chunks, 0.25 commentary weight).
+**Effect when a valid preferences file exists:** Retrieval uses learned
+parameters instead of hardcoded defaults (8 chunks, 0.25 commentary weight).
+Current `/chat` traffic does not generate that file.
 
 ### 5.2 Router Optimizer
 
@@ -235,7 +263,9 @@ if financial_task_type:
             return task_pref["preferred_role"]  # Override hardcoded logic
 ```
 
-**Effect:** Router uses learned role preference (e.g., `deep_reasoning` for `valuation_analysis`) instead of hardcoded heuristics.
+**Effect when a valid preferences file exists:** Router uses learned role
+preference (e.g., `deep_reasoning` for `valuation_analysis`) instead of
+hardcoded heuristics. Current `/chat` traffic does not generate that file.
 
 ### 5.3 Fallback Behavior
 
@@ -249,7 +279,7 @@ if financial_task_type:
 
 ### 6.1 Trigger
 
-Manual invocation (not yet wired to cron or endpoint).
+Manual invocation (not wired to cron or endpoint).
 
 ### 6.2 Logic
 
@@ -286,7 +316,8 @@ Manual invocation (not yet wired to cron or endpoint).
 
 ### 7.2 Non-Blocking Design
 
-- Quality scoring is **logging-only** — no errors thrown
+- Quality scoring is **telemetry-only** — no errors thrown and no preference
+  file writes
 - If scorer fails, chat response still completes
 - Learned preferences are **optional overrides** — fallback to hardcoded defaults always works
 
@@ -300,16 +331,19 @@ Manual invocation (not yet wired to cron or endpoint).
 |------------|------|-------|----------|
 | Preferences I/O | `test_chat_preferences.py` | 6 | Load, save, snapshot, restore, malformed handling |
 | Quality Scorer | `test_chat_quality_scorer.py` | 7 | Retrieval precision, coherence, composite metric |
-| Preference Updater | `test_chat_preference_updater.py` | 4 | Group by params, min samples, accumulation |
+| Preference Updater | `test_chat_preference_updater.py` | 5 | Group by params, min samples, accumulation, runtime-shaped records do not learn preferences |
 | Integration | `test_chat_learning_integration.py` | 3 | Full cycle, rollback, skill patching |
 | Retrieval Rule 0 | `test_retrieval_orchestrator_learning.py` | 3 | Learned params, fallback, malformed |
 | Router Rule 0 | `test_router_optimizer_learning.py` | 4 | Learned role, fallback, invalid role, non-financial skip |
 
-**Total: 27 tests passing**
+Focused preference-updater coverage now includes runtime-shaped records; verify
+broader suite counts with the active test runner before citing a total.
 
 ### 8.2 Regression Protection
 
-- Existing chat endpoint tests still pass (learning loop is non-blocking)
+- Existing chat endpoint tests still pass (quality telemetry is non-blocking)
+- Runtime-shaped quality-turn test verifies no retrieval/router preferences are
+  learned without required bounded updater fields
 - Rule 0 tests verify fallback when preferences missing/malformed
 - Integration tests verify rollback mechanism
 
@@ -319,14 +353,17 @@ Manual invocation (not yet wired to cron or endpoint).
 
 ### 9.1 Cold Start
 
-- On first deployment, `chat_preferences.json` does not exist
-- System uses hardcoded defaults until min sample count reached (10 turns)
+- `chat_preferences.json` may not exist
+- System uses hardcoded defaults unless a valid preferences file is supplied by
+  a guarded writer or operator workflow
 - No degradation during cold start
 
 ### 9.2 Preference Drift
 
-- Preferences accumulate evidence over time (weighted averaging)
-- Old evidence decays as new samples arrive
+- Preferences only accumulate evidence when a guarded writer or operator
+  workflow supplies fully shaped quality turns
+- Old evidence decay is a future writer concern, not current live `/chat`
+  behavior
 - Monitor `avg_composite_metric` for regression — if learned preference performs worse than baseline, rollback
 
 ### 9.3 Manual Override
@@ -338,7 +375,7 @@ Manual invocation (not yet wired to cron or endpoint).
 
 **Key metrics to track:**
 - `composite_metric` distribution over time (should trend upward)
-- Learned preference adoption rate (% of requests using learned params)
+- Learned preference adoption rate (% of requests using supplied learned params)
 - Rollback frequency (should be low)
 - Skill patch success rate
 
@@ -387,16 +424,17 @@ Test learned preferences against hardcoded defaults with controlled experiments.
 
 - ✅ No RAG logic in cockpit (all via backend APIs)
 - ✅ No direct Postgres/Qdrant access from learning loop
-- ✅ Deterministic preference storage (JSON atomic writes)
-- ✅ Fast path is non-blocking (logs only, no errors thrown)
+- ✅ Deterministic preference storage utilities (JSON atomic writes)
+- ✅ Quality telemetry path is non-blocking (logs only, no errors thrown)
 - ✅ Backend owns all retrieval logic (Rule 0 reads backend-generated preferences)
 
 ### 11.2 Engineering Discipline
 
-- ✅ All changes tested with regression suite (27 tests)
+- ✅ Focused regression coverage added for the inactive runtime-writer contract;
+  broader suite counts must be reverified before release claims
 - ✅ Milestone commits with `Working:` / `Tested:` fields
 - ✅ No silent fallbacks (preference loading failures are logged)
-- ✅ Snapshot/rollback for regression protection
+- ✅ Snapshot/rollback utilities for future guarded writer regression protection
 
 ---
 
@@ -413,9 +451,15 @@ Test learned preferences against hardcoded defaults with controlled experiments.
 
 The chat learning loop provides:
 - **Deterministic quality measurement** via composite metric
-- **Automatic parameter tuning** via fast path (retrieval params, router roles)
-- **Qualitative skill accumulation** via slow path (LLM review → skill patches)
-- **Regression protection** via snapshot/rollback
+- **No automatic parameter tuning from live `/chat` traffic yet**; runtime
+  preference writes are inactive
+- **Preference updater utilities** for future guarded retrieval/router tuning
+- **Qualitative skill accumulation utilities** via slow path (LLM review →
+  skill patches), not a live automatic loop
+- **Regression protection utilities** via snapshot/rollback
 - **Non-breaking integration** (fallback to hardcoded defaults always works)
 
-**Production status:** Active as of 2026-04-08. Will begin accumulating quality signals as `/chat` traffic flows.
+**Production status:** Quality scoring telemetry is active. Runtime preference
+writes to `chat_preferences.json` are inactive as of 2026-06-26; do not claim
+adaptive chat learning from `/chat` traffic until a guarded writer is wired and
+validated with runtime-shaped records.

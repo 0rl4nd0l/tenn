@@ -1,0 +1,25 @@
+{
+  "_source": "Hand-verified from rendered local source PDF page 27: consolidated statement of cash flows is for the year ended 31 December 2025, and the 2025 $ column uses raw dollar values.",
+  "_verification": "hand-verified-rendered-pdf",
+  "_verification_confidence": "high",
+  "document_id": "ctm_a_2025-12-31_canary_regression",
+  "ticker": "CTM",
+  "source_file": "/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+  "period_type": "A",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "units",
+  "metrics": {
+    "operating_cf": -13225929,
+    "investing_cf": -2167611,
+    "financing_cf": 22024529,
+    "cash_end": 24577181
+  },
+  "tolerances": {
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.01
+  },
+  "expected_trust": "trusted"
+}

@@ -266,6 +266,7 @@ def test_ingest_transcript_verifies_qdrant_embeds_and_stages_hot_source(monkeypa
     assert len(lines) == 1
     row = json.loads(lines[0])
     assert row["payload"]["chunk_id"].endswith(":0")
+    assert row["payload"]["logical_vector_id"] == row["payload"]["chunk_id"]
     assert str(uuid.UUID(row["id"])) == row["id"]
 
 

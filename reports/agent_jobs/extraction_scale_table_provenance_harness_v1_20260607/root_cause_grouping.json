@@ -1,0 +1,88 @@
+{
+  "audit_questions": {
+    "future_sample_artifact_provenance_fields": [
+      "document_id",
+      "ticker",
+      "source_path",
+      "source_document_class",
+      "status",
+      "error",
+      "selected_table_label",
+      "selected_page_number",
+      "table_index",
+      "table_caption",
+      "table_headers",
+      "table_local_scale",
+      "same_page_scale",
+      "document_level_scale",
+      "metric_name",
+      "row_label",
+      "row_ref",
+      "period_column",
+      "value_cell_text",
+      "raw_value",
+      "normalized_value",
+      "scale_source",
+      "metric_source_scales",
+      "metric_scale_sources",
+      "common_metric_source_scale_input",
+      "common_metric_source_scale_output",
+      "final_gate"
+    ],
+    "must_fail_closed_mixed_or_unclean": [
+      "EDU",
+      "HUB",
+      "LBL",
+      "CTN"
+    ],
+    "parser_or_table_coverage_gaps": [
+      "WHC",
+      "AZJ",
+      "EDU",
+      "DXC"
+    ],
+    "policy_gaps": [
+      "NIC webcast-details document-family policy",
+      "AZJ nearest-$100k rounding policy"
+    ],
+    "same_page_scale_propagation_note": "AZJ has repeated same-page millions evidence on selected statement pages, but this is not enough for a production repair until metric-local row/page binding is captured. EDU is explicitly excluded because selected surfaces are mixed.",
+    "same_page_scale_propagation_required": [
+      "AZJ"
+    ],
+    "selected_table_scale_binding_note": "Only table-local explicit scale may bind. DXC and LBL keep this as a known selected-table risk/control; LBL also remains blocked by period evidence.",
+    "selected_table_scale_binding_required": [
+      "DXC",
+      "LBL"
+    ]
+  },
+  "generated_at": "2026-06-07T11:44:02.213706Z",
+  "groups": {
+    "clean_controls": [
+      "CXO",
+      "EQR"
+    ],
+    "document_family_policy_gap": [
+      "NIC"
+    ],
+    "existing_truth_gate_working": [
+      "DXC"
+    ],
+    "mixed_selected_surfaces_fail_closed": [
+      "EDU"
+    ],
+    "parser_table_coverage_gap": [
+      "WHC"
+    ],
+    "period_source_fail_closed": [
+      "HUB",
+      "CTN"
+    ],
+    "same_page_scale_candidate_not_repeated": [
+      "AZJ"
+    ],
+    "selected_table_scale_binding_after_period_repair": [
+      "LBL"
+    ]
+  },
+  "job_id": "extraction_scale_table_provenance_harness_v1_20260607"
+}

@@ -1,0 +1,20 @@
+{
+  "issue": 112,
+  "production_data_access": false,
+  "status": "fixed_pending_commit",
+  "validation": {
+    "bash_syntax": "passed",
+    "failure_smoke": {
+      "exit_code": 1,
+      "failed_phase": "fetch",
+      "log_has_traceback": true,
+      "status": "failure"
+    },
+    "success_smoke": {
+      "exit_code": 0,
+      "fetch": "success",
+      "finish": "success",
+      "status": "success"
+    }
+  }
+}

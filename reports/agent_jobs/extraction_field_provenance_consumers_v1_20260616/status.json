@@ -1,0 +1,19 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "227e1ce0d4e99c4a13ece8012a44adeba4585cdf",
+  "branch": "safe/extraction-field-provenance-consumers-v1-20260616",
+  "current_state": "DONE_WITH_RISK",
+  "issue": 286,
+  "job_id": "extraction_field_provenance_consumers_v1_20260616",
+  "pr": null,
+  "selected_class": "field_provenance_consumer_wiring",
+  "unsafe_actions_avoided": [
+    "no count-24 or count-32",
+    "no broad extraction or random sample",
+    "no backfill",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory mutation",
+    "no source PDF/gold label/prompt/schema/runtime/model/GPU changes"
+  ],
+  "validation": "focused_passed"
+}

@@ -1,0 +1,39 @@
+{
+  "plan": {
+    "base_python": "/usr/bin/python3",
+    "install_command": [
+      "/tmp/tenn-pytest-overlay-7ad8hti5/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "pytest>=8.3.3,<10",
+      "pytest-asyncio>=0.24.0,<2",
+      "respx>=0.23.1,<0.24"
+    ],
+    "mode": "ephemeral_overlay",
+    "overlay_dir": "/tmp/tenn-pytest-overlay-7ad8hti5",
+    "pytest_command": [
+      "/tmp/tenn-pytest-overlay-7ad8hti5/bin/python",
+      "-m",
+      "pytest",
+      "-c",
+      "pytest.ini",
+      "scripts/test_run_pytest_with_fallback.py",
+      "-q"
+    ],
+    "pythonpath": [
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/backend",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/scripts",
+      "/usr/local/lib/python3.10/dist-packages"
+    ],
+    "runner_python": "/tmp/tenn-pytest-overlay-7ad8hti5/bin/python",
+    "target_site_packages": [
+      "/usr/local/lib/python3.10/dist-packages"
+    ]
+  },
+  "returncode": 0,
+  "status": "PASS"
+}

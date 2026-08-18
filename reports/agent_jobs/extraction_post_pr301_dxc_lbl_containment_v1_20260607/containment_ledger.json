@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "containment_action": "none_no_current_match_found",
+      "data_missing": [
+        "accepted-row refs/provenance missing from PR #301 artifact",
+        "extraction_run_id missing from PR #301 accepted-output artifact"
+      ],
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "extraction_run_ids": [],
+      "qdrant_point_ids": [],
+      "row_keys": [],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "ticker": "DXC",
+      "unsafe_reason": "selected-table scale-binding issue and Net operating income accepted as canonical EBIT in count-16 artifact"
+    },
+    {
+      "containment_action": "none_no_current_match_found",
+      "data_missing": [
+        "accepted-row refs/provenance missing from PR #301 artifact",
+        "extraction_run_id missing from PR #301 accepted-output artifact"
+      ],
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "extraction_run_ids": [],
+      "qdrant_point_ids": [],
+      "row_keys": [],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "ticker": "LBL",
+      "unsafe_reason": "selected-table/period mismatch and scale-binding risk in count-16 artifact"
+    }
+  ],
+  "generated_at": "2026-06-07T04:28:17.991017Z",
+  "state": "NO_OP_CONTAINMENT_PROOF"
+}

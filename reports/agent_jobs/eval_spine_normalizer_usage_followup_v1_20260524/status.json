@@ -1,0 +1,45 @@
+{
+  "job_id": "eval_spine_normalizer_usage_followup_v1_20260524",
+  "status": "complete_safe_extension",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Reporting",
+    "Financial Truth"
+  ],
+  "mode": "safe_extension",
+  "production_data_access": false,
+  "implemented": true,
+  "validation_result": "PASS",
+  "summary": {
+    "readme_invocation_added": true,
+    "current_audit_inventory_shape_supported": true,
+    "sample_manifest_generated": true,
+    "canonical_core_metric_checks": 24,
+    "expanded_required_metric_checks": 39,
+    "confirmed_metric_coverage_total_expectations": 146,
+    "confirmed_metric_coverage_scored_expectations": 73,
+    "confirmed_metric_coverage_candidate_count": 70,
+    "confirmed_metric_coverage_ambiguous_count": 3,
+    "confirmed_metric_coverage_unsupported_count": 0
+  },
+  "changed_files": [
+    "scripts/reporting/README.md",
+    "scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py",
+    "scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/normalized_manifest.json",
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/scorecards.csv",
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/metric_expectations.csv"
+  ],
+  "data_missing": [
+    "confirmed_metric_coverage_current_accuracy remains missing because the source artifact is breadth inventory only.",
+    "Cockpit runtime display integration was intentionally not implemented."
+  ],
+  "no_mutation": {
+    "production_db_writes": false,
+    "parser_or_extraction_changes": false,
+    "gold_label_rewrites": false,
+    "qdrant_writes": false,
+    "news_writes": false,
+    "memory_writes": false
+  }
+}

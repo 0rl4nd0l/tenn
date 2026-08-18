@@ -1,0 +1,19 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "107adb03852558d42795b28c3a5ec887e7cd0c64",
+  "branch": "safe/extraction-source-noncandidate-source-kind-guard-v1-20260615",
+  "current_state": "DONE_WITH_RISK",
+  "job_id": "extraction_source_noncandidate_preparse_gate_v1_20260615",
+  "pr": null,
+  "selected_class": "document_family_eligibility_noncandidate_prefilter",
+  "unsafe_actions_avoided": [
+    "no count-24 or count-32",
+    "no random or broad extraction sample",
+    "no backfill",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory mutation",
+    "no source PDF/gold label/prompt/schema/runtime/model/GPU changes"
+  ],
+  "review_fix": "deferred parser import until after title-only noncandidate gate; regression now covers docling_extract import failure",
+  "validation": "focused_passed_review_fix"
+}

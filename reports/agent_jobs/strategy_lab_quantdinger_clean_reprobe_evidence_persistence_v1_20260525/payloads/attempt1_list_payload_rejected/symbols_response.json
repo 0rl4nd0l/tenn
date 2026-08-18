@@ -1,0 +1,26 @@
+{
+  "duration_seconds": 0.004,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {
+      "keyword": "BTC",
+      "limit": 5
+    },
+    "path": "/api/agent/v1/markets/Crypto/symbols",
+    "url": "http://127.0.0.1:15080/api/agent/v1/markets/Crypto/symbols"
+  },
+  "response": {
+    "body": {
+      "code": 403,
+      "data": null,
+      "details": null,
+      "message": "Market not allowed for this token: Crypto",
+      "retriable": false
+    },
+    "http_status": 403
+  }
+}

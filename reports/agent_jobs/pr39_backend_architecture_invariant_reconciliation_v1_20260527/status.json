@@ -1,0 +1,51 @@
+{
+  "job_id": "pr39_backend_architecture_invariant_reconciliation_v1_20260527",
+  "issue_number": 105,
+  "pr_number": 39,
+  "cluster_id": "C01",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "06cb29067d1021ea89d7b93341653d5750babe92",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "pr39_github_head": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+  "preservation_commit_contained": true,
+  "registry_status": {
+    "list_active": "ok_empty",
+    "check_overlap": "failed_unrelated_dirty_file",
+    "blocking_unrelated_dirty_files": [
+      "docs/agent_tasks/extraction_primary_canary_retry_after_cache_fix_v1_20260527.md"
+    ],
+    "claimed": false,
+    "released": false,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "mutation_mode_used": "audit_first_safe_extension",
+  "files_changed": [
+    "docs/agent_tasks/pr39_backend_architecture_invariant_reconciliation_v1_20260527.md",
+    "docs/architecture/06_embeddings_and_vector_store.md",
+    "docs/architecture/22_memory_ownership_map.md",
+    "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+    "financial-engine_v2/backend/tests/test_cursor_rule_compliance.py",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/README.md",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/status.json",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/invariant_matrix.json",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/c01_decision_record.md",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/validation_summary.md",
+    "reports/agent_jobs/pr39_backend_architecture_invariant_reconciliation_v1_20260527/diff-check.json"
+  ],
+  "validation_status": "PASSED_FOCUSED_CHECKS_WITH_UNRELATED_CHECK_DIFF_BLOCKER",
+  "c01_result": "CONTRACT_RECONCILED",
+  "root_cause_fixed": true,
+  "follow_up_required": true,
+  "production_data_access": false,
+  "github_mutation": false,
+  "commit_created": false,
+  "pr39_ready": false,
+  "issue_105_stays_open": true,
+  "data_missing": [
+    "same_shape_base_ci_run_for_c01_baseline_vs_pr",
+    "fresh_pr39_ci_after_local_c01_fix",
+    "final_physical_qdrant_point_id_contract_for_uuid5_coercion",
+    "legacy_worker_random_vector_uuid_ownership"
+  ]
+}

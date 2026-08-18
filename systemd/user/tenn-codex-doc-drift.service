@@ -1,0 +1,10 @@
+[Unit]
+Description=Tenn Codex automation - documentation drift updater
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/l4nd0/tenn-codex-automations-v1-20260516
+Environment=TENN_CODEX_AUTOMATION_WORKTREE=/home/l4nd0/tenn-codex-automations-v1-20260516
+Environment=TENN_CODEX_AUTOMATION_TARGET_WORKTREE=/home/l4nd0/tenn
+ExecStart=/home/l4nd0/tenn-codex-automations-v1-20260516/scripts/codex_automation_runner.py doc-drift
+TimeoutStartSec=1800

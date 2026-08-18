@@ -1,0 +1,100 @@
+{
+  "checks": [
+    {
+      "command": "pwd; git branch --show-current; git rev-parse HEAD; git remote -v; git status --short --untracked-files=all",
+      "result": "pass",
+      "summary": "Initial parent checkout was dirty and at dfa313aaa6c1b34696f4bf9a8bd430636e5792ce, so work moved to a clean sibling worktree at PR #319 merge commit 07bdfe6d84eeba41c357eaf5893420ef77189625."
+    },
+    {
+      "command": "gh pr view 319 --repo 0rl4nd0l/tenn --json number,state,baseRefName,headRefName,mergeCommit,mergedAt,title",
+      "result": "pass",
+      "summary": "PR #319 is MERGED to migration/clean-runtime-baseline-reconstruct-v1 at 07bdfe6d84eeba41c357eaf5893420ef77189625."
+    },
+    {
+      "command": "git worktree add -b safe/extraction-scale-table-provenance-harness-v1-20260607 /home/l4nd0/tenn-scale-table-provenance-harness-v1-20260607 07bdfe6d84eeba41c357eaf5893420ef77189625",
+      "result": "pass",
+      "summary": "Created clean sibling worktree; initial status in that worktree was clean."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_scale_table_provenance_harness_v1_20260607.md",
+      "result": "pass",
+      "summary": "ok=true; task-card issues=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root . --read-only",
+      "result": "pass",
+      "summary": "ok=true, read_only=true, lock_acquired=false, active_jobs=[]"
+    },
+    {
+      "command": "git show b5537f933f2b7b31a1cab8dea0f4204ba2ac8360:reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/README.md",
+      "result": "pass",
+      "summary": "Read prior count-24 failure taxonomy from git history only; no checkout, merge, sample, extraction, or backfill was run."
+    },
+    {
+      "command": "python3 financial-engine_v2/scripts/broad_extraction_test.py --scale-table-provenance-harness --output-dir reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607",
+      "result": "pass",
+      "summary": "Wrote harness_manifest.json, evidence_table.json, root_cause_grouping.json, and repair_decision.json without PDF discovery, LLM client creation, sample selection, parser execution, or extraction."
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/scripts python3 -m pytest financial-engine_v2/scripts/test_broad_extraction_test.py -q",
+      "result": "not_available",
+      "summary": "/usr/bin/python3 has no pytest module; reran with the baseline Tenn venv."
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/scripts /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/scripts/test_broad_extraction_test.py -q",
+      "result": "pass",
+      "summary": "6 passed in 0.09s."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "pass",
+      "summary": "No py_compile errors."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "pass",
+      "summary": "All checks passed."
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads(path.read_text()) ... PY",
+      "result": "pass",
+      "summary": "Parsed final JSON report artifacts successfully."
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass",
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_scale_table_provenance_harness_v1_20260607.md --repo-root .",
+      "result": "pass",
+      "summary": "ok=true; disallowed_files=[]; report_path=reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/diff-check.json"
+    },
+    {
+      "command": "git diff --name-only -- '*.pdf'; git diff --cached --name-only -- '*.pdf'; git status --short --untracked-files=all -- '*.pdf'",
+      "result": "pass",
+      "summary": "No PDF paths reported."
+    }
+  ],
+  "explicitly_not_run": [
+    "count-24 rerun",
+    "count-32",
+    "random sample",
+    "broad extraction",
+    "broad backfill",
+    "full ticker-universe extraction",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF edits",
+    "prompt changes",
+    "gold-label changes",
+    "runtime config changes",
+    "schema changes",
+    "dirty parent-batch merge"
+  ],
+  "ignored_artifact_note": "reports/ is gitignored; task-card check-diff validated visible code/docs/task-card changes and wrote diff-check.json. Report artifacts were created under the allowed output_dir and JSON-parsed separately.",
+  "result": "pass_with_report_artifact_caveat"
+}

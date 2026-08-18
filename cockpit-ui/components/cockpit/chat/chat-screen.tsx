@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { MessageClaimVerification } from './message-claim-verification'
@@ -37,6 +38,8 @@ import {
   getActionJob,
   getChatSessionMessages,
   deleteChatSessionRemote,
+  fetchChatReadiness,
+  withApiKey,
   type ActionJobStatus,
 } from '@/lib/api-client'
 import { deleteChatSession, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
@@ -53,9 +56,20 @@ import {
 import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
 import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
+import {
+  summarizeChatReadiness,
+  type ChatReadinessViewModel,
+} from '@/lib/cockpit-chat-readiness'
 import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError } from '@/lib/cockpit-types'
-import { toReportDisplayPath } from '@/lib/report-path'
 import { toast } from 'sonner'
+import {
+  buildCodexDeployMetadata,
+  formatFeedbackSuccessToast,
+  formatFlagHandoffMessage,
+  isOperatorDiagnosticsVisible,
+  type FeedbackCaptureResponse,
+  type FeedbackKind,
+} from './chat-operator-diagnostics'
 
 const MAX_CHAT_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
@@ -63,23 +77,7 @@ function formatAttachmentLimit(bytes: number): string {
   return `${Math.floor(bytes / (1024 * 1024))} MiB`
 }
 
-type FeedbackKind = 'good' | 'poor'
-
 type FeedbackState = 'saving-good' | 'saved-good' | 'saving-poor' | 'saved-poor'
-
-type FeedbackCaptureResponse = {
-  report_id: string
-  feedback_type: FeedbackKind
-  capture_kind?: 'chat_feedback' | 'ui_issue' | 'auto_diagnostic'
-  report_dir: string
-  read_api_path?: string | null
-  codex_prompt?: string | null
-  codex_prompt_path?: string | null
-  investigation_path?: string | null
-  investigation_status?: string | null
-  codex_cli_command?: string | null
-  analysis_summary?: string | null
-}
 
 type CodexDeployStatus = 'queued' | 'launching' | 'running' | 'completed' | 'failed' | 'not_requested' | 'error'
 
@@ -173,6 +171,90 @@ function buildProviderErrorNotice(providerError: ChatProviderError | null | unde
   return message || 'Claude API credits are exhausted. Top up Anthropic credits in Plans & Billing.'
 }
 
+function ChatReadinessPanel({ model }: { model: ChatReadinessViewModel }) {
+  if (!model.shouldRender) {
+    return null
+  }
+
+  const toneClass = model.tone === 'blocked'
+    ? 'border-red-500/35 bg-red-500/[0.07] text-red-50'
+    : model.tone === 'warning'
+      ? 'border-amber-500/35 bg-amber-500/[0.07] text-amber-50'
+      : 'border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-50'
+  const icon = model.tone === 'blocked'
+    ? <AlertTriangle className="h-4 w-4 shrink-0" />
+    : model.tone === 'warning'
+      ? <Info className="h-4 w-4 shrink-0" />
+      : <CheckCircle2 className="h-4 w-4 shrink-0" />
+  const rows = model.capabilityRows
+    .filter((row) => !row.ready || row.status === 'DEGRADED')
+    .slice(0, 5)
+  const actions = model.safeActivationActions.slice(0, 3)
+
+  return (
+    <section className={`rounded-md border px-3 py-2 font-mono text-xs ${toneClass}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        {icon}
+        <span className="font-semibold uppercase tracking-[0.14em]">{model.headline}</span>
+        {model.tickerLabel ? (
+          <span className="rounded border border-current/25 px-2 py-0.5 text-[11px]">
+            {model.tickerLabel}
+          </span>
+        ) : null}
+        <span className="text-current/75">{model.detail}</span>
+      </div>
+
+      {rows.length > 0 ? (
+        <div className="mt-2 grid gap-1.5 md:grid-cols-2">
+          {rows.map((row) => (
+            <div key={row.id} className="min-w-0 rounded border border-current/15 bg-black/20 px-2 py-1">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <span className="min-w-0 break-words text-current/95">{row.label}</span>
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-current/65">
+                  {row.status}
+                </span>
+              </div>
+              {row.blockers.length > 0 ? (
+                <div className="mt-1 break-words text-[11px] text-current/70">
+                  {row.blockers[0]}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {actions.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-current/75">
+          {actions.map((action) => (
+            <span key={action} className="rounded border border-current/15 bg-black/15 px-2 py-0.5">
+              {action}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function buildReadinessBlockedMessage(model: ChatReadinessViewModel): string {
+  const blockers = model.capabilityRows
+    .filter((row) => !row.ready)
+    .slice(0, 3)
+    .map((row) => {
+      const blocker = row.blockers[0] || row.status
+      return `- ${row.label}: ${blocker}`
+    })
+  const actions = model.safeActivationActions.slice(0, 2)
+  return [
+    'DATA_MISSING / readiness blocker:',
+    ...blockers,
+    '',
+    'Normal analysis is blocked until required answer capabilities are ready.',
+    ...actions.map((action) => `- next_action: ${action}`),
+  ].join('\n').trim()
+}
+
 const ACTION_CONFIRM_INPUTS = new Set([
   '/confirm',
   'confirm',
@@ -240,41 +322,6 @@ async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-function formatFlagHandoffMessage(result: FeedbackCaptureResponse, copiedPrompt: boolean): string {
-  const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
-  const promptPath = result.codex_prompt_path
-    ? (toReportDisplayPath(result.codex_prompt_path) || result.codex_prompt_path)
-    : null
-  const investigationPath = result.investigation_path
-    ? (toReportDisplayPath(result.investigation_path) || result.investigation_path)
-    : null
-  const status = result.investigation_status || 'queued'
-  const lines = [
-    'Potential issue detected.',
-    '',
-    `Report id: \`${result.report_id}\``,
-    `Report: \`${reportPath}\``,
-    `Status: \`${status}\``,
-  ]
-  if (promptPath) {
-    lines.push(`Draft repair prompt: \`${promptPath}\``)
-  }
-  if (investigationPath) {
-    lines.push(`Investigation packet: \`${investigationPath}\``)
-  }
-  if (result.read_api_path) {
-    lines.push(`View diagnostic: \`${result.read_api_path}\``)
-  }
-  if (result.report_id) {
-    lines.push('', 'Use the diagnostic controls below for operator-scoped repair work.')
-  }
-  const prompt = result.codex_prompt?.trim()
-  if (prompt) {
-    lines.push('', copiedPrompt ? 'Draft repair prompt copied to clipboard.' : 'Draft repair prompt saved to file.')
-  }
-  return lines.join('\n')
 }
 
 const FEEDBACK_NOTE_PRESETS: Record<FeedbackKind, readonly string[]> = {
@@ -464,16 +511,6 @@ function normalizeActionPreviewPayload(value: unknown): ActionPreview | undefine
   }
 }
 
-function buildCodexDeployMetadata(result: FeedbackCaptureResponse): NonNullable<ChatMessageType['metadata']>['codexDeploy'] {
-  return {
-    reportId: result.report_id,
-    reportPath: result.report_dir,
-    readApiPath: result.read_api_path ?? null,
-    promptPath: result.codex_prompt_path ?? null,
-    investigationPath: result.investigation_path ?? null,
-  }
-}
-
 function normalizeMessageSource(source: unknown): NonNullable<ChatMessageType['metadata']>['source'] {
   const value = String(source || '').trim()
   return value === 'local'
@@ -495,6 +532,22 @@ function normalizeStoreSource(source: unknown): 'local' | 'rented_gpu' | 'api' |
     || value === 'cockpit'
     ? value
     : 'unknown'
+}
+
+function buildDiagnosticSystemMessage(result: FeedbackCaptureResponse, copiedPrompt: boolean): ChatMessageType {
+  const operatorDiagnosticsVisible = isOperatorDiagnosticsVisible()
+  const codexDeploy = buildCodexDeployMetadata(result, operatorDiagnosticsVisible)
+
+  return {
+    id: generateId(),
+    role: 'system',
+    content: formatFlagHandoffMessage(result, copiedPrompt, operatorDiagnosticsVisible),
+    timestamp: new Date(),
+    metadata: {
+      source: 'cockpit',
+      ...(codexDeploy ? { codexDeploy } : {}),
+    },
+  }
 }
 
 function optionalNumber(value: unknown): number | undefined {
@@ -622,9 +675,12 @@ export function ChatScreen() {
     setActiveTicker,
   } = useCockpitStore()
   const { data: configData } = useQuery({
-    queryKey: ['cockpit-config-status'],
+    queryKey: ['cockpit-config-status', apiKey || 'anonymous'],
     queryFn: async () => {
-      const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+      const response = await fetch('/api/cockpit/config', {
+        cache: 'no-store',
+        headers: withApiKey(),
+      })
       if (!response.ok) {
         throw new Error(`Config unavailable (${response.status})`)
       }
@@ -633,7 +689,22 @@ export function ChatScreen() {
     refetchInterval: 30000,
     retry: 1,
   })
+  const {
+    data: chatReadinessData,
+    isLoading: chatReadinessLoading,
+    error: chatReadinessError,
+  } = useQuery({
+    queryKey: ['cockpit-chat-readiness', activeTicker || 'global'],
+    queryFn: () => fetchChatReadiness(activeTicker || undefined),
+    enabled: hasHydrated,
+    refetchInterval: 30000,
+    retry: 1,
+  })
   const config = parseCockpitConfig(configData)
+  const readinessModel = summarizeChatReadiness(chatReadinessData, {
+    isLoading: chatReadinessLoading,
+    error: chatReadinessError,
+  })
   const [tickerDraft, setTickerDraft] = useState('')
   const [showTickerInput, setShowTickerInput] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -1299,6 +1370,11 @@ export function ChatScreen() {
       }
     }
 
+    if (!content.startsWith('/') && !readinessModel.normalAnalysisAllowed) {
+      appendSystemMessage(buildReadinessBlockedMessage(readinessModel))
+      return
+    }
+
     clearStatusFallbackTimers()
     receivedServerStatusRef.current = false
     setIsStreaming(true)
@@ -1547,16 +1623,7 @@ export function ChatScreen() {
                 ? event.data.auto_flag as FeedbackCaptureResponse
                 : null
               const autoFlagMessage: ChatMessageType | null = autoFlag
-                ? {
-                    id: generateId(),
-                    role: 'system',
-                    content: formatFlagHandoffMessage(autoFlag, false),
-                    timestamp: new Date(),
-                    metadata: {
-                      source: 'cockpit',
-                      codexDeploy: buildCodexDeployMetadata(autoFlag),
-                    },
-                  }
+                ? buildDiagnosticSystemMessage(autoFlag, false)
                 : null
               const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
               if (providerErrorNotice) {
@@ -1917,6 +1984,9 @@ export function ChatScreen() {
         await new Promise(resolve => setTimeout(resolve, 1500))
         const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
           cache: 'no-store',
+          headers: {
+            'X-Cockpit-Control-Intent': 'read-codex-investigation',
+          },
         })
         const payload = await readPayload(response)
         const status = String(payload.status || 'unknown') as CodexDeployStatus
@@ -1949,6 +2019,9 @@ export function ChatScreen() {
       const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
         method: 'POST',
         cache: 'no-store',
+        headers: {
+          'X-Cockpit-Control-Intent': 'deploy-codex-investigation',
+        },
       })
       const payload = await readPayload(response)
       const status = String(payload.status || 'launching') as CodexDeployStatus
@@ -2007,7 +2080,7 @@ export function ChatScreen() {
     try {
       const response = await fetch('/api/cockpit/feedback/flag', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders('application/json'),
         body: JSON.stringify({
           session_id: sessionId,
           ticker: activeTicker,
@@ -2038,33 +2111,16 @@ export function ChatScreen() {
       setPendingFeedback(null)
       setFeedbackNote('')
       const result = payload as FeedbackCaptureResponse
-      const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
+      const operatorDiagnosticsVisible = isOperatorDiagnosticsVisible()
 
       if (feedbackType === 'good') {
-        toast.success(result.analysis_summary?.trim()
-          ? `Good response saved: ${result.analysis_summary}`
-          : `Good response saved to ${reportPath}`)
+        toast.success(formatFeedbackSuccessToast(result, feedbackType, false, operatorDiagnosticsVisible))
       } else {
-        const copiedPrompt = result.codex_prompt?.trim()
+        const copiedPrompt = operatorDiagnosticsVisible && result.codex_prompt?.trim()
           ? await copyFlagPromptToClipboard(result.codex_prompt)
           : false
-        setMessages((prev) => [...prev, {
-          id: generateId(),
-          role: 'system',
-          content: formatFlagHandoffMessage(result, copiedPrompt),
-          timestamp: new Date(),
-          metadata: {
-            source: 'cockpit',
-            codexDeploy: buildCodexDeployMetadata(result),
-          },
-        }])
-        toast.success(result.analysis_summary?.trim()
-          ? copiedPrompt
-            ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
-            : `Flag saved: ${result.analysis_summary}`
-          : copiedPrompt
-            ? `Flag saved and Codex prompt copied: ${reportPath}`
-            : `Flag saved to ${reportPath}`)
+        setMessages((prev) => [...prev, buildDiagnosticSystemMessage(result, copiedPrompt)])
+        toast.success(formatFeedbackSuccessToast(result, feedbackType, copiedPrompt, operatorDiagnosticsVisible))
       }
     } catch (error) {
       setFeedbackStates((prev) => {
@@ -2075,7 +2131,7 @@ export function ChatScreen() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast.error(`Failed to save feedback: ${errorMessage}`)
     }
-  }, [activeTicker, chatModel, feedbackStates, messages, preferences, sessionId])
+  }, [activeTicker, buildAuthHeaders, chatModel, feedbackStates, messages, preferences, sessionId])
 
   const handleFeedbackMessage = useCallback((message: ChatMessageType, kind: FeedbackKind) => {
     if (message.role !== 'assistant' || feedbackStates[message.id]) {
@@ -2323,6 +2379,7 @@ export function ChatScreen() {
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
+          <ChatReadinessPanel model={readinessModel} />
           {(latestIngest || takeaways || attached.attached.length > 0) ? (
             <div className="space-y-3 rounded-lg border border-border/60 bg-black/10 p-3">
               <div className="flex items-center justify-between gap-2">
@@ -2459,8 +2516,8 @@ export function ChatScreen() {
         open={sourcesOpen}
         apiKey={apiKey}
         onClose={() => setSourcesOpen(false)}
-        onReattach={({ sourceId, title }) => {
-          attached.attach({ sourceId, sourceKind: 'ephemeral', title })
+        onReattach={({ sourceId, sourceKind, title }) => {
+          attached.attach({ sourceId, sourceKind, title })
           setSourcesOpen(false)
         }}
       />

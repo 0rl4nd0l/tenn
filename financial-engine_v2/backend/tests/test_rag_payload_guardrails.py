@@ -193,7 +193,7 @@ def test_upsert_points_skips_invalid_asx_docs_payloads_before_write(monkeypatch,
     valid_document_id = str(uuid.uuid4())
     points = [
         {
-            "id": "bad:0",
+            "id": f"{valid_document_id}:0",
             "vector": [0.1, 0.2],
             "payload": {
                 "document_id": valid_document_id,
@@ -221,10 +221,47 @@ def test_upsert_points_skips_invalid_asx_docs_payloads_before_write(monkeypatch,
     assert writes[0][0] == "asx_docs"
     assert len(writes[0][1]) == 1
     assert writes[0][1][0].payload["ticker"] == "ABC"
+    assert writes[0][1][0].payload["logical_vector_id"] == f"{valid_document_id}:1"
+    assert writes[0][1][0].id == str(uuid.uuid5(uuid.NAMESPACE_URL, f"{valid_document_id}:1"))
     assert result == {"written_points": 1, "rejected_payloads": 1}
     warning_records = [record for record in caplog.records if record.levelname == "WARNING"]
     assert any(record.action == "skipped_write" for record in warning_records)
     assert any(record.reason == "payload field ticker is missing" for record in warning_records)
+
+
+def test_upsert_points_skips_asx_docs_logical_id_mismatch_before_write(monkeypatch, caplog):
+    writes: list[tuple[str, list]] = []
+
+    class DummyClient:
+        def upsert(self, *, collection_name, points, wait=True):
+            writes.append((collection_name, list(points)))
+
+    monkeypatch.setattr(embeddings.settings, "qdrant_collection", "asx_docs", raising=False)
+
+    valid_document_id = str(uuid.uuid4())
+    points = [
+        {
+            "id": "wrong-document:0",
+            "vector": [0.1, 0.2],
+            "payload": {
+                "document_id": valid_document_id,
+                "ticker": "ABC",
+                "chunk_index": 0,
+                "title": "Valid payload with wrong logical point id",
+            },
+        },
+    ]
+
+    with caplog.at_level("WARNING"):
+        result = embeddings.upsert_points(DummyClient(), "asx_docs", points)
+
+    assert writes == []
+    assert result == {"written_points": 0, "rejected_payloads": 1}
+    assert any(
+        record.reason == "point id does not match document_id:chunk_index"
+        and record.action == "skipped_write"
+        for record in caplog.records
+    )
 
 
 def test_delete_points_for_document_filters_by_document_id():

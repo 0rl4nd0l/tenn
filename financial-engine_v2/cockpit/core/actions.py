@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from cockpit.core.types import ActionSpec
+from shared.news_artifacts import (
+    default_news_articles_db,
+    default_news_context_db,
+    default_news_runs_root,
+    resolve_news_artifact_root,
+)
 
 
 VISIBLE_ACTION_IDS: tuple[str, ...] = (
@@ -71,7 +78,7 @@ class ActionRegistry:
             if workspace_root_override
             else repo_root.parent
         )
-        py = str(repo_root / ".venv" / "bin" / "python")
+        py = self._resolve_python_bin(repo_root)
 
         def _resolve_shared_script(script_name: str) -> str:
             candidate_roots: list[Path] = []
@@ -101,6 +108,10 @@ class ActionRegistry:
                 if candidate.exists():
                     return str(candidate)
             return str(fallback.resolve())
+
+        self.news_artifact_root, _ = resolve_news_artifact_root(
+            workspace_root=self.workspace_root
+        )
 
         self._actions: dict[str, ActionSpec] = {
             "full_history": ActionSpec(
@@ -471,18 +482,34 @@ class ActionRegistry:
                     "{lane}",
                     "--max-tickers",
                     "{max_tickers}",
+                    "--news-articles-db",
+                    "{news_articles_db}",
                     "--news-runs-root",
                     "{news_runs_root}",
+                    "--newspaper4k-source-profile",
+                    "{newspaper4k_source_profile}",
+                    "--newspaper4k-max-articles-per-source",
+                    "{newspaper4k_max_articles_per_source}",
+                    "--newspaper4k-max-total-articles",
+                    "{newspaper4k_max_total_articles}",
+                    "--newspaper4k-request-timeout-seconds",
+                    "{newspaper4k_request_timeout_seconds}",
                 ],
                 arg_schema={
                     "providers": str,
                     "since_hours": int,
                     "lane": str,
                     "max_tickers": int,
+                    "news_articles_db": str,
                     "news_runs_root": str,
                     "asx_wide": bool,
                     "tickers": str,
                     "auto_live_when_capture_missing": bool,
+                    "newspaper4k_source_profile": str,
+                    "newspaper4k_max_articles_per_source": int,
+                    "newspaper4k_max_total_articles": int,
+                    "newspaper4k_request_timeout_seconds": int,
+                    "newspaper4k_no_playwright": bool,
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
@@ -511,6 +538,8 @@ class ActionRegistry:
                     "{max_days}",
                     "--max-tickers",
                     "{max_tickers}",
+                    "--news-articles-db",
+                    "{news_articles_db}",
                     "--news-runs-root",
                     "{news_runs_root}",
                 ],
@@ -522,6 +551,7 @@ class ActionRegistry:
                     "run_id": str,
                     "max_days": int,
                     "max_tickers": int,
+                    "news_articles_db": str,
                     "news_runs_root": str,
                     "no_resume": bool,
                     "asx_wide": bool,
@@ -543,6 +573,8 @@ class ActionRegistry:
                     _resolve_shared_script("load_news_to_qdrant.py"),
                     "--db-path",
                     "{db_path}",
+                    "--news-context-db",
+                    "{news_context_db}",
                     "--qdrant-url",
                     "{qdrant_url}",
                     "--collection",
@@ -554,6 +586,7 @@ class ActionRegistry:
                 ],
                 arg_schema={
                     "db_path": str,
+                    "news_context_db": str,
                     "qdrant_url": str,
                     "collection": str,
                     "batch_size": int,
@@ -769,6 +802,19 @@ class ActionRegistry:
             ),
         }
 
+    @staticmethod
+    def _resolve_python_bin(repo_root: Path) -> str:
+        repo_python = repo_root / ".venv" / "bin" / "python"
+        candidates = [
+            repo_python,
+            repo_root.parent / ".venv" / "bin" / "python",
+            Path(sys.executable),
+        ]
+        for candidate in candidates:
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return str(candidate)
+        return str(repo_python)
+
     def list_actions(self) -> list[ActionSpec]:
         return [
             self._actions[action_id]
@@ -851,6 +897,8 @@ class ActionRegistry:
                 command.extend(["--tickers", tickers_raw])
             if normalized.get("auto_live_when_capture_missing"):
                 command.append("--auto-live-when-capture-missing")
+            if normalized.get("newspaper4k_no_playwright"):
+                command.append("--newspaper4k-no-playwright")
         if action_id == "historical_news_ingest":
             if normalized.get("no_resume"):
                 command.append("--no-resume")
@@ -1251,29 +1299,35 @@ class ActionRegistry:
             "metric_extraction_report",
             f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
         )
-        out.setdefault(
-            "db_path",
-            str(
-                self.workspace_root
-                / "reports"
-                / "qual_context"
-                / "news_articles.sqlite"
-            ),
-        )
+        news_articles_db = default_news_articles_db(self.news_artifact_root)
+        news_context_db = default_news_context_db(self.news_artifact_root)
+        news_runs_root = default_news_runs_root(self.news_artifact_root)
+        out.setdefault("news_articles_db", str(news_articles_db))
+        out.setdefault("news_context_db", str(news_context_db))
+        out.setdefault("db_path", str(news_articles_db))
         out.setdefault("qdrant_url", "http://localhost:6333")
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
         out.setdefault("providers", "newspaper4k")
+        if spec.id == "daily_news_ingest":
+            profile = (
+                str(out.get("newspaper4k_source_profile") or "daily")
+                .strip()
+                .lower()
+            )
+            out["newspaper4k_source_profile"] = profile
+            out.setdefault("newspaper4k_max_articles_per_source", 15)
+            out.setdefault("newspaper4k_max_total_articles", 60)
+            out.setdefault("newspaper4k_request_timeout_seconds", 10)
+            if "newspaper4k_no_playwright" not in out:
+                out["newspaper4k_no_playwright"] = profile == "daily"
         if spec.id == "load_news_to_qdrant":
             out.setdefault("since_hours", 0)
         elif spec.id == "daily_news_ingest":
             out.setdefault("since_hours", 24)
         else:
             out.setdefault("since_hours", 36)
-        out.setdefault(
-            "news_runs_root",
-            str(self.workspace_root / "reports" / "qual_context" / "news_runs"),
-        )
+        out.setdefault("news_runs_root", str(news_runs_root))
         out.setdefault("provider", "gdelt")
         out.setdefault("from_day", "2026-01-01")
         out.setdefault("to_day", today)

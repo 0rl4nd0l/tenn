@@ -46,6 +46,12 @@ class _Field:
     def nullslast(self):
         return self
 
+    def in_(self, other):  # noqa: ANN001
+        return self
+
+    def ilike(self, other):  # noqa: ANN001
+        return self
+
 
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
@@ -97,10 +103,17 @@ def _load_module():
 
 
 class _FakeRow:
-    def __init__(self, document_id: str, source_url: str = "https://example.com/doc.pdf") -> None:
+    def __init__(
+        self,
+        document_id: str,
+        source_url: str = "https://example.com/doc.pdf",
+        ticker: str = "BHP",
+        pdf_sha256: str = "",
+    ) -> None:
         self.document_id = document_id
         self.source_url = source_url
-        self.pdf_sha256 = ""
+        self.ticker = ticker
+        self.pdf_sha256 = pdf_sha256
 
 
 class _FakeQuery:
@@ -138,6 +151,145 @@ class _FakeDB:
 
 
 class ResumePendingExtractionFailureTests(unittest.TestCase):
+    def test_existing_marketindex_blockers_seed_resume_summary(self):
+        mod = _load_module()
+        document_stub = type(
+            "Document",
+            (),
+            {
+                "ticker": _Field(),
+                "pdf_sha256": _Field(),
+                "source_url": _Field(),
+                "published_at": _Field(),
+            },
+        )
+        fake_db = _FakeDB(
+            rows=[
+                _FakeRow(
+                    "44444444-4444-4444-4444-444444444444",
+                    source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000001",
+                    pdf_sha256="blocked_marketindex_403",
+                ),
+                _FakeRow(
+                    "55555555-5555-5555-5555-555555555555",
+                    source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000002",
+                    pdf_sha256="clean_pdf_hash",
+                ),
+            ]
+        )
+
+        with mock.patch.object(mod, "Document", document_stub):
+            summary = mod._load_existing_marketindex_recovery_summary(fake_db, ["BHP"])
+
+        self.assertEqual(summary["requires_headed_recovery_count"], 1)
+        self.assertEqual(summary["counts_by_marker"]["blocked_marketindex_403"], 1)
+        self.assertEqual(summary["samples"][0]["stage"], "existing_blocker")
+
+    def test_marketindex_headed_required_is_reported_as_recovery_blocker(self):
+        mod = _load_module()
+        document_stub = type(
+            "Document",
+            (),
+            {"ticker": _Field(), "pdf_sha256": _Field(), "published_at": _Field()},
+        )
+        with tempfile.TemporaryDirectory() as td:
+            report_path = Path(td) / "resume_report.json"
+            row = _FakeRow(
+                "22222222-2222-2222-2222-222222222222",
+                source_url="https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000001",
+            )
+            fake_db = _FakeDB(rows=[row])
+            args = argparse.Namespace(
+                ticker=["BHP"],
+                limit_per_ticker=0,
+                process_documents=False,
+                with_embeddings=False,
+                report=str(report_path),
+                max_retries=1,
+                retry_delay_seconds=0.0,
+                skip_importance_classification=True,
+                dry_run=False,
+            )
+            with (
+                mock.patch.object(mod, "parse_args", return_value=args),
+                mock.patch.object(mod, "SessionLocal", return_value=fake_db),
+                mock.patch.object(mod, "Document", document_stub),
+                mock.patch.object(
+                    mod,
+                    "download_pdf_for_document",
+                    side_effect=RuntimeError("marketindex_headed_required: use headed recovery"),
+                ),
+            ):
+                mod.main()
+
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(row.pdf_sha256, "blocked_marketindex_headed_required")
+            self.assertEqual(payload["totals"]["requires_headed_recovery_count"], 1)
+            self.assertEqual(payload["results"][0]["requires_headed_recovery_count"], 1)
+            self.assertEqual(
+                payload["marketindex_headed_recovery"]["recommended_command"],
+                "python3 scripts/recover_marketindex_headed.py --ticker BHP",
+            )
+            self.assertEqual(
+                payload["marketindex_headed_recovery"]["samples"][0]["document_id"],
+                "22222222-2222-2222-2222-222222222222",
+            )
+
+    def test_marketindex_403_uses_request_url_when_row_url_is_blank(self):
+        mod = _load_module()
+        document_stub = type(
+            "Document",
+            (),
+            {"ticker": _Field(), "pdf_sha256": _Field(), "published_at": _Field()},
+        )
+        request_url = "https://www.marketindex.com.au/asx/bhp/announcements/example-2A0000001"
+
+        class _FakeHTTPStatusError(Exception):
+            def __init__(self, message, *, request=None, response=None):  # noqa: ANN001
+                super().__init__(message)
+                self.request = request
+                self.response = response
+
+        if not hasattr(mod.httpx, "HTTPStatusError"):
+            mod.httpx.HTTPStatusError = _FakeHTTPStatusError
+        try:
+            exc = mod.httpx.HTTPStatusError(
+                "forbidden",
+                request=SimpleNamespace(url=request_url),
+                response=SimpleNamespace(status_code=403),
+            )
+        except TypeError:
+            exc = mod.httpx.HTTPStatusError("forbidden")
+            exc.request = SimpleNamespace(url=request_url)
+            exc.response = SimpleNamespace(status_code=403)
+
+        with tempfile.TemporaryDirectory() as td:
+            report_path = Path(td) / "resume_report.json"
+            row = _FakeRow("33333333-3333-3333-3333-333333333333", source_url="")
+            fake_db = _FakeDB(rows=[row])
+            args = argparse.Namespace(
+                ticker=["BHP"],
+                limit_per_ticker=0,
+                process_documents=False,
+                with_embeddings=False,
+                report=str(report_path),
+                max_retries=1,
+                retry_delay_seconds=0.0,
+                skip_importance_classification=True,
+                dry_run=False,
+            )
+            with (
+                mock.patch.object(mod, "parse_args", return_value=args),
+                mock.patch.object(mod, "SessionLocal", return_value=fake_db),
+                mock.patch.object(mod, "Document", document_stub),
+                mock.patch.object(mod, "download_pdf_for_document", side_effect=exc),
+            ):
+                mod.main()
+
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(row.pdf_sha256, "blocked_marketindex_403")
+            self.assertEqual(payload["marketindex_headed_recovery"]["samples"][0]["source_url"], request_url)
+
     def test_extraction_failure_is_counted_and_fails_exit_code(self):
         mod = _load_module()
         document_stub = type(
@@ -157,6 +309,7 @@ class ResumePendingExtractionFailureTests(unittest.TestCase):
                 max_retries=1,
                 retry_delay_seconds=0.0,
                 skip_importance_classification=True,
+                dry_run=False,
             )
             with (
                 mock.patch.object(mod, "parse_args", return_value=args),

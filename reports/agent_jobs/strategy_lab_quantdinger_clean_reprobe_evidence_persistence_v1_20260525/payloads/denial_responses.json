@@ -1,0 +1,72 @@
+{
+  "t_kill_switch": {
+    "request": {},
+    "response": {
+      "body": {
+        "code": 403,
+        "details": null,
+        "message": "Token lacks required scope: T",
+        "retriable": false
+      },
+      "http_status": 403
+    }
+  },
+  "t_quick_trade_order": {
+    "request": {
+      "market": "Crypto",
+      "order_type": "market",
+      "qty": 0.001,
+      "side": "buy",
+      "symbol": "BTC/USDT"
+    },
+    "response": {
+      "body": {
+        "code": 403,
+        "details": null,
+        "message": "Token lacks required scope: T",
+        "retriable": false
+      },
+      "http_status": 403
+    }
+  },
+  "t_scope_issuance": {
+    "request": {
+      "expires_in_days": 1,
+      "instruments": "BTC/USDT",
+      "markets": "Crypto",
+      "name": "tenn-clean-reprobe-t-denial-v1-20260525",
+      "paper_only": false,
+      "rate_limit_per_min": 60,
+      "scopes": "T"
+    },
+    "response": {
+      "body": {
+        "code": 403,
+        "data": null,
+        "details": "QUANTDINGER_DEPLOYMENT_MODE=saas blocks T-scope at issuance.",
+        "message": "T-scope (live trading) tokens are not available on this hosted deployment. Self-host QuantDinger if you need to route real-money orders through the Agent Gateway.",
+        "retriable": false
+      },
+      "http_status": 403
+    }
+  },
+  "w_strategy_create": {
+    "request": {
+      "market_category": "Crypto",
+      "status": "stopped",
+      "strategy_name": "tenn-clean-reprobe-denial-should-not-create",
+      "strategy_type": "indicator",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D"
+    },
+    "response": {
+      "body": {
+        "code": 403,
+        "details": null,
+        "message": "Token lacks required scope: W",
+        "retriable": false
+      },
+      "http_status": 403
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "forbidden_actions_avoided": [
+    "no broad fuzzy exclusions",
+    "no sample run in this phase",
+    "no broad extraction/backfill/full ticker extraction",
+    "no DB/Qdrant/news/memory mutation",
+    "no source PDF edits",
+    "no prompt/gold-label/schema/runtime/model/GPU config changes"
+  ],
+  "generated_at": "2026-06-07T04:32:56.394274Z",
+  "no_overblock_tests": [
+    "annual_report_title remains allowed for Annual Report for the year ended 30 June 2024 with director report text",
+    "valid annual, half-year, Appendix 4D, Appendix 4C/5B candidates remain allowed in existing parameterized tests"
+  ],
+  "phase": "candidate-exclusion taxonomy hardening",
+  "rules_added": [
+    {
+      "class": "meeting_or_proxy_notice",
+      "hardening": "Title-only Notice of Annual General Meeting / Notice of Meeting and Explanatory wording now excludes AGM notices without requiring proxy-form text.",
+      "reason": "source_noncandidate:meeting_or_proxy_notice",
+      "scope": "source title and first-page text only"
+    },
+    {
+      "class": "director_interest_notice",
+      "hardening": "Appendix 3Y / Change of Director Interest Notice securities notices are excluded as obvious non-financial notices.",
+      "reason": "source_noncandidate:director_interest_notice",
+      "scope": "source title and first-page text only"
+    }
+  ],
+  "rules_preserved": [
+    "meeting_or_proxy_notice",
+    "board_change_notice",
+    "operational_project_update",
+    "share_sale_or_gross_proceeds_announcement",
+    "pre_results_segment_re_presentation"
+  ],
+  "scorecard_taxonomy": {
+    "new_reason": "source_noncandidate:director_interest_notice",
+    "source_noncandidate_reasons_preserved": true,
+    "test": "test_compute_summary_preserves_director_interest_notice_reason"
+  },
+  "source_evidence": [
+    {
+      "source": "current Qdrant asx_docs sampled payload during M1/M2 inspection",
+      "ticker": "EOS",
+      "title": "Change of Director's Interest Notice - Robert Nicholson",
+      "why_nonfinancial": "Appendix 3Y securities-interest notice, not a financial report"
+    },
+    {
+      "source": "known PR299 false-positive class",
+      "title_pattern": "Notice of Annual General Meeting and Explanatory Statement",
+      "why_nonfinancial": "meeting/proxy/AGM notice, not a financial report"
+    }
+  ],
+  "state": "PASSED"
+}

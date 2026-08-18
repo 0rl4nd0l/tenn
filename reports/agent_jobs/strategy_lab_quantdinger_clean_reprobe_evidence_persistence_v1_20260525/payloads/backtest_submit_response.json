@@ -1,0 +1,40 @@
+{
+  "duration_seconds": 0.01,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": {
+      "code": "fast = SMA(close, 10)\nslow = SMA(close, 30)\ndf[\"buy\"]  = CROSSOVER(fast, slow).fillna(False).astype(bool)\ndf[\"sell\"] = CROSSUNDER(fast, slow).fillna(False).astype(bool)",
+      "commission": 0.001,
+      "end_date": "2024-03-31",
+      "indicator_params": {},
+      "initial_capital": 10000,
+      "leverage": 1,
+      "market": "Crypto",
+      "slippage": 0.0,
+      "start_date": "2024-01-01",
+      "strategy_config": {},
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "trade_direction": "long"
+    },
+    "method": "POST",
+    "params": {},
+    "path": "/api/agent/v1/backtests",
+    "url": "http://127.0.0.1:15080/api/agent/v1/backtests"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": {
+        "created_at": "2026-05-25T01:53:41.609170Z",
+        "job_id": "49a41643ec494510900e0487af5170be",
+        "kind": "backtest",
+        "status": "queued"
+      },
+      "message": "queued"
+    },
+    "http_status": 202
+  }
+}

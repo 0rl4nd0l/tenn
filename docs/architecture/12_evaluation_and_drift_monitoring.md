@@ -130,6 +130,14 @@ Current repo fixture pool: 13 JSON fixtures under `backend/tests/eval_fixtures/`
 
 **Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances remain 1% for flow metrics and 0.1% for `cash_end`.
 
+Appendix 4D/4E wrapper filings keep the canonical metric ontology unchanged.
+The validation gate may accept exactly two canonical metrics only for a
+structurally identified wrapper with `revenue`, `np_attributable`, source-bound
+period/scale/currency context, and required wrapper disclosure/control evidence.
+NTA per security, dividends/distributions, record-date, and associate/JV rows
+remain disclosure-only and do not count as canonical metrics. Ordinary annual
+and half-year reports keep the normal three-metric minimum.
+
 ### Accuracy thresholds
 
 Defined in `eval_config.json`:
@@ -204,6 +212,93 @@ Rules:
 - Keep `source_file` pointed at the exact repo-relative source PDF when possible.
 - Do not infer, reconcile, or derive missing values in this corpus.
 - Keep the pilot in the existing corpus path; do not create a second gold location.
+
+### Pre-canary truth gates
+
+Before another #96 canary batch, live extraction includes narrow
+pre-persistence guards for source-bound truth failures seen in the second
+bounded canary:
+
+- advisory-only announcements are failed before metric extraction;
+- advisory-only announcements are excluded from the terminal canary candidate
+  manifest before normal candidate classification;
+- narrow source-class false positives are failed before metric extraction and
+  excluded from terminal canary candidate manifests when source title or
+  first-page text identifies meeting/proxy notices, board-change notices,
+  operational project updates, share-sale/gross-proceeds announcements, or
+  pre-results segment re-presentation documents, with Appendix 3Y /
+  change-of-director-interest notices and webcast-details logistics handled as
+  additional narrow non-financial notice classes;
+- broad-sample scorecards preserve narrow source-class exclusions as
+  `source_noncandidate:<class>` error-taxonomy entries;
+- EBITDA evidence cannot populate canonical `ebit`;
+- explicit source-unit values in row evidence must agree with normalized metric
+  magnitude;
+- explicit source-period evidence must agree with extracted `period_type`.
+- half-year accepted outputs are failed before persistence when `period_end`
+  equals a leading ASX announcement date in a half-year source title/filename.
+- plain dollar statement columns are treated as `units`, while currency remains
+  separate and `unknown` scale still fails.
+- source-explicit IDR/Rp trillion table units are treated as native rupiah
+  `trillions`, with no FX conversion and with non-AUD rows still marked
+  `ok_low_confidence` after hard gates pass.
+- source-bound Appendix 4D/4E wrapper evidence may relax only the metric minimum
+  to two canonical metrics; it does not promote wrapper disclosures into
+  canonical financial facts.
+
+These guards do not correct values, infer period type, mutate gold labels, or
+change parser routing. A failed gate prevents both canonical financial-row
+persistence and downstream `asx_docs` chunk embedding for that document.
+
+### Metric truth policy regressions
+
+The test-only real-gold fixtures include CLV/CTM canary regressions verified
+from local rendered source PDFs. They are evaluation artifacts only:
+
+- CLV locks the million-value and EBITDA-vs-EBIT failure class.
+- CTM locks annual period-type semantics and raw-dollar scale handling.
+
+Period context checks include both `period_end` and `period_type`. Metric
+contract parity reports include `metric_ontology_v1` so unsupported,
+ambiguous, persisted-only, and internal-only metric families remain visible
+without becoming canonical truth.
+
+### Scale-table provenance harness
+
+`financial-engine_v2/scripts/broad_extraction_test.py
+--scale-table-provenance-harness` writes a fixed no-extraction harness for the
+current scale-table family. It does not discover PDFs, sample candidates, create
+an LLM client, run extraction, or mutate persistence surfaces.
+
+The harness cases are fixed around AZJ, EDU, WHC, NIC, DXC, HUB, LBL, CTN, one
+clean scale-known control, and one clean noncandidate control. The output
+preserves the required row/cell provenance fields from the metric extraction
+contract and answers the scale audit questions before any future count-24 or
+count-32 approval is considered.
+
+The harness is a stop gate, not a repair by itself. It keeps count-24 reruns
+unjustified and count-32 blocked until at least two clean cases prove the same
+source-bound root cause and the proposed change is limited to one narrow
+selected-table or same-page scale binding rule. Mixed selected surfaces and
+period/source mismatches remain fail-closed.
+
+### Pre-persistence scorecard gate
+
+The confirmed metric payload scorecard now has a deterministic
+`pre_persistence_scorecard_gate_v1` wrapper. It is evaluation-only and consumes
+pre-supplied actual payloads; it does not run extraction, write canonical
+financial rows, mutate labels, or authorize broad backfill.
+
+The gate passes only when actual payloads were supplied and all result classes
+are either `present_correct` or the policy-allowed noncanonical
+`unsupported_correctly_abstained`. It fails on wrong value, wrong period, wrong
+unit/currency/scale, missing expected metric, missing evidence, ambiguous
+quarantine, missing actual payloads, or missing scorecard metric rows.
+
+Every gate artifact keeps `canonical_write_allowed: false` and
+`broad_backfill_authorized: false`. A pass means the payload scorecard can move
+to operator review; it is not canary approval and does not change persistence
+behavior.
 
 ### Base eval run
 

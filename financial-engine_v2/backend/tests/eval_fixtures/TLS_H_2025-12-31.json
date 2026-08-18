@@ -1,7 +1,37 @@
 {
-  "_source": "TLS Appendix 4D + Half-Year Financial Report + Half-Year Results and Operations Review. All values AUD millions applied.",
-  "_verification": "claude-opus",
-  "_verification_confidence": "high — extracted from audited financial statements and Appendix 4D.",
+  "_source": "Hand-verified by approved-15 source-evidence adjudication from TLS Appendix 4D + Half-Year Financial Report + Half-Year Results and Operations Review. All values AUD millions applied.",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high - approved-15 source-evidence adjudication confirmed the listed non-null metrics from source PDF evidence; metrics in source_review.data_missing_metrics remain expected-null/DATA_MISSING.",
+  "source_review": {
+    "job_id": "approved15_source_evidence_adjudication_v1_20260629",
+    "review_status": "approved_downstream_integration",
+    "confirmed_metrics": [
+      "capex",
+      "cash_end",
+      "ebit",
+      "financing_cf",
+      "investing_cf",
+      "net_debt",
+      "np_attributable",
+      "operating_cf",
+      "revenue",
+      "shares_outstanding"
+    ],
+    "data_missing_metrics": [],
+    "source_bound_arithmetic_confirmed_metrics": [],
+    "row_ids": {
+      "revenue": "AQ054",
+      "ebit": "AQ055",
+      "np_attributable": "AQ056",
+      "operating_cf": "AQ057",
+      "investing_cf": "AQ058",
+      "financing_cf": "AQ059",
+      "capex": "AQ060",
+      "cash_end": "AQ061",
+      "net_debt": "AQ062",
+      "shares_outstanding": "AQ063"
+    }
+  },
   "_notes": {
     "revenue": "4D p1: 'Revenue (excluding finance income) from ordinary activities' = 11,641. Ops review p2: 'Revenue (excluding finance income)' = 11,641.",
     "ebit": "Ops review p2: 'EBIT' = 2,016. Explicitly labeled.",
@@ -40,6 +70,6 @@
     "revenue": 0.01
   },
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.8
   }
 }

@@ -1,0 +1,56 @@
+{
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr299_accepted_output_audit_v1_20260606.md",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'net_operating_income or selected_table_scale or common_metric_source_scale'",
+      "exit_status": 0,
+      "result": "3 passed, 175 deselected"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "exit_status": 0,
+      "result": "180 passed in 2.02s"
+    },
+    {
+      "command": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "exit_status": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "find reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606 -name '*.json' -print0 | xargs -0 jq empty",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --name-only -- '*.pdf' && git diff --cached --name-only -- '*.pdf'",
+      "exit_status": 0,
+      "result": "no source PDFs in diff or staged"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr299_accepted_output_audit_v1_20260606.md --repo-root .",
+      "exit_status": 0,
+      "result": "passed; disallowed_files empty"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root .",
+      "exit_status": 0,
+      "result": "active_jobs empty; read_only=false; lock_acquired=true"
+    }
+  ],
+  "generated_at": "2026-06-07T03:36:26Z",
+  "state": "DONE_WITH_RISK"
+}

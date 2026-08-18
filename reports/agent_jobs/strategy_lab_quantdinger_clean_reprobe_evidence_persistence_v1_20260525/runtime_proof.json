@@ -1,0 +1,251 @@
+{
+  "backtest": {
+    "job_final_status": "succeeded",
+    "job_id": "49a41643ec494510900e0487af5170be",
+    "polls": [
+      {
+        "http_status": 200,
+        "poll": 1,
+        "status": "running"
+      },
+      {
+        "http_status": 200,
+        "poll": 2,
+        "status": "succeeded"
+      }
+    ],
+    "submit_http_status": 202,
+    "summary": {
+      "equity_curve_points": 91,
+      "maxDrawdown": -15.25,
+      "result_keys": [
+        "annualReturn",
+        "equityCurve",
+        "executionAssumptions",
+        "maxDrawdown",
+        "profitFactor",
+        "sharpeRatio",
+        "totalCommission",
+        "totalProfit",
+        "totalReturn",
+        "totalTrades",
+        "trades",
+        "winRate"
+      ],
+      "sharpeRatio": 3.52,
+      "totalReturn": 66.63,
+      "totalTrades": 1,
+      "trades_count": 2
+    }
+  },
+  "base_url": "http://127.0.0.1:15080",
+  "denial_probes": {
+    "t_kill_switch": {
+      "request": {},
+      "response": {
+        "body": {
+          "code": 403,
+          "details": null,
+          "message": "Token lacks required scope: T",
+          "retriable": false
+        },
+        "http_status": 403
+      }
+    },
+    "t_quick_trade_order": {
+      "request": {
+        "market": "Crypto",
+        "order_type": "market",
+        "qty": 0.001,
+        "side": "buy",
+        "symbol": "BTC/USDT"
+      },
+      "response": {
+        "body": {
+          "code": 403,
+          "details": null,
+          "message": "Token lacks required scope: T",
+          "retriable": false
+        },
+        "http_status": 403
+      }
+    },
+    "t_scope_issuance": {
+      "request": {
+        "expires_in_days": 1,
+        "instruments": "BTC/USDT",
+        "markets": "Crypto",
+        "name": "tenn-clean-reprobe-t-denial-v1-20260525",
+        "paper_only": false,
+        "rate_limit_per_min": 60,
+        "scopes": "T"
+      },
+      "response": {
+        "body": {
+          "code": 403,
+          "data": null,
+          "details": "QUANTDINGER_DEPLOYMENT_MODE=saas blocks T-scope at issuance.",
+          "message": "T-scope (live trading) tokens are not available on this hosted deployment. Self-host QuantDinger if you need to route real-money orders through the Agent Gateway.",
+          "retriable": false
+        },
+        "http_status": 403
+      }
+    },
+    "w_strategy_create": {
+      "request": {
+        "market_category": "Crypto",
+        "status": "stopped",
+        "strategy_name": "tenn-clean-reprobe-denial-should-not-create",
+        "strategy_type": "indicator",
+        "symbol": "BTC/USDT",
+        "timeframe": "1D"
+      },
+      "response": {
+        "body": {
+          "code": 403,
+          "details": null,
+          "message": "Token lacks required scope: W",
+          "retriable": false
+        },
+        "http_status": 403
+      }
+    }
+  },
+  "docker": {
+    "backend_image": "sha256:8f56f6d21304a84f62ba02c6877a6f493ca8416c0fc96cf56a69ff42a130f261 tenn_quantdinger_clean_reprobe_v1_20260525-backend:latest",
+    "compose_version": "Docker Compose version 2.37.1+ds1-0ubuntu2~22.04.1",
+    "project_name": "tenn_quantdinger_clean_reprobe_v1_20260525",
+    "server_version": "29.1.3"
+  },
+  "generated_at": "2026-05-25T01:53:38Z",
+  "job_id": "strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "market_read": {
+    "klines_count": 120,
+    "klines_http_status": 200,
+    "klines_limit_requested": 120,
+    "markets_http_status": 200,
+    "symbols_count": 1,
+    "symbols_http_status": 200
+  },
+  "ports": {
+    "during_docker_ps": {
+      "command": [
+        "bash",
+        "-lc",
+        "docker ps --format '{{.Names}} {{.Status}} {{.Ports}}' | grep -E 'quantdinger-(backend|db|redis)' || true"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.021,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "quantdinger-backend Up 7 minutes (healthy) 127.0.0.1:15080->5000/tcp\nquantdinger-db Up 7 minutes (healthy) 127.0.0.1:15432->5432/tcp\nquantdinger-redis Up 7 minutes (healthy) 127.0.0.1:16379->6379/tcp"
+    },
+    "during_probe": {
+      "command": [
+        "bash",
+        "-lc",
+        "ss -ltnp | awk 'NR==1 || /:15080|:15432|:16379|:18888/'"
+      ],
+      "cwd": null,
+      "duration_seconds": 0.03,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess                                       \nLISTEN 0      4096                     127.0.0.1:15080      0.0.0.0:*                                                 \nLISTEN 0      4096                     127.0.0.1:15432      0.0.0.0:*                                                 \nLISTEN 0      4096                     127.0.0.1:16379      0.0.0.0:*"
+    }
+  },
+  "regime_detect": {
+    "confidence": 0.99,
+    "feature_keys": [
+      "atrPct",
+      "directionalEfficiency",
+      "emaGapPct",
+      "priceChangePct",
+      "realizedVolPct",
+      "volumeRatio"
+    ],
+    "http_status": 200,
+    "label": "High Volatility",
+    "passed": true,
+    "regime": "high_volatility",
+    "segments_count": 3,
+    "service_actual_end": "2024-03-31 00:00:00",
+    "service_actual_start": "2024-01-01 00:00:00",
+    "service_candle_count_command": {
+      "command": [
+        "docker",
+        "exec",
+        "quantdinger-backend",
+        "python",
+        "-c",
+        "from datetime import datetime; from app.services.backtest import BacktestService; df=BacktestService()._fetch_kline_data('Crypto','BTC/USDT','1D',datetime.strptime('2024-01-01','%Y-%m-%d'),datetime.strptime('2024-03-31','%Y-%m-%d').replace(hour=23,minute=59,second=59)); print('COUNT='+str(len(df))); print('START='+str(df.index.min()) if len(df) else 'START=NONE'); print('END='+str(df.index.max()) if len(df) else 'END=NONE')"
+      ],
+      "cwd": null,
+      "duration_seconds": 8.144,
+      "returncode": 0,
+      "stderr": "Warning: BTC/USDT data is delayed (67744431s, latest_bar_utc=2024-04-01T00:00:00+00:00, threshold=432000s, tf=1D)",
+      "stdout": "COUNT=91\nSTART=2024-01-01 00:00:00\nEND=2024-03-31 00:00:00"
+    },
+    "service_filtered_candle_count": 91
+  },
+  "safety": {
+    "admin_jwt_written_to_artifacts": false,
+    "current_sidecar_available_remains_false": true,
+    "live_trading_started": false,
+    "paper_orders_placed": false,
+    "strategy_lab_ui_status_or_current_sidecar_available_mutated": false,
+    "tenn_db_qdrant_news_memory_or_canonical_truth_mutated": false,
+    "token_secrets_written_to_artifacts": false
+  },
+  "sandbox": {
+    "clone_head": "91dd4e274702552b91036e2c89018622d111faee",
+    "clone_path": "/tmp/tenn-quantdinger-clean-reprobe-v1-20260525/QuantDinger",
+    "clone_subject": "Merge pull request #114 from hang666/chore/deploy-and-versioning",
+    "clone_url": "https://github.com/brokermr810/QuantDinger.git",
+    "path": "/tmp/tenn-quantdinger-clean-reprobe-v1-20260525",
+    "source_diff": "diff --git a/backend_api_python/app/services/experiment/regime.py b/backend_api_python/app/services/experiment/regime.py\nindex 95ab5af..1806090 100644\n--- a/backend_api_python/app/services/experiment/regime.py\n+++ b/backend_api_python/app/services/experiment/regime.py\n@@ -145,7 +145,7 @@ class MarketRegimeService:\n         segments: List[Dict[str, Any]] = []\n         for start in range(0, len(df), segment_size):\n             subset = df.iloc[start:start + segment_size]\n-            if len(subset) < 20:\n+            if len(subset) < 30:\n                 continue\n             features = self._extract_features(subset)\n             regime_key, confidence = self._classify(features)",
+    "source_patch_applied_in_temp_sandbox": true
+  },
+  "schema_version": 1,
+  "token": {
+    "agent_token_id": 2,
+    "agent_token_secret_redacted": true,
+    "agent_token_written_to_artifacts": false,
+    "db_token_status_after_revoke": "revoked",
+    "expires_at_present": true,
+    "instruments": [
+      "BTC/USDT"
+    ],
+    "issue_http_status": 200,
+    "markets": [
+      "Crypto"
+    ],
+    "paper_only": true,
+    "post_revoke_whoami_http_status": 401,
+    "post_revoke_whoami_message": "Token is revoked",
+    "revoke_http_status": 200,
+    "revoke_status": "revoked",
+    "scopes": [
+      "B",
+      "R"
+    ]
+  },
+  "zero_order_proof": {
+    "agent_audit_scope_counts": [
+      "B|200|1",
+      "B|202|1",
+      "R|200|10",
+      "R|401|1",
+      "R|403|1",
+      "T|403|2",
+      "W|403|1"
+    ],
+    "agent_jobs_summary": [
+      "backtest|succeeded|1"
+    ],
+    "paper_orders_after_api_count": 0,
+    "paper_orders_after_db_count": 0,
+    "paper_orders_before_api_count": 0,
+    "paper_orders_before_db_count": 0,
+    "token_status_before_revoke": "active"
+  }
+}

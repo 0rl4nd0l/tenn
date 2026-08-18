@@ -1,0 +1,30 @@
+{
+  "duration_seconds": 0.006,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {
+      "keyword": "BTC",
+      "limit": 5
+    },
+    "path": "/api/agent/v1/markets/Crypto/symbols",
+    "url": "http://127.0.0.1:15080/api/agent/v1/markets/Crypto/symbols"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "market": "Crypto",
+          "name": "Bitcoin",
+          "symbol": "BTC/USDT"
+        }
+      ],
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}
