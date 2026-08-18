@@ -108,8 +108,7 @@ class TestNoPlaceholderSourceDocumentId:
     '00000000-0000-0000-0000-000000000001/002/003' — fabricated UUIDs with no
     corresponding document row. These must not be produced by the pipeline.
 
-    This test verifies that _upsert_financial_rows stores the actual document_id
-    from the Document object, not a placeholder.
+    Extraction must not produce legacy rows, placeholder-backed or otherwise.
     """
 
     def _make_session(self):
@@ -142,8 +141,7 @@ class TestNoPlaceholderSourceDocumentId:
             "confidence_narrative": 0.7,
         }
 
-    def test_upserted_row_uses_real_document_id(self):
-        """source_document_id on upserted row must match the document's document_id."""
+    def test_extraction_does_not_create_legacy_row(self):
         session = self._make_session()
         real_doc_id = uuid.uuid4()
         doc = SimpleNamespace(ticker="NAB", document_id=real_doc_id)
@@ -152,15 +150,11 @@ class TestNoPlaceholderSourceDocumentId:
             _upsert_financial_rows(session, doc, self._minimal_payload())
             session.flush()
             row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
-            assert row is not None
-            assert row.source_document_id == real_doc_id, (
-                f"source_document_id should be {real_doc_id}, got {row.source_document_id}"
-            )
+            assert row is None
         finally:
             session.close()
 
-    def test_upserted_row_does_not_use_placeholder_uuid(self):
-        """source_document_id must never be a placeholder UUID starting with 00000000-0000-."""
+    def test_extraction_does_not_create_placeholder_legacy_row(self):
         session = self._make_session()
         real_doc_id = uuid.uuid4()
         doc = SimpleNamespace(ticker="NAB", document_id=real_doc_id)
@@ -169,17 +163,11 @@ class TestNoPlaceholderSourceDocumentId:
             _upsert_financial_rows(session, doc, self._minimal_payload())
             session.flush()
             row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
-            assert row is not None
-            stored_id = str(row.source_document_id)
-            assert not stored_id.startswith(_PLACEHOLDER_UUID_PREFIX), (
-                f"source_document_id is a placeholder UUID: {stored_id}. "
-                "This indicates manual test data injection, not a pipeline extraction."
-            )
+            assert row is None
         finally:
             session.close()
 
-    def test_upsert_preserves_document_id_across_updates(self):
-        """source_document_id must survive an upsert update (second call same key)."""
+    def test_repeated_extraction_does_not_create_legacy_rows(self):
         session = self._make_session()
         real_doc_id = uuid.uuid4()
         doc = SimpleNamespace(ticker="NAB", document_id=real_doc_id)
@@ -194,13 +182,11 @@ class TestNoPlaceholderSourceDocumentId:
             session.flush()
 
             rows = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").all()
-            assert len(rows) == 1, "Upsert must not create duplicates"
-            assert rows[0].source_document_id == real_doc_id
+            assert rows == []
         finally:
             session.close()
 
-    def test_upsert_persists_metric_field_provenance_for_written_values(self):
-        """Per-metric provenance must stay coupled to the metric value written."""
+    def test_extraction_does_not_persist_provenance_on_legacy_row(self):
         session = self._make_session()
         real_doc_id = uuid.uuid4()
         extraction_run_id = str(uuid.uuid4())
@@ -253,24 +239,6 @@ class TestNoPlaceholderSourceDocumentId:
             session.flush()
             row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
 
-            assert row is not None
-            assert row.source_document_id == real_doc_id
-            assert row.confidence_metrics == pytest.approx(0.85)
-            assert row.metric_provenance == {
-                "revenue": {
-                    "metric": "revenue",
-                    "source_document_id": str(real_doc_id),
-                    "extraction_run_id": extraction_run_id,
-                    "source": "income_statement",
-                    "table_label": "income_statement",
-                    "page_number": 25,
-                    "row_ref": "Total revenue",
-                    "excerpt": "Total revenue",
-                    "scale": "thousands",
-                    "currency": "AUD",
-                    "period_type": "A",
-                    "period_end": "2024-09-30",
-                }
-            }
+            assert row is None
         finally:
             session.close()

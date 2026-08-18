@@ -1458,6 +1458,10 @@ def get_ticker_context(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     errors: list[str] = []
 
     # --- docs (matches DbReader.get_docs) ---
@@ -1483,40 +1487,23 @@ def get_ticker_context(
     if err:
         errors.append(f"docs: {err}")
 
-    # --- financials (matches DbReader.get_financials) ---
-    financials, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT :limit
-    """,
-        {"ticker": ticker, "limit": financials_limit},
-    )
-    if err:
-        errors.append(f"financials: {err}")
+    # --- financials ---
+    from app.services.financial_observations import stable_financial_profile
 
-    # --- latest_financial_snapshot (matches DbReader.get_latest_financial_snapshot) ---
-    snapshot_rows, err = _run_query(
-        db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
-        LIMIT 1
-    """,
-        {"ticker": ticker},
-    )
-    latest_financial_snapshot = snapshot_rows[0] if snapshot_rows else None
-    if err:
-        errors.append(f"latest_financial_snapshot: {err}")
+    try:
+        profile_limit = (
+            financials_limit
+            if isinstance(financials_limit, int)
+            else int(financials_limit.default)
+        )
+        financials = list(stable_financial_profile(db, ticker=ticker))[
+            :profile_limit
+        ]
+        latest_financial_snapshot = financials[0] if financials else None
+    except Exception as exc:
+        financials = []
+        latest_financial_snapshot = None
+        errors.append(f"financials: {exc}")
 
     # --- announcement_context (matches DbReader.get_announcement_context) ---
     announcement_context_fallback_used = False
@@ -1561,25 +1548,12 @@ def get_ticker_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials (matches DbReader.get_low_confidence_financials with ticker) ---
-    low_confidence_financials, err = _run_query(
+    low_confidence_financials = _projected_low_confidence_financials(
         db,
-        """
-        SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-          AND ticker = :ticker
-        ORDER BY confidence_metrics ASC
-        LIMIT :limit
-    """,
-        {
-            "ticker": ticker,
-            "threshold": low_confidence_threshold,
-            "limit": low_confidence_limit,
-        },
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
     )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
 
     payload = {
         "ticker": ticker,
@@ -1812,44 +1786,49 @@ def _build_verification_context(
     if err:
         errors.append(f"extraction_failures: {err}")
 
-    # --- low_confidence_financials ---
-    if ticker:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-              AND ticker = :ticker
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {
-                "ticker": ticker,
-                "threshold": low_confidence_threshold,
-                "limit": low_confidence_limit,
-            },
-        )
-    else:
-        low_conf, err = _run_query(
-            db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-            ORDER BY confidence_metrics ASC
-            LIMIT :limit
-        """,
-            {"threshold": low_confidence_threshold, "limit": low_confidence_limit},
-        )
-    if err:
-        errors.append(f"low_confidence_financials: {err}")
+    low_conf = _projected_low_confidence_financials(
+        db,
+        ticker=ticker,
+        threshold=low_confidence_threshold,
+        limit=low_confidence_limit,
+    )
 
     return {
         "extraction_failures": failures,
         "low_confidence_financials": low_conf,
         "errors": errors,
     }
+
+
+def _projected_low_confidence_financials(
+    db: Session,
+    *,
+    ticker: str | None,
+    threshold: float,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Return only projected rows carrying authoritative numeric confidence.
+
+    Accepted-observation projection deliberately emits ``confidence_metrics``
+    as null: acceptance is categorical truth, not a model-confidence estimate.
+    Consequently accepted truth is never diagnosed as low confidence merely
+    because the legacy compatibility placeholder is absent.  This filter stays
+    narrow so a future authoritative numeric projection can participate without
+    manufacturing a score from acceptance, provenance, or review state.
+    """
+    from app.services.financial_observations import stable_financial_profiles
+
+    rows = stable_financial_profiles(db, ticker=ticker)
+    low_confidence = [
+        row
+        for row in rows
+        if row.get("confidence_metrics") is not None
+        and float(row["confidence_metrics"]) < threshold
+    ]
+    return sorted(
+        low_confidence,
+        key=lambda row: float(row["confidence_metrics"]),
+    )[:limit]
 
 
 def _verification_outcome_summary(
@@ -1884,6 +1863,10 @@ def get_verification_context(
     low_confidence_limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    if not isinstance(low_confidence_threshold, (int, float)):
+        low_confidence_threshold = low_confidence_threshold.default
+    if not isinstance(low_confidence_limit, int):
+        low_confidence_limit = low_confidence_limit.default
     return _build_verification_context(
         db,
         ticker=ticker,

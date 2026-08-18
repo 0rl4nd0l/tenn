@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
+from queue import Empty, SimpleQueue
 from typing import Any, Optional, Sequence
 
 from dateutil import parser as dtparser
@@ -271,9 +272,16 @@ _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
 
 _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # AUD markers: A$, $A, AUD, Australian dollar(s)
-    (r"\b(?:A\$|\$A|AUD|AUSTRALIAN\s+DOLLARS?)\b", "AUD"),
+    (
+        r"(?:(?<!\w)(?:A\$|\$A)|\b(?:AUD|AUSTRALIAN\s+DOLLARS?)\b)",
+        "AUD",
+    ),
     # USD markers: US$, $US, USD, United States dollar(s)
-    (r"\b(?:US\$|\$US|USD|UNITED\s+STATES\s+DOLLARS?)\b", "USD"),
+    (
+        r"(?:(?<!\w)(?:US\$|\$US)|"
+        r"\b(?:USD|U\.?\s*S\.?\s+DOLLARS?|UNITED\s+STATES\s+DOLLARS?)\b)",
+        "USD",
+    ),
     # GBP markers: £ (symbol may precede scale like £'000), GBP, British pound(s), sterling.
     # (?<!\w) avoids matching mid-word; symbol alternatives don't need a trailing \b since £
     # is itself non-word and ASX column headers use e.g. "£'000" or "£M".
@@ -289,6 +297,46 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # Indonesian rupiah markers: IDR, Rp, rupiah.
     (r"(?:(?<!\w)RP\.?(?!\w)|\b(?:IDR|RUPIAH|INDONESIAN\s+RUPIAH)\b)", "IDR"),
 ]
+
+_EXPLICIT_CURRENCY_FORM_PATTERN = "|".join(
+    f"(?:{pattern})" for pattern, _currency in _CURRENCY_PATTERNS
+)
+_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN = (
+    r"(?:all\s+figures|all\s+financial\s+values?)\b\s+"
+    r"(?:(?:are\s+)?(?:presented|reported|expressed|stated)\s+in|"
+    r"are(?:\s+in)?|in)\s+"
+    rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})"
+)
+_AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS: tuple[_re.Pattern[str], ...] = (
+    _re.compile(
+        r"\b(?:reporting|presentation)\s+currency\b"
+        r"(?:\s+of\s+(?:the\s+)?(?:group|company|entity))?\s*"
+        r"(?:is|was|has\s+been|as|:)\s*(?:the\s+)?"
+        rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"\b(?:(?:the\s+)?(?:consolidated\s+)?financial\s+statements?|"
+        r"(?:the\s+)?consolidated\s+statements?|this\s+report|the\s+report)\b"
+        r"\s+(?:are|were|is|was|have\s+been|has\s+been)\s+"
+        r"(?:presented|reported|expressed|stated|prepared)\s+in\b\s*"
+        rf"(?P<currency>{_EXPLICIT_CURRENCY_FORM_PATTERN})",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"\b(?:in|throughout)\s+(?:this|the)\s+(?:annual\s+)?report,?\s+"
+        rf"{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}",
+        _re.IGNORECASE,
+    ),
+    _re.compile(
+        r"^(?:annual|half[-\s]?year|quarterly|financial)\s+report\b"
+        r"[^.!?]{0,160}[.!?]\s+"
+        rf"{_DOCUMENT_WIDE_CURRENCY_DECLARATION_PATTERN}\s+"
+        r"(?:unless\s+(?:otherwise\s+)?(?:stated|specified)|"
+        r"unless\s+(?:stated|specified)\s+otherwise)\b",
+        _re.IGNORECASE,
+    ),
+)
 
 _ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
     "statement",
@@ -341,10 +389,9 @@ def _explicit_currency_million_hits(text: str) -> dict[str, int]:
 def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
     if not hits:
         return None
-    ranked = sorted(hits.items(), key=lambda item: item[1], reverse=True)
-    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-        return None
-    return ranked[0][0]
+    if len(hits) > 1:
+        return ""
+    return next(iter(hits))
 
 
 def _detect_scale_marker_in_text(text: str) -> str:
@@ -566,12 +613,13 @@ def _detect_currency_from_tables(tables) -> str | None:
     Detect a dominant document currency from table headers/captions/body rows.
 
     Returns a 3-letter currency code when one currency has clear evidence,
-    otherwise returns None. Row-level evidence is limited to canonical
+    an empty string for conflicting explicit evidence, and None when there is
+    no evidence. Row-level evidence is limited to canonical
     statement/highlight tables so foreign-currency note text does not override
     the filing currency.
     """
     explicit_header_currency = _detect_explicit_currency_million_header(tables)
-    if explicit_header_currency:
+    if explicit_header_currency is not None:
         return explicit_header_currency
 
     hits: dict[str, int] = {}
@@ -591,6 +639,23 @@ def _detect_currency_from_tables(tables) -> str | None:
             if matches:
                 hits[currency] = hits.get(currency, 0) + len(matches)
 
+    return _dominant_currency_from_hits(hits)
+
+
+def _detect_authoritative_currency_from_source_sections(
+    sections: list[dict] | None,
+) -> str | None:
+    """Return explicit document-currency declarations, abstaining on conflict."""
+    hits: dict[str, int] = {}
+    for section in sections or []:
+        source_text = " ".join(str(section.get("text") or "").split())
+        for declaration_pattern in _AUTHORITATIVE_CURRENCY_DECLARATION_PATTERNS:
+            for match in declaration_pattern.finditer(source_text):
+                declaration = match.group("currency")
+                for currency_pattern, currency in _CURRENCY_PATTERNS:
+                    if _re.search(currency_pattern, declaration, _re.IGNORECASE):
+                        hits[currency] = hits.get(currency, 0) + 1
+                        break
     return _dominant_currency_from_hits(hits)
 
 
@@ -646,7 +711,7 @@ def _run_pass1_classifier(
     # Normalise
     result.setdefault("report_type", None)
     result.setdefault("period_end", None)
-    result.setdefault("currency", "AUD")
+    result.setdefault("currency", None)
     result.setdefault("scale", "unknown")
     if not result.get("scale"):
         result["scale"] = "unknown"
@@ -1044,7 +1109,9 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     # partially match income_statement keywords to also compete for the highlights slot.
     # Pool tuple: (score, is_not_toc, table) — tiebreak prefers non-TOC tables.
     pools: dict[str, list[tuple[int, bool, Any]]] = {k: [] for k in _TABLE_KEYWORDS}
-    for table in tables:
+    for table_index, table in enumerate(tables):
+        if _normalized_table_index(table) is None:
+            table.index_in_doc = table_index
         any_match = False
         is_not_toc = not _table_is_toc(table)
         # Pre-compute header/caption/body text for CF disqualification check.
@@ -1123,6 +1190,31 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 ),
             )
             labelled[label] = winner_table
+            if label in statement_precedence_labels:
+                winner_key = (
+                    _statement_precedence_rank(winner_table),
+                    winner_score,
+                    _winner_not_toc,
+                )
+                equally_bound = [
+                    table
+                    for score, is_not_toc, table in candidates
+                    if table is not winner_table
+                    and (
+                        _statement_precedence_rank(table),
+                        score,
+                        is_not_toc,
+                    )
+                    == winner_key
+                ]
+                if equally_bound:
+                    labelled[label] = None
+                    labelled["unmatched"].extend([winner_table, *equally_bound])
+                    logger.warning(
+                        "Pass2 %s abstained: equal top table evidence",
+                        label,
+                    )
+                    continue
             logger.info(
                 "Pass2 %s: table=%d page=%d score=%d caption='%s'",
                 label,
@@ -1419,19 +1511,6 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
     if not isinstance(records, list):
         return []
 
-    scale_evidence: list[tuple[str, str]] = []
-    for record in records:
-        if not isinstance(record, dict):
-            continue
-        page = str(record.get("page") or "?")
-        for phrase in record.get("scale_phrases") or []:
-            scale = _detect_scale_from_openability_phrase(phrase)
-            if scale != "unknown":
-                scale_evidence.append((str(phrase).strip(), f"page_{page}"))
-    if not scale_evidence:
-        return []
-    scale_phrase, scale_source = scale_evidence[0]
-
     synthetic_tables = []
     for record in records:
         if not isinstance(record, dict):
@@ -1450,21 +1529,63 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
         ]
         if not period_phrases:
             continue
+        raw_scale_phrases = record.get("scale_phrases")
+        if not isinstance(raw_scale_phrases, list):
+            continue
+        page_scale_evidence = [
+            (str(phrase).strip(), _detect_scale_from_openability_phrase(phrase))
+            for phrase in raw_scale_phrases
+            if str(phrase or "").strip()
+        ]
+        page_scale_evidence = [
+            evidence for evidence in page_scale_evidence if evidence[1] != "unknown"
+        ]
+        page_scales = {scale for _phrase, scale in page_scale_evidence}
+        # Scale is a page-local assertion. Missing or conflicting evidence must
+        # never inherit another OCR page's first scale phrase.
+        if len(page_scales) != 1:
+            continue
+        scale = next(iter(page_scales))
+        scale_phrases = sorted(
+            {phrase for phrase, detected in page_scale_evidence if detected == scale}
+        )
+        scale_phrase = " ".join(scale_phrases)
+        scale_source = f"ocr_page_{record.get('page')}"
         row_candidates = record.get("row_candidates")
         if not isinstance(row_candidates, list):
             continue
 
+        page = int(record.get("page") or 0)
         period_phrase = period_phrases[0]
         header_value = f"{period_phrase} {scale_phrase}".strip()
         rows = [["Source row", header_value, "Diagnostic value candidates"]]
+        accepted_candidates: list[dict[str, Any]] = []
         for candidate in row_candidates:
             if not isinstance(candidate, dict):
                 continue
             if candidate.get("candidate_value_quality") != "financial_amount":
                 continue
+            confidence = candidate.get("recognition_confidence")
+            if isinstance(confidence, bool):
+                continue
+            try:
+                numeric_confidence = float(confidence)
+            except (TypeError, ValueError):
+                continue
+            if not 80 <= numeric_confidence <= 100:
+                continue
             source_text = str(candidate.get("source_text") or "").strip()
             candidate_value = str(candidate.get("candidate_value_text") or "").strip()
-            if not source_text or not candidate_value:
+            source_region = candidate.get("source_region")
+            source_row = candidate.get("source_row")
+            source_cell = candidate.get("source_cell")
+            if (
+                not source_text
+                or not candidate_value
+                or not isinstance(source_region, dict)
+                or source_row is None
+                or not isinstance(source_cell, list)
+            ):
                 continue
             value_candidates = candidate.get("value_text_candidates")
             if isinstance(value_candidates, list):
@@ -1475,11 +1596,27 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 )
             else:
                 value_candidates_text = candidate_value
-            rows.append([source_text, candidate_value, value_candidates_text])
+            provenance = (
+                f"page={record.get('page')}; region={source_region}; "
+                f"row={source_row}; cells={source_cell}"
+            )
+            rows.append(
+                [f"{source_text} [{provenance}]", candidate_value, value_candidates_text]
+            )
+            accepted_candidates.append(
+                {
+                    "page_number": page,
+                    "source_region": dict(source_region),
+                    "source_row": source_row,
+                    "source_cell": list(source_cell),
+                    "source_text": source_text,
+                    "candidate_value_text": candidate_value,
+                    "recognition_confidence": numeric_confidence,
+                }
+            )
 
         if len(rows) <= 1:
             continue
-        page = int(record.get("page") or 0)
         caption = (
             f"{caption_base} (openability diagnostic; page {page}; "
             f"period={period_phrase}; scale={scale_phrase}; scale_source={scale_source})"
@@ -1490,6 +1627,7 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
                 caption=caption,
                 headers=rows[0],
                 rows=rows,
+                ocr_source_candidates=accepted_candidates,
             )
         )
 
@@ -1861,6 +1999,16 @@ _PERIOD_HEADER_DATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ABBREVIATED_PERIOD_EVIDENCE_RE = re.compile(
+    r"\b(?:FY|H[12]|[12]H|HY|Q[1-4])\s*(?:FY)?\s*\d{2,4}\b"
+    r"|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"
+    r"|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)[\s/-]+\d{2,4}\b"
+    r"|\b(?:19|20)\d{2}\b",
+    re.IGNORECASE,
+)
+
 
 def _period_dates_from_header_cell(cell: Any) -> list[date]:
     dates: list[date] = []
@@ -1874,7 +2022,64 @@ def _period_dates_from_header_cell(cell: Any) -> list[date]:
     return dates
 
 
-def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
+def _has_unresolved_period_evidence(value: Any) -> bool:
+    residual = _PERIOD_HEADER_DATE_RE.sub(" ", str(value or ""))
+    return bool(_ABBREVIATED_PERIOD_EVIDENCE_RE.search(residual))
+
+
+def _normalized_table_index(table: Any) -> int | None:
+    value = getattr(table, "index_in_doc", None)
+    if isinstance(value, bool):
+        return None
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError):
+        return None
+    return normalized if normalized >= 0 else None
+
+
+def _quarter_column_basis_evidence(value: Any) -> set[str]:
+    normalized = " ".join(_re.findall(r"[a-z0-9]+", str(value or "").lower()))
+    words = frozenset(normalized.split())
+    if any(
+        marker in normalized
+        for marker in (
+            "comparative",
+            "prior quarter",
+            "previous quarter",
+            "corresponding period",
+            "pcp",
+        )
+    ):
+        return {"comparative"}
+    period_only = bool(
+        _re.search(r"\b(?:current quarter|quarter only|quarter ended)\b", normalized)
+        or _re.search(r"\b(?:3|three) months?(?: period| ended)?\b", normalized)
+    )
+    year_to_date = bool(
+        "year to date" in normalized
+        or "ytd" in words
+        or "cumulative" in words
+        or _re.search(
+            r"\b(?:6|six|9|nine|12|twelve) months?"
+            r"(?: cumulative| period| ended)?\b",
+            normalized,
+        )
+    )
+    evidence: set[str] = set()
+    if period_only:
+        evidence.add("period_only")
+    if year_to_date:
+        evidence.add("year_to_date")
+    return evidence
+
+
+def _bind_current_period_column(
+    table: Any,
+    period_end: Any,
+    *,
+    period_basis: str | None = None,
+) -> dict[str, Any]:
     """Bind an exact source header date to one value column, or fail closed."""
     requested = parse_period_end(str(period_end) if period_end else None)
     raw_rows = [
@@ -1885,6 +2090,7 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
         raw_rows = [[str(cell or "") for cell in table.headers]]
     width = max((len(row) for row in raw_rows), default=0)
     column_dates: dict[int, list[date]] = {}
+    column_texts: dict[int, list[str]] = {}
     source_cells: dict[int, list[dict[str, Any]]] = {}
     for row_index, row in enumerate(raw_rows):
         for column_index in range(width):
@@ -1893,6 +2099,8 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
                 # period phrases may span it, but it is never a value column.
                 continue
             cell = row[column_index] if column_index < len(row) else ""
+            if str(cell).strip():
+                column_texts.setdefault(column_index, []).append(str(cell))
             dates = _period_dates_from_header_cell(cell)
             if not dates:
                 continue
@@ -1909,7 +2117,10 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
             )
 
     base = {
+        "table_index": _normalized_table_index(table),
         "requested_period_end": requested.isoformat() if requested else None,
+        "period_basis": period_basis,
+        "column_role": None,
         "column_index": None,
         "header_cell": None,
         "source_header_cells": source_cells,
@@ -1917,6 +2128,19 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
     }
     if requested is None:
         return {**base, "status": "DATA_MISSING", "reason": "requested_period_invalid"}
+    metadata_date_columns = {
+        index
+        for index, texts in column_texts.items()
+        if _re.search(
+            r"\b(?:announcement|lodgement|publication|release|filing|report)"
+            r"\s+date\b",
+            " ".join(texts),
+            _re.IGNORECASE,
+        )
+    }
+    for index in metadata_date_columns:
+        column_dates.pop(index, None)
+        source_cells.pop(index, None)
     conflicting = [index for index, dates in column_dates.items() if len(dates) > 1]
     if conflicting:
         return {
@@ -1926,6 +2150,42 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
             "conflicting_columns": conflicting,
         }
     matches = [index for index, dates in column_dates.items() if dates == [requested]]
+    basis_by_column = {
+        index: set().union(
+            *(_quarter_column_basis_evidence(text) for text in texts)
+        )
+        for index, texts in column_texts.items()
+    }
+    column_evidence = {
+        index: {
+            "table_index": _normalized_table_index(table),
+            "column_index": index,
+            "period_ends": [
+                parsed.isoformat() for parsed in column_dates.get(index, ())
+            ],
+            "period_bases": sorted(basis_by_column.get(index, set())),
+            "header_text": " ".join(texts),
+        }
+        for index, texts in column_texts.items()
+    }
+    base["column_evidence"] = column_evidence
+    if period_basis in {"period_only", "year_to_date"}:
+        conflicting_basis_columns = [
+            index for index in matches if len(basis_by_column.get(index, set())) > 1
+        ]
+        if conflicting_basis_columns:
+            return {
+                **base,
+                "status": "DATA_MISSING",
+                "reason": "conflicting_quarter_basis",
+                "conflicting_columns": conflicting_basis_columns,
+            }
+        if len(matches) > 1:
+            matches = [
+                index
+                for index in matches
+                if basis_by_column.get(index) == {period_basis}
+            ]
     if len(matches) > 1:
         return {
             **base,
@@ -1940,18 +2200,50 @@ def _bind_current_period_column(table: Any, period_end: Any) -> dict[str, Any]:
         return {**base, "status": "DATA_MISSING", "reason": reason}
 
     column_index = matches[0]
+    if period_basis in {"period_only", "year_to_date"}:
+        basis_evidence = basis_by_column.get(column_index, set())
+        if basis_evidence != {period_basis}:
+            return {
+                **base,
+                "status": "DATA_MISSING",
+                "reason": (
+                    "conflicting_quarter_basis"
+                    if len(basis_evidence) > 1
+                    else "quarter_basis_mismatch"
+                    if basis_evidence
+                    else "quarter_basis_missing"
+                ),
+                "column_index": column_index,
+                "basis_evidence": sorted(basis_evidence),
+            }
     evidence = source_cells[column_index][0]
+    header_cell = (
+        " ".join(column_texts.get(column_index, ()))
+        if period_basis in {"period_only", "year_to_date"}
+        else evidence["text"]
+    )
     return {
         **base,
         "status": "BOUND",
         "reason": "exact_unique_period_header",
         "column_index": column_index,
-        "header_cell": evidence["text"],
+        "column_role": (
+            "current_quarter"
+            if period_basis == "period_only"
+            else "year_to_date"
+            if period_basis == "year_to_date"
+            else None
+        ),
+        "header_cell": header_cell,
         "header_row_index": evidence["header_row_index"],
         "comparative_columns": sorted(
             index
             for index, dates in column_dates.items()
-            if dates and dates != [requested]
+            if dates
+            and (
+                dates != [requested]
+                or "comparative" in basis_by_column.get(index, set())
+            )
         ),
     }
 
@@ -2299,9 +2591,12 @@ def _bind_statement_metrics_to_current_period_cells(
     *,
     period_end: Any,
     scale: str,
+    period_basis: str | None = None,
 ) -> dict[str, Any]:
     """Replace statement metrics with their unique requested-period source cells."""
-    binding = _bind_current_period_column(table, period_end)
+    binding = _bind_current_period_column(
+        table, period_end, period_basis=period_basis
+    )
     extracted["_period_binding"] = binding
     metric_names = [
         metric_name
@@ -2320,6 +2615,57 @@ def _bind_statement_metrics_to_current_period_cells(
         return extracted
 
     column_index = int(binding["column_index"])
+    ocr_metric_provenance = extracted.get("_ocr_metric_provenance")
+    if isinstance(ocr_metric_provenance, dict) and getattr(
+        table, "ocr_source_candidates", None
+    ):
+        source_cells: dict[str, dict[str, Any]] = {}
+        for metric_name in metric_names:
+            candidate = ocr_metric_provenance.get(metric_name)
+            if extracted.get(metric_name) is None or not isinstance(candidate, dict):
+                extracted[metric_name] = None
+                row_refs.pop(metric_name, None)
+                continue
+            parsed = _parse_accounting_metric_number(
+                candidate.get("candidate_value_text")
+            )
+            if parsed is None:
+                extracted[metric_name] = None
+                row_refs.pop(metric_name, None)
+                continue
+            raw_value, has_explicit_unit = parsed
+            scaled_value = (
+                raw_value
+                if has_explicit_unit
+                else raw_value * SCALE_MULTIPLIERS.get(scale, 1)
+            )
+            row_refs[metric_name] = str(candidate.get("source_text") or "unknown")
+            extracted[metric_name] = scaled_value
+            source_cells[metric_name] = {
+                "page_number": candidate.get("page_number"),
+                "row_index": candidate.get("source_row"),
+                "column_index": column_index,
+                "row_label": candidate.get("source_text"),
+                "raw_value": candidate.get("candidate_value_text"),
+                "scaled_value": scaled_value,
+                "header_cell": binding["header_cell"],
+                "requested_period_end": binding["requested_period_end"],
+            }
+            if period_basis in {"period_only", "year_to_date"}:
+                source_cells[metric_name].update(
+                    table_index=binding["table_index"],
+                    column_role=binding["column_role"],
+                    period_basis=period_basis,
+                )
+        extracted["_period_source_cells"] = source_cells
+        headers = list(getattr(table, "headers", []) or [])
+        extracted["period_col"] = (
+            headers[column_index]
+            if column_index < len(headers) and headers[column_index]
+            else binding["header_cell"]
+        )
+        return extracted
+
     source_cells: dict[str, dict[str, Any]] = {}
     for metric_name in metric_names:
         if extracted.get(metric_name) is None:
@@ -2337,6 +2683,10 @@ def _bind_statement_metrics_to_current_period_cells(
             continue
         source_cell["header_cell"] = binding["header_cell"]
         source_cell["requested_period_end"] = binding["requested_period_end"]
+        if period_basis in {"period_only", "year_to_date"}:
+            source_cell["table_index"] = binding["table_index"]
+            source_cell["column_role"] = binding["column_role"]
+            source_cell["period_basis"] = period_basis
         extracted[metric_name] = source_cell["scaled_value"]
         source_cells[metric_name] = source_cell
 
@@ -3285,6 +3635,68 @@ def _share_count_multiplier_from_table(table: Any) -> int:
     return 1
 
 
+def _share_count_unit(multiplier: int) -> str:
+    return {
+        1: "units",
+        1_000: "thousands",
+        1_000_000: "millions",
+        1_000_000_000: "billions",
+        1_000_000_000_000: "trillions",
+    }.get(multiplier, "unknown")
+
+
+@dataclass(frozen=True)
+class _RecoveredShareObservation:
+    value: float
+    row_ref: str
+    row_index: int
+    column_index: int
+    raw_value: str
+    source_unit: str
+    unique_preferred_candidate: bool
+
+
+def _share_count_cell_from_row(
+    row: list[Any],
+    *,
+    table_multiplier: int,
+) -> tuple[int, str, float, str] | None:
+    parsed_cells: list[tuple[int, str, float, bool]] = []
+    for column_index, cell in enumerate(row[1:], start=1):
+        parsed = _parse_accounting_metric_number(cell)
+        if parsed is None:
+            continue
+        parsed_cells.append((column_index, str(cell or "").strip(), *parsed))
+    if not parsed_cells:
+        return None
+
+    selected = parsed_cells[0]
+    if (
+        len(parsed_cells) >= 2
+        and not selected[3]
+        and abs(selected[2]) < 100
+        and abs(parsed_cells[1][2]) >= 100
+    ):
+        selected = parsed_cells[1]
+    column_index, raw_cell, raw_value, has_explicit_unit = selected
+    if has_explicit_unit or abs(raw_value) >= 1_000_000:
+        effective_multiplier = 1
+        value = raw_value
+    else:
+        effective_multiplier = table_multiplier
+        value = raw_value * table_multiplier
+    compact_label = _normalize_filter_text(_row_label_before_numeric_cells(row))
+    if (
+        value < 1_000_000
+        and 100 <= abs(raw_value) < 1_000_000
+        and "issuedordinarysharesfullypaid" in compact_label
+        and len(parsed_cells) >= 2
+    ):
+        value = raw_value * 1_000_000
+        effective_multiplier = 1_000_000
+    return column_index, raw_cell, value, _share_count_unit(effective_multiplier)
+
+
 def _share_count_table_surface(table: Any, *, row_limit: int = 10) -> str:
     return " ".join(
         [
@@ -3460,6 +3872,117 @@ def _recover_preferred_shares_outstanding_from_split_header_table(
     )
 
 
+def _share_observation_for_recovered_value(
+    table: Any,
+    *,
+    recovered_value: float,
+    recovered_row_ref: str,
+) -> _RecoveredShareObservation | None:
+    """Bind opt-in evidence to the exact value and row chosen by v1 logic."""
+    multiplier = _share_count_multiplier_from_table(table)
+    matching_rows = [
+        (row_index, row)
+        for row_index, row in enumerate(getattr(table, "rows", []) or [])
+        if row and _row_label_before_numeric_cells(row) == recovered_row_ref
+    ]
+    if len(matching_rows) != 1:
+        return None
+    candidates: list[_RecoveredShareObservation] = []
+    for row_index, row in matching_rows:
+        selected_cell = _share_count_cell_from_row(
+            row,
+            table_multiplier=multiplier,
+        )
+        if selected_cell is None:
+            continue
+        column_index, raw_cell, value, source_unit = selected_cell
+        if value != recovered_value:
+            continue
+        candidates.append(
+            _RecoveredShareObservation(
+                value=value,
+                row_ref=recovered_row_ref,
+                row_index=row_index,
+                column_index=column_index,
+                raw_value=raw_cell,
+                source_unit=source_unit,
+                unique_preferred_candidate=True,
+            )
+        )
+    if len(candidates) != 1:
+        return None
+    return candidates[0]
+
+
+def _period_bound_share_source_cell(
+    table: Any,
+    observation: _RecoveredShareObservation,
+    *,
+    period_end: Any,
+) -> dict[str, Any] | None:
+    if not observation.unique_preferred_candidate:
+        return None
+    requested = parse_period_end(str(period_end) if period_end else None)
+    if requested is None:
+        return None
+    parsed = _parse_accounting_metric_number(observation.raw_value)
+    multiplier = SCALE_MULTIPLIERS.get(observation.source_unit)
+    if parsed is None or multiplier is None:
+        return None
+    raw_value, has_explicit_unit = parsed
+    normalized = raw_value if has_explicit_unit else raw_value * multiplier
+    if normalized != observation.value:
+        return None
+    row_dates = _period_dates_from_header_cell(observation.row_ref)
+    if (
+        (row_dates and row_dates != [requested])
+        or _has_unresolved_period_evidence(observation.row_ref)
+    ):
+        return None
+    header_rows = getattr(table, "raw_header_rows", None) or [
+        getattr(table, "headers", None) or []
+    ]
+    selected_header_text = " ".join(
+        str(row[observation.column_index] or "")
+        for row in header_rows
+        if observation.column_index < len(row)
+    )
+    if _has_unresolved_period_evidence(selected_header_text):
+        return None
+
+    binding = _bind_current_period_column(table, requested.isoformat())
+    if (
+        binding.get("status") == "BOUND"
+        and binding.get("column_index") == observation.column_index
+    ):
+        header_cell = binding["header_cell"]
+        column_role = binding.get("column_role")
+    elif row_dates == [requested]:
+        if _period_dates_from_header_cell(selected_header_text):
+            return None
+        header_cell = observation.row_ref
+        column_role = "period_end_row"
+    else:
+        return None
+
+    source_cell = {
+        "page_number": getattr(table, "page_number", None),
+        "row_index": observation.row_index,
+        "column_index": observation.column_index,
+        "row_label": observation.row_ref,
+        "raw_value": observation.raw_value,
+        "scaled_value": observation.value,
+        "header_cell": header_cell,
+        "requested_period_end": requested.isoformat(),
+    }
+    table_index = _normalized_table_index(table)
+    if table_index is not None:
+        source_cell["table_index"] = table_index
+    if column_role is not None:
+        source_cell["column_role"] = column_role
+    return source_cell
+
+
 def _expand_income_statement_row_refs(
     row_refs: Any, table_markdown: str, metrics_payload: dict[str, Any]
 ) -> dict[str, Any]:
@@ -3483,6 +4006,43 @@ def _expand_income_statement_row_refs(
     return refs
 
 
+def _sanitized_exception_chain(exc: Exception) -> list[dict[str, Any]]:
+    chain: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        response = getattr(current, "response", None)
+        status_code = getattr(response, "status_code", None)
+        chain.append(
+            {
+                "exception_type": type(current).__name__,
+                "status_code": status_code if isinstance(status_code, int) else None,
+            }
+        )
+        current = current.__cause__ or current.__context__
+    return chain
+
+
+def _capture_pass3a_failure(
+    capture: SimpleQueue[dict[str, Any]] | None,
+    *,
+    table_type: str,
+    initial_error: Exception,
+    retry_error: Exception | None = None,
+) -> None:
+    if capture is None:
+        return
+    payload: dict[str, Any] = {
+        "stage": "pass3a",
+        "table_type": table_type,
+        "initial_error_chain": _sanitized_exception_chain(initial_error),
+    }
+    if retry_error is not None:
+        payload["retry_error_chain"] = _sanitized_exception_chain(retry_error)
+    capture.put(payload)
+
+
 def _extract_single_table(
     table_type: str,
     table,
@@ -3493,6 +4053,7 @@ def _extract_single_table(
     *,
     prompt_bundle: PromptBundle | None = None,
     model_override: str | None = None,
+    failure_capture: SimpleQueue[dict[str, Any]] | None = None,
 ) -> dict | None:
     """Extract metrics from a single labelled table via one LLM call.
 
@@ -3593,6 +4154,10 @@ def _extract_single_table(
             "_markdown": table_markdown,
             "row_refs": row_refs,
         }
+        ocr_candidates = getattr(table, "ocr_source_candidates", None)
+        if not isinstance(ocr_candidates, list):
+            ocr_candidates = []
+        ocr_metric_provenance: dict[str, dict[str, Any]] = {}
         for metric_name in metrics:
             val = metrics_payload.get(metric_name)
             if val is not None:
@@ -3623,10 +4188,36 @@ def _extract_single_table(
                         # metric stores net debt as a positive magnitude.
                         scaled = abs(scaled)
                     extracted[metric_name] = scaled
+                    if ocr_candidates:
+                        matching_candidates = []
+                        for candidate in ocr_candidates:
+                            if not isinstance(candidate, dict):
+                                continue
+                            parsed_candidate = _parse_accounting_metric_number(
+                                candidate.get("candidate_value_text")
+                            )
+                            if parsed_candidate is None:
+                                continue
+                            candidate_value, _candidate_has_unit = parsed_candidate
+                            if abs(candidate_value - raw_float) <= 1e-9:
+                                matching_candidates.append(candidate)
+                        # OCR-derived metrics require one deterministic source
+                        # cell mapping. Ambiguous or invented model values abstain.
+                        if len(matching_candidates) != 1:
+                            extracted[metric_name] = None
+                        else:
+                            ocr_metric_provenance[metric_name] = dict(
+                                matching_candidates[0]
+                            )
+                            extracted["row_refs"][metric_name] = str(
+                                matching_candidates[0]["source_text"]
+                            )
                 else:
                     extracted[metric_name] = None
             else:
                 extracted[metric_name] = None
+        if ocr_candidates:
+            extracted["_ocr_metric_provenance"] = ocr_metric_provenance
 
         _MIN_PLAUSIBLE_SHARES = 1_000_000
         shares_val = extracted.get("shares_outstanding")
@@ -3932,13 +4523,52 @@ def _extract_single_table(
                         metric_name,
                         getattr(table, "page_number", "?"),
                     )
+        if ocr_candidates:
+            # Later native recovery gates rebuild row_refs. Restore the
+            # deterministic OCR row binding before the existing period gate.
+            for metric_name, candidate in ocr_metric_provenance.items():
+                if extracted.get(metric_name) is not None:
+                    extracted["row_refs"][metric_name] = str(
+                        candidate["source_text"]
+                    )
         if table_type in {"income_statement", "cashflow_statement"}:
             extracted = _bind_statement_metrics_to_current_period_cells(
                 extracted,
                 table,
                 period_end=pass1_result.get("period_end"),
                 scale=scale_for_table,
+                period_basis=pass1_result.get("period_basis"),
             )
+        if ocr_candidates:
+            # Revalidate after every deterministic recovery/rebinding gate so
+            # no final OCR-derived value can retain missing or stale mapping.
+            final_ocr_provenance: dict[str, dict[str, Any]] = {}
+            for metric_name in metrics:
+                metric_value = extracted.get(metric_name)
+                if metric_value is None:
+                    continue
+                effective_multiplier = (
+                    1 if metric_name in _COUNT_METRICS else multiplier_for_table
+                )
+                expected_raw_value = float(metric_value) / effective_multiplier
+                matching_candidates = []
+                for candidate in ocr_candidates:
+                    if not isinstance(candidate, dict):
+                        continue
+                    parsed_candidate = _parse_accounting_metric_number(
+                        candidate.get("candidate_value_text")
+                    )
+                    if parsed_candidate is None:
+                        continue
+                    candidate_value, _candidate_has_unit = parsed_candidate
+                    if abs(candidate_value - expected_raw_value) <= 1e-9:
+                        matching_candidates.append(candidate)
+                if len(matching_candidates) != 1:
+                    extracted[metric_name] = None
+                    extracted["row_refs"].pop(metric_name, None)
+                    continue
+                final_ocr_provenance[metric_name] = dict(matching_candidates[0])
+            extracted["_ocr_metric_provenance"] = final_ocr_provenance
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -3961,6 +4591,12 @@ def _extract_single_table(
             selected_rows = None
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
+            _capture_pass3a_failure(
+                failure_capture,
+                table_type=table_type,
+                initial_error=e,
+                retry_error=e2,
+            )
             return None
 
     selected_raw = raw
@@ -4012,6 +4648,11 @@ def _extract_single_table(
                     table_type,
                     retry_err,
                 )
+                _capture_pass3a_failure(
+                    failure_capture,
+                    table_type=table_type,
+                    initial_error=retry_err,
+                )
 
     # Compute confidence from observable results rather than relying on the
     # model's self-reported value (which is typically 0.0 regardless of quality).
@@ -4041,6 +4682,7 @@ def _run_pass3a_metric_extractor(
     *,
     prompt_bundle: PromptBundle | None = None,
     model_override: str | None = None,
+    failure_capture: SimpleQueue[dict[str, Any]] | None = None,
 ) -> list[dict]:
     """
     Pass 3a: one LLM call per labelled table. Returns list of extraction dicts,
@@ -4094,6 +4736,7 @@ def _run_pass3a_metric_extractor(
                     llm_client,
                     prompt_bundle=bundle,
                     model_override=model_override,
+                    failure_capture=failure_capture,
                 ): table_type
                 for table_type, table in eligible
             }
@@ -4105,8 +4748,13 @@ def _run_pass3a_metric_extractor(
                     result = future.result()
                     if result is not None:
                         results_by_type[tt] = result
-                except Exception:
+                except Exception as exc:
                     logger.exception("Pass 3a thread failed for %s", tt)
+                    _capture_pass3a_failure(
+                        failure_capture,
+                        table_type=tt,
+                        initial_error=exc,
+                    )
         # Preserve original table order from labelled_tables.
         results = [results_by_type[tt] for tt, _ in eligible if tt in results_by_type]
     else:
@@ -4126,6 +4774,7 @@ def _run_pass3a_metric_extractor(
                 llm_client,
                 prompt_bundle=bundle,
                 model_override=model_override,
+                failure_capture=failure_capture,
             )
             if out is not None:
                 results.append(out)
@@ -5747,8 +6396,11 @@ def _build_field_provenance_entry(
             key: source_cell[key]
             for key in (
                 "page_number",
+                "table_index",
                 "row_index",
                 "column_index",
+                "column_role",
+                "period_basis",
                 "row_label",
                 "raw_value",
                 "header_cell",
@@ -5839,6 +6491,9 @@ def _run_pass4_reconciler(
                     pass1_result=pass1_result,
                     source_cell=(extraction.get("_period_source_cells") or {}).get(m),
                 )
+                ocr_source = (extraction.get("_ocr_metric_provenance") or {}).get(m)
+                if isinstance(ocr_source, dict):
+                    field_provenance[m]["ocr_source"] = dict(ocr_source)
                 confidence_weighted_sum += conf
                 confidence_weight += 1
 
@@ -5868,6 +6523,11 @@ def _run_pass4_reconciler(
             scale_source=metric_scale_sources.get("net_debt"),
             pass1_result=pass1_result,
         )
+        ocr_source = (explicit_net_debt.get("_ocr_metric_provenance") or {}).get(
+            "net_debt"
+        )
+        if isinstance(ocr_source, dict):
+            field_provenance["net_debt"]["ocr_source"] = dict(ocr_source)
         net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
         confidence_weighted_sum += net_debt_conf
         confidence_weight += 1
@@ -6116,9 +6776,10 @@ _HIGH_DENOMINATION_NATIVE_SANITY_CAPS = {
 
 
 def _normalize_currency_code(raw: Any) -> str:
-    if not raw or str(raw).strip().lower() == "null":
-        return "AUD"
-    return str(raw).strip().upper()
+    normalized = str(raw or "").strip().lower()
+    if normalized in {"", "-", "n/a", "na", "none", "null", "unknown"}:
+        return ""
+    return normalized.upper()
 
 
 def _native_currency_sanity_cap(raw_currency: Any) -> int:
@@ -6915,6 +7576,7 @@ def _apply_preferred_income_statement_source_payload(
         period_binding = _bind_current_period_column(
             table,
             pass1_result.get("period_end"),
+            period_basis=pass1_result.get("period_basis"),
         )
         for metric_name, (
             recovered_value,
@@ -7198,6 +7860,262 @@ def _clear_payload_metric(payload: dict[str, Any], metric_name: str) -> None:
     payload["field_provenance"] = field_provenance
     payload["metric_source_scales"] = metric_source_scales
     payload["metric_scale_sources"] = metric_scale_sources
+
+
+_APPENDIX_TABLE_ROWS = {
+    "1.9": ("Net cash from / (used in) operating activities", "operating_cf"),
+    "2.6": ("Net cash from / (used in) investing activities", "investing_cf"),
+    "3.10": ("Net cash from / (used in) financing activities", "financing_cf"),
+    "4.6": ("Cash and cash equivalents at end of period", "cash_end"),
+    "5.5": (
+        "Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+        "cash_end",
+    ),
+}
+_APPENDIX_TABLE_SCALE_CONFLICT = object()
+
+
+def _trusted_appendix_cashflow_form(pass1_result: dict[str, Any]) -> str | None:
+    classification = pass1_result.get("_asx_document_type_classification")
+    contract = pass1_result.get("_asx_extraction_contract")
+    routing = pass1_result.get("_asx_extraction_contract_routing")
+    if not all(isinstance(item, dict) for item in (classification, contract, routing)):
+        return None
+    document_type = classification.get("document_type")
+    if document_type not in {"appendix_4c", "appendix_5b"}:
+        return None
+    contract_id = f"asx_{document_type}_extraction_contract_v1"
+    if (
+        classification.get("abstain") is not False
+        or contract.get("document_type") != document_type
+        or contract.get("contract_id") != contract_id
+        or contract.get("abstain") is not False
+        or routing.get("contract_id") != contract_id
+        or routing.get("allowed") is not True
+        or routing.get("abstain") is not False
+    ):
+        return None
+    return document_type.removeprefix("appendix_")
+
+
+def _appendix_table_scale_markers(value: Any) -> set[str]:
+    text = str(value or "")
+    return {
+        scale
+        for pattern, scale in _SCALE_PATTERNS
+        if _re.search(pattern, text, _re.IGNORECASE)
+    }
+
+
+def _appendix_table_has_trusted_cashflow_identity(
+    table: Any, *, trusted_form: str
+) -> bool:
+    headers = list(getattr(table, "headers", None) or [])
+    rows = list(getattr(table, "rows", None) or [])
+    anchor = " ".join(
+        [
+            str(getattr(table, "caption", "") or ""),
+            " ".join(str(cell) for cell in headers),
+            " ".join(
+                " ".join(str(cell) for cell in row)
+                for row in rows[:4]
+                if isinstance(row, (list, tuple))
+            ),
+        ]
+    )
+    explicit_forms = {
+        match.lower()
+        for match in re.findall(r"\bAppendix\s+(4C|5B)\b", anchor, re.IGNORECASE)
+    }
+    return (
+        len(explicit_forms) <= 1
+        and (not explicit_forms or explicit_forms == {trusted_form})
+        and "consolidatedstatementofcashflows" in _normalize_filter_text(anchor)
+    )
+
+
+def _appendix_table_context(
+    table: Any,
+    *,
+    trusted_form: str,
+    document_scale: Any,
+) -> tuple[int, str, str] | object | None:
+    headers = list(getattr(table, "headers", None) or [])
+    if not _appendix_table_has_trusted_cashflow_identity(
+        table, trusted_form=trusted_form
+    ):
+        return None
+    current_columns = [
+        index
+        for index, header in enumerate(headers)
+        if re.search(r"\bcurrent\s+(?:quarter|period)\b", str(header), re.IGNORECASE)
+        and not re.search(
+            r"\b(?:previous|prior|comparative|year\s+to\s+date|ytd)\b",
+            str(header),
+            re.IGNORECASE,
+        )
+    ]
+    if len(current_columns) != 1:
+        return None
+    current_column = current_columns[0]
+    header_scales = _appendix_table_scale_markers(headers[current_column])
+    caption_scales = _appendix_table_scale_markers(getattr(table, "caption", ""))
+    if len(header_scales) > 1 or len(caption_scales) > 1:
+        return _APPENDIX_TABLE_SCALE_CONFLICT
+    header_scale = next(iter(header_scales), None)
+    caption_scale = next(iter(caption_scales), None)
+    if header_scale and caption_scale and header_scale != caption_scale:
+        return _APPENDIX_TABLE_SCALE_CONFLICT
+    if not header_scale and any(
+        _appendix_table_scale_markers(header)
+        for index, header in enumerate(headers)
+        if index != current_column
+    ):
+        return None
+    scale = header_scale or caption_scale or str(document_scale or "unknown").lower()
+    if scale not in SCALE_MULTIPLIERS or scale == "unknown":
+        return None
+    return current_column, scale, "table" if header_scale or caption_scale else "document"
+
+
+def _appendix_table_row(row: Sequence[Any]) -> tuple[str, str, str, bool] | None:
+    if len(row) < 2:
+        return None
+    item = _normalise_appendix5b_section(row[0])
+    expected = _APPENDIX_TABLE_ROWS.get(item)
+    if expected is None:
+        return None
+    label = _normalise_fragmented_pdf_text(row[1])
+    return item, label, expected[1], label == expected[0]
+
+
+def _recover_structured_appendix_cashflow(
+    tables: Any,
+    *,
+    trusted_form: str,
+    document_scale: Any,
+) -> tuple[dict[str, tuple[float, str, Any, str, str]], set[str]]:
+    observations: dict[
+        tuple[str, str], list[tuple[float, str, Any, str, str, tuple[int, Any, int]]]
+    ] = {}
+    ambiguous: set[str] = set()
+    for table_index, table in enumerate(tables or []):
+        recognized = {
+            match[2]
+            for row in getattr(table, "rows", None) or []
+            if isinstance(row, (list, tuple))
+            and (match := _appendix_table_row(row)) is not None
+        }
+        context = _appendix_table_context(
+            table, trusted_form=trusted_form, document_scale=document_scale
+        )
+        if context is _APPENDIX_TABLE_SCALE_CONFLICT:
+            ambiguous.update(recognized)
+            continue
+        if context is None:
+            if _appendix_table_has_trusted_cashflow_identity(
+                table, trusted_form=trusted_form
+            ):
+                ambiguous.update(recognized)
+            continue
+        current_column, scale, scale_source = context
+        for row_index, row in enumerate(getattr(table, "rows", None) or []):
+            if not isinstance(row, (list, tuple)):
+                continue
+            match = _appendix_table_row(row)
+            if match is None:
+                continue
+            item, label, metric, label_is_valid = match
+            if not label_is_valid:
+                ambiguous.add(metric)
+                continue
+            if item == "5.5" and trusted_form != "4c":
+                ambiguous.add(metric)
+                continue
+            if current_column >= len(row):
+                ambiguous.add(metric)
+                continue
+            parsed = _parse_accounting_metric_number(row[current_column])
+            if parsed is None:
+                ambiguous.add(metric)
+                continue
+            raw, explicit_unit = parsed
+            value = raw if explicit_unit else raw * SCALE_MULTIPLIERS[scale]
+            kind = "check" if item == "5.5" else "primary"
+            observations.setdefault((metric, kind), []).append(
+                (
+                    value,
+                    f"{item} {label}",
+                    getattr(table, "page_number", None),
+                    scale,
+                    scale_source,
+                    (table_index, getattr(table, "page_number", None), row_index),
+                )
+            )
+    metrics = {metric for metric, _kind in observations}
+    scales = {item[3] for values in observations.values() for item in values}
+    scale_sources = {item[4] for values in observations.values() for item in values}
+    if len(scales) > 1 or len(scale_sources) > 1:
+        return {}, ambiguous | metrics
+    recovered: dict[str, tuple[float, str, Any, str, str]] = {}
+    for metric in metrics:
+        if metric in ambiguous:
+            continue
+        primary = observations.get((metric, "primary"), [])
+        checks = observations.get((metric, "check"), [])
+        if (
+            len({item[0] for item in primary}) > 1
+            or len({item[0] for item in checks}) > 1
+            or len({item[5] for item in primary}) > 1
+            or len({item[5] for item in checks}) > 1
+        ):
+            ambiguous.add(metric)
+            continue
+        if (
+            metric == "cash_end"
+            and primary
+            and checks
+            and primary[0][0] != checks[0][0]
+        ):
+            ambiguous.add(metric)
+            continue
+        if primary:
+            recovered[metric] = primary[0][:5]
+        elif trusted_form == "4c" and len(checks) == 1:
+            recovered[metric] = checks[0][:5]
+    return recovered, ambiguous
+
+
+def _apply_structured_appendix_cashflow_payload(
+    payload: dict[str, Any], tables: Any, *, pass1_result: dict[str, Any]
+) -> None:
+    trusted_form = _trusted_appendix_cashflow_form(pass1_result)
+    if trusted_form is None:
+        return
+    recovered, ambiguous = _recover_structured_appendix_cashflow(
+        tables,
+        trusted_form=trusted_form,
+        document_scale=payload.get("scale") or pass1_result.get("scale"),
+    )
+    for metric in ambiguous:
+        _clear_payload_metric(payload, metric)
+    for metric, (value, row_ref, page, scale, scale_source) in recovered.items():
+        payload.setdefault("metrics", {})[metric] = value
+        payload[metric] = value
+        payload.setdefault("row_refs", {})[metric] = row_ref
+        page_tag = page if page is not None else "?"
+        payload.setdefault("provenance", {})[metric] = f"source_table:page_{page_tag}:{row_ref}"
+        payload.setdefault("metric_source_scales", {})[metric] = scale
+        payload.setdefault("metric_scale_sources", {})[metric] = scale_source
+        payload.setdefault("field_provenance", {})[metric] = _build_field_provenance_entry(
+            metric_name=metric,
+            source="source_table",
+            page=page,
+            row_ref=row_ref,
+            scale=scale,
+            scale_source=scale_source,
+            pass1_result=pass1_result,
+        )
 
 
 def _read_pdf_pages_for_statement_text(source_path: Any) -> list[tuple[int, list[str]]]:
@@ -7800,6 +8718,7 @@ def _apply_preferred_shares_source_payload(
     tables: Any,
     *,
     pass1_result: dict,
+    capture_benchmark_source_cell: bool = False,
 ) -> None:
     previous_table = None
     for table in tables or []:
@@ -7827,6 +8746,20 @@ def _apply_preferred_shares_source_payload(
             if isinstance(payload.get("field_provenance"), dict)
             else {}
         )
+        observation = None
+        source_cell = None
+        if capture_benchmark_source_cell:
+            observation = _share_observation_for_recovered_value(
+                table,
+                recovered_value=recovered_value,
+                recovered_row_ref=recovered_row_ref,
+            )
+            if observation is not None:
+                source_cell = _period_bound_share_source_cell(
+                    table,
+                    observation,
+                    period_end=pass1_result.get("period_end"),
+                )
         metrics["shares_outstanding"] = recovered_value
         payload["shares_outstanding"] = recovered_value
         row_refs["shares_outstanding"] = recovered_row_ref
@@ -7837,14 +8770,34 @@ def _apply_preferred_shares_source_payload(
             source="share_capital",
             page=getattr(table, "page_number", None),
             row_ref=recovered_row_ref,
-            scale="units",
+            scale=(
+                observation.source_unit
+                if source_cell is not None and observation is not None
+                else "units"
+            ),
             scale_source="source_table",
             pass1_result=pass1_result,
+            source_cell=source_cell,
         )
         payload["metrics"] = metrics
         payload["row_refs"] = row_refs
         payload["provenance"] = provenance
         payload["field_provenance"] = field_provenance
+        if source_cell is not None and observation is not None:
+            metric_source_scales = (
+                payload.get("metric_source_scales")
+                if isinstance(payload.get("metric_source_scales"), dict)
+                else {}
+            )
+            metric_scale_sources = (
+                payload.get("metric_scale_sources")
+                if isinstance(payload.get("metric_scale_sources"), dict)
+                else {}
+            )
+            metric_source_scales["shares_outstanding"] = observation.source_unit
+            metric_scale_sources["shares_outstanding"] = "source_table"
+            payload["metric_source_scales"] = metric_source_scales
+            payload["metric_scale_sources"] = metric_scale_sources
         return
 
 
@@ -8648,6 +9601,10 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     if payload.get("scale") == "unknown":
         return "failed", "validation_gate:scale_unknown"
 
+    currency = _normalize_currency_code(payload.get("currency"))
+    if not currency:
+        return "failed", "validation_gate:currency_unknown"
+
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
     canonical_metrics = {metric_name: metrics.get(metric_name) for metric_name in METRIC_FIELDS}
     mismatch = _metric_label_mismatch(payload)
@@ -8731,22 +9688,21 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     # Flag as ok_low_confidence so consumers know to treat values with caution,
     # but only after all quality gates pass — non-AUD must not bypass them.
     # A warning was already emitted at ingestion time in run_multipass_extraction.
-    _currency = _normalize_currency_code(payload.get("currency"))
-    if _currency != "AUD":
+    if currency != "AUD":
         if _source_bound_native_currency_status_can_be_ok(
             payload,
             canonical_metrics,
-            _currency,
+            currency,
         ):
             logger.warning(
                 "validation_gate:non_aud_currency:%s — native-currency values "
                 "are source-bound; status remains ok",
-                _currency,
+                currency,
             )
             return "ok", None
         logger.warning(
             "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
-            _currency,
+            currency,
         )
         return "ok_low_confidence", None
 
@@ -8777,6 +9733,9 @@ def run_multipass_extraction(
     openability_diagnostics: bool = False,
     openability_pages: list[int] | None = None,
     openability_selected_tables: bool = False,
+    capture_pass1_failures: bool = False,
+    capture_pass3a_failures: bool = False,
+    capture_benchmark_source_cells: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -8797,6 +9756,11 @@ def run_multipass_extraction(
     gaps. Defaults off; when enabled, parser diagnostics are requested and any
     source-bound openability rows are converted into synthetic tables that still
     pass through normal Pass 2/3a/4 validation gates.
+
+    capture_benchmark_source_cells: opt-in v2 replay evidence. Defaults off so
+    normal extraction and v1 replay metadata remain unchanged.
+
+    capture_pass1_failures: opt-in v2 replay transport evidence. Defaults off.
     """
     bundle = resolve(prompt_bundle_id)
 
@@ -9011,6 +9975,8 @@ def run_multipass_extraction(
         )
     except Exception as e:
         logger.error("Pass 1 failed: %s", e)
+        if capture_pass1_failures and debug_capture is not None:
+            debug_capture["pass1_failure_chain"] = _sanitized_exception_chain(e)
         if observer is not None:
             observer.emit(
                 "pass1_classifier",
@@ -9126,23 +10092,39 @@ def run_multipass_extraction(
     if pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
+    authoritative_currency = _detect_authoritative_currency_from_source_sections(
+        structured_doc.sections
+    )
     detected_currency = _detect_currency_from_tables(structured_tables)
-    if detected_currency:
+    selected_currency = (
+        authoritative_currency
+        if authoritative_currency is not None
+        else detected_currency
+    )
+    if selected_currency is not None:
         classifier_currency = str(pass1.get("currency") or "").strip().upper()
-        if classifier_currency != detected_currency:
+        source = (
+            "authoritative source declarations"
+            if authoritative_currency is not None
+            else "statement tables"
+        )
+        if selected_currency == "":
+            logger.warning(
+                "conflicting explicit currency evidence in %s; abstaining", source
+            )
+            pass1["currency"] = ""
+        elif classifier_currency != selected_currency:
             logger.info(
-                "currency from table headers (%s) overrides Pass 1 (%s)",
-                detected_currency,
+                "currency from %s (%s) overrides Pass 1 (%s)",
+                source,
+                selected_currency,
                 classifier_currency or "<empty>",
             )
-            pass1["currency"] = detected_currency
+            pass1["currency"] = selected_currency
 
-    _raw_pass1_currency = pass1.get("currency") or ""
-    if not _raw_pass1_currency or str(_raw_pass1_currency).strip().lower() == "null":
-        _raw_pass1_currency = "AUD"
-    _currency = str(_raw_pass1_currency).upper()
-    pass1["currency"] = _currency  # normalise in-place so propagation is consistent
-    if _currency != "AUD":
+    _currency = _normalize_currency_code(pass1.get("currency"))
+    pass1["currency"] = _currency
+    if _currency and _currency != "AUD":
         logger.warning(
             "non-AUD currency detected: %s — values stored as-is (no FX conversion applied)",
             _currency,
@@ -9231,6 +10213,9 @@ def run_multipass_extraction(
             "running",
             "Extracting metric candidates.",
         )
+    pass3a_failure_queue: SimpleQueue[dict[str, Any]] | None = (
+        SimpleQueue() if capture_pass3a_failures else None
+    )
     try:
         pass3a_results = _run_pass3a_metric_extractor(
             labelled,
@@ -9238,6 +10223,7 @@ def run_multipass_extraction(
             llm_client,
             prompt_bundle=bundle,
             model_override=model_override,
+            failure_capture=pass3a_failure_queue,
         )
     except Exception as e:
         if observer is not None:
@@ -9248,6 +10234,18 @@ def run_multipass_extraction(
                 error_code="pass3a_failed",
             )
         raise
+    finally:
+        if debug_capture is not None and pass3a_failure_queue is not None:
+            pass3a_failures: list[dict[str, Any]] = []
+            while True:
+                try:
+                    pass3a_failures.append(pass3a_failure_queue.get_nowait())
+                except Empty:
+                    break
+            debug_capture["pass3a_failures"] = sorted(
+                pass3a_failures,
+                key=lambda row: (str(row.get("table_type") or ""), json.dumps(row)),
+            )
     allowed_internal_metrics = (
         {"total_debt"} if "net_debt" in allowed_contract_metrics else set()
     )
@@ -9367,12 +10365,12 @@ def run_multipass_extraction(
 
     # Propagate scale and currency from Pass 1 into payload so _validate_gate
     # can inspect them and so _upsert_financial_rows stores the correct currency.
-    # pass1["currency"] was already normalised (string "null" → "AUD") at detection time.
+    # An absent currency remains empty so validation abstains rather than guessing AUD.
     payload["scale"] = _common_metric_source_scale(
         payload,
         pass1.get("scale", "unknown") or "unknown",
     )
-    payload["currency"] = pass1.get("currency") or "AUD"
+    payload["currency"] = pass1.get("currency") or ""
     payload["document_title"] = title
     _apply_appendix_wrapper_source_payload(
         payload,
@@ -9415,12 +10413,24 @@ def run_multipass_extraction(
             payload,
             structured_tables,
             pass1_result=pass1,
+            capture_benchmark_source_cell=capture_benchmark_source_cells,
         )
     if "cash_end" in allowed_contract_metrics:
         _apply_preferred_cash_end_source_payload(
             payload,
             structured_tables,
             scale=payload.get("scale") or pass1.get("scale", "unknown"),
+            pass1_result=pass1,
+        )
+    if set(allowed_contract_metrics) & {
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "cash_end",
+    }:
+        _apply_structured_appendix_cashflow_payload(
+            payload,
+            structured_tables,
             pass1_result=pass1,
         )
     _enforce_contract_metric_allowance(payload, allowed_contract_metrics)
@@ -9448,7 +10458,7 @@ def run_multipass_extraction(
     # Surface non-AUD currency as a structured warning for operator visibility.
     # Values are stored in native currency with no FX conversion; downstream
     # consumers must not compare them directly with AUD-denominated peers.
-    if payload["currency"] != "AUD":
+    if payload["currency"] and payload["currency"] != "AUD":
         payload["_structured_extraction"]["warnings"].append(
             f"non_aud_currency:{payload['currency']} — values in native currency, no FX conversion"
         )

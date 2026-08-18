@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -77,7 +78,7 @@ class ActionRegistry:
             if workspace_root_override
             else repo_root.parent
         )
-        py = str(repo_root / ".venv" / "bin" / "python")
+        py = self._resolve_python_bin(repo_root)
 
         def _resolve_shared_script(script_name: str) -> str:
             candidate_roots: list[Path] = []
@@ -800,6 +801,19 @@ class ActionRegistry:
                 timeout_seconds=30,
             ),
         }
+
+    @staticmethod
+    def _resolve_python_bin(repo_root: Path) -> str:
+        repo_python = repo_root / ".venv" / "bin" / "python"
+        candidates = [
+            repo_python,
+            repo_root.parent / ".venv" / "bin" / "python",
+            Path(sys.executable),
+        ]
+        for candidate in candidates:
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return str(candidate)
+        return str(repo_python)
 
     def list_actions(self) -> list[ActionSpec]:
         return [

@@ -746,7 +746,7 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
     run_status_path = tmp_path / "run_status" / f"{result['run_id']}.json"
     run_status = json.loads(run_status_path.read_text(encoding="utf-8"))
     summary = run_status["final_summary"]
-    assert summary["financial_rows_written"] == 1
+    assert summary["financial_rows_written"] == 0
     assert summary["risk_note_written"] == 0
 
 
@@ -776,10 +776,10 @@ def test_upsert_financial_rows_suppresses_empty_risk_note() -> None:
 
     session = Session()
     try:
-        assert pipeline._upsert_financial_rows(session, doc, payload) == 1
+        assert pipeline._upsert_financial_rows(session, doc, payload) == 0
         session.flush()
 
-        assert session.query(ASXPeriodicFinancial).filter_by(ticker="PLS").count() == 1
+        assert session.query(ASXPeriodicFinancial).filter_by(ticker="PLS").count() == 0
         assert session.query(ASXRiskNote).count() == 0
         assert pipeline._has_narrative_content(payload) is False
     finally:
@@ -812,7 +812,7 @@ def test_upsert_financial_rows_persists_real_risk_note() -> None:
 
     session = Session()
     try:
-        assert pipeline._upsert_financial_rows(session, doc, payload) == 1
+        assert pipeline._upsert_financial_rows(session, doc, payload) == 0
         session.flush()
 
         note = session.query(ASXRiskNote).filter_by(document_id=doc.document_id).one()

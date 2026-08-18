@@ -74,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    ok, missing = _validate_required(args)
+    if not ok:
+        print(f"Missing required change-impact fields: {', '.join(missing)}")
+        print("Provide explicit values instead of defaults (TBD).")
+        return 2
+
     files = _changed_files()
     date_text = datetime.now(timezone.utc).date().isoformat()
 

@@ -318,6 +318,17 @@ class TestGetTickerContext:
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4
 
+    def test_direct_call_uses_numeric_low_confidence_defaults(self):
+        db = _mock_db_session({})
+        with patch(
+            "app.api.context._projected_low_confidence_financials",
+            return_value=[],
+        ) as projected:
+            get_ticker_context(ticker="BHP", db=db)
+
+        assert projected.call_args.kwargs["threshold"] == 0.4
+        assert projected.call_args.kwargs["limit"] == 50
+
 
 # ---------------------------------------------------------------------------
 # GET /api/context/company_dump
@@ -1102,3 +1113,14 @@ class TestGetVerificationContext:
         sig = inspect.signature(get_verification_context)
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4
+
+    def test_direct_call_uses_numeric_low_confidence_defaults(self):
+        db = _mock_db_session({})
+        with patch(
+            "app.api.context._projected_low_confidence_financials",
+            return_value=[],
+        ) as projected:
+            get_verification_context(ticker="BHP", db=db)
+
+        assert projected.call_args.kwargs["threshold"] == 0.4
+        assert projected.call_args.kwargs["limit"] == 100
