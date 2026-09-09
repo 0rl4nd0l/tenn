@@ -23,8 +23,10 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
   - GET `/api/risk?document_id=...`
+  - GET `/api/price?ticker=BHP` (optional `range=1mo`, `interval=1d`, `exchange=ASX`)
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
+- Interactive schema: FastAPI Swagger at `/docs`, OpenAPI JSON at `/openapi.json` (these are not the ticker document listing).
 
 ## What isn’t included (next phase)
 - Frontend UI

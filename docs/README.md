@@ -8,7 +8,7 @@
 
 ### Entrypoints (canonical)
 
-- Canonical agent entrypoints and boot sequence: `entrypoints.md`
+- Canonical agent entrypoints, wrappers, and public API: `entrypoints.md`
 
 ### Architecture
 
@@ -25,7 +25,8 @@
 - Phase gates: `phase_checklist.md`
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
-- News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- News corpus pipeline and nightly operations (experimental, research-only): `news_corpus_pipeline.md`
+- Sloppy CI scan/fix workflows: `sloppy_workflows.md`
 
 ### Migration / historical
 
