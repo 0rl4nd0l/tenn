@@ -27,6 +27,7 @@
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline and nightly operations (experimental, research-only): `news_corpus_pipeline.md`
 - Sloppy CI scan/fix workflows: `sloppy_workflows.md`
+- Change-impact log CLI: `../financial-engine_v2/README.md` (section "Change impact log CLI")
 
 ### Migration / historical
 

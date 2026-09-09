@@ -194,7 +194,12 @@ Per runtime README:
 1. Worker implementation split (backend wrapper vs legacy worker code).
 2. News corpus marked research-only with compliance gating.
 3. Ops hardening worksheet contains unresolved placeholder command tokens.
-4. `log_change_impact.py` intentionally defaults several fields to `TBD`.
+4. `log_change_impact.py` historically defaulted several fields to `TBD`.
+   **Current status (2026-09-09):** the CLI still *defaults* `--scope`, `--why`,
+   `--expected-impact`, `--validation`, and `--rollback` to `TBD`, but
+   `_validate_required()` rejects blank/`TBD` values and exits `2` before
+   appending. See `financial-engine_v2/scripts/log_change_impact.py` and the
+   operator notes in `financial-engine_v2/README.md`.
 5. Some docs no longer perfectly align with latest extraction/runtime code path details.
 
 ## 6. Verified Defects and Risks

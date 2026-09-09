@@ -130,6 +130,28 @@ These are the two production workflows currently packaged.
    - Output JSON: `reports/asx/daily_asx_all_announcements_report.json`
    - JSON reports include `run_metadata` (script, python version, git branch/commit/dirty flag).
 
+## Change impact log CLI
+Append a structured operator note after a runtime change. The script lives at
+`financial-engine_v2/scripts/log_change_impact.py` and writes
+`financial-engine_v2/reports/change_impact_log.md`.
+
+```bash
+python3 financial-engine_v2/scripts/log_change_impact.py \
+  --scope "nightly news health" \
+  --why "raise min upserted threshold" \
+  --expected-impact "duplicate-only runs fail closed" \
+  --validation "python3 -m unittest scripts/test_nightly_news_wrapper.py" \
+  --rollback "revert the threshold env default"
+```
+
+Constraints:
+- `--scope`, `--why`, `--expected-impact`, `--validation`, and `--rollback` are required. Blank or `TBD` values exit `2` and do not append.
+- `--change-id` defaults to `YYYYMMDD-<short-sha>-impact`; `--author` defaults to `git config user.name` (or `unknown`).
+- `--risk-level` is `low|medium|high` (default `medium`).
+- Git scans run with cwd `financial-engine_v2/`: tracked unstaged/staged diffs can include the whole repository, while untracked enumeration is limited to that subdirectory.
+
+Focused test: `python3 -m unittest financial-engine_v2/scripts/test_log_change_impact_cli.py`.
+
 ## Simplest Run (One Command)
 If you want a single command with hardcoded defaults, use:
 
