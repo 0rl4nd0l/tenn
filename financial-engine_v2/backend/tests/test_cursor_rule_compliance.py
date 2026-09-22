@@ -46,6 +46,7 @@ ALLOWED_UUID4_FUNCTIONS_BY_PATH = {
     "services/response_feedback.py": {"insert"},
     "services/router_state.py": {"<module>", "register_extraction_activity"},
     "services/user_thesis_memory.py": {"create_alert", "create_proposal"},
+    "tasks/news_tasks.py": {"extract_news_memo_task"},
 }
 
 

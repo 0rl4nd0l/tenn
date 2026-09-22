@@ -172,6 +172,10 @@ def _normalize_impact_magnitude(value: Any) -> str:
     return raw if raw in VALID_IMPACT_MAGNITUDES else ""
 
 
+def _has_substantive_memo_content(memo: dict[str, Any]) -> bool:
+    return any(bool(memo.get(field)) for field in ("key_events", "claims", "risks"))
+
+
 class NewsMemoExtractor:
     def __init__(
         self,
@@ -314,7 +318,7 @@ class NewsMemoExtractor:
             logger.warning(
                 "news_memo_extractor: all extracted fields are empty for source_id=%r "
                 "provider=%r — LLM may have returned garbage or failed silently; "
-                "document will be stored as an empty memo and will not be re-extracted",
+                "output will remain retryable and will not be stored as a completed memo",
                 str(source_id or "").strip(),
                 str(provider or "").strip(),
             )
@@ -408,6 +412,20 @@ class NewsMemoExtractor:
             published_at=published_at,
             candidate_tickers=candidate_tickers,
         )
+        if not _has_substantive_memo_content(memo):
+            logger.warning(
+                "news memo needs retry for %s: non-substantive extracted output",
+                source_id,
+            )
+            return {
+                "status": "needs_retry",
+                "source_id": str(memo.get("source_id") or source_id).strip(),
+                "reason": "non_substantive_output",
+                "signal_routing": {
+                    "status": "skipped",
+                    "reason": "non_substantive_output",
+                },
+            }
         stored = self.upsert(memo)
         result = dict(stored)
         if route_signals:
@@ -459,6 +477,8 @@ class NewsMemoExtractor:
             candidate_tickers=candidate_tickers,
             route_signals=False,
         )
+        if str(memo.get("status") or "") == "needs_retry":
+            return memo
         signals = signals_from_news_memo(memo)
         routing = route_signals(
             signals,

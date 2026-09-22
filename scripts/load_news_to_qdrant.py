@@ -16,6 +16,7 @@ import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional
+from uuid import uuid4
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -47,6 +48,10 @@ from news_pipeline.cli_common import (  # noqa: E402
     resolve_path,
 )
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
+from app.services.news_memo_outcomes import (  # noqa: E402
+    NewsMemoOutcomeStore,
+    utc_now_iso as news_memo_outcome_utc_now_iso,
+)
 
 DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
 DEFAULT_NEWS_MEMO_LLM_URL = "http://127.0.0.1:8001"
@@ -568,6 +573,15 @@ def dispatch_news_memos(
     failed_samples: list[dict[str, str]] = []
     task_results: list[Any] = []
     task_ids: list[str] = []
+    outcome_store = NewsMemoOutcomeStore(memos_path=memos_path)
+    outcome_write_failed = 0
+    outcome_write_failure_samples: list[dict[str, str]] = []
+    candidate_source_ids = [
+        source_id
+        for art in articles
+        if (source_id := _source_id_for_article(art))
+        and is_news_memo_candidate_article(art)
+    ]
     already_persisted_skipped = 0
     dispatch_candidates = 0
     if dispatch_task is not None:
@@ -580,6 +594,8 @@ def dispatch_news_memos(
                 already_persisted_skipped += 1
                 continue
             dispatch_candidates += 1
+            correlation_id = uuid4().hex
+            attempt_started_at_utc = news_memo_outcome_utc_now_iso()
             memo_payload = {
                 "source_id": source_id,
                 "article_text": text[:article_char_cap],
@@ -587,6 +603,8 @@ def dispatch_news_memos(
                 "published_at": str(art.get("published_at") or ""),
                 "candidate_tickers": _memo_candidate_tickers_for_article(art),
                 "max_article_chars": article_char_cap,
+                "correlation_id": correlation_id,
+                "attempt_started_at_utc": attempt_started_at_utc,
             }
             if llm_url:
                 memo_payload["llm_url"] = str(llm_url).strip()
@@ -601,15 +619,51 @@ def dispatch_news_memos(
             try:
                 async_result = dispatch_task.delay(memo_payload)
                 dispatched += 1
-                if async_result is not None:
-                    task_results.append(async_result)
-                    task_id = _task_result_id(async_result)
-                    if task_id:
-                        task_ids.append(task_id)
             except Exception as exc:
                 failed += 1
                 if len(failed_samples) < 10:
                     failed_samples.append({"source_id": source_id, "error": str(exc)})
+                try:
+                    outcome_store.record_dispatch_failed(
+                        correlation_id=correlation_id,
+                        source_id=source_id,
+                        attempt_started_at_utc=attempt_started_at_utc,
+                        error_class=type(exc).__name__,
+                    )
+                except Exception as outcome_exc:
+                    outcome_write_failed += 1
+                    if len(outcome_write_failure_samples) < 10:
+                        outcome_write_failure_samples.append(
+                            {
+                                "source_id": source_id,
+                                "task_id": "",
+                                "error_class": type(outcome_exc).__name__,
+                            }
+                        )
+                continue
+            task_id = ""
+            if async_result is not None:
+                task_results.append(async_result)
+                task_id = _task_result_id(async_result)
+                if task_id:
+                    task_ids.append(task_id)
+            try:
+                outcome_store.record_dispatch_accepted(
+                    correlation_id=correlation_id,
+                    source_id=source_id,
+                    attempt_started_at_utc=attempt_started_at_utc,
+                    task_id=task_id,
+                )
+            except Exception as exc:
+                outcome_write_failed += 1
+                if len(outcome_write_failure_samples) < 10:
+                    outcome_write_failure_samples.append(
+                        {
+                            "source_id": source_id,
+                            "task_id": task_id,
+                            "error_class": type(exc).__name__,
+                        }
+                    )
 
     wait_diagnostics = _wait_for_news_memo_tasks(
         task_results,
@@ -622,6 +676,8 @@ def dispatch_news_memos(
         memos_path=memos_path,
         memo_skips_path=memo_skips_path,
     )
+    outcome_reconciliation = outcome_store.reconcile_latest(candidate_source_ids)
+    outcome_read_errors = int(outcome_reconciliation.get("read_errors") or 0)
     unobserved_tasks = max(0, dispatched - wait_diagnostics["observed"])
     skipped_successes = int(wait_diagnostics.get("completed_skipped") or 0)
     missing_after_dispatch = int(after["missing"])
@@ -629,6 +685,8 @@ def dispatch_news_memos(
         status = "unavailable"
     elif wait_for_completion and (
         failed
+        or outcome_write_failed
+        or outcome_read_errors
         or wait_diagnostics["failed"]
         or wait_diagnostics["pending"]
         or unobserved_tasks
@@ -640,7 +698,7 @@ def dispatch_news_memos(
         status = "complete_with_skips"
     elif wait_for_completion and missing_after_dispatch == 0:
         status = "complete"
-    elif failed:
+    elif failed or outcome_write_failed or outcome_read_errors:
         status = "degraded"
     elif missing_after_dispatch == 0:
         status = "complete"
@@ -663,6 +721,10 @@ def dispatch_news_memos(
         "dispatched": dispatched,
         "dispatch_failed": failed,
         "dispatch_failed_samples": failed_samples,
+        "outcome_write_failed": outcome_write_failed,
+        "outcome_write_failure_samples": outcome_write_failure_samples,
+        "memo_outcomes_path": str(outcome_store.path),
+        "outcome_reconciliation": outcome_reconciliation,
         "persisted_before_dispatch": before["persisted"],
         "persisted_after_dispatch": after["persisted"],
         "terminal_skipped_before_dispatch": before["terminal_skipped"],

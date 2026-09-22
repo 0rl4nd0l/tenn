@@ -484,3 +484,140 @@ def test_empty_extraction_emits_warning(
         "Expected a WARNING about all-empty extraction, got: "
         + str([r.message for r in caplog.records])
     )
+
+
+def test_extract_and_store_keeps_non_substantive_output_retryable(
+    tmp_memos_path: Path,
+) -> None:
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(
+            {
+                "key_events": [],
+                "sentiment": "neutral",
+                "impact_magnitude": "minor",
+                "tickers": ["BHP"],
+                "claims": [],
+                "risks": [],
+            }
+        ),
+        memos_path=tmp_memos_path,
+    )
+
+    result = extractor.extract_and_store(
+        source_id="news:low-information",
+        article_text="ASX:BHP shares traded in a quiet market update.",
+        provider="newspaper4k",
+        candidate_tickers=["BHP"],
+    )
+
+    assert result == {
+        "status": "needs_retry",
+        "source_id": "news:low-information",
+        "reason": "non_substantive_output",
+        "signal_routing": {
+            "status": "skipped",
+            "reason": "non_substantive_output",
+        },
+    }
+    assert load_news_memos(tmp_memos_path) == []
+    assert not tmp_memos_path.exists()
+    assert not tmp_memos_path.with_name("news_memo_skips.jsonl").exists()
+
+
+def test_extract_store_and_route_does_not_route_non_substantive_output(
+    tmp_memos_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.services import memory_signal_router
+
+    calls: list[str] = []
+
+    def record_signal_derivation(_memo):
+        calls.append("derive")
+        return []
+
+    def record_signal_routing(_signals, **_kwargs):
+        calls.append("route")
+        return {"routed": 0}
+
+    monkeypatch.setattr(
+        memory_signal_router, "signals_from_news_memo", record_signal_derivation
+    )
+    monkeypatch.setattr(memory_signal_router, "route_signals", record_signal_routing)
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(
+            {
+                "key_events": [],
+                "sentiment": "neutral",
+                "impact_magnitude": "minor",
+                "tickers": ["BHP"],
+                "claims": [],
+                "risks": [],
+            }
+        ),
+        memos_path=tmp_memos_path,
+    )
+
+    result = extractor.extract_store_and_route(
+        source_id="news:low-information-route",
+        article_text="ASX:BHP shares traded in a quiet market update.",
+        provider="newspaper4k",
+        candidate_tickers=["BHP"],
+    )
+
+    assert result == {
+        "status": "needs_retry",
+        "source_id": "news:low-information-route",
+        "reason": "non_substantive_output",
+        "signal_routing": {
+            "status": "skipped",
+            "reason": "non_substantive_output",
+        },
+    }
+    assert calls == []
+    assert load_news_memos(tmp_memos_path) == []
+    assert not tmp_memos_path.with_name("news_memo_skips.jsonl").exists()
+
+
+def test_extract_store_and_route_preserves_substantive_persistence_and_routing(
+    tmp_memos_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.services import memory_signal_router
+
+    calls: list[tuple[str, Any]] = []
+    signals = [{"kind": "company", "source_id": "news:substantive"}]
+
+    def record_signal_derivation(memo):
+        calls.append(("derive", memo["source_id"]))
+        return signals
+
+    def record_signal_routing(received_signals, **_kwargs):
+        calls.append(("route", received_signals))
+        return {"routed": 1}
+
+    monkeypatch.setattr(
+        memory_signal_router, "signals_from_news_memo", record_signal_derivation
+    )
+    monkeypatch.setattr(memory_signal_router, "route_signals", record_signal_routing)
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(GOOD_LLM_RESPONSE),
+        memos_path=tmp_memos_path,
+    )
+
+    result = extractor.extract_store_and_route(
+        source_id="news:substantive",
+        article_text="NYSE:XYZ announced a material acquisition.",
+        provider="newspaper4k",
+        candidate_tickers=["XYZ", "ABC"],
+    )
+
+    rows = load_news_memos(tmp_memos_path)
+    assert len(rows) == 1
+    assert rows[0] == result["memo"]
+    assert rows[0]["key_events"] == GOOD_LLM_RESPONSE["key_events"]
+    assert rows[0]["extraction_provenance"]["component"] == "news_memo_extractor"
+    assert result["signals"] == signals
+    assert result["routing"] == {"routed": 1}
+    assert calls == [
+        ("derive", "news:substantive"),
+        ("route", signals),
+    ]
