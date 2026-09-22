@@ -310,6 +310,31 @@ def test_half_year_report_takes_whole_document_precedence_over_4d_wrapper() -> N
     assert any(item["page"] == 4 for item in result["positive_evidence"])
 
 
+def test_cross_page_half_year_report_takes_precedence_over_4d_wrapper() -> None:
+    result = classify_asx_document_type(
+        {
+            "document_pages": [
+                {
+                    "page": 1,
+                    "text": "Appendix 4D. Results for announcement to the market.",
+                },
+                {"page": 4, "text": "Half-Year Report."},
+                {
+                    "page": 5,
+                    "text": (
+                        "Interim financial report. "
+                        "Condensed consolidated financial statements."
+                    ),
+                },
+            ]
+        }
+    ).to_dict()
+
+    assert result["document_type"] == "half_year_report"
+    assert result["abstain"] is False
+    assert {item["page"] for item in result["positive_evidence"]} == {4, 5}
+
+
 def test_page_match_takes_precedence_over_duplicate_title_anchor() -> None:
     result = classify_asx_document_type(
         {
