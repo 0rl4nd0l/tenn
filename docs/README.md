@@ -19,13 +19,15 @@
 - Ops pack index: `ops/README.md`
 - Incident router: `ops/quickstart.md`
 - Production hardening acceptance suite: `ops/06_production_hardening_acceptance_suite.md`
+- Sloppy scan/fix workflows: `sloppy_workflows.md`
 
 ### Workflows
 
 - Phase gates: `phase_checklist.md`
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
-- News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- News corpus pipeline (experimental, research-only) and nightly ingest wrapper: `news_corpus_pipeline.md`
+- Change-impact CLI: `financial-engine_v2/README.md` (`Change impact log`)
 
 ### Migration / historical
 
