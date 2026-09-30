@@ -18,13 +18,18 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
 - Qdrant upsert with real vectors
 - LLM JSON extraction via Ollama `/api/generate` (configurable model; missing values remain NULL)
 - Postgres tables: `documents`, `extraction_runs`, `asx_periodic_financials`, `asx_risk_notes`
-- API endpoints:
+- API endpoints (router prefix `/api` in `backend/app/main.py`):
   - GET `/api/health`
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
   - GET `/api/risk?document_id=...`
+  - GET `/api/price?ticker=BHP`
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
+
+`GET /api/price` (`backend/app/api/routes.py`, `MarketPriceProvider`) defaults to `range=1mo`, `interval=1d`, and `exchange=ASX`. Empty ticker, range, or interval returns HTTP 400. Provider failures return HTTP 502. Symbols that already contain a `.` are sent unchanged after trim and uppercasing. Otherwise the exchange suffix is `ASX→AX`, `LSE→L`, `TSX→TO`, `HKEX→HK`. An empty exchange is treated as `ASX`. `NYSE`, `NASDAQ`, and any other non-empty unknown exchange use the bare ticker. The provider calls Yahoo Finance `/v8/finance/chart`. The default base URL is `https://query1.finance.yahoo.com`; when that URL contains `query1` or `query2`, the sibling host is tried before the provider fails.
+
+Sync backfill (`TASK_MODE=sync`) forwards `years` (default `1`) and `process_documents` (default `false`) into `backfill_ticker_sync` for both `/api/backfill/ticker/{ticker}` and `/api/backfill/asx20`. Any other `TASK_MODE` enqueues `backfill_ticker` with only the ticker argument, so `years` and `process_documents` are ignored on that path.
 
 ## What isn’t included (next phase)
 - Frontend UI
@@ -275,6 +280,31 @@ The context refresher writes:
 - config block markers in `~/.codex/config.toml`:
   - `# BEGIN TENN_AGENT_CONTEXT`
   - `# END TENN_AGENT_CONTEXT`
+
+## Change impact log
+
+`scripts/log_change_impact.py` appends one structured entry to `reports/change_impact_log.md`. The script treats `financial-engine_v2/` as its repo root, and git commands run from that directory.
+
+Tracked names come from `git diff --name-only` and `git diff --cached --name-only`. Those commands see the whole git repository, and the paths are relative to the repository root. Untracked names come from `git ls-files --others --exclude-standard` in `financial-engine_v2/`, so untracked files outside that directory are omitted, and the paths that are listed are relative to `financial-engine_v2/`. A failed git command contributes no paths. When the scan finds nothing, the entry's file list is the literal `TBD`.
+
+Required fields are `--scope`, `--why`, `--expected-impact`, `--validation`, and `--rollback`. `--change-id` defaults to `<UTC date>-<short HEAD>-impact` (`local` when HEAD is unavailable). `--author` defaults to `git config user.name`, or `unknown`. `--risk-level` is `low`, `medium`, or `high` (default `medium`) and is not required.
+
+Blank or `TBD` required fields, including an explicit `--change-id TBD`, print the missing names and exit 2 before the log is created or appended.
+
+```bash
+python3 scripts/log_change_impact.py \
+  --scope "news health" \
+  --why "record the operator-visible contract" \
+  --expected-impact "docs only" \
+  --validation "python3 -m unittest scripts/test_log_change_impact_cli.py" \
+  --rollback "revert the docs commit"
+```
+
+Run that from `financial-engine_v2/`. Focused check from the repository root:
+
+```bash
+python3 -m unittest financial-engine_v2/scripts/test_log_change_impact_cli.py
+```
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).

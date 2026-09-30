@@ -57,3 +57,41 @@ Use these wrappers for deterministic agent control:
   - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
 - `agent_contract.json`
   - Machine-readable pointers to the canonical entrypoint, wrapper, healthcheck route, and validation script.
+
+`agent_contract.json` fields:
+
+| Field | Value |
+|---|---|
+| `canonical_entrypoint` | `financial-engine_v2/scripts/run_local_backend.sh` |
+| `recommended_wrapper` | `scripts/start_system.sh` |
+| `healthcheck` | `/api/health` |
+| `validation` | `scripts/validate_system.sh` |
+
+### Wrapper contract
+
+Run the wrappers from the repository root.
+
+| Script | Inputs | Success | Failure |
+|---|---|---|---|
+| `scripts/agent_check.sh` | `BASE_URL` default `http://127.0.0.1:8000`. `TIMEOUT_SECONDS` default `3` (connect and max time). | HTTP success from `GET $BASE_URL/api/health`. Exit 0. | Any curl failure. Exit 1. |
+| `scripts/start_system.sh` | `BASE_URL` as above. `START_WAIT_SECONDS` default `1`. `LOG_FILE` default `/tmp/tenn_backend.log`. | Existing health check passes, or the canonical backend becomes reachable after the wait. Exit 0. | Health check still fails after the wait. Exit 1. The backend process is left running; the log path is printed. |
+| `scripts/validate_system.sh` | Same `BASE_URL` / `TIMEOUT_SECONDS` as `agent_check.sh`, plus smoke's `TICKER` (default `BHP`). | Health check passes. Smoke passes when `financial-engine_v2/scripts/smoke_local.sh` is executable. Exit 0. | Health check fails, or an executable smoke script fails. Exit 1. A missing or non-executable smoke script is a skip and does not by itself fail validation. |
+| `scripts/enforce_canonical.sh` | `BASE_URL` default `http://127.0.0.1:8000`. | Always exits 0. | No hard failure. It always prints a warning that names the canonical path. It prints extra warnings when health fails, when `python run.py` is in the process list, or when `uvicorn app.main:app` is absent. |
+
+`financial-engine_v2/scripts/run_local_backend.sh` binds `0.0.0.0` on `PORT` (default `8000`) and requires an executable virtualenv at `financial-engine_v2/.venv/bin/python`. `scripts/start_system.sh` does not set `PORT`. Health checks use `BASE_URL` only. For a non-default port, set both to the same endpoint, for example `PORT=8001` and `BASE_URL=http://127.0.0.1:8001`.
+
+`START_WAIT_SECONDS=1` is often too short for a cold import. If the wrapper reports failure while `LOG_FILE` shows uvicorn still starting, rerun with a larger wait. A failed start does not stop the background pid.
+
+FastAPI's own schema UI is `GET /docs`. Ticker document listing is `GET /api/docs?ticker=...`. Smoke and `agent_check.sh` use the `/api/...` routes.
+
+### Smoke routes
+
+`financial-engine_v2/scripts/smoke_local.sh` calls, in order:
+
+1. `GET /api/health`
+2. `POST /api/backfill/ticker/$TICKER?years=1&process_documents=false`
+3. `GET /api/docs?ticker=$TICKER`
+
+Smoke uses `curl -sS` without `-f`. An HTTP error from a reachable server does not by itself stop the script. A non-JSON docs body fails the count parser.
+
+Route behavior, including `GET /api/price`, is documented in `financial-engine_v2/README.md`.

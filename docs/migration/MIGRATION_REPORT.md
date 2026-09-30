@@ -197,6 +197,10 @@ Per runtime README:
 4. `log_change_impact.py` intentionally defaults several fields to `TBD`.
 5. Some docs no longer perfectly align with latest extraction/runtime code path details.
 
+### 5.4 Change-impact CLI status (verified 2026-09-30)
+
+Item 4 above remains true: argparse defaults for the required narrative fields are still `TBD`. The current CLI in `financial-engine_v2/scripts/log_change_impact.py` rejects blank or `TBD` values for `change_id`, `scope`, `why`, `expected_impact`, `validation`, and `rollback`, and exits 2 before creating or appending `reports/change_impact_log.md`. Operator usage is in `financial-engine_v2/README.md`.
+
 ## 6. Verified Defects and Risks
 
 ### 6.1 Verified in Current Tree
