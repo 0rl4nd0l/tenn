@@ -26,6 +26,7 @@
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- ASX one-day ingest, lookback market-wide ingest, and enrichment sweep: `../financial-engine_v2/README.md` (Production CLIs)
 
 ### Migration / historical
 

@@ -11,8 +11,10 @@ The active system is `financial-engine_v2`.
    - `python run.py`
 
 ## What `python run.py` does
-- Delegates to `financial-engine_v2/run.py`
-- Runs the configured workflows (full history and/or daily MarketIndex) from one command.
+- Delegates to `financial-engine_v2/run.py`.
+- Default `CONFIG["workflow"]` is `both`: ticker full-history, then the daily MarketIndex scrape.
+- `daily_asx_marketwide` is a separate workflow. It runs `scripts/daily_asx_marketwide_action.py`. The cockpit action with that same id runs `scripts/daily_asx_all_announcements_action.py` instead.
+- Command shapes, fallbacks, and exit rules: `financial-engine_v2/README.md` (Production CLIs).
 
 ## Legacy scripts
 Old root scripts are archived under:
