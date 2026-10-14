@@ -25,6 +25,7 @@
 - Phase gates: `phase_checklist.md`
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
+- Extraction backlog (SQLite audit, taxonomy, and replay): `extraction_backlog.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
 
 ### Migration / historical
