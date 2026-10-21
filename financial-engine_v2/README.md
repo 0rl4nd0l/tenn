@@ -161,6 +161,11 @@ Audit ticker financial quality (confidence, source-linkage, period gaps):
 - `CONFIG["full_history"]["years"]`
 - `CONFIG["daily_marketindex"]["download_limit"]`
 
+## Announcement Reaction Report
+Recent `documents` rows joined to `GET /api/price`. Return math, price errors, and exit codes: `../docs/announcement_reaction.md`.
+
+- `PYTHONPATH=. python3 scripts/announcement_reaction_report.py --ticker BHP --days-back 45`
+
 ## Cockpit TUI (v1)
 Operate chat + ingestion + updater + verification from a single terminal UI.
 
