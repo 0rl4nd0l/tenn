@@ -148,6 +148,16 @@ Rebuild announcement-type folders for existing ingested docs:
 - `python3 scripts/classify_announcement_importance.py --ticker BHP`
 - `python3 scripts/classify_announcement_importance.py --ticker BHP,RIO --limit 500`
 
+## Ticker Financial Update
+Discover, download, and extract one ticker, then judge the `asx_periodic_financials` row count.
+
+- `python3 scripts/update_ticker_financials.py --ticker BHP --years 5`
+- `python3 scripts/ingest_ticker.py --ticker BHP --years 5`
+
+Contract, exit codes, and the cockpit gate: `../docs/ticker_financial_update.md`.
+
+`ingest_ticker.py` and cockpit action `update_ticker_financials` do not pass `--zero-rows-policy`, so the script default `warn` applies. `warn` can exit 0 when the row count is 0. Cockpit still logs `Quality gate: FAIL` in that case because it reads `after.rows`. The stored job status stays the process status. `backfill_ticker_sync` does not report `extraction_failed_count`; extractor exceptions that `process_document` swallows do not fail this CLI.
+
 ## Financial Rebuild + QA
 Rebuild financial rows from already-downloaded docs (no re-download):
 

@@ -26,6 +26,7 @@
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- Ticker financial update (CLI, ingest wrapper, cockpit gate): `ticker_financial_update.md`
 
 ### Migration / historical
 
