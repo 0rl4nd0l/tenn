@@ -30,6 +30,8 @@ sudo apt update && sudo apt install -y tesseract-ocr tesseract-ocr-eng poppler-u
   --process-documents
 ```
 
+`ingest_ticker.py` forwards to `financial-engine_v2/scripts/update_ticker_financials.py` and does not pass `--zero-rows-policy`. The default `warn` policy can exit 0 with zero `asx_periodic_financials` rows. Flags, the swallowed-extraction path, and the separate cockpit gate are in `docs/ticker_financial_update.md`.
+
 ### 2) Extract one document
 
 ```bash

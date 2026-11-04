@@ -205,6 +205,8 @@ Per runtime README:
 2. `test_update_ticker_financials_quality_gate.py` fails in current tree (3 errors) due script/test contract drift.
 3. API Celery enqueue routes do not pass `years` and `process_documents` values into queued task args.
 
+Status checked 2026-11-04 for items 1 and 2: `update_ticker_financials.py` defines `--zero-rows-policy` (`warn`, `auto_rebuild_fail`, `strict_fail`). `financial-engine_v2/scripts/test_update_ticker_financials_quality_gate.py` covers warn-with-zero-rows, auto-rebuild that stays at zero rows, and a backfill payload that sets `extraction_failed_count`. The 2026-02-26 parser/test drift in those two items is not the current tree. Operator behavior is in `docs/ticker_financial_update.md`. Item 3 was not re-checked.
+
 ### 6.2 Structural Migration Risks
 
 1. Path-coupled defaults:
@@ -292,7 +294,7 @@ Migration implication:
 ### 9.2 Not Ready Without Remediation
 
 1. Worker path divergence unresolved.
-2. `update_ticker_financials` script/test drift unresolved.
+2. `update_ticker_financials` script/test drift unresolved. Superseded for this item by the 2026-11-04 note in section 6.1. Items 1, 3, and 4 in this list were not re-checked.
 3. Celery route parameter propagation gap unresolved.
 4. Target project needs explicit runtime profile contract to avoid accidental mode switching.
 
