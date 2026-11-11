@@ -26,6 +26,7 @@
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- News ticker identity (cockpit retrieval strength, boosts, soft-mode keep rule): `ticker_identity.md`
 
 ### Migration / historical
 

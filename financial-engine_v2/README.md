@@ -161,6 +161,9 @@ Audit ticker financial quality (confidence, source-linkage, period gaps):
 - `CONFIG["full_history"]["years"]`
 - `CONFIG["daily_marketindex"]["download_limit"]`
 
+## News ticker identity
+Cockpit news hits carry `ticker_identity_strength` from `config/ticker_identity_map.json`. Soft mode keeps a rank of 0 only when that strength is `strong`. Labels, boosts, and map pitfalls: `../docs/ticker_identity.md`.
+
 ## Cockpit TUI (v1)
 Operate chat + ingestion + updater + verification from a single terminal UI.
 
