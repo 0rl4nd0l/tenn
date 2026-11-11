@@ -194,3 +194,7 @@ python3 scripts/build_news_sentiment_features.py \
   --ollama-endpoint http://127.0.0.1:11434 \
   --ollama-model qwen2.5:7b-instruct
 ```
+
+## Ticker identity at query time
+
+Cockpit news retrieval (`rag.news_context.ticker_match_mode: soft` in `financial-engine_v2/config/cockpit.yaml`) labels hits with `ticker_identity_strength` from `financial-engine_v2/config/ticker_identity_map.json`. Strength labels, the ticker boost table, and the rank-0 keep rule are in `ticker_identity.md`.
