@@ -1,0 +1,62 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/evidence_envelope_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md",
+        "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/README.md",
+        "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/evidence_envelope_matrix.json",
+        "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/status.json",
+        "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/validation.json",
+        "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "issue_comment_and_child_issue_creation",
+      "job_id": "cross_route_evidence_envelope_regression_matrix_v1_20260526",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 104,
+      "supporting_lanes": [
+        "Provenance",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
