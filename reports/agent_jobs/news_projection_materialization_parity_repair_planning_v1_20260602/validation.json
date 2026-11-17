@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-06-02T01:56:44+10:00",
+  "job_id": "news_projection_materialization_parity_repair_planning_v1_20260602",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "status": "passed",
+      "result": "no active jobs before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+      "status": "passed"
+    },
+    {
+      "command": "curl -sS --max-time 3 http://127.0.0.1:8000/api/cockpit/news/status",
+      "status": "data_missing",
+      "result": "connection refused"
+    },
+    {
+      "command": "curl -sS --max-time 3 http://127.0.0.1:3000/api/cockpit/news/status",
+      "status": "data_missing",
+      "result": "connection refused"
+    },
+    {
+      "command": "curl -sS --max-time 3 http://127.0.0.1:6333/collections/news_chunks",
+      "status": "data_missing",
+      "result": "connection refused"
+    },
+    {
+      "command": "sqlite3 file:/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite?mode=ro&immutable=1 SELECT probes",
+      "status": "passed"
+    },
+    {
+      "command": "sqlite3 file:/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite?mode=ro&immutable=1 SELECT probes",
+      "status": "passed"
+    },
+    {
+      "command": "sqlite3 file:/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite?mode=ro&immutable=1 SELECT probes",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend:financial-engine_v2 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -c build_a2m_news_health_status probes",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/status.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/parity_matrix.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/validation.json",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend:financial-engine_v2 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_cockpit_news_status.py -q",
+      "status": "passed",
+      "result": "2 passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release news_projection_materialization_parity_repair_planning_v1_20260602",
+      "status": "passed"
+    }
+  ]
+}
