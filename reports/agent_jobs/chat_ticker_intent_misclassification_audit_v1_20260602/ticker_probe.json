@@ -1,0 +1,148 @@
+{
+  "job_id": "chat_ticker_intent_misclassification_audit_v1_20260602",
+  "issue": 119,
+  "generated_at": "2026-06-02T04:19:38+10:00",
+  "mode": "audit_only",
+  "python": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python",
+  "current_code_head": "0320f645c80639e3cbdcc8f52eed9cbba3663b09",
+  "source_artifact": "/home/l4nd0/.gemini/tmp/tenn-nvme-clean-baseline-reconstruct-v1/ui-audit-gemini-20260526/audit-results.json",
+  "source_artifact_summary": {
+    "generated_at": "2026-05-26T08:01:25.963Z",
+    "base_url": "http://127.0.0.1:3000",
+    "chat_items": 2,
+    "chat_0_prompt": "UI_AUDIT_GEMINI 2026-05-26: From the current Cockpit UI, what should I review first today across holdings, watchlist, and recent news? Use only visible/source-backed Tenn context and say DATA_MISSING where needed.",
+    "chat_0_observed_output_contains": [
+      "I couldn't find recent indexed news for UI",
+      "daily_news_ingest",
+      "tickers=UI",
+      "News search: no hits for UI"
+    ],
+    "chat_0_signals": {
+      "sourcesZero": false,
+      "dataMissing": true,
+      "unsupported": false,
+      "operatorDiagnostic": false,
+      "saysCannotSeeHoldings": false
+    }
+  },
+  "static_code_summary": {
+    "shared_token_regex": "financial-engine_v2/shared/ticker_inference.py:10-12",
+    "stopwords_do_not_include_ui": "financial-engine_v2/shared/ticker_inference.py:29-116",
+    "uppercase_candidates_return_before_cue_checks": "financial-engine_v2/shared/ticker_inference.py:154-161",
+    "chat_controller_uses_shared_detector": "financial-engine_v2/cockpit/core/chat.py:1204-1208",
+    "tool_executor_news_ticker_uses_shared_detector": "financial-engine_v2/cockpit/core/tool_executor.py:712-714",
+    "query_orchestrator_uses_shared_detector": "financial-engine_v2/backend/app/services/query_orchestrator.py:383-384",
+    "backend_tenn_chat_uses_shared_detector": "financial-engine_v2/backend/app/services/tenn_chat.py:101-105"
+  },
+  "probe_results": [
+    {
+      "case": "exact_gemini_prompt",
+      "message": "UI_AUDIT_GEMINI 2026-05-26: From the current Cockpit UI, what should I review first today across holdings, watchlist, and recent news? Use only visible/source-backed Tenn context and say DATA_MISSING where needed.",
+      "tokens": [
+        "From",
+        "the",
+        "UI",
+        "what",
+        "first",
+        "today",
+        "and",
+        "news",
+        "Use",
+        "only",
+        "Tenn",
+        "and",
+        "say",
+        "where"
+      ],
+      "shared_detect_tickers": [
+        "UI"
+      ],
+      "shared_primary": "UI",
+      "chat_controller_detect": "UI",
+      "tool_executor_news_ticker": "UI",
+      "verdict": "reproduces_current_code_path"
+    },
+    {
+      "case": "prefix_without_standalone_ui_word",
+      "message": "UI_AUDIT_GEMINI what should I review across holdings watchlist and recent news",
+      "tokens": [
+        "what",
+        "and",
+        "news"
+      ],
+      "shared_detect_tickers": [],
+      "shared_primary": null,
+      "chat_controller_detect": null,
+      "tool_executor_news_ticker": null,
+      "verdict": "does_not_reproduce"
+    },
+    {
+      "case": "same_prompt_without_cockpit_ui_phrase",
+      "message": "what should I review across holdings watchlist and recent news",
+      "tokens": [
+        "what",
+        "and",
+        "news"
+      ],
+      "shared_detect_tickers": [],
+      "shared_primary": null,
+      "chat_controller_detect": null,
+      "tool_executor_news_ticker": null,
+      "verdict": "does_not_reproduce"
+    },
+    {
+      "case": "space_or_punctuation_split_marker",
+      "message": "UI AUDIT GEMINI what should I review across holdings watchlist and recent news",
+      "tokens": [
+        "UI",
+        "AUDIT",
+        "what",
+        "and",
+        "news"
+      ],
+      "shared_detect_tickers": [
+        "UI",
+        "AUDIT"
+      ],
+      "shared_primary": "UI",
+      "chat_controller_detect": "UI",
+      "tool_executor_news_ticker": "UI",
+      "verdict": "also_reproduces_when_marker_is_tokenized"
+    },
+    {
+      "case": "explicit_asx_ticker_form",
+      "message": "ASX:UI news",
+      "tokens": [
+        "ASX",
+        "UI",
+        "news"
+      ],
+      "shared_detect_tickers": [
+        "UI"
+      ],
+      "shared_primary": "UI",
+      "chat_controller_detect": "UI",
+      "tool_executor_news_ticker": "UI",
+      "verdict": "explicit_ticker_route_must_be_preserved"
+    },
+    {
+      "case": "normal_explicit_ticker_news",
+      "message": "BHP news",
+      "tokens": [
+        "BHP",
+        "news"
+      ],
+      "shared_detect_tickers": [
+        "BHP"
+      ],
+      "shared_primary": "BHP",
+      "chat_controller_detect": "BHP",
+      "tool_executor_news_ticker": "BHP",
+      "verdict": "explicit_ticker_route_must_be_preserved"
+    }
+  ],
+  "environment_notes": [
+    "OpenViking was unavailable during ChatController construction, producing a non-fatal stateless warning.",
+    "No browser, backend, Qdrant, Postgres, news ingest, memory write, or model runtime was started."
+  ]
+}
