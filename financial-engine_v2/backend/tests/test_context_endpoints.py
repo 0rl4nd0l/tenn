@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -207,7 +208,9 @@ class TestGetTickerContext:
         # Other fields should still be present (empty but no error)
         assert isinstance(result["financials"], list)
 
-    def test_announcement_context_missing_table(self):
+    def test_announcement_context_missing_table(
+        self, caplog: pytest.LogCaptureFixture
+    ):
         """When cockpit_announcement_context is missing, return fallback status in errors."""
         from sqlalchemy.exc import OperationalError
 
@@ -224,12 +227,34 @@ class TestGetTickerContext:
             return result_mock
 
         db.execute = fake_execute
-        result = get_ticker_context(ticker="BHP", db=db)
+        with caplog.at_level(logging.WARNING, logger="app.api.context"):
+            result = get_ticker_context(ticker="BHP", db=db)
+
         assert result["announcement_context"] == []
         assert result["announcement_context_fallback_used"] is True
         assert any(
             "announcement_context" in e and "documents_pdf_excerpt" in e
             for e in result["errors"]
+        )
+        assert not [
+            record
+            for record in caplog.records
+            if record.levelno >= logging.WARNING
+            and "cockpit_announcement_context" in record.getMessage()
+        ]
+
+    def test_non_optional_subquery_failure_still_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        db = _mock_db_session_with_error("extraction_runs")
+
+        with caplog.at_level(logging.WARNING, logger="app.api.context"):
+            result = get_ticker_context(ticker="BHP", db=db)
+
+        assert any("extraction_failures" in e for e in result["errors"])
+        assert any(
+            record.levelno >= logging.WARNING and "Query failed" in record.getMessage()
+            for record in caplog.records
         )
 
     def test_announcement_context_missing_table_uses_document_excerpt_fallback(self):

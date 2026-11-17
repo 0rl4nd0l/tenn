@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/announcement_context_missing_table_degraded_logging_v1_20260602.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/announcement_context_missing_table_degraded_logging_v1_20260602.md",
+    "reports/agent_jobs/announcement_context_missing_table_degraded_logging_v1_20260602/README.md",
+    "reports/agent_jobs/announcement_context_missing_table_degraded_logging_v1_20260602/status.json",
+    "reports/agent_jobs/announcement_context_missing_table_degraded_logging_v1_20260602/validation.json",
+    "reports/agent_jobs/announcement_context_missing_table_degraded_logging_v1_20260602/diff-check.json",
+    "financial-engine_v2/backend/app/api/context.py",
+    "financial-engine_v2/backend/tests/test_context_endpoints.py"
+  ],
+  "branch": "safe/announcement-context-missing-table-degraded-v1-20260602",
+  "claimed_at": "2026-06-01T19:01:50.415422Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T19:01:50.415422Z",
+  "job_id": "announcement_context_missing_table_degraded_logging_v1_20260602",
+  "lane": "Provenance",
+  "last_seen_at": "2026-06-01T19:04:08.709150Z",
+  "output_dir": "reports/agent_jobs/announcement_context_missing_table_degraded_logging_v1_20260602",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T19:04:08.709150Z",
+  "repo_root": "/home/l4nd0/tenn-announcement-context-missing-table-degraded-v1-20260602",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1923786:announcement_context_missing_table_degraded_logging_v1_20260602",
+  "started_at": "2026-06-01T19:01:50.415422Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/announcement_context_missing_table_degraded_logging_v1_20260602.md",
+  "updated_at": "2026-06-01T19:04:08.709150Z",
+  "worktree": "/home/l4nd0/tenn-announcement-context-missing-table-degraded-v1-20260602"
+}
