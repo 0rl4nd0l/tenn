@@ -20,41 +20,168 @@ interface ServiceCheck {
   error?: string
 }
 
-interface HealthCheckConfig {
-  /** URL to fetch for the health check */
-  url: string
-  /** If true, this is a cross-origin request that may fail due to CORS */
-  crossOrigin: boolean
-  /** Optional custom response parser for non-trivial health payloads */
-  parseResponse?: (response: Response, body: unknown) => { ok: boolean; error?: string }
+type ServiceStatus = ServiceCheck['status']
+type BffServiceStatus = Exclude<ServiceStatus, 'checking'>
+
+interface BootServiceDefinition {
+  name: string
+  aliases: string[]
+  icon: React.ReactNode
+  required: boolean
 }
 
-const serviceConfigs: Record<string, HealthCheckConfig | null> = {
-  'Backend API': {
-    url: '/api/cockpit/health',
-    crossOrigin: false,
-    parseResponse: (_response, body) => {
-      const services = Array.isArray((body as { services?: unknown[] } | null)?.services)
-        ? (body as { services: Array<{ name?: string; status?: string }> }).services
-        : []
-      const backend = services.find((service) => service.name === 'backend')
-      const ok = backend?.status === 'healthy'
-      return { ok, error: ok ? undefined : backend?.status ?? 'backend not healthy' }
-    },
+interface BffServiceHealth {
+  name?: unknown
+  status?: unknown
+  endpoint?: unknown
+  response_time_ms?: unknown
+  responseTimeMs?: unknown
+  error?: unknown
+}
+
+const HEALTH_BFF_ENDPOINT = '/api/cockpit/health'
+
+const serviceDefinitions: BootServiceDefinition[] = [
+  {
+    name: 'Backend API',
+    aliases: ['backend'],
+    icon: <Server className="h-4 w-4" />,
+    required: true,
   },
-  'llama.cpp': { url: 'http://localhost:8001/health', crossOrigin: true },
-  'Ollama Embeddings': { url: 'http://localhost:11434/api/tags', crossOrigin: true },
-  'Qdrant': { url: 'http://localhost:6333/healthz', crossOrigin: true },
-  'Redis': null, // Cannot be checked from browser
+  {
+    name: 'llama.cpp',
+    aliases: ['llamacpp', 'llama.cpp', 'llama_cpp'],
+    icon: <Brain className="h-4 w-4" />,
+    required: true,
+  },
+  {
+    name: 'Ollama Embeddings',
+    aliases: ['ollama', 'ollama_embeddings'],
+    icon: <Brain className="h-4 w-4" />,
+    required: true,
+  },
+  {
+    name: 'Qdrant',
+    aliases: ['qdrant'],
+    icon: <Search className="h-4 w-4" />,
+    required: false,
+  },
+  {
+    name: 'Redis',
+    aliases: ['redis'],
+    icon: <Database className="h-4 w-4" />,
+    required: false,
+  },
+  {
+    name: 'GPU',
+    aliases: ['gpu'],
+    icon: <Zap className="h-4 w-4" />,
+    required: false,
+  },
+  {
+    name: 'Host',
+    aliases: ['host'],
+    icon: <Server className="h-4 w-4" />,
+    required: false,
+  },
+]
+
+function bffEndpointFor(definition: BootServiceDefinition): string {
+  return `${HEALTH_BFF_ENDPOINT}#${definition.aliases[0]}`
 }
 
-const initialServices: ServiceCheck[] = [
-  { name: 'Backend API', icon: <Server className="h-4 w-4" />, status: 'checking', required: true, endpoint: '/api/cockpit/health' },
-  { name: 'llama.cpp', icon: <Brain className="h-4 w-4" />, status: 'checking', required: true, endpoint: 'http://localhost:8001' },
-  { name: 'Ollama Embeddings', icon: <Brain className="h-4 w-4" />, status: 'checking', required: true, endpoint: 'http://localhost:11434' },
-  { name: 'Qdrant', icon: <Search className="h-4 w-4" />, status: 'checking', required: false, endpoint: 'http://localhost:6333' },
-  { name: 'Redis', icon: <Database className="h-4 w-4" />, status: 'checking', required: false, endpoint: 'http://localhost:6379' },
-]
+function serviceFromDefinition(
+  definition: BootServiceDefinition,
+  status: ServiceStatus = 'checking',
+): ServiceCheck {
+  return {
+    name: definition.name,
+    icon: definition.icon,
+    status,
+    required: definition.required,
+    endpoint: bffEndpointFor(definition),
+  }
+}
+
+const initialServices: ServiceCheck[] = serviceDefinitions.map((definition) => (
+  serviceFromDefinition(definition)
+))
+
+function normalizeServiceName(value: unknown): string {
+  return typeof value === 'string' ? value.toLowerCase().replace(/[^a-z0-9]/g, '') : ''
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function readBffServices(body: unknown): BffServiceHealth[] {
+  if (!body || typeof body !== 'object') return []
+  const services = (body as { services?: unknown }).services
+  if (!Array.isArray(services)) return []
+  return services.filter((service): service is BffServiceHealth => (
+    Boolean(service) && typeof service === 'object'
+  ))
+}
+
+function coerceBffStatus(value: unknown): BffServiceStatus {
+  if (
+    value === 'healthy'
+    || value === 'degraded'
+    || value === 'down'
+    || value === 'unknown'
+  ) {
+    return value
+  }
+  return 'unknown'
+}
+
+function findBffService(
+  services: BffServiceHealth[],
+  definition: BootServiceDefinition,
+): BffServiceHealth | undefined {
+  const aliases = new Set(definition.aliases.map(normalizeServiceName))
+  return services.find((service) => aliases.has(normalizeServiceName(service.name)))
+}
+
+function mapBffService(
+  definition: BootServiceDefinition,
+  services: BffServiceHealth[],
+): ServiceCheck {
+  const service = findBffService(services, definition)
+  if (!service) {
+    return {
+      ...serviceFromDefinition(definition, 'unknown'),
+      error: 'Not reported by health BFF',
+    }
+  }
+
+  const status = coerceBffStatus(service.status)
+  const error = readString(service.error)
+  return {
+    ...serviceFromDefinition(definition, status),
+    endpoint: readString(service.endpoint) ?? bffEndpointFor(definition),
+    responseTimeMs: readNumber(service.response_time_ms) ?? readNumber(service.responseTimeMs),
+    error: error ?? (status === 'unknown' ? 'BFF status unknown' : undefined),
+  }
+}
+
+function mapBffFailure(message: string): ServiceCheck[] {
+  return serviceDefinitions.map((definition) => ({
+    ...serviceFromDefinition(definition, definition.aliases[0] === 'backend' ? 'down' : 'unknown'),
+    error: definition.aliases[0] === 'backend' ? message : 'Health BFF unavailable',
+  }))
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof DOMException && error.name === 'AbortError') return 'Timeout (5s)'
+  if (error instanceof Error) return error.message
+  return 'Health BFF request failed'
+}
 
 function getStatusIcon(status: ServiceCheck['status']) {
   switch (status) {
@@ -78,43 +205,22 @@ export function BootScreen() {
   const [isBooting, setIsBooting] = useState(true)
   const [progress, setProgress] = useState(0)
 
-  // Real service health checks
+  // Cockpit readiness is sourced from the server-side health BFF.
   useEffect(() => {
-    const controllers: AbortController[] = []
-    let completed = 0
-    const total = initialServices.length
+    const controller = new AbortController()
+    let cancelled = false
 
-    const checkService = async (index: number) => {
-      const service = initialServices[index]
-      const config = serviceConfigs[service.name]
-
-      // Redis cannot be checked from the browser
-      if (config === null) {
-        setServices(prev => {
-          const next = [...prev]
-          next[index] = { ...next[index], status: 'unknown', error: 'Not checkable from browser' }
-          return next
-        })
-        completed++
-        setProgress((completed / total) * 100)
-        if (completed === total) setIsBooting(false)
-        return
-      }
-
-      const controller = new AbortController()
-      controllers.push(controller)
+    const checkHealthBff = async () => {
       const start = performance.now()
-
-      // Abort after 5 seconds
       const timeoutId = setTimeout(() => controller.abort(), 5000)
+      setProgress(15)
 
       try {
-        const response = await fetch(config.url, {
+        const response = await fetch(HEALTH_BFF_ENDPOINT, {
           method: 'GET',
           signal: controller.signal,
+          cache: 'no-store',
         })
-        clearTimeout(timeoutId)
-        const elapsed = Math.round(performance.now() - start)
 
         let parsedBody: unknown = null
         try {
@@ -123,81 +229,48 @@ export function BootScreen() {
           parsedBody = null
         }
 
-        const parsed = config.parseResponse?.(response, parsedBody)
-        const serviceOk = parsed ? parsed.ok : response.ok
+        if (cancelled) return
 
-        if (serviceOk) {
-          setServices(prev => {
-            const next = [...prev]
-            next[index] = { ...next[index], status: 'healthy', responseTimeMs: elapsed }
-            return next
-          })
+        const bffServices = readBffServices(parsedBody)
+        if (bffServices.length > 0) {
+          setServices(serviceDefinitions.map((definition) => mapBffService(definition, bffServices)))
         } else {
-          setServices(prev => {
-            const next = [...prev]
-            next[index] = {
-              ...next[index],
-              status: 'down',
-              responseTimeMs: elapsed,
-              error: parsed?.error ?? `HTTP ${response.status}`,
-            }
-            return next
-          })
+          const elapsed = Math.round(performance.now() - start)
+          setServices(mapBffFailure(`Health BFF returned HTTP ${response.status}`).map((service) => (
+            service.name === 'Backend API'
+              ? { ...service, responseTimeMs: elapsed }
+              : service
+          )))
         }
       } catch (err: unknown) {
-        clearTimeout(timeoutId)
-        const elapsed = Math.round(performance.now() - start)
-        const isCorsOrNetwork = err instanceof TypeError
-
-        if (config.crossOrigin && isCorsOrNetwork) {
-          // Cross-origin fetch failures are likely CORS, not necessarily down
-          setServices(prev => {
-            const next = [...prev]
-            next[index] = {
-              ...next[index],
-              status: 'unknown',
-              responseTimeMs: elapsed,
-              error: 'CORS or network error',
-            }
-            return next
-          })
-        } else {
-          const message =
-            err instanceof DOMException && err.name === 'AbortError'
-              ? 'Timeout (5s)'
-              : err instanceof Error
-                ? err.message
-                : 'Connection failed'
-          setServices(prev => {
-            const next = [...prev]
-            next[index] = {
-              ...next[index],
-              status: 'down',
-              responseTimeMs: elapsed,
-              error: message,
-            }
-            return next
-          })
+        if (!cancelled) {
+          const elapsed = Math.round(performance.now() - start)
+          setServices(mapBffFailure(errorMessage(err)).map((service) => (
+            service.name === 'Backend API'
+              ? { ...service, responseTimeMs: elapsed }
+              : service
+          )))
         }
       } finally {
-        completed++
-        setProgress((completed / total) * 100)
-        if (completed === total) {
+        clearTimeout(timeoutId)
+        if (!cancelled) {
+          setProgress(100)
           setIsBooting(false)
         }
       }
     }
 
-    // Check all services in parallel
-    initialServices.forEach((_, i) => checkService(i))
+    checkHealthBff()
 
-    return () => controllers.forEach(c => c.abort())
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [])
 
   const requiredHealthy = services.filter(s => s.required && s.status === 'healthy').length
-  const requiredDown = services.filter(s => s.required && s.status === 'down').length
   const requiredTotal = services.filter(s => s.required).length
-  const allRequiredHealthy = requiredDown === 0 && !services.some(s => s.required && s.status === 'checking')
+  const allRequiredHealthy = requiredTotal > 0 && requiredHealthy === requiredTotal
 
   const handleLaunch = () => {
     router.push('/')
@@ -256,7 +329,7 @@ export function BootScreen() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {service.responseTimeMs && (
+                  {typeof service.responseTimeMs === 'number' && (
                     <span className="text-xs text-muted-foreground font-mono">
                       {service.responseTimeMs}ms
                     </span>
@@ -267,10 +340,10 @@ export function BootScreen() {
             ))}
           </div>
 
-          {/* CORS notice */}
+          {/* BFF notice */}
           {!isBooting && services.some(s => s.status === 'unknown') && (
             <p className="text-xs text-muted-foreground text-center">
-              Direct health checks may be blocked by CORS. Use /health command for full status.
+              Some statuses are unknown because the health BFF did not verify them.
             </p>
           )}
 
