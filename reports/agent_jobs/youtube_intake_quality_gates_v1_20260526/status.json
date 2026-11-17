@@ -1,0 +1,33 @@
+{
+  "job_id": "youtube_intake_quality_gates_v1_20260526",
+  "issue": 102,
+  "status": "released",
+  "agent": "Codex",
+  "lane": "Evaluation",
+  "execution_mode": "safe_extension",
+  "collision_risk": "LOW",
+  "branch": "safe/youtube-intake-quality-gates-v1-20260526",
+  "worktree": "/home/l4nd0/tenn-youtube-intake-quality-gates-v1-20260526",
+  "base_head": "0320f645c806",
+  "updated_at": "2026-06-01T23:10:59+10:00",
+  "released_at": "2026-06-01T23:10:59+10:00",
+  "summary": [
+    "Added synthetic YouTube intake quality fixture matrix.",
+    "Added deterministic eval script with reject, quarantine, factual_candidate, speculative_candidate, and requires_user_review decisions.",
+    "Added fail-closed validation for speculative-as-factual and memory-write posture.",
+    "Generated local eval report artifact."
+  ],
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_overlap": "passed",
+    "ruff": "passed",
+    "pytest": "5 passed",
+    "eval_report": "passed",
+    "json_tool": "passed",
+    "task_card_check_diff": "passed"
+  },
+  "forbidden_surfaces_touched": [],
+  "production_data_access": false,
+  "pr": "https://github.com/0rl4nd0l/tenn/pull/192",
+  "ready_for_review": true
+}
