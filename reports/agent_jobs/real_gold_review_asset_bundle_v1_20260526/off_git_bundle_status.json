@@ -1,0 +1,13 @@
+{
+  "approved_phrase_required": "DATA_MISSING: no approval phrase supplied for raw-PDF bundling",
+  "artifact_type": "off_git_bundle_status_v1",
+  "generated_at": "2026-05-31T02:07:43.269887+00:00",
+  "issue": "#99",
+  "job_id": "real_gold_review_asset_bundle_v1_20260526",
+  "metadata_manifest": "financial-engine_v2/backend/tests/eval_source_assets/real_gold_review_source_assets.json",
+  "raw_pdf_bundle_created": false,
+  "raw_pdf_bundle_path": null,
+  "raw_pdfs_committed": false,
+  "raw_pdfs_modified": false,
+  "reason": "No explicit approval was provided to create a raw-PDF zip/tar bundle."
+}
