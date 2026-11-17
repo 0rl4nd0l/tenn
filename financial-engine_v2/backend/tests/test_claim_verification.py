@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import app.core.config as config
 from app.routes.cockpit_claims import router
 from app.services.claim_verification import verify_claims_against_evidence
 
@@ -108,13 +109,67 @@ def test_claim_verification_does_not_treat_month_may_as_modal() -> None:
     assert verdict["verdict"] == "supported"
 
 
-def test_claim_verification_endpoint_returns_structured_verdicts() -> None:
+def test_claim_verification_endpoint_rejects_missing_api_key_when_configured(monkeypatch) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
     client = TestClient(app)
 
     response = client.post(
         "/api/cockpit/claims/verify",
+        json={
+            "assistant_text": "BHP revenue was $10m.",
+            "visible_sources": [
+                {
+                    "source_id": "doc-1:0",
+                    "title": "BHP results",
+                    "snippet": "BHP revenue was $10m.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+
+
+def test_claim_verification_endpoint_rejects_wrong_api_key_when_configured(monkeypatch) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/claims/verify",
+        headers={"X-API-Key": "wrong-secret"},
+        json={
+            "assistant_text": "BHP revenue was $10m.",
+            "visible_sources": [
+                {
+                    "source_id": "doc-1:0",
+                    "title": "BHP results",
+                    "snippet": "BHP revenue was $10m.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+
+
+def test_claim_verification_endpoint_returns_structured_verdicts(monkeypatch) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/claims/verify",
+        headers={"X-API-Key": "local-secret"},
         json={
             "session_id": "session-a",
             "message_id": "msg-a",
@@ -137,13 +192,16 @@ def test_claim_verification_endpoint_returns_structured_verdicts() -> None:
     assert payload["verdicts"][0]["verdict"] == "supported"
 
 
-def test_claim_verification_endpoint_rejects_empty_assistant_text() -> None:
+def test_claim_verification_endpoint_rejects_empty_assistant_text(monkeypatch) -> None:
+    monkeypatch.setattr(config.settings, "local_api_key", "local-secret", raising=False)
+
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
     client = TestClient(app)
 
     response = client.post(
         "/api/cockpit/claims/verify",
+        headers={"X-API-Key": "local-secret"},
         json={"assistant_text": "   "},
     )
 
