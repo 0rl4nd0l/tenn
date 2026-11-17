@@ -66,6 +66,10 @@ function ConfigRow({ label, value, mono = false }: ConfigRowProps) {
   )
 }
 
+function promptLabOperatorAccessEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_COCKPIT_PROMPT_LAB_OPERATOR_ACCESS === '1'
+}
+
 interface ConfigState {
   llm: {
     model: string
@@ -150,6 +154,7 @@ export function SettingsScreen() {
   const [switching, setSwitching] = useState(false)
   const [switchResult, setSwitchResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'runtime' | 'prompt-lab'>('runtime')
+  const promptLabEnabled = promptLabOperatorAccessEnabled()
 
   useEffect(() => {
     async function fetchConfig() {
@@ -290,10 +295,12 @@ export function SettingsScreen() {
               <Cpu className="h-4 w-4" />
               Runtime
             </TabsTrigger>
-            <TabsTrigger value="prompt-lab">
-              <FileCode2 className="h-4 w-4" />
-              Prompt Lab
-            </TabsTrigger>
+            {promptLabEnabled ? (
+              <TabsTrigger value="prompt-lab">
+                <FileCode2 className="h-4 w-4" />
+                Prompt Lab
+              </TabsTrigger>
+            ) : null}
           </TabsList>
 
           <TabsContent value="runtime" className="space-y-6">
@@ -610,9 +617,11 @@ export function SettingsScreen() {
         </ConfigSection>
           </TabsContent>
 
-          <TabsContent value="prompt-lab">
-            {activeTab === 'prompt-lab' ? <PromptLabPanel /> : null}
-          </TabsContent>
+          {promptLabEnabled ? (
+            <TabsContent value="prompt-lab">
+              {activeTab === 'prompt-lab' ? <PromptLabPanel /> : null}
+            </TabsContent>
+          ) : null}
         </Tabs>
       </div>
     </ScrollArea>

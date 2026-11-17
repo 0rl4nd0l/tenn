@@ -9,6 +9,9 @@ from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 
 
+PROMPT_LAB_HEADERS = {"X-Cockpit-Prompt-Lab-Intent": "inspect-prompts"}
+
+
 class _FakeHybridRouter:
     def __init__(self) -> None:
         self.calls: list[dict] = []
@@ -52,9 +55,10 @@ def _client(monkeypatch) -> tuple[TestClient, SimpleNamespace]:
 
 
 def test_prompt_lab_routes_include_locked_no_llm_path(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
     client, _service = _client(monkeypatch)
 
-    response = client.get("/api/cockpit/prompts/routes")
+    response = client.get("/api/cockpit/prompts/routes", headers=PROMPT_LAB_HEADERS)
 
     assert response.status_code == 200
     payload = response.json()
@@ -67,10 +71,12 @@ def test_prompt_lab_routes_include_locked_no_llm_path(monkeypatch) -> None:
 
 
 def test_prompt_lab_preview_includes_sample_message_and_locked_blocks(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
     client, _service = _client(monkeypatch)
 
     response = client.post(
         "/api/cockpit/prompts/preview",
+        headers=PROMPT_LAB_HEADERS,
         json={
             "route_id": "structured_agent",
             "message": "Analyse BHP",
@@ -91,10 +97,12 @@ def test_prompt_lab_preview_includes_sample_message_and_locked_blocks(monkeypatc
 
 
 def test_prompt_lab_slash_preview_has_no_messages(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
     client, _service = _client(monkeypatch)
 
     response = client.post(
         "/api/cockpit/prompts/preview",
+        headers=PROMPT_LAB_HEADERS,
         json={"route_id": "slash_control", "message": "/prompt"},
     )
 
@@ -105,10 +113,12 @@ def test_prompt_lab_slash_preview_has_no_messages(monkeypatch) -> None:
 
 
 def test_prompt_lab_dry_run_uses_llm_client_without_chat_history(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
     client, service = _client(monkeypatch)
 
     response = client.post(
         "/api/cockpit/prompts/dry-run",
+        headers=PROMPT_LAB_HEADERS,
         json={"route_id": "structured_agent", "message": "Analyse BHP", "ticker": "BHP"},
     )
 
@@ -122,12 +132,38 @@ def test_prompt_lab_dry_run_uses_llm_client_without_chat_history(monkeypatch) ->
 
 
 def test_prompt_lab_dry_run_rejects_no_llm_route(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
     client, _service = _client(monkeypatch)
 
     response = client.post(
         "/api/cockpit/prompts/dry-run",
+        headers=PROMPT_LAB_HEADERS,
         json={"route_id": "slash_control", "message": "/prompt"},
     )
 
     assert response.status_code == 400
     assert "does not support LLM dry-run" in response.json()["detail"]
+
+
+def test_prompt_lab_routes_reject_when_operator_access_disabled(monkeypatch) -> None:
+    monkeypatch.delenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", raising=False)
+    client, _service = _client(monkeypatch)
+
+    response = client.get("/api/cockpit/prompts/routes", headers=PROMPT_LAB_HEADERS)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Prompt Lab operator access is disabled"
+
+
+def test_prompt_lab_dry_run_requires_operator_intent_before_llm(monkeypatch) -> None:
+    monkeypatch.setenv("COCKPIT_PROMPT_LAB_OPERATOR_ACCESS", "1")
+    client, service = _client(monkeypatch)
+
+    response = client.post(
+        "/api/cockpit/prompts/dry-run",
+        json={"route_id": "structured_agent", "message": "Analyse BHP", "ticker": "BHP"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Prompt Lab operator intent header is required"
+    assert service.chat_controller._hybrid_router.calls == []
