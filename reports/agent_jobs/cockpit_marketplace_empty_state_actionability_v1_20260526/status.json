@@ -1,0 +1,29 @@
+{
+  "job_id": "cockpit_marketplace_empty_state_actionability_v1_20260526",
+  "agent": "Codex",
+  "lane": "Reporting",
+  "execution_mode": "safe_extension",
+  "status": "released",
+  "released_at": "2026-05-31T23:12:39.784518Z",
+  "issue": 93,
+  "branch": "safe/reporting-marketplace-empty-state-actionability-v1-20260601",
+  "worktree": "/home/l4nd0/tenn-reporting-marketplace-empty-state-actionability-v1-20260601",
+  "collision_risk": "MEDIUM",
+  "contested_surfaces_touched": [
+    "cockpit-ui/components/cockpit/marketplace/"
+  ],
+  "production_data_access": false,
+  "summary": [
+    "Marketplace Matches now explains zero results using mission/run context only after the matches endpoint returns an empty item list.",
+    "Marketplace Alerts now explains zero results using mission/run context only after the alerts endpoint returns an empty item list.",
+    "Both pages preserve DATA_MISSING when mission context cannot be loaded and provide a visible next action.",
+    "Server-filter and local-filter empty states expose a Clear filters action without fabricating matches or alerts."
+  ],
+  "artifacts": [
+    "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state.png",
+    "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state.png",
+    "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-matches-empty-state-mobile.png",
+    "reports/agent_jobs/cockpit_marketplace_empty_state_actionability_v1_20260526/marketplace-alerts-empty-state-mobile.png"
+  ],
+  "remaining_blockers": []
+}
