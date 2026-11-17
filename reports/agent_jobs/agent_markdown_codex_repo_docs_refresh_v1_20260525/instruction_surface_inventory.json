@@ -1,0 +1,123 @@
+{
+  "job_id": "agent_markdown_codex_repo_docs_refresh_v1_20260525",
+  "collected_at": "2026-06-01T08:05:25Z",
+  "issue": 78,
+  "summary_counts": {
+    "docs_agent_tasks_files": 274,
+    "reports_agent_jobs_directories": 244,
+    "claude_command_files": 13,
+    "repo_skill_markdown_files": 6
+  },
+  "surfaces": [
+    {
+      "path": "AGENTS.md",
+      "classification": "stale_or_conflicting",
+      "evidence": "Defines shared truthfulness, system contract enforcement, multi-agent live repo control, lane model, contested surfaces, task-card contract, DATA_MISSING rule, and graphify policy, but its Codex skill list points to hardcoded paths where most listed repo-local skills are absent in this worktree."
+    },
+    {
+      "path": "CLAUDE.md",
+      "classification": "core_stable_contract",
+      "evidence": "Imports AGENTS.md, requires SYSTEM_CONTRACT.md, preflight contract statement, milestone commits, and docs/claude/STATE.md update."
+    },
+    {
+      "path": "CODEX.md",
+      "classification": "specialized_workflow",
+      "evidence": "Codex-specific operating identity, review stance, memory/context list, commit format, flagged Cockpit closeout, and commit hygiene."
+    },
+    {
+      "path": "GEMINI.md",
+      "classification": "stale_or_conflicting",
+      "evidence": "Gemini-specific identity and hook guidance, but graphify update rule conflicts with AGENTS.md/CLAUDE.md graphify policy."
+    },
+    {
+      "path": "docs/architecture/SYSTEM_CONTRACT.md",
+      "classification": "core_stable_contract",
+      "evidence": "Authoritative backend, pipeline, retrieval, data, model, and GPU/process invariants."
+    },
+    {
+      "path": "scripts/agent_job_contract.py",
+      "classification": "stale_or_conflicting",
+      "evidence": "Validator accepts only Financial Truth, Evaluation, Provenance, Query Orchestration, Memory, and Reporting; GitHub issue templates advertise additional lanes."
+    },
+    {
+      "path": "scripts/agent_job_registry.py",
+      "classification": "specialized_workflow",
+      "evidence": "Shared active-job registry and overlap lock implementation used by task-card jobs."
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/*.yml",
+      "classification": "stale_or_conflicting",
+      "evidence": "Issue forms advertise lane:repo-hygiene, lane:runtime, and lane:cockpit, which task-card validation cannot accept as primary lanes."
+    },
+    {
+      "path": "docs/process/github_issue_system_protocol.md",
+      "classification": "core_stable_contract",
+      "evidence": "Defines GitHub Issues as live backlog, task cards as execution contracts, reports as evidence, Project Memory as search hints, PR link policy, branch hygiene, and audit closeout gates."
+    },
+    {
+      "path": "docs/process/codex_skill_sources/github_issue_system/",
+      "classification": "duplicate",
+      "evidence": "Repo-visible reference mirrors of Codex-local issue skills; README says local skills remain active and mirrors must stay in sync."
+    },
+    {
+      "path": ".codex/hooks.json",
+      "classification": "specialized_workflow",
+      "evidence": "Codex hook surface for graphify prompt and task-card stop hook."
+    },
+    {
+      "path": ".claude/settings.json",
+      "classification": "specialized_workflow",
+      "evidence": "Claude hook surface for memory check, task-card stop hook, milestone warning, doc-coverage warning, and metadata updater."
+    },
+    {
+      "path": ".gemini/settings.json",
+      "classification": "specialized_workflow",
+      "evidence": "Gemini hook surface for graphify read prompt and task-card BeforeTool hook."
+    },
+    {
+      "path": ".claude/commands/",
+      "classification": "specialized_workflow",
+      "evidence": "Thirteen Claude command files; should remain on-demand rather than default-loaded."
+    },
+    {
+      "path": ".claude/skills/",
+      "classification": "specialized_workflow",
+      "evidence": "Claude skill files and UI helper scripts; task-specific and not default contract."
+    },
+    {
+      "path": ".codex/skills/cockpit-flag-orchestrator/",
+      "classification": "specialized_workflow",
+      "evidence": "Codex repo-local skill for Cockpit flag remediation; task-triggered workflow."
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "classification": "specialized_workflow",
+      "evidence": "Active work tracker and current snapshot; active Financial Truth job owns this file in the shared checkout, so this audit intentionally did not touch it."
+    },
+    {
+      "path": "docs/agent_tasks/",
+      "classification": "specialized_workflow",
+      "evidence": "Task cards are execution contracts; 274 direct files were present in this worktree."
+    },
+    {
+      "path": "reports/agent_jobs/",
+      "classification": "specialized_workflow",
+      "evidence": "Report artifacts are evidence; 244 direct job directories were present in this worktree."
+    },
+    {
+      "path": "graphify-out/GRAPH_REPORT.md",
+      "classification": "DATA_MISSING",
+      "evidence": "Required by AGENTS.md/CLAUDE.md/GEMINI.md for architecture/codebase questions, but graphify-out files were absent in this worktree."
+    },
+    {
+      "path": "AGENTS.md and GEMINI.md task-card command examples",
+      "classification": "stale_or_conflicting",
+      "evidence": "`python` was not found in this shell, but AGENTS.md and GEMINI.md include bare `python scripts/agent_job_*` command examples. `python3 --version` returned Python 3.10.12."
+    },
+    {
+      "path": ".github/copilot-instructions.md and .github/instructions/",
+      "classification": "missing",
+      "evidence": "No repo-local Copilot instruction surfaces were present; issue #78 referenced these as relevant external patterns, not mandatory Tenn files."
+    }
+  ]
+}

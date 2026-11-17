@@ -1,0 +1,77 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/contradiction_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/instruction_surface_inventory.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/load_map.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/patch_recommendations.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/README.md",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/status.json",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/validation.json",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/diff-check.json",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/instruction_surface_inventory.json",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/contradiction_matrix.md",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/load_map.md",
+        "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/patch_recommendations.md"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "pr_create",
+      "job_id": "agent_markdown_codex_repo_docs_refresh_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 78,
+      "stale_after_seconds": 7200,
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

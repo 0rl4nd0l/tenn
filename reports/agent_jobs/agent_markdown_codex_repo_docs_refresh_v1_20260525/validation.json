@@ -1,0 +1,98 @@
+{
+  "job_id": "agent_markdown_codex_repo_docs_refresh_v1_20260525",
+  "issue": 78,
+  "collected_at": "2026-06-01T08:05:25Z",
+  "lane": "Reporting",
+  "mode": "AUDIT",
+  "production_data_access": false,
+  "product_or_runtime_mutation": false,
+  "standing_instruction_mutation": false,
+  "commands": [
+    {
+      "command": "gh issue view 78 --json number,title,state,labels,body,comments,url",
+      "result": "passed"
+    },
+    {
+      "command": "gh pr list --state all --search \"agent_markdown_codex_repo_docs_refresh_v1_20260525 OR agent markdown Codex repo documentation\" --json number,title,state,isDraft,headRefName,baseRefName,url,updatedAt",
+      "result": "passed",
+      "notes": "No matching PRs returned."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "notes": "Active Financial Truth canary job owned shared docs/claude/STATE.md; this audit write set did not overlap."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g 'CODEX.md' -g 'GEMINI.md' -g '.github/**' -g '.codex/**' -g '.claude/**' -g 'docs/**/*.md' -g 'docs/**/*.json' -g 'docs/**/*.yml' -g 'docs/**/*.yaml' | sort",
+      "result": "passed"
+    },
+    {
+      "command": "find .codex .claude .github -maxdepth 4 -type f 2>/dev/null | sort",
+      "result": "passed"
+    },
+    {
+      "command": "find .gemini -maxdepth 3 -type f 2>/dev/null | sort",
+      "result": "passed"
+    },
+    {
+      "command": "rg -n \"task card|task-card|agent_job|registry|DATA_MISSING|GitHub Issues|issue closeout|merge parking|worktree|branch hygiene|AGENTS.md|CLAUDE.md|CODEX|GEMINI|memory|STATE.md|production data|approval_required|check-diff|list-active|claim|release|do not create a duplicate\" AGENTS.md CLAUDE.md GEMINI.md docs .github .codex .claude -S",
+      "result": "passed"
+    },
+    {
+      "command": "nl -ba AGENTS.md, CLAUDE.md, CODEX.md, GEMINI.md, scripts/agent_job_contract.py, docs/process/github_issue_system_protocol.md, .github/ISSUE_TEMPLATE/*.yml, .codex/hooks.json, .claude/settings.json, .gemini/settings.json",
+      "result": "passed",
+      "notes": "Line-numbered evidence excerpts inspected for contradiction matrix."
+    },
+    {
+      "command": "find graphify-out -maxdepth 2 -type f 2>/dev/null | sort | head -20",
+      "result": "passed",
+      "notes": "No graphify files returned; graphify context is DATA_MISSING."
+    },
+    {
+      "command": "command -v python || true; python --version 2>&1 || true; python3 --version 2>&1",
+      "result": "passed",
+      "notes": "python was not found; python3 returned Python 3.10.12."
+    },
+    {
+      "command": "find /home/l4nd0/tenn/.codex/skills -maxdepth 2 -name SKILL.md -printf '%p\\n' 2>/dev/null | sort | head -40; find .codex/skills -maxdepth 2 -name SKILL.md -printf '%p\\n' 2>/dev/null | sort",
+      "result": "passed",
+      "notes": "Only cockpit-flag-orchestrator was present under the hardcoded /home/l4nd0/tenn/.codex/skills path and repo-local .codex/skills path."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/validation.json >/dev/null && python3 -m json.tool reports/agent_jobs/agent_markdown_codex_repo_docs_refresh_v1_20260525/instruction_surface_inventory.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/agent_markdown_codex_repo_docs_refresh_v1_20260525.md --repo-root .",
+      "result": "passed",
+      "notes": "No disallowed files."
+    }
+  ],
+  "conclusion": {
+    "status": "audit_complete_followup_required",
+    "highest_value_followups": [
+      "Resolve task-card lane vocabulary mismatch with GitHub issue labels.",
+      "Make docs/claude/STATE.md update rule conditional on allowlist and registry ownership.",
+      "Align GEMINI.md graphify update guidance with AGENTS.md and CLAUDE.md.",
+      "Replace stale hardcoded Codex skill inventory in AGENTS.md.",
+      "Normalize mandatory task-card command examples to python3 or explicit venv usage."
+    ],
+    "issue_closeout": "Do not close #78 from this audit-only report alone."
+  }
+}
