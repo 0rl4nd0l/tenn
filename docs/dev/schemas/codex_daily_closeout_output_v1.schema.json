@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/schemas/codex_daily_closeout_output_v1.schema.json",
+  "title": "Tenn Daily Closeout Structured Interpretation V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "findings", "data_missing", "next_action"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 800
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_ids", "classification", "severity", "statement", "owner_action"],
+        "properties": {
+          "fact_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1, "maxLength": 120}
+          },
+          "classification": {
+            "type": "string",
+            "enum": ["Confirmed", "Inferred", "DATA_MISSING"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["P0", "P1", "INFO"]
+          },
+          "statement": {"type": "string", "minLength": 1, "maxLength": 500},
+          "owner_action": {"type": "string", "minLength": 1, "maxLength": 500}
+        }
+      }
+    },
+    "data_missing": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "minLength": 1, "maxLength": 180}
+    },
+    "next_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "next_prompt", "requires_approval"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1, "maxLength": 500},
+        "next_prompt": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "requires_approval": {"type": "boolean"}
+      }
+    }
+  }
+}

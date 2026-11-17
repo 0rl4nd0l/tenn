@@ -78,11 +78,145 @@ The native health monitor checks:
 - output root size
 - latest prompt/log/report files
 - expected report freshness per automation job
+- the latest seven observable daily-closeout run/review records when present
 
 The daily closeout job is an end-of-day audit/proposal pass. It summarizes
 current worktree, report, timer, PR, issue, and blocker evidence and emits one
 next recommended operator prompt. It must not mutate files, GitHub, systemd,
 runtime state, data stores, memory stores, model/GPU config, or production data.
+
+## Daily Closeout Observability V1
+
+The repository runner has a daily-closeout-only observability tracer bullet.
+This is repo behavior, not proof that a live execution worktree or scheduled
+timer has been updated. Deployment and scheduled proof remain separate operator
+actions.
+
+### Run lifecycle and artifacts
+
+Before any model can be launched, the runner creates a `RUNNING` record. It
+fails closed when that initial record cannot be created. Final lifecycle states
+are `SUCCEEDED`, `PARTIAL`, `FAILED`, `ABANDONED`, and
+`SKIPPED_CONCURRENT`. A per-job lock prevents overlapping closeouts; a stale
+`RUNNING` record older than the service timeout plus five minutes becomes
+`ABANDONED` at the next runner start.
+
+Daily-closeout adds these owner-only local paths under the configured automation
+output root:
+
+- `runs/<local-time>-<unique-suffix>-daily-closeout.json`
+- `evidence/<run-id>.json`
+- `model_outputs/<run-id>.json` only when a model is invoked
+- `reviews/<review-time>-<run-id>.json`
+- the existing `prompts/`, `logs/`, and `reports/` paths
+
+Directories use mode `0700`; files use `0600`. Atomic writers refuse symlink
+targets. Finalized run, evidence, and review records are immutable through the
+supported interfaces. Run records link prompt, log, evidence, structured model
+output, report, and output schema with SHA-256 hashes where those artifacts
+exist.
+
+### Native evidence and fact comparison
+
+The Python runner, outside the Codex command sandbox, performs only fixed
+read-only probes with argument arrays, timeouts, redaction, and output limits.
+Required evidence covers primary and automation worktree identity/dirt, Tenn
+guard status, user timers and failed units, artifact freshness, and comparison
+with the previous finalized run. GitHub auth and the bounded system brief are
+optional surfaces.
+
+The evidence pack is capped at 32 KiB, each probe at 8 KiB, and system-brief
+queue extraction at eight items. It includes normalized fact IDs rather than a
+repeat dump of reports and task cards. Legacy automation reports contribute
+only bounded names and known status markers unless a later model interpretation
+needs a targeted read.
+
+The first instrumented run is `BOOTSTRAP`. Later runs compare normalized facts
+such as worktree HEAD/dirt, timer inventory, failed units, stale jobs, guard
+status, queue items, and GitHub read availability. Routine timestamps and token
+fluctuation are not material changes by themselves.
+
+### Native fast path and model gate
+
+No-change confirmations and known deterministic transitions are rendered
+natively with `model: none` and zero model tokens. The model gate records its
+decision, triggering fact IDs, reason codes, and whether a model was actually
+invoked. Initial reason codes are:
+
+- `BOOTSTRAP_SYNTHESIS`
+- `MULTIPLE_MATERIAL_CHANGES`
+- `OWNER_PRIORITY_AMBIGUOUS`
+- `NATIVE_NO_CHANGE`
+- `KNOWN_PROBE_FAILURE`
+- `SINGLE_DETERMINISTIC_TRANSITION`
+- `EVIDENCE_COLLECTION_FAILED`
+
+When interpretation is required, the existing small-model policy selects the
+model. The command is ephemeral, ignores unrelated interactive user config,
+retains Tenn repository rules, stays in the read-only sandbox, and uses
+`--output-schema`. It never uses `--ignore-rules`. The model receives bounded
+evidence as untrusted data and may perform at most four targeted artifact reads;
+extra reads are recorded as a budget warning.
+
+The model returns structured interpretation only: a summary, up to eight
+fact-linked findings, genuine missing-evidence notes, and one next action. The
+runner owns execution/evidence/usefulness status, accounting, cost status,
+hashes, and report rendering. Raw structured model output is capped at 32 KiB;
+human reports are capped at 8 KiB. Invalid or oversized model output is
+preserved and marked partial/noise without automatic retry or larger-model
+fallback.
+
+### Status, usefulness, and cost
+
+Each run keeps independent axes:
+
+- execution: `SUCCEEDED`, `PARTIAL`, or `FAILED`
+- evidence: `COMPLETE` or `DEGRADED`
+- usefulness: `ACTIONABLE`, `CONFIRMING`, or `NOISE`
+
+`WORKING` requires successful execution, complete evidence, and an actionable
+or confirming outcome. Degraded evidence or noise is `PARTIAL`; missing
+required output is `BROKEN` or `DATA_MISSING` as supported.
+
+Raw input, cached input, derived uncached input, output, and reasoning usage are
+recorded. Dollar cost remains `DATA_MISSING` until an applicable Codex CLI
+billing source is verified. Public API pricing is not substituted.
+
+### Read-only trends and explicit reviews
+
+Read the latest seven-run summary without writing state:
+
+```bash
+python3 scripts/codex_automation_observability.py \
+  --output-root ~/.codex/automations/tenn \
+  summarize --job daily-closeout --last 7 --json
+```
+
+An explicit operator review creates a separate immutable review record; it does
+not rewrite the original run:
+
+```bash
+python3 scripts/codex_automation_observability.py \
+  --output-root ~/.codex/automations/tenn \
+  review --run-id <exact-run-id> --rating NOISE \
+  --reason "Repeated a known blocker without new evidence" --reviewer Orlando
+```
+
+A chat instruction may invoke the same review command only when it clearly says
+`mark`, `rate`, or `override` and supplies an exact/resolvable run, rating, and
+reason. Casual feedback is not write authorization.
+
+The observability gate requires one scheduled run with valid joined artifacts
+and no self-staleness error. The forward efficiency baseline requires seven
+completed scheduled runs, at least six useful results, zero materially false
+claims, and at least 95% required-probe coverage. Historical uninstrumented
+runs remain non-comparable context. Version one measures retention growth and
+deletes nothing.
+
+For repo-only validation, always use a temporary output root and a fake Codex
+child. Do not point tests or dry runs at the live automation root. Publication,
+execution-worktree reconciliation, systemd actions, and scheduled proof each
+require separate approval.
 
 ## Never Auto-Write
 

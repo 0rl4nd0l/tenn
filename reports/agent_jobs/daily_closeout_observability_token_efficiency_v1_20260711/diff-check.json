@@ -1,0 +1,89 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/dev/automation_index.md",
+      "status": "M"
+    },
+    {
+      "path": "scripts/codex_automation_runner.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_codex_automation_runner.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/daily_closeout_observability_token_efficiency_v1_20260711.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/dev/schemas/codex_automation_evidence_v1.schema.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/dev/schemas/codex_automation_review_v1.schema.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/dev/schemas/codex_automation_run_v1.schema.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/dev/schemas/codex_daily_closeout_output_v1.schema.json",
+      "status": "??"
+    },
+    {
+      "path": "scripts/codex_automation_observability.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/test_codex_automation_observability.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/daily_closeout_observability_token_efficiency_v1_20260711.md",
+        "scripts/codex_automation_observability.py",
+        "scripts/codex_automation_runner.py",
+        "scripts/test_codex_automation_observability.py",
+        "scripts/test_codex_automation_runner.py",
+        "docs/dev/automation_index.md",
+        "docs/dev/schemas/codex_daily_closeout_output_v1.schema.json",
+        "docs/dev/schemas/codex_automation_evidence_v1.schema.json",
+        "docs/dev/schemas/codex_automation_run_v1.schema.json",
+        "docs/dev/schemas/codex_automation_review_v1.schema.json",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/README.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/STATE.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/DECISIONS.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/VALIDATION.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/CODE_REVIEW.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/APPROVAL_MANIFEST.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/HANDOFF.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/NEXT_GOAL.md",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/ledger_entry.json",
+        "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "daily_closeout_observability_token_efficiency_v1_20260711",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/daily_closeout_observability_token_efficiency_v1_20260711",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "task_scope": "control_plane_only",
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

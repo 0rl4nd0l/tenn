@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
+import codex_automation_observability as observability
+
 
 AUTOMATION_WORKTREE = Path(os.environ.get("TENN_CODEX_AUTOMATION_WORKTREE", "/home/l4nd0/tenn-codex-automations-v1-20260516"))
 TARGET_WORKTREE = Path(os.environ.get("TENN_CODEX_AUTOMATION_TARGET_WORKTREE", "/home/l4nd0/tenn"))
@@ -31,6 +33,8 @@ SUPPORTED_REASONING_EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
 MODEL_POLICY_NATIVE = "native"
 MODEL_POLICY_SMALL = "small"
 MODEL_POLICY_DEFAULT = "default"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DAILY_CLOSEOUT_OUTPUT_SCHEMA = REPO_ROOT / "docs/dev/schemas/codex_daily_closeout_output_v1.schema.json"
 
 
 @dataclass(frozen=True)
@@ -701,7 +705,15 @@ def _model_selection(job: AutomationJob) -> ModelSelection:
     return ModelSelection(model=None, reasoning_effort=reasoning_effort, source=reasoning_source or MODEL_POLICY_DEFAULT)
 
 
-def _command(job: AutomationJob, prompt_path: Path, timestamp: str) -> list[str]:
+def _command(
+    job: AutomationJob,
+    prompt_path: Path,
+    timestamp: str,
+    *,
+    output_path: Path | None = None,
+    output_schema: Path | None = None,
+    isolated: bool | None = None,
+) -> list[str]:
     codex_path = next((candidate for candidate in CODEX_CANDIDATES if candidate is not None and candidate.exists()), None)
     codex = str(codex_path) if codex_path is not None else shutil.which("codex")
     if not codex:
@@ -712,6 +724,19 @@ def _command(job: AutomationJob, prompt_path: Path, timestamp: str) -> list[str]
         codex,
         "exec",
     ]
+    daily_closeout = job.name == "daily-closeout"
+    if isolated is None:
+        isolated = daily_closeout
+    if output_path is None:
+        output_path = (
+            OUTPUT_ROOT / "model_outputs" / f"{timestamp}-{job.name}.json"
+            if daily_closeout
+            else OUTPUT_ROOT / "reports" / f"{timestamp}-{job.name}.md"
+        )
+    if output_schema is None and daily_closeout:
+        output_schema = DAILY_CLOSEOUT_OUTPUT_SCHEMA
+    if isolated:
+        command.extend(["--ephemeral", "--ignore-user-config"])
     if model_selection.model:
         command.extend(["--model", model_selection.model])
     if model_selection.reasoning_effort:
@@ -722,9 +747,15 @@ def _command(job: AutomationJob, prompt_path: Path, timestamp: str) -> list[str]
             str(AUTOMATION_WORKTREE),
             "--sandbox",
             "read-only",
+        ]
+    )
+    if output_schema is not None:
+        command.extend(["--output-schema", str(output_schema)])
+    command.extend(
+        [
             "--json",
             "--output-last-message",
-            str(OUTPUT_ROOT / "reports" / f"{timestamp}-{job.name}.md"),
+            str(output_path),
             "-",
         ]
     )
@@ -824,7 +855,14 @@ def _report_declares_broken(path: Path | None) -> bool:
     if path is None:
         return False
     text = path.read_text(encoding="utf-8", errors="replace")[:4000]
-    return "Status: BROKEN" in text or "result: WORKING / PARTIAL / BROKEN / DATA_MISSING | BROKEN" in text
+    return any(
+        marker in text
+        for marker in (
+            "Status: BROKEN",
+            "result: WORKING / PARTIAL / BROKEN / DATA_MISSING | BROKEN",
+            "Functionality result:\n- BROKEN",
+        )
+    )
 
 
 def _health_rows(now: datetime) -> tuple[list[str], list[str], list[dict[str, object]]]:
@@ -944,6 +982,11 @@ def _run_automation_health_native(dry_run: bool = False) -> int:
     logs = _latest_files(OUTPUT_ROOT / "logs", "*")
     prompts = _latest_files(OUTPUT_ROOT / "prompts", "*.md")
     health_rows, health_issues, health_records = _health_rows(datetime.now().astimezone())
+    daily_closeout_trend = observability.summarize_runs(
+        observability.ObservabilityPaths(OUTPUT_ROOT),
+        job="daily-closeout",
+        limit=7,
+    )
     codex_status = "present" if codex else "missing"
     report = f"""Lane: Query Orchestration
 Branch: {branch}
@@ -990,6 +1033,12 @@ Command evidence:
 Expected report freshness:
 
 {chr(10).join(health_rows)}
+
+Daily-closeout observable trend:
+
+```json
+{json.dumps(daily_closeout_trend, indent=2, sort_keys=True)}
+```
 """
     report_path.write_text(report, encoding="utf-8")
     log_path.write_text(
@@ -1002,6 +1051,7 @@ Expected report freshness:
                 "latest_prompts": [str(path) for path in prompts],
                 "health_records": health_records,
                 "health_issues": health_issues,
+                "daily_closeout_trend": daily_closeout_trend,
             },
             indent=2,
             sort_keys=True,
@@ -1011,9 +1061,71 @@ Expected report freshness:
     return 0
 
 
+def _git_sha(worktree: Path) -> str:
+    returncode, output = _run_text_command(["git", "-C", str(worktree), "rev-parse", "HEAD"])
+    return output if returncode == 0 and output else "DATA_MISSING"
+
+
+def _daily_provenance(model_selection: ModelSelection) -> dict[str, object]:
+    overrides = sorted(
+        key
+        for key, value in os.environ.items()
+        if key.startswith("TENN_CODEX_AUTOMATION_") and value.strip()
+    )
+    codex_path = next((candidate for candidate in CODEX_CANDIDATES if candidate is not None and candidate.exists()), None)
+    codex = str(codex_path) if codex_path is not None else shutil.which("codex")
+    version_code, version_output = _run_text_command([codex, "--version"]) if codex else (1, "")
+    return {
+        "runner_git_sha": _git_sha(AUTOMATION_WORKTREE),
+        "primary_git_sha": _git_sha(TARGET_WORKTREE),
+        "automation_git_sha": _git_sha(AUTOMATION_WORKTREE),
+        "codex_cli_version": version_output if version_code == 0 and version_output else "DATA_MISSING",
+        "collector_version": observability.SCHEMA_VERSION,
+        "output_schema_version": observability.SCHEMA_VERSION,
+        "model_selection_source": model_selection.source,
+        "environment_override_names": overrides,
+    }
+
+
+def _run_daily_closeout(dry_run: bool = False) -> int:
+    job = JOBS["daily-closeout"]
+    selection = _model_selection(job)
+
+    def command_builder(prompt_path: Path, timestamp: str, output_path: Path, schema_path: Path) -> list[str]:
+        return _command(
+            job,
+            prompt_path,
+            timestamp,
+            output_path=output_path,
+            output_schema=schema_path,
+            isolated=True,
+        )
+
+    config = observability.DailyCloseoutConfig(
+        output_root=OUTPUT_ROOT,
+        target_worktree=TARGET_WORKTREE,
+        automation_worktree=AUTOMATION_WORKTREE,
+        output_schema=DAILY_CLOSEOUT_OUTPUT_SCHEMA,
+        model_name=selection.model,
+        reasoning_effort=selection.reasoning_effort,
+        model_selection_source=selection.source,
+        command_builder=command_builder,
+        provenance_builder=lambda: _daily_provenance(selection),
+        child_env={
+            "TENN_AUTOMATION_MODE": "audit_only",
+            "TENN_AUTOMATION_PRODUCTION_DATA_ACCESS": "false",
+            "TENN_AGENT_TASK_CARD": "",
+        },
+        dry_run_timestamp=_timestamp,
+    )
+    return observability.run_daily_closeout(config, dry_run=dry_run)
+
+
 def run_job(job_name: str, dry_run: bool = False) -> int:
     if job_name == "automation-health":
         return _run_automation_health_native(dry_run=dry_run)
+    if job_name == "daily-closeout":
+        return _run_daily_closeout(dry_run=dry_run)
 
     job = JOBS[job_name]
     _ensure_dirs()

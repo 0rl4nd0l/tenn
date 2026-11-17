@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/schemas/codex_automation_evidence_v1.schema.json",
+  "title": "Tenn Codex Automation Evidence Record V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema_version",
+    "run_id",
+    "observed_at",
+    "evidence_status",
+    "required_probe_coverage",
+    "probes",
+    "facts",
+    "comparison_state",
+    "changed_fact_ids",
+    "material_changed_fact_ids"
+  ],
+  "properties": {
+    "record_type": {"const": "evidence"},
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "evidence_status": {"enum": ["COMPLETE", "DEGRADED"]},
+    "required_probe_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+    "probes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "required", "returncode", "status", "output", "original_output_bytes", "output_truncated"],
+        "properties": {
+          "id": {"type": "string"},
+          "required": {"type": "boolean"},
+          "args": {"type": "array", "items": {"type": "string"}},
+          "cwd": {"type": ["string", "null"]},
+          "observed_at": {"type": "string"},
+          "returncode": {"type": "integer"},
+          "status": {"enum": ["AVAILABLE", "UNAVAILABLE", "TIMEOUT"]},
+          "output": {"type": "string"},
+          "original_output_bytes": {"type": "integer", "minimum": 0},
+          "output_truncated": {"type": "boolean"},
+          "pack_limit_truncated": {"type": "boolean"}
+        }
+      }
+    },
+    "facts": {"type": "object"},
+    "comparison_state": {"enum": ["BOOTSTRAP", "COMPARABLE"]},
+    "changed_fact_ids": {"type": "array", "items": {"type": "string"}},
+    "material_changed_fact_ids": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/schemas/codex_automation_review_v1.schema.json",
+  "title": "Tenn Codex Automation Operator Review V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["record_type", "schema_version", "run_id", "rating", "reason", "reviewer", "reviewed_at"],
+  "properties": {
+    "record_type": {"const": "review"},
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "rating": {"enum": ["ACTIONABLE", "CONFIRMING", "NOISE"]},
+    "reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "reviewer": {"type": "string", "minLength": 1, "maxLength": 120},
+    "reviewed_at": {"type": "string", "format": "date-time"}
+  }
+}

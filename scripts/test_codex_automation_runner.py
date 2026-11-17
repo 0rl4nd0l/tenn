@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import json
 import sys
 import tempfile
 import unittest
@@ -14,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import codex_automation_runner as runner
+import codex_automation_observability as observability
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUTOMATION_INDEX = REPO_ROOT / "docs/dev/automation_index.md"
@@ -101,6 +103,23 @@ class CodexAutomationRunnerTest(unittest.TestCase):
                 command = self._runner_command(job_name)
                 self.assertNotIn("--model", command)
                 self.assertNotIn("-c", command)
+
+    def test_daily_closeout_command_is_structured_isolated_and_ephemeral(self) -> None:
+        command = self._runner_command("daily-closeout")
+
+        self.assertIn("--ephemeral", command)
+        self.assertIn("--ignore-user-config", command)
+        self.assertIn("--output-schema", command)
+        schema_path = Path(command[command.index("--output-schema") + 1])
+        self.assertEqual("codex_daily_closeout_output_v1.schema.json", schema_path.name)
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        self.assertEqual(".json", output_path.suffix)
+        self.assertIn("model_outputs", output_path.parts)
+
+        ordinary = self._runner_command("repo-hygiene")
+        self.assertNotIn("--ephemeral", ordinary)
+        self.assertNotIn("--ignore-user-config", ordinary)
+        self.assertNotIn("--output-schema", ordinary)
 
     def test_per_job_model_override_wins(self) -> None:
         command = self._runner_command(
@@ -301,6 +320,146 @@ class CodexAutomationRunnerTest(unittest.TestCase):
             self.assertIn("transport down", report)
             self.assertIn("result: WORKING / PARTIAL / BROKEN / DATA_MISSING | BROKEN", report)
 
+    def test_daily_closeout_native_fast_path_does_not_launch_codex(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir)
+            run_id = "20260711T203000+1000-a1b2c3d4-daily-closeout"
+            evidence = observability.build_evidence_record(
+                run_id=run_id,
+                observed_at="2026-07-11T10:30:00Z",
+                probes=[],
+                facts={"git.primary.head": "abc"},
+                previous_facts={"git.primary.head": "abc"},
+            )
+
+            def collect(**kwargs):
+                path = observability.ObservabilityPaths(output_root).evidence / f"{run_id}.json"
+                observability.atomic_write_json(path, evidence, immutable=True)
+                return evidence, path
+
+            with (
+                mock.patch.object(runner, "OUTPUT_ROOT", output_root),
+                mock.patch.object(runner, "AUTOMATION_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner, "TARGET_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner.observability, "new_run_id", return_value=run_id),
+                mock.patch.object(runner.observability, "collect_daily_evidence", side_effect=collect),
+                mock.patch.object(runner, "_command", side_effect=AssertionError("Codex must not launch")),
+            ):
+                self.assertEqual(0, runner.run_job("daily-closeout"))
+
+            run = json.loads((output_root / "runs" / f"{run_id}.json").read_text())
+            self.assertEqual("SUCCEEDED", run["lifecycle_status"])
+            self.assertEqual("CONFIRMING", run["usefulness"])
+            self.assertIsNone(run["model"]["name"])
+            self.assertEqual(0, run["usage"]["input_tokens"])
+            self.assertTrue((output_root / "reports" / f"{run_id}.md").exists())
+
+    def test_daily_closeout_model_path_uses_fake_child_and_finalizes_usage(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir)
+            run_id = "20260711T203000+1000-a1b2c3d4-daily-closeout"
+            evidence = observability.build_evidence_record(
+                run_id=run_id,
+                observed_at="2026-07-11T10:30:00Z",
+                probes=[],
+                facts={"git.primary.head": "abc"},
+                previous_facts=None,
+            )
+            model_payload = {
+                "summary": "Bootstrap state captured.",
+                "findings": [
+                    {
+                        "fact_ids": ["git.primary.head"],
+                        "classification": "Confirmed",
+                        "severity": "INFO",
+                        "statement": "Primary HEAD captured.",
+                        "owner_action": "none",
+                    }
+                ],
+                "data_missing": [],
+                "next_action": {
+                    "action": "none",
+                    "next_prompt": "next scheduled closeout",
+                    "requires_approval": False,
+                },
+            }
+
+            def collect(**kwargs):
+                path = observability.ObservabilityPaths(output_root).evidence / f"{run_id}.json"
+                observability.atomic_write_json(path, evidence, immutable=True)
+                return evidence, path
+
+            def fake_command(job, prompt_path, timestamp, **kwargs):
+                output_path = kwargs["output_path"]
+                script = (
+                    "import json, pathlib, sys; "
+                    "pathlib.Path(sys.argv[1]).write_text(sys.argv[2]); "
+                    "print(json.dumps({'type':'turn.completed','usage':"
+                    "{'input_tokens':1000,'cached_input_tokens':750,'output_tokens':120,'reasoning_output_tokens':40}}))"
+                )
+                return [sys.executable, "-c", script, str(output_path), json.dumps(model_payload)]
+
+            with (
+                mock.patch.object(runner, "OUTPUT_ROOT", output_root),
+                mock.patch.object(runner, "AUTOMATION_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner, "TARGET_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner.observability, "new_run_id", return_value=run_id),
+                mock.patch.object(runner.observability, "collect_daily_evidence", side_effect=collect),
+                mock.patch.object(runner, "_command", side_effect=fake_command),
+            ):
+                self.assertEqual(0, runner.run_job("daily-closeout"))
+
+            run = json.loads((output_root / "runs" / f"{run_id}.json").read_text())
+            self.assertEqual("SUCCEEDED", run["lifecycle_status"])
+            self.assertEqual(1000, run["usage"]["input_tokens"])
+            self.assertEqual(250, run["usage"]["uncached_input_tokens"])
+            self.assertEqual("gpt-5.4-mini", run["model"]["name"])
+            self.assertTrue((output_root / "model_outputs" / f"{run_id}.json").exists())
+
+    def test_daily_closeout_invalid_fake_child_output_fails_closed_without_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir)
+            run_id = "20260711T204000+1000-invalid1-daily-closeout"
+            evidence = observability.build_evidence_record(
+                run_id=run_id,
+                observed_at="2026-07-11T10:40:00Z",
+                probes=[],
+                facts={"git.primary.head": "abc"},
+                previous_facts=None,
+            )
+            calls = 0
+
+            def collect(**kwargs):
+                path = observability.ObservabilityPaths(output_root).evidence / f"{run_id}.json"
+                observability.atomic_write_json(path, evidence, immutable=True)
+                return evidence, path
+
+            def fake_command(job, prompt_path, timestamp, **kwargs):
+                nonlocal calls
+                calls += 1
+                output_path = kwargs["output_path"]
+                script = "import pathlib, sys; pathlib.Path(sys.argv[1]).write_text('{\"summary\":\"incomplete\"}')"
+                return [sys.executable, "-c", script, str(output_path)]
+
+            with (
+                mock.patch.object(runner, "OUTPUT_ROOT", output_root),
+                mock.patch.object(runner, "AUTOMATION_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner, "TARGET_WORKTREE", REPO_ROOT),
+                mock.patch.object(runner.observability, "new_run_id", return_value=run_id),
+                mock.patch.object(runner.observability, "collect_daily_evidence", side_effect=collect),
+                mock.patch.object(runner, "_command", side_effect=fake_command),
+            ):
+                self.assertEqual(2, runner.run_job("daily-closeout"))
+
+            run = json.loads((output_root / "runs" / f"{run_id}.json").read_text())
+            report = (output_root / "reports" / f"{run_id}.md").read_text()
+            self.assertEqual(1, calls)
+            self.assertEqual("PARTIAL", run["lifecycle_status"])
+            self.assertEqual("PARTIAL", run["functionality_result"])
+            self.assertEqual("invalid_structured_model_output", run["scoring_reason"])
+            self.assertTrue(run["model_gate"]["actual_model_invoked"])
+            self.assertIn("structured model output invalid", report)
+
     def test_health_rows_classify_broken_reports(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_root = Path(temp_dir)
@@ -323,6 +482,29 @@ class CodexAutomationRunnerTest(unittest.TestCase):
             memory_record = next(record for record in records if record["name"] == "memory-drift")
             self.assertEqual("BROKEN_REPORT", memory_record["status"])
             self.assertIn("memory-drift: BROKEN_REPORT", issues)
+
+    def test_health_rows_recognize_new_functionality_broken_report_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir)
+            report_dir = output_root / "reports"
+            log_dir = output_root / "logs"
+            report_dir.mkdir()
+            log_dir.mkdir()
+            (report_dir / "20260711T203000+1000-a1b2c3d4-daily-closeout.md").write_text(
+                "Functionality result:\n- BROKEN\n",
+                encoding="utf-8",
+            )
+            (log_dir / "20260711T203000+1000-a1b2c3d4-daily-closeout.jsonl").write_text(
+                "failure\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(runner, "OUTPUT_ROOT", output_root):
+                _rows, issues, records = runner._health_rows(datetime.now().astimezone())
+
+            record = next(value for value in records if value["name"] == "daily-closeout")
+            self.assertEqual("BROKEN_REPORT", record["status"])
+            self.assertIn("daily-closeout: BROKEN_REPORT", issues)
 
 
 if __name__ == "__main__":
