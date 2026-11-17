@@ -5,7 +5,7 @@ import {
   type MarketplaceCaptureIngestResponse,
   type MarketplaceCaptureRelayResponse,
 } from '@/lib/marketplace-capture-helper'
-import { getMarketplaceCaptureToken } from '@/lib/marketplace-capture-tokens'
+import { consumeMarketplaceCaptureToken } from '@/lib/marketplace-capture-tokens'
 import { resolveBackendUrl } from '@/lib/proxy'
 
 export const runtime = 'nodejs'
@@ -72,7 +72,7 @@ function statusPageHtml(title: string, message: string, payload: MarketplaceCapt
 export async function POST(request: Request): Promise<NextResponse> {
   const formData = await request.formData()
   const token = getFormString(formData, 'token')
-  const tokenEntry = getMarketplaceCaptureToken(token)
+  const tokenEntry = consumeMarketplaceCaptureToken(token)
 
   if (!tokenEntry) {
     return new NextResponse(
