@@ -1,0 +1,4 @@
+Command: ss -ltnp | rg ':8001'
+Exit code: 1
+
+Output:

@@ -1,0 +1,100 @@
+{
+  "job_id": "llama_server_8001_owner_resolution_followup_v1_20260526",
+  "issue": 113,
+  "collected_at": "2026-06-01T07:45:27Z",
+  "lane": "Reporting",
+  "mode": "AUDIT",
+  "production_data_access": false,
+  "runtime_mutation": false,
+  "service_mutation": false,
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "notes": "No active jobs."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "scripts/gpu_process_guard.sh --check",
+      "result": "passed",
+      "exit_code": 0,
+      "notes": "No output."
+    },
+    {
+      "command": "ss -ltnp | rg ':8001'",
+      "result": "no_rows",
+      "exit_code": 1,
+      "notes": "No listener found on :8001."
+    },
+    {
+      "command": "ps -eo pid,ppid,stat,etime,cmd | rg 'llama-server|run_llama'",
+      "result": "passed",
+      "exit_code": 0,
+      "notes": "Only the audit shell and rg process matched."
+    },
+    {
+      "command": "systemctl --user list-units --type=service --all | rg -i 'llama|openclaw|router|codex'",
+      "result": "passed"
+    },
+    {
+      "command": "systemctl --user list-unit-files | rg -i 'llama|openclaw|router'",
+      "result": "passed"
+    },
+    {
+      "command": "systemctl --user show llama-cpp-router.service --property=Id,LoadState,ActiveState,SubState,UnitFileState,FragmentPath,MainPID,ExecMainPID,ControlPID,ExecStart,WorkingDirectory --no-pager",
+      "result": "passed"
+    },
+    {
+      "command": "systemctl --user status llama-cpp-router.service --no-pager -l",
+      "result": "inactive",
+      "exit_code": 3,
+      "notes": "Unit loaded but inactive/dead."
+    },
+    {
+      "command": "systemctl --user show llama-cpp-qwen25.service --property=Id,LoadState,ActiveState,SubState,UnitFileState,FragmentPath,MainPID,ExecMainPID,ControlPID,ExecStart,WorkingDirectory --no-pager",
+      "result": "passed"
+    },
+    {
+      "command": "systemctl --user status llama-cpp-qwen25.service --no-pager -l",
+      "result": "inactive",
+      "exit_code": 3,
+      "notes": "Unit loaded but inactive/dead; status reported StartLimitIntervalSec warning."
+    },
+    {
+      "command": "proc owner link trace derived from ss :8001 PID",
+      "result": "no_rows",
+      "notes": "No PID existed to inspect."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/validation.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md --repo-root .",
+      "result": "passed",
+      "notes": "No disallowed files."
+    }
+  ],
+  "conclusion": {
+    "current_8001_owner": "none",
+    "previous_8001_owner": "DATA_MISSING",
+    "configured_router_launcher": "/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh",
+    "configured_router_unit": "/home/l4nd0/.config/systemd/user/llama-cpp-router.service",
+    "follow_up": "NO_FOLLOWUP for the owner-evidence gap; separate safe-extension work only if service re-enable/config remediation is desired."
+  }
+}

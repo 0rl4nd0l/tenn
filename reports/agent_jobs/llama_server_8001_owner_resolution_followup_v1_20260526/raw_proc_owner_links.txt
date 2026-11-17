@@ -1,0 +1,7 @@
+Command: for pid in $(ss -ltnp | awk '/:8001/ {print $0}' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | sort -u); do printf 'PID=%s\n' "$pid"; readlink -f "/proc/$pid/exe"; readlink -f "/proc/$pid/cwd"; tr '\0' ' ' < "/proc/$pid/cmdline"; printf '\n'; done
+Exit code: 0
+
+Output:
+
+Interpretation:
+No `/proc` owner links were available because no `:8001` listener PID existed.

@@ -1,0 +1,15 @@
+Command: systemctl --user show llama-cpp-router.service --property=Id,LoadState,ActiveState,SubState,UnitFileState,FragmentPath,MainPID,ExecMainPID,ControlPID,ExecStart,WorkingDirectory --no-pager
+Exit code: 0
+
+Output:
+MainPID=0
+ControlPID=0
+ExecMainPID=0
+ExecStart={ path=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh ; argv[]=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=/home/l4nd0/tenn-runtime
+Id=llama-cpp-router.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+FragmentPath=/home/l4nd0/.config/systemd/user/llama-cpp-router.service
+UnitFileState=disabled

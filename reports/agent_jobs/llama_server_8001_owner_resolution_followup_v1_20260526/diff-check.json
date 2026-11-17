@@ -1,0 +1,98 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/owner_resolution_report.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_gpu_process_guard.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_proc_owner_links.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_ps_llama.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_ss_8001.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_show_llama_cpp_router.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_status_llama_cpp_router.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_units.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/llama_server_8001_owner_resolution_followup_v1_20260526.md",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/README.md",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/status.json",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/validation.json",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/diff-check.json",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/owner_resolution_report.md",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_gpu_process_guard.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_ss_8001.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_ps_llama.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_units.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_show_llama_cpp_router.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_systemctl_status_llama_cpp_router.txt",
+        "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526/raw_proc_owner_links.txt"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "pr_create",
+      "job_id": "llama_server_8001_owner_resolution_followup_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/llama_server_8001_owner_resolution_followup_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 113,
+      "stale_after_seconds": 7200,
+      "supporting_lanes": [
+        "Runtime",
+        "Evaluation",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
