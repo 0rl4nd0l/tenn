@@ -1278,6 +1278,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
             <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
               <Input
                 value={tickerInput}
+                aria-label="Memory ticker filter"
                 placeholder="Ticker filter (optional, e.g. BHP)"
                 onChange={(event) => setTickerInput(event.target.value.toUpperCase())}
               />
@@ -1292,6 +1293,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
             <div className="grid gap-2 md:grid-cols-[1fr_auto]">
               <Input
                 value={search}
+                aria-label="Memory search"
                 placeholder="Search statements, type, status, id"
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -1387,6 +1389,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
 
             <Textarea
               value={statement}
+              aria-label="Memory statement"
               placeholder="Enter memory statement..."
               onChange={(event) => setStatement(event.target.value)}
               rows={3}

@@ -178,6 +178,7 @@ export function UpdaterScreen() {
                 <Input
                   placeholder="e.g., BHP"
                   value={ticker}
+                  aria-label="Updater ticker symbol"
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
                   className="font-mono"
                 />
@@ -186,7 +187,7 @@ export function UpdaterScreen() {
               <Field className={cn(isIPhoneScale ? "w-full" : "w-[150px]")}>
                 <FieldLabel>Year Range</FieldLabel>
                 <Select value={yearRange} onValueChange={setYearRange}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Updater year range">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
