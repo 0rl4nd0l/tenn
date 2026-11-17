@@ -1,0 +1,48 @@
+{
+  "elapsed_seconds": 2.052,
+  "result": {
+    "build": {
+      "articles_chunked": 225,
+      "articles_seen": 225,
+      "articles_skipped": 0,
+      "chunks_written": 4395
+    },
+    "freshness": {
+      "chunks": 4395,
+      "db_path": "SCRATCH_TMP_SQLITE_FALLBACK/news.sqlite",
+      "newest_published_at": "2026-05-27T07:02:01Z",
+      "reason": "",
+      "status": "fresh",
+      "window_start_utc": ""
+    },
+    "status": "success"
+  },
+  "scratch_articles_db": "SCRATCH_TMP_SQLITE_FALLBACK/news_articles.sqlite",
+  "scratch_context_db": "SCRATCH_TMP_SQLITE_FALLBACK/news.sqlite",
+  "stdout_lines": [
+    "[chunk_builder] articles=225 embed_backend=hash",
+    "[chunk_builder] batch flush articles_chunked=40 chunks_written=256",
+    "[chunk_builder] progress articles=50 chunks_written=256 pending_batch=58",
+    "[chunk_builder] batch flush articles_chunked=62 chunks_written=512",
+    "[chunk_builder] batch flush articles_chunked=87 chunks_written=768",
+    "[chunk_builder] progress articles=100 chunks_written=768 pending_batch=147",
+    "[chunk_builder] batch flush articles_chunked=104 chunks_written=1024",
+    "[chunk_builder] batch flush articles_chunked=111 chunks_written=1280",
+    "[chunk_builder] batch flush articles_chunked=118 chunks_written=1536",
+    "[chunk_builder] batch flush articles_chunked=124 chunks_written=1792",
+    "[chunk_builder] batch flush articles_chunked=144 chunks_written=2048",
+    "[chunk_builder] progress articles=150 chunks_written=2048 pending_batch=45",
+    "[chunk_builder] batch flush articles_chunked=172 chunks_written=2304",
+    "[chunk_builder] batch flush articles_chunked=183 chunks_written=2560",
+    "[chunk_builder] batch flush articles_chunked=183 chunks_written=2816",
+    "[chunk_builder] batch flush articles_chunked=183 chunks_written=3072",
+    "[chunk_builder] batch flush articles_chunked=185 chunks_written=3328",
+    "[chunk_builder] batch flush articles_chunked=193 chunks_written=3584",
+    "[chunk_builder] batch flush articles_chunked=199 chunks_written=3840",
+    "[chunk_builder] progress articles=200 chunks_written=3840 pending_batch=102",
+    "[chunk_builder] batch flush articles_chunked=203 chunks_written=4096",
+    "[chunk_builder] batch flush articles_chunked=221 chunks_written=4352",
+    "[chunk_builder] done articles_chunked=225 chunks_written=4395 skipped=0"
+  ],
+  "writes_to_repo_or_live_stores": false
+}

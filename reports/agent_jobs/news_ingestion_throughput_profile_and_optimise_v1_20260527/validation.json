@@ -1,0 +1,87 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "generated_at": "2026-06-01T20:33:34+10:00",
+  "job_id": "news_ingestion_throughput_profile_and_optimise_v1_20260527",
+  "results": {
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/news_ingestion_throughput_profile_and_optimise_v1_20260527.md",
+      "result": "PASS"
+    },
+    "registry_list_active": {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS: active Financial Truth job observed without overlap"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/news_ingestion_throughput_profile_and_optimise_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_claim": {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/news_ingestion_throughput_profile_and_optimise_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_reclaim_after_allowlist_update": {
+      "command": "python3 scripts/agent_job_registry.py release news_ingestion_throughput_profile_and_optimise_v1_20260527 --repo-root . && python3 scripts/agent_job_registry.py claim docs/agent_tasks/news_ingestion_throughput_profile_and_optimise_v1_20260527.md --repo-root .",
+      "result": "PASS: active record refreshed after scratch artifact allowlist expansion"
+    },
+    "duplicate_search": {
+      "command": "gh issue/pr searches for issue #123 throughput profiling terms",
+      "result": "PASS: no exact duplicate found; adjacent PR #133 and issue #83 are separate"
+    },
+    "github_permission": {
+      "command": "task-card frontmatter review",
+      "result": "PASS: branch push, draft PR, and issue comment are explicitly allowed"
+    },
+    "bash_nightly_news": {
+      "command": "bash -n financial-engine_v2/scripts/nightly_news.sh",
+      "result": "PASS"
+    },
+    "fetch_dry_run": {
+      "command": "fetch_daily_news.py --dry-run with /tmp output paths",
+      "result": "PASS"
+    },
+    "loader_dry_run_36h": {
+      "command": "load_news_to_qdrant.py --dry-run --since-hours 36 against copied SQLite",
+      "result": "PASS: no eligible articles/chunks in current window"
+    },
+    "loader_dry_run_full_copied_db": {
+      "command": "load_news_to_qdrant.py --dry-run --since-hours 0 against copied SQLite",
+      "result": "PASS: 225 articles / 4397 chunks target built"
+    },
+    "sqlite_fallback_scratch_profile": {
+      "command": "refresh_news_sqlite_fallback() against /tmp copied SQLite inputs/outputs",
+      "result": "PASS: 225 articles / 4395 chunks written to scratch news.sqlite"
+    },
+    "memo_dispatch_plan": {
+      "command": "build_news_projection_target() plus _select_articles_for_dispatch() against copied SQLite",
+      "result": "PASS: selection-only, no dispatch"
+    },
+    "retention_candidates": {
+      "command": "read-only candidate scan for nightly log/status retention",
+      "result": "PASS"
+    },
+    "json_validation": {
+      "command": "jq empty reports/agent_jobs/news_ingestion_throughput_profile_and_optimise_v1_20260527/*.json",
+      "result": "PASS"
+    },
+    "path_redaction": {
+      "command": "host-local absolute path redaction scan over task card and report bundle",
+      "result": "PASS: no host-local absolute paths remain in committed artifacts"
+    },
+    "forbidden_surface_changes": {
+      "command": "planned/staged diff allowlist",
+      "result": "PASS: task card and report artifacts only; scratch artifacts under /tmp"
+    },
+    "git_diff_check": {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/news_ingestion_throughput_profile_and_optimise_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_release": {
+      "command": "python3 scripts/agent_job_registry.py release news_ingestion_throughput_profile_and_optimise_v1_20260527 --repo-root .",
+      "result": "PASS"
+    }
+  }
+}

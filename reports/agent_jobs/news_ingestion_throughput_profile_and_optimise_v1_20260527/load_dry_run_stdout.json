@@ -1,0 +1,111 @@
+{
+  "generated_at_utc": "2026-06-01T10:25:27Z",
+  "memo_extraction": {
+    "completion_observable": false,
+    "dispatch_failed": 0,
+    "dispatched": 0,
+    "eligible": 0,
+    "missing_after_dispatch": 0,
+    "reason": "dry_run",
+    "skipped": 0,
+    "status": "skipped",
+    "task_failure_samples": [],
+    "task_ids_count": 0,
+    "task_ids_sample": [],
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "tasks_observed": 0,
+    "tasks_pending": 0,
+    "tasks_unobserved": 0,
+    "wait_requested": false
+  },
+  "paths": {
+    "news_articles_db": "SCRATCH_TMP_LOAD_36H/news_articles.sqlite",
+    "news_artifact_root": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED",
+    "news_artifact_root_source": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED",
+    "news_context_db": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED/news.sqlite",
+    "news_runs_root": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED/news_runs"
+  },
+  "provider": {
+    "deduped": 39,
+    "errors": 0,
+    "errors_by_class": {},
+    "fetched": 40,
+    "finished_at": "2026-05-27T07:26:48Z",
+    "inserted": 1,
+    "mode": "daily",
+    "params": {
+      "lane": "high_precision",
+      "since_hours": 24,
+      "tickers_count": 375,
+      "window_end_utc": "2026-05-27T07:25:13Z",
+      "window_start_utc": "2026-05-26T07:25:13Z"
+    },
+    "provider": "newspaper4k",
+    "rejected": 0,
+    "run_id": "newspaper4k_daily_f52a4cbab654",
+    "started_at": "2026-05-27T07:25:13Z",
+    "status": "success"
+  },
+  "qdrant_sync": {
+    "articles": 0,
+    "chunks": 0,
+    "deleted": 0,
+    "dry_run": true,
+    "memo_extraction": {
+      "completion_observable": false,
+      "dispatch_failed": 0,
+      "dispatched": 0,
+      "eligible": 0,
+      "missing_after_dispatch": 0,
+      "reason": "dry_run",
+      "skipped": 0,
+      "status": "skipped",
+      "task_failure_samples": [],
+      "task_ids_count": 0,
+      "task_ids_sample": [],
+      "tasks_completed": 0,
+      "tasks_failed": 0,
+      "tasks_observed": 0,
+      "tasks_pending": 0,
+      "tasks_unobserved": 0,
+      "wait_requested": false
+    },
+    "ollama_url": "http://127.0.0.1:11434",
+    "ollama_url_source": "default",
+    "qdrant_diff": {
+      "current_qdrant_chunks": null,
+      "error": "[Errno 111] Connection refused",
+      "expected_chunks": 0,
+      "missing_expected_chunks": null,
+      "payload_drift_chunks": null,
+      "payload_drift_counts": {},
+      "stale_qdrant_chunks": null,
+      "status": "unavailable"
+    },
+    "qdrant_only": false,
+    "skip_clean_upserts": false,
+    "status": "dry_run",
+    "target_contract_report": {
+      "eligible_articles": 0,
+      "eligible_chunks": 0,
+      "excluded_articles": 0,
+      "excluded_chunks": 0,
+      "excluded_reason_counts": {},
+      "provider_spread": {},
+      "ticker_coverage_summary": {
+        "articles_with_any_ticker": 0,
+        "articles_with_primary_ticker": 0,
+        "chunks_with_any_ticker": 0,
+        "chunks_with_primary_ticker": 0,
+        "top_tickers": {},
+        "unique_tickers": 0
+      },
+      "total_articles_considered": 0
+    },
+    "upserted": 0
+  },
+  "sqlite_fallback": {
+    "status": "not_run"
+  }
+}
