@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/current_route_inventory.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/followup_recommendation.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/route_ownership_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/README.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/route_ownership_matrix.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/current_route_inventory.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/followup_recommendation.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
