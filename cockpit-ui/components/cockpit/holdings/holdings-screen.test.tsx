@@ -131,6 +131,35 @@ describe('HoldingsScreen', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('exposes accessible names for create and filter controls', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ items: [] }),
+      }),
+    )
+
+    render(<HoldingsScreen apiKey="k" />)
+
+    await waitFor(() => expect(screen.getByText('No holdings yet.')).toBeInTheDocument())
+
+    expect(screen.getByRole('combobox', { name: /portfolio scope/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding ticker/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding quantity/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding average cost/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding account/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding thesis bucket/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding exchange/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding status/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding cost currency/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding opened date/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /new holding note/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /holdings search/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /holding status filter/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /holdings sort order/i })).toBeInTheDocument()
+  })
+
   it('paginates holdings with next/prev controls', async () => {
     vi.stubGlobal(
       'fetch',

@@ -554,7 +554,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         <h1 className="text-lg font-semibold">Portfolio Holdings</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={portfolioFilter} onValueChange={setPortfolioFilter}>
-            <SelectTrigger className="w-[210px]">
+            <SelectTrigger className="w-[210px]" aria-label="Portfolio scope">
               <SelectValue placeholder="Portfolio scope" />
             </SelectTrigger>
             <SelectContent>
@@ -758,6 +758,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
           <div className="grid gap-2 md:grid-cols-4">
             <Input
               placeholder="Ticker (e.g. BHP)"
+              aria-label="New holding ticker"
               value={createDraft.ticker}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, ticker: event.target.value }))
@@ -765,6 +766,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Quantity"
+              aria-label="New holding quantity"
               value={createDraft.quantity}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, quantity: event.target.value }))
@@ -772,6 +774,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Avg cost"
+              aria-label="New holding average cost"
               value={createDraft.avg_cost}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, avg_cost: event.target.value }))
@@ -779,6 +782,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Account"
+              aria-label="New holding account"
               value={createDraft.account_label}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, account_label: event.target.value }))
@@ -788,6 +792,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
           <div className="grid gap-2 md:grid-cols-5">
             <Input
               placeholder="Thesis bucket"
+              aria-label="New holding thesis bucket"
               value={createDraft.thesis_bucket}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, thesis_bucket: event.target.value }))
@@ -795,6 +800,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Exchange (ASX/NASDAQ)"
+              aria-label="New holding exchange"
               value={createDraft.market_exchange}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, market_exchange: event.target.value }))
@@ -802,6 +808,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Status"
+              aria-label="New holding status"
               value={createDraft.status}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, status: event.target.value }))
@@ -809,6 +816,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Currency (AUD)"
+              aria-label="New holding cost currency"
               value={createDraft.cost_currency}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, cost_currency: event.target.value }))
@@ -816,6 +824,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             />
             <Input
               placeholder="Opened at (YYYY-MM-DD)"
+              aria-label="New holding opened date"
               value={createDraft.opened_at}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, opened_at: event.target.value }))
@@ -825,6 +834,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
           <div className="flex flex-wrap gap-2">
             <Input
               placeholder="Note"
+              aria-label="New holding note"
               value={createDraft.note}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, note: event.target.value }))
@@ -844,11 +854,12 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         <CardContent className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_auto]">
           <Input
             placeholder="Search ticker, account, status, note"
+            aria-label="Holdings search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Holding status filter">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -859,7 +870,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             </SelectContent>
           </Select>
           <Select value={sortKey} onValueChange={(value) => setSortKey(value as SortKey)}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Holdings sort order">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
