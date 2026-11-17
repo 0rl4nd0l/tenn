@@ -178,6 +178,21 @@ class TestSearchNewsFreshnessWarning:
     def test_infer_news_ticker_rejects_plain_language_false_positive(self) -> None:
         assert ToolExecutor._infer_news_ticker("How are things going?") is None
 
+    def test_infer_news_ticker_rejects_audit_prompt_ui_acronym(self) -> None:
+        prompt = (
+            "UI_AUDIT_GEMINI 2026-05-26: From the current Cockpit UI, "
+            "what should I review first today across holdings, watchlist, "
+            "and recent news? Use only visible/source-backed Tenn context "
+            "and say DATA_MISSING where needed."
+        )
+
+        assert ToolExecutor._infer_news_ticker(prompt) is None
+
+    def test_infer_news_ticker_preserves_explicit_ui_forms(self) -> None:
+        assert ToolExecutor._infer_news_ticker("ASX:UI news") == "UI"
+        assert ToolExecutor._infer_news_ticker("$UI news") == "UI"
+        assert ToolExecutor._infer_news_ticker("UI.AX news") == "UI"
+
     def test_exec_search_news_zero_hits_has_freshness_key(self) -> None:
         """Market-wide 0-hit result must carry a freshness_warning key so the
         LLM can anchor temporally and not present corpus absence as factual absence."""
