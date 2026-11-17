@@ -5472,7 +5472,13 @@ def cockpit_home_market_movers(limit: int = 5) -> CockpitHomeMarketMoversRespons
 
 @router.get("/home/narrative", response_model=CockpitHomeNarrativeResponse)
 def cockpit_home_narrative() -> CockpitHomeNarrativeResponse:
-    snapshot = build_home_narrative_snapshot()
+    try:
+        service = CockpitService.get_instance()
+        snapshot = build_home_narrative_snapshot(service.state_store)
+    except Exception:
+        logger.exception("Failed to build Cockpit Home narrative; returning DATA_MISSING")
+        snapshot = build_home_narrative_snapshot()
+
     return CockpitHomeNarrativeResponse(
         ok=True,
         data_state=snapshot.data_state,

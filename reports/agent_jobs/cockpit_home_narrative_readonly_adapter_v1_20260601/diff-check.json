@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_home_narrative_readonly_adapter_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/cockpit_home.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_home_attention_queue.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_narrative_readonly_adapter_v1_20260601.md",
+        "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/README.md",
+        "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/status.json",
+        "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/validation.json",
+        "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601/diff-check.json",
+        "financial-engine_v2/backend/app/services/cockpit_home.py",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_cockpit_home_attention_queue.py"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_home_narrative_readonly_adapter_v1_20260601",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_narrative_readonly_adapter_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 21600
+    },
+    "ok": true
+  }
+}

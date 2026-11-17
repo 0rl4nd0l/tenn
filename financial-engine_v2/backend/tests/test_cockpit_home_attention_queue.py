@@ -219,7 +219,7 @@ def test_market_movers_endpoint_returns_operational_trace_payload(monkeypatch) -
     assert payload["items"][0]["data_missing"][0]["code"] == "MARKET_MOVER_PRICE_FIELDS_MISSING"
 
 
-def test_home_narrative_endpoint_returns_explicit_missing_state() -> None:
+def test_home_narrative_snapshot_returns_explicit_missing_without_source() -> None:
     snapshot = build_home_narrative_snapshot(
         now=datetime(2026, 5, 7, 2, 0, tzinfo=timezone.utc),
     )
@@ -234,6 +234,64 @@ def test_home_narrative_endpoint_returns_explicit_missing_state() -> None:
         "NO_TOMORROW_PREP_ENDPOINT",
     }
 
+
+def test_home_narrative_snapshot_builds_operational_session_summary_from_followups() -> None:
+    store = FakeStateStore(
+        [
+            {
+                "followup_id": "fu-1",
+                "report_id": "report-1",
+                "ticker": "BHP",
+                "action_type": "review",
+                "priority_score": 0.82,
+                "reason": {"reasons": ["notable price move"]},
+                "status": "queued",
+                "created_at": "2026-05-07T01:15:00+00:00",
+            },
+            {
+                "followup_id": "fu-2",
+                "report_id": "report-2",
+                "ticker": "CBA",
+                "action_type": "watchlist_add_proposal",
+                "priority_score": 0.5,
+                "reason": {"note": "review watchlist proposal"},
+                "status": "queued",
+                "created_at": "2026-05-07T01:30:00+00:00",
+            },
+        ]
+    )
+
+    snapshot = build_home_narrative_snapshot(store, limit=5)
+
+    assert store.calls == [{"status": "queued", "limit": 5}]
+    assert snapshot.data_state == "PARTIAL"
+    assert snapshot.degraded is False
+    assert snapshot.as_of == "2026-05-07T01:30:00+00:00"
+    assert snapshot.session_summary == (
+        "Cockpit has 2 queued operational follow-ups from backend market-update state: "
+        "BHP: review (high priority; notable price move); "
+        "CBA: watchlist add proposal (medium priority; review watchlist proposal)."
+    )
+    assert snapshot.theme_candidates == []
+    assert snapshot.tomorrow_prep == []
+    assert {signal.code for signal in snapshot.data_missing} == {
+        "NO_THEME_CANDIDATES_ENDPOINT",
+        "NO_TOMORROW_PREP_ENDPOINT",
+    }
+
+
+def test_home_narrative_endpoint_returns_explicit_missing_state(monkeypatch) -> None:
+    store = FakeStateStore([])
+
+    class FakeService:
+        state_store = store
+
+    monkeypatch.setattr(
+        cockpit_api.CockpitService,
+        "get_instance",
+        staticmethod(lambda: FakeService()),
+    )
+
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
     response = TestClient(app).get("/api/cockpit/home/narrative")
@@ -244,3 +302,80 @@ def test_home_narrative_endpoint_returns_explicit_missing_state() -> None:
     assert payload["session_summary"] is None
     assert payload["theme_candidates"] == []
     assert payload["tomorrow_prep"] == []
+    assert {signal["code"] for signal in payload["data_missing"]} == {
+        "NO_SESSION_SUMMARY_ENDPOINT",
+        "NO_THEME_CANDIDATES_ENDPOINT",
+        "NO_TOMORROW_PREP_ENDPOINT",
+    }
+
+
+def test_home_narrative_endpoint_keeps_missing_state_when_source_unavailable(monkeypatch) -> None:
+    def raise_unavailable():
+        raise RuntimeError("state store unavailable")
+
+    monkeypatch.setattr(
+        cockpit_api.CockpitService,
+        "get_instance",
+        staticmethod(raise_unavailable),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    response = TestClient(app).get("/api/cockpit/home/narrative")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data_state"] == "DATA_MISSING"
+    assert payload["degraded"] is True
+    assert payload["session_summary"] is None
+    assert {signal["code"] for signal in payload["data_missing"]} == {
+        "NO_SESSION_SUMMARY_ENDPOINT",
+        "NO_THEME_CANDIDATES_ENDPOINT",
+        "NO_TOMORROW_PREP_ENDPOINT",
+    }
+
+
+def test_home_narrative_endpoint_wires_read_only_operational_summary(monkeypatch) -> None:
+    store = FakeStateStore(
+        [
+            {
+                "followup_id": "fu-1",
+                "report_id": "report-1",
+                "ticker": "BHP",
+                "action_type": "review",
+                "priority_score": 0.82,
+                "reason": {"reasons": ["notable price move"]},
+                "status": "queued",
+                "created_at": "2026-05-07T01:15:00+00:00",
+            }
+        ]
+    )
+
+    class FakeService:
+        state_store = store
+
+    monkeypatch.setattr(
+        cockpit_api.CockpitService,
+        "get_instance",
+        staticmethod(lambda: FakeService()),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    response = TestClient(app).get("/api/cockpit/home/narrative")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data_state"] == "PARTIAL"
+    assert payload["degraded"] is False
+    assert payload["as_of"] == "2026-05-07T01:15:00+00:00"
+    assert payload["session_summary"] == (
+        "Cockpit has 1 queued operational follow-up from backend market-update state: "
+        "BHP: review (high priority; notable price move)."
+    )
+    assert payload["theme_candidates"] == []
+    assert payload["tomorrow_prep"] == []
+    assert {signal["code"] for signal in payload["data_missing"]} == {
+        "NO_THEME_CANDIDATES_ENDPOINT",
+        "NO_TOMORROW_PREP_ENDPOINT",
+    }

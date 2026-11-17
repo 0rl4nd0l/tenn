@@ -340,38 +340,114 @@ def build_market_movers_snapshot(
 
 
 def build_home_narrative_snapshot(
+    state_store: Any | None = None,
     *,
     now: datetime | None = None,
+    limit: int = 5,
 ) -> HomeNarrativeSnapshot:
-    """Expose explicit backend-owned missing narrative state for Home v1."""
+    """Return read-only operational Home narrative state when source rows exist.
+
+    This adapter summarizes only backend-owned operational queue rows. It does
+    not infer market themes, tomorrow prep, or canonical financial facts.
+    """
 
     as_of = _as_utc(now or datetime.now(timezone.utc)).isoformat()
-    missing = [
-        AttentionQueueMissingSignal(
-            section="session_summary",
-            code="NO_SESSION_SUMMARY_ENDPOINT",
-            message="No backend session-summary producer is available for Cockpit Home v1.",
-        ),
-        AttentionQueueMissingSignal(
-            section="theme_candidates",
-            code="NO_THEME_CANDIDATES_ENDPOINT",
-            message="No backend theme-candidates producer is available for Cockpit Home v1.",
-        ),
-        AttentionQueueMissingSignal(
-            section="tomorrow_prep",
-            code="NO_TOMORROW_PREP_ENDPOINT",
-            message="No backend tomorrow-prep producer is available for Cockpit Home v1.",
-        ),
-    ]
+    if state_store is None:
+        missing = _home_narrative_missing_signals(include_session_summary=True)
+        return HomeNarrativeSnapshot(
+            data_state="DATA_MISSING",
+            degraded=True,
+            data_missing=missing,
+            as_of=as_of,
+            session_summary=None,
+            theme_candidates=[],
+            tomorrow_prep=[],
+        )
+
+    max_items = max(1, min(int(limit or 5), 20))
+    attention = build_attention_queue_snapshot(state_store, limit=max_items, now=now)
+    signals = [item for item in attention.items if item.source_type == "market_update_followup"]
+    if not signals:
+        missing = _home_narrative_missing_signals(include_session_summary=True)
+        return HomeNarrativeSnapshot(
+            data_state="DATA_MISSING",
+            degraded=True,
+            data_missing=missing,
+            as_of=attention.as_of or as_of,
+            session_summary=None,
+            theme_candidates=[],
+            tomorrow_prep=[],
+        )
+
+    missing = _home_narrative_missing_signals(include_session_summary=False)
     return HomeNarrativeSnapshot(
-        data_state="DATA_MISSING",
-        degraded=True,
+        data_state="PARTIAL",
+        degraded=False,
         data_missing=missing,
-        as_of=as_of,
-        session_summary=None,
+        as_of=(
+            _latest_text_timestamp([item.updated_at or item.created_at for item in signals])
+            or attention.as_of
+            or as_of
+        ),
+        session_summary=_home_session_summary_from_attention_items(signals),
         theme_candidates=[],
         tomorrow_prep=[],
     )
+
+
+def _home_narrative_missing_signals(
+    *,
+    include_session_summary: bool,
+) -> list[AttentionQueueMissingSignal]:
+    missing: list[AttentionQueueMissingSignal] = []
+    if include_session_summary:
+        missing.append(
+            AttentionQueueMissingSignal(
+                section="session_summary",
+                code="NO_SESSION_SUMMARY_ENDPOINT",
+                message="No backend session-summary producer is available for Cockpit Home v1.",
+            )
+        )
+    missing.extend(
+        [
+            AttentionQueueMissingSignal(
+                section="theme_candidates",
+                code="NO_THEME_CANDIDATES_ENDPOINT",
+                message="No backend theme-candidates producer is available for Cockpit Home v1.",
+            ),
+            AttentionQueueMissingSignal(
+                section="tomorrow_prep",
+                code="NO_TOMORROW_PREP_ENDPOINT",
+                message="No backend tomorrow-prep producer is available for Cockpit Home v1.",
+            ),
+        ]
+    )
+    return missing
+
+
+def _home_session_summary_from_attention_items(items: list[AttentionQueueItem]) -> str:
+    count = len(items)
+    followup_label = "follow-up" if count == 1 else "follow-ups"
+    details = [_home_session_summary_detail(item) for item in items[:3]]
+    if count > len(details):
+        details.append(f"and {count - len(details)} more")
+    return (
+        f"Cockpit has {count} queued operational {followup_label} "
+        f"from backend market-update state: {'; '.join(details)}."
+    )
+
+
+def _home_session_summary_detail(item: AttentionQueueItem) -> str:
+    title = _compact_summary_text(item.title) or item.id
+    priority = f"{item.priority} priority"
+    reason = _compact_summary_text(item.reason)
+    if reason:
+        return f"{title} ({priority}; {reason})"
+    return f"{title} ({priority})"
+
+
+def _compact_summary_text(value: str) -> str:
+    return " ".join(str(value or "").split())
 
 
 def _portfolio_total(
