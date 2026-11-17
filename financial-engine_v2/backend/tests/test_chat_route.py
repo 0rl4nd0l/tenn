@@ -153,6 +153,54 @@ def test_analysis_route_sanitizes_non_finite_payload(monkeypatch):
     }
 
 
+def test_analysis_route_preserves_evidence_metadata(monkeypatch):
+    monkeypatch.setattr(
+        chat_route,
+        "chat_with_tenn",
+        lambda *args, **kwargs: {
+            "answer": "A2M local news context was retrieved.",
+            "insights": [],
+            "supporting_evidence": [],
+            "confidence": 0.4,
+            "sources": [
+                {
+                    "source_name": "ASX Small Caps Weekly Form Guide",
+                    "evidence_labels": ["local_news_context", "context_only"],
+                    "claim_verified": False,
+                }
+            ],
+            "evidence_labels": [
+                "context_only",
+                "insufficient_for_recent_news",
+                "local_news_context",
+                "missing_required_evidence",
+            ],
+            "source_coverage_status": "missing_required_evidence",
+            "evidence_status": {
+                "missing_required_evidence": ["local_news_context"],
+                "ticker_news_attempted": True,
+                "ticker_news_hit_count": 1,
+            },
+        },
+    )
+
+    payload = chat_route.ChatRequest(
+        message="what changed for A2M recently?",
+        mode="analysis",
+        ticker="A2M",
+    )
+    result = chat_route.chat(payload, _request_with_headers(session_id="session-1"))
+
+    assert result["type"] == "analysis"
+    content = result["content"]
+    assert content["source_coverage_status"] == "missing_required_evidence"
+    assert "insufficient_for_recent_news" in content["evidence_labels"]
+    assert content["evidence_status"]["missing_required_evidence"] == [
+        "local_news_context"
+    ]
+    assert content["sources"][0]["claim_verified"] is False
+
+
 def test_analysis_route_uses_header_session_id(monkeypatch):
     captured: dict[str, str | None] = {}
 

@@ -1,0 +1,37 @@
+{
+  "job_id": "chat_context_only_local_news_sufficiency_v1_20260602",
+  "status": "passed",
+  "red_green": {
+    "red_command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_news_retrieval_eval.py::TestChatWithTennTickerPropagation::test_linked_ticker_news_with_different_primary_is_kept_as_context_only -q",
+    "red_exit": 1,
+    "red_failure": "missing_required_evidence was absent from direct chat evidence_labels",
+    "green_command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest -c financial-engine_v2/backend/pytest.ini financial-engine_v2/backend/tests/test_news_retrieval_eval.py financial-engine_v2/backend/tests/test_chat_route.py -q",
+    "green_exit": 0,
+    "green_result": "48 passed"
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/chat_context_only_local_news_sufficiency_v1_20260602.md",
+      "exit": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/chat_context_only_local_news_sufficiency_v1_20260602.md --repo-root .",
+      "exit": 0
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/tenn_chat.py financial-engine_v2/backend/tests/test_news_retrieval_eval.py financial-engine_v2/backend/tests/test_chat_route.py",
+      "exit": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/tenn_chat.py financial-engine_v2/backend/tests/test_news_retrieval_eval.py financial-engine_v2/backend/tests/test_chat_route.py",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "runtime_functionality_proven": false,
+  "runtime_functionality_reason": "Not applicable; backend metadata and focused tests only."
+}

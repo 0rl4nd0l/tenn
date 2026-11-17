@@ -47,6 +47,13 @@ _LOCAL_NEWS_EXPECTED_RE = re.compile(
     r"what\s+changed)\b",
     re.IGNORECASE,
 )
+_RECENT_LOCAL_NEWS_EXPECTED_RE = re.compile(
+    r"\b(news|headline|headlines|latest|recent|recall|today|changed|happened|"
+    r"update|updates|selloff|rally|plunge)\b|"
+    r"\b(?:what(?:'s| is)?\s+going\s+on|what(?:'s| is)?\s+new|"
+    r"what\s+changed)\b",
+    re.IGNORECASE,
+)
 _CHAT_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset(
     {
         "CHANGED",
@@ -420,6 +427,10 @@ def _coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
     return "no_visible_sources"
 
 
+def _source_has_label(source: dict[str, Any], label: str) -> bool:
+    return label in (source.get("evidence_labels") or [])
+
+
 def _retrieve_chat_context(
     *,
     normalized_query: str,
@@ -781,12 +792,29 @@ def chat_with_tenn(
         if str(label).strip()
     }
     evidence_gaps: list[str] = []
-    if (
+    local_news_context_sources = [
+        source
+        for source in sources
+        if _source_has_label(source, "local_news_context")
+    ]
+    local_news_expected = bool(
         news_retrieval_attempted
-        and not any("local_news_context" in (source.get("evidence_labels") or []) for source in sources)
         and _LOCAL_NEWS_EXPECTED_RE.search(normalized_query)
-    ):
+    )
+    recent_local_news_expected = bool(
+        news_retrieval_attempted
+        and _RECENT_LOCAL_NEWS_EXPECTED_RE.search(normalized_query)
+    )
+    if local_news_expected and not local_news_context_sources:
         response_labels.update({"missing_required_evidence", "no_hit"})
+        evidence_gaps.append("local_news_context")
+    elif local_news_context_sources and recent_local_news_expected and not any(
+        _source_has_label(source, "claim_verified")
+        for source in local_news_context_sources
+    ):
+        response_labels.update(
+            {"missing_required_evidence", "insufficient_for_recent_news"}
+        )
         evidence_gaps.append("local_news_context")
     if news_retrieval_failed:
         response_labels.add("degraded_runtime")
@@ -804,11 +832,7 @@ def chat_with_tenn(
             "runtime_degraded": "degraded_runtime" in response_labels,
             "missing_required_evidence": evidence_gaps,
             "ticker_news_attempted": news_retrieval_attempted,
-            "ticker_news_hit_count": sum(
-                1
-                for source in sources
-                if "local_news_context" in (source.get("evidence_labels") or [])
-            ),
+            "ticker_news_hit_count": len(local_news_context_sources),
             "labels": sorted(response_labels),
         },
     }
