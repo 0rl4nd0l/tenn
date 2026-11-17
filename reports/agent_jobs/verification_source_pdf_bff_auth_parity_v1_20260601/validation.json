@@ -1,0 +1,49 @@
+{
+  "job_id": "verification_source_pdf_bff_auth_parity_v1_20260601",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/verification_source_pdf_bff_auth_parity_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/verification_source_pdf_bff_auth_parity_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/verification_source_pdf_bff_auth_parity_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run components/cockpit/verification/tabs/metric-coverage-tab-panel.test.tsx lib/verification-source-route.test.ts",
+      "result": "passed",
+      "details": "2 files passed, 16 tests passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint app/api/extraction-eval/confirmed-metric-coverage/source/route.ts components/cockpit/verification/tabs/metric-coverage-tab-panel.tsx components/cockpit/verification/tabs/metric-coverage-tab-panel.test.tsx lib/verification-source-route.test.ts",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec tsc --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui build",
+      "result": "passed",
+      "details": "Build includes /api/extraction-eval/confirmed-metric-coverage/source as a dynamic route"
+    },
+    {
+      "command": "authenticated BFF route smoke via verification-source-route.test.ts",
+      "result": "passed",
+      "details": "Forwarded X-API-Key was asserted without printing the secret value"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/verification_source_pdf_bff_auth_parity_v1_20260601.md",
+      "result": "passed",
+      "details": "No disallowed files"
+    }
+  ]
+}

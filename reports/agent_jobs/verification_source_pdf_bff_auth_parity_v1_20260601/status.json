@@ -1,0 +1,21 @@
+{
+  "job_id": "verification_source_pdf_bff_auth_parity_v1_20260601",
+  "agent": "Codex",
+  "lane": "Reporting",
+  "execution_mode": "safe_extension",
+  "status": "released",
+  "released_at": "2026-05-31T23:21:20.569332Z",
+  "issue": 155,
+  "branch": "safe/reporting-verification-source-pdf-bff-auth-v1-20260601",
+  "worktree": "/home/l4nd0/tenn-reporting-verification-source-pdf-bff-auth-v1-20260601",
+  "collision_risk": "MEDIUM",
+  "contested_surfaces_touched": [],
+  "production_data_access": false,
+  "summary": [
+    "Added a Cockpit BFF route for confirmed-metric source PDFs at /api/extraction-eval/confirmed-metric-coverage/source.",
+    "The BFF route forwards an explicit request API key or configured NEXT_PUBLIC_API_KEY to the protected backend source route.",
+    "The route fails closed with DATA_MISSING when no API key can be forwarded.",
+    "The Verification detail panel disables source opening with DATA_MISSING when no Cockpit API key is available."
+  ],
+  "remaining_blockers": []
+}
