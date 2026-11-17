@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-06-02T02:05:30+10:00",
+  "issue": 121,
+  "job_id": "cockpit_action_control_route_guard_audit_v1_20260527",
+  "lane": "Reporting",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-cockpit-action-control-route-guard-audit-v1-20260602",
+  "branch": "audit/cockpit-action-control-route-guard-audit-v1-20260602",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "registry_released": true,
+  "no_mutation": true,
+  "result": "server-side guard parity audit completed; implementation not attempted",
+  "root_cause_fixed": false,
+  "route_matrix": "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/route_guard_matrix.json",
+  "summary": {
+    "backend_router_level_guard": "not_found",
+    "backend_mutation_route_guards": "not_found_on_audited_routes",
+    "bff_guard_status": "header_passthrough_only",
+    "negative_auth_tests": "missing_for_audited_action_control_routes",
+    "next_safe_step": "separate safe-extension implementation for backend route-specific guards"
+  },
+  "hard_stops_preserved": [
+    "no_live_action_execution",
+    "no_live_job_stop",
+    "no_marketplace_scan",
+    "no_marketplace_calibration",
+    "no_ebay_sync",
+    "no_benchmark_refresh",
+    "no_runtime_config_change",
+    "no_db_qdrant_news_memory_financial_truth_mutation",
+    "no_contested_product_file_edit"
+  ],
+  "files_changed": [
+    "docs/agent_tasks/cockpit_action_control_route_guard_audit_v1_20260527.md",
+    "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/README.md",
+    "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/route_guard_matrix.json",
+    "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/status.json",
+    "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/validation.json",
+    "reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/diff-check.json"
+  ]
+}

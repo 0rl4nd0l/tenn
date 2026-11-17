@@ -1,0 +1,139 @@
+{
+  "generated_at": "2026-06-02T02:05:30+10:00",
+  "issue": 121,
+  "job_id": "cockpit_action_control_route_guard_audit_v1_20260527",
+  "no_runtime_calls": true,
+  "backend_router": {
+    "router_definition": "financial-engine_v2/backend/app/routes/cockpit_api.py:114 APIRouter() without router-level dependency",
+    "router_mount": "financial-engine_v2/backend/app/main.py:113-114 include_router(cockpit_api_router, prefix=/api/cockpit) without dependencies"
+  },
+  "routes": [
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/action/preview",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:8005-8038",
+      "effect": "previews action command and impact; does not execute command",
+      "guard_classification": "unguarded_preview",
+      "risk": "medium",
+      "next_step": "decide whether previews should require API key or operator intent"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/action/execute",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:8192-8287",
+      "effect": "executes strategy-memory actions, chart actions, subprocess actions, or queues jobs",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-execute tests"
+    },
+    {
+      "surface": "backend",
+      "method": "GET",
+      "route": "/api/cockpit/action/jobs/{job_id}",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:8290-8314",
+      "effect": "reads queued action job status",
+      "guard_classification": "read_only_or_status_unguarded",
+      "risk": "medium",
+      "next_step": "decide read-only exposure policy separately"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/action/jobs/{job_id}/stop",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:8317-8335 and backend tests at test_cockpit_api_action_execute.py:520-653",
+      "effect": "sets cancellation, terminates or kills registered process, can request pipeline cancellation",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-stop tests"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/marketplace/scans",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:8794-8841",
+      "effect": "queues marketplace scan job after mission and browser-health checks",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-scan-launch tests"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/marketplace/benchmarks/refresh",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:9081-9093",
+      "effect": "runs marketplace benchmark refresh",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-refresh tests"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/marketplace/price-intelligence/calibrate",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:9096-9135",
+      "effect": "queues marketplace calibration job",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-calibration-launch tests"
+    },
+    {
+      "surface": "backend",
+      "method": "POST",
+      "route": "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/ebay-sync",
+      "evidence": "financial-engine_v2/backend/app/routes/cockpit_api.py:9138-9169",
+      "effect": "queues eBay sold-data sync job",
+      "guard_classification": "unguarded_mutation",
+      "risk": "high",
+      "next_step": "add route-specific backend guard and negative-path no-ebay-sync tests"
+    },
+    {
+      "surface": "bff",
+      "method": "POST",
+      "route": "/api/cockpit/action/execute",
+      "evidence": "cockpit-ui/app/api/cockpit/action/execute/route.ts:78-100",
+      "effect": "proxies action execute to backend and copies request headers",
+      "guard_classification": "proxy_header_passthrough_only",
+      "risk": "high",
+      "next_step": "do not rely on BFF passthrough without backend guard"
+    },
+    {
+      "surface": "bff",
+      "method": "POST",
+      "route": "/api/cockpit/action/jobs/{job_id}/stop",
+      "evidence": "cockpit-ui/app/api/cockpit/action/jobs/[jobId]/stop/route.ts:17-34",
+      "effect": "proxies action stop to backend and copies request headers",
+      "guard_classification": "proxy_header_passthrough_only",
+      "risk": "high",
+      "next_step": "do not rely on BFF passthrough without backend guard"
+    },
+    {
+      "surface": "bff",
+      "method": "POST",
+      "route": "/api/cockpit/marketplace/scans",
+      "evidence": "cockpit-ui/app/api/cockpit/marketplace/scans/route.ts:26-40",
+      "effect": "proxies marketplace scan launch to backend and copies request headers",
+      "guard_classification": "proxy_header_passthrough_only",
+      "risk": "high",
+      "next_step": "do not rely on BFF passthrough without backend guard"
+    },
+    {
+      "surface": "tests",
+      "method": "mixed",
+      "route": "action execution and stop tests",
+      "evidence": "financial-engine_v2/backend/tests/test_cockpit_api_action_execute.py:97-108 and :552-653",
+      "effect": "tests exercise action execution and stop happy paths without API-key setup",
+      "guard_classification": "missing_negative_auth_coverage",
+      "risk": "high",
+      "next_step": "add missing/wrong-key negative tests in implementation slice"
+    }
+  ],
+  "summary": {
+    "guarded_mutation_routes_found": 0,
+    "unguarded_mutation_routes_found": 6,
+    "bff_proxy_passthrough_only_routes_found": 3,
+    "implementation_recommended": true,
+    "implementation_attempted": false
+  }
+}
