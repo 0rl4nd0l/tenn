@@ -1,0 +1,126 @@
+{
+  "job_id": "root_owned_python_cache_validation_blocker_v1",
+  "issue": 140,
+  "generated_at_local": "2026-06-01T19:31:25+10:00",
+  "inspected_worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "command": "find financial-engine_v2 -name '__pycache__' -type d -not -user \"$(id -un)\" -printf '%u %g %m %p\\n' | sort",
+  "root_owned_cache_dir_count": 19,
+  "entries": [
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/alembic/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/alembic/versions/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/api/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/core/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/models/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/modules/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/providers/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/routes/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/services/analysis/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/tasks/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/backend/app/utils/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/core/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/core/agent/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/core/agent/memory/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/integrations/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/cockpit/storage/__pycache__"
+    },
+    {
+      "owner": "root",
+      "group": "root",
+      "mode": "755",
+      "path": "financial-engine_v2/shared/__pycache__"
+    }
+  ],
+  "cleanup_performed": false,
+  "cleanup_blocker": "active same-worktree Financial Truth job extraction_real_gold_eval_current_head_runtime_v1_20260601"
+}
