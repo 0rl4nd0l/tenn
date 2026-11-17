@@ -1,0 +1,103 @@
+{
+  "job_id": "query_orchestration_inference_engine_phase1_audit_closeout_v1",
+  "issue": 138,
+  "generated_at": "2026-06-01T19:02:26+10:00",
+  "repo_evidence_only": true,
+  "facades": {
+    "generate_json": "financial-engine_v2/backend/app/services/llm.py:403-491",
+    "embed_texts": "financial-engine_v2/backend/app/services/llm.py:374-400",
+    "route_request": "financial-engine_v2/backend/app/services/router.py:751-820"
+  },
+  "generate_json_call_sites": [
+    "financial-engine_v2/backend/app/worker_tasks.py:92-100",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py:3595-3604",
+    "financial-engine_v2/backend/app/services/tenn_chat.py:690-700",
+    "financial-engine_v2/backend/app/services/news_memo_extractor.py:179-221",
+    "financial-engine_v2/backend/app/services/commentary_memo_extractor.py:107-147",
+    "financial-engine_v2/backend/app/services/thesis_watchdog.py:35-86",
+    "financial-engine_v2/backend/app/services/thesis_audit.py:491-522"
+  ],
+  "embed_texts_call_sites": [
+    "financial-engine_v2/backend/app/worker_tasks.py:103-111",
+    "financial-engine_v2/backend/app/main.py:1454-1461",
+    "financial-engine_v2/backend/app/services/pipeline.py:299-329",
+    "financial-engine_v2/backend/app/services/rag.py:405-410",
+    "financial-engine_v2/backend/app/services/rag.py:479-494",
+    "financial-engine_v2/backend/app/services/analysis_rag_adapter.py:42-48",
+    "financial-engine_v2/backend/app/services/hybrid_retriever.py:71-79",
+    "financial-engine_v2/backend/app/services/reranker.py:15-22",
+    "financial-engine_v2/backend/app/services/framework_classifier.py:25-33",
+    "financial-engine_v2/backend/app/services/chat_quality_scorer.py:51-54"
+  ],
+  "route_request_call_sites": [
+    "financial-engine_v2/backend/app/services/llm.py:108-109",
+    "financial-engine_v2/backend/app/services/llm.py:381-388",
+    "financial-engine_v2/backend/app/services/llm.py:410",
+    "financial-engine_v2/backend/app/celery_app.py:36-42"
+  ],
+  "llm_fn_call_sites": [
+    "financial-engine_v2/backend/app/services/news_memo_extractor.py:179-221",
+    "financial-engine_v2/backend/app/services/commentary_memo_extractor.py:107-147",
+    "financial-engine_v2/backend/app/services/thesis_watchdog.py:35-86",
+    "financial-engine_v2/backend/app/services/thesis_audit.py:491-522"
+  ],
+  "bypass_or_adjacent_runtime_paths": [
+    "financial-engine_v2/backend/app/modules/catalysts.py:178-188",
+    "financial-engine_v2/backend/app/modules/moat.py:185-197",
+    "financial-engine_v2/backend/app/modules/risk.py:200-216",
+    "financial-engine_v2/backend/app/services/research_synthesis.py:123-142",
+    "financial-engine_v2/backend/app/services/cockpit_service.py",
+    "financial-engine_v2/cockpit/**"
+  ],
+  "script_and_test_harness_paths": [
+    "scripts/benchmark_pdf_extraction.py:419",
+    "financial-engine_v2/scripts/test_commentary_pipeline.py:556",
+    "scripts/test_run_isolated_docling_control.py:210",
+    "financial-engine_v2/scripts/test_commentary_pipeline.py:1180",
+    "financial-engine_v2/scripts/embed_docs_to_qdrant.py:50-114",
+    "scripts/build_qualitative_context_db.py:818-1785",
+    "scripts/build_news_context_db.py:1333",
+    "scripts/news_pipeline/chunk_builder.py:94",
+    "scripts/pdf_rag.py:416",
+    "scripts/test_pdf_rag_company_validation.py:108"
+  ],
+  "router_metadata_keys": [
+    "task_type",
+    "request_type",
+    "operation",
+    "intent",
+    "financial_task_type",
+    "analysis_type",
+    "document_type",
+    "source_type",
+    "retrieved_context_chars",
+    "document_count",
+    "ticker",
+    "tickers",
+    "company",
+    "companies",
+    "deep_reasoning",
+    "repo_path",
+    "repository_path",
+    "file_path",
+    "workspace_path",
+    "path",
+    "cwd",
+    "is_embedding",
+    "task"
+  ],
+  "runtime_override_keys": [
+    "component",
+    "requested_base_url",
+    "requested_model",
+    "llm_url",
+    "llm_model",
+    "embedding_model",
+    "text_count"
+  ],
+  "data_missing": [
+    "No dynamic call graph was generated.",
+    "No live runtime/queue/model/GPU probes were run.",
+    "No implementation validation was run."
+  ]
+}
