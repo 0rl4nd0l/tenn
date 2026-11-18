@@ -201,6 +201,12 @@ Operational controls:
 - Single active action at a time (new runs are blocked while one job is running).
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
 
+Chat watchlist and alerts (details in `../docs/cockpit_watch_alerts.md`):
+- Commands are handled in chat before a normal reply: `/watch`, `/alerts`, `/changes`, and `/watch sync`.
+- The watchlist is stored in `memory.state_db` (default `~/.financial_engine_cockpit/state.db`), not in the financial database.
+- `/alerts` uses `GET /api/price` with `range=3mo`. A move alerts at `abs(1D) >= 3`, `abs(20D) >= 10`, annualized 20-day volatility `>= 45`, or drawdown from the 63-day high `<= -12`. Price age over 96 hours is a separate critical alert.
+- `/watch sync` runs `update_ticker_financials` for each saved ticker with `years=1` and `process_documents=True`, and it is blocked in `--read-only` mode.
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)
