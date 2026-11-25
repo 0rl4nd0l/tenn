@@ -201,6 +201,12 @@ Operational controls:
 - Single active action at a time (new runs are blocked while one job is running).
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
 
+Chat access toggles (details in `../docs/cockpit_access.md`):
+- `/web`, `/rag`, and `/dbdiag` are in-memory for the current cockpit process. They reset on restart.
+- Web and SQL start off (`web.enabled_default: false`, `db.diagnostic_query_enabled: false`). RAG starts on only after a qualitative reader is built.
+- `/request-access web|rag|dbdiag` waits for `/confirm`. `/web on` and the other `on`/`off` commands apply immediately.
+- `--no-web` stays off for the process. `/sql` is a single read-only `SELECT` or `WITH` against `DATABASE_URL`, and it stays blocked until `/dbdiag on`.
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)
